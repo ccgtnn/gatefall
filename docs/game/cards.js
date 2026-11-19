@@ -62,7 +62,7 @@ export const FIRST_SIGNAL = Object.freeze({
 
 const protectorate = [
   ['shield-generator', 'Генератор щита', 6, null, 'В конце хода: дать 1 броню соседям.',
-    { type: 'artifact', endTurn: armorNeighbors(1), keywords: ['Броня', 'Соседи'] }],
+    { type: 'artifact', art: 'shield-generator.webp', endTurn: armorNeighbors(1), keywords: ['Броня', 'Соседи'] }],
   ['infantry', 'Пехотинец линии', 4, 2, 'При розыгрыше: соседи получают 1 броню.',
     { deploy: armorNeighbors(1), keywords: ['Броня', 'Соседи'] }],
   ['engineer', 'Инженер укреплений', 5, 3, 'При розыгрыше: дать 3 брони своей карте.',
@@ -91,7 +91,7 @@ const protectorate = [
     { deploy: ability([action('armor', chosen('ally'), 2)],
       [choice('ally', { ...allies, row: 'surface' }, 'Выбери свой отряд на Поверхности для 2 брони.', { kind: 'armor' })]), keywords: ['Броня'] }],
   ['orbital-salvo', 'Орбитальный залп', 5, null, 'Нанести 3 урона вражескому отряду. Если цель на Поверхности, нанести 5 урона.',
-    { type: 'effect', deploy: ability([action('damage', chosen('enemy'), salvoDamage)],
+    { type: 'effect', art: 'orbital-salvo.webp', deploy: ability([action('damage', chosen('enemy'), salvoDamage)],
       [enemyChoice(salvoDamage)]), keywords: ['Урон'] }],
   ['colonel', 'Полковник Стены', 9, 5, 'При розыгрыше: удвоить броню своих отрядов в этом ряду.',
     { deploy: ability([action('armor', allyRow, { stat: 'armor' })]), keywords: ['Броня'] }],
@@ -125,7 +125,7 @@ const growth = [
   ['spore-sac', 'Споровый мешок', 5, 2, 'Завещание: породить 3 личинки на месте погибшей карты.',
     { deathwish: ability([spawn('death', 'death', 3)]), keywords: ['Завещание', 'Порождение'] }],
   ['incubator', 'Инкубатор', 6, null, 'В конце хода: породить личинку справа. На третьем своём конце хода после порождения погибает.',
-    { type: 'artifact', timer: 3, endTurn: ability([spawn('right'), action('tick', self)]), keywords: ['Порождение', 'Таймер'] }],
+    { type: 'artifact', art: 'incubator.webp', timer: 3, endTurn: ability([spawn('right'), action('tick', self)]), keywords: ['Порождение', 'Таймер'] }],
   ['acid-gland', 'Кислотная железа', 4, 3, 'Завещание: нанести 4 урона выбранному вражескому отряду.',
     { deathwish: ability([action('damage', chosen('enemy'), 4)], [enemyChoice(4)]), keywords: ['Завещание', 'Урон'] }],
   ['scavenger', 'Трупоед', 5, 2, 'При розыгрыше: поглотить своего соседа.',
@@ -134,7 +134,7 @@ const growth = [
   ['gulper', 'Глотатель', 6, 3, 'При розыгрыше: поглотить все личинки в своём ряду.',
     { deploy: ability([absorb({ ...larvae, row: 'source' })]), keywords: ['Поглощение'] }],
   ['spitter', 'Кислотный плевун', 5, 3, 'При розыгрыше: поглотить свою личинку и нанести 4 урона вражескому отряду.',
-    { deploy: ability([absorb(chosen('victim')), action('damage', chosen('enemy'), 4)], [
+    { art: 'spitter.webp', deploy: ability([absorb(chosen('victim')), action('damage', chosen('enemy'), 4)], [
       choice('victim', larvae, 'Выбери личинку для поглощения.', { kind: 'consume' }), enemyChoice(4),
     ]), keywords: ['Поглощение', 'Урон'] }],
   ['predator', 'Хищный побег', 5, 4, 'Когда рядом кого-то поглощают: усилить себя на 2.',

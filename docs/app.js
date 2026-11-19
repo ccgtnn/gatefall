@@ -1,14 +1,14 @@
 import { bindCardPlacement } from './card-placement.js';
 import { presentJournalEvent } from './card-motion.js';
 import { motionDuration, playJournal } from './turn-playback.js?v=motion-settings';
-import { CARD_TYPES, FACTIONS, KEYWORDS, RARITY_LABELS, ROWS, ROW_LABELS } from './game/cards.js?v=round-rules';
+import { CARD_TYPES, FACTIONS, KEYWORDS, RARITY_LABELS, ROWS, ROW_LABELS } from './game/cards.js?v=art-batch-2';
 import { cardType, isUnit } from './game/board.js';
 import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=round-rules';
 import { availableOrders, canUseLeader } from './game/effects.js';
 import {
   HAND_LIMIT, ROW_LIMIT, applyAction, canPass, canPlayCard,
   confirmMulligan, createMatch, mulliganLimit, rowScore, totalScore,
-} from './game/match.js?v=round-rules';
+} from './game/match.js?v=art-batch-2';
 
 const screen = document.querySelector('#screen');
 const phaseLabel = document.querySelector('#phase');

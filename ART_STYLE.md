@@ -19,7 +19,7 @@ Gatefall original science-fiction card illustration, single full-bleed portrait 
 [CARD]
 ```
 
-Для прототипа четыре первых подстановки описаны ниже.
+Ниже собраны подстановки для иллюстрированных карт.
 
 ### Тяжёлый штурмовик
 
@@ -36,6 +36,22 @@ Use the vertical original cocoon reference for the exact asset identity and atmo
 ### Колосс
 
 Use the vertical cocoon as the Pоrosl faction material, color and lighting reference. Create a very distinct giant grown siege organism called Colossus. From a low angle, the central wedge-shaped head and broad chest tower above the viewer. Thick overlapping violet basalt-bark lamellae, two wet massive forelimbs framing the lower image, a single intense acid-green internal seam in its central sternum, and visible cool lavender backlight. Dark misty crevasse, with acid glow reflecting off ribbed organic surfaces. Mineral and botanical anatomy, asymmetrical silhouette and no recognizable insectoid franchise anatomy.
+
+### Орбитальный залп
+
+Orbital Salvo, a tactical Effect for the Protectorate. A single original armored orbital strike platform, twin offset steel prongs joined by a heavy transverse spine, seen in a low diagonal angle above a blue planet. A single concentrated amber-white energy beam is fired into distant empty cloud layers. Show the central orange-white emitter and a short span of its beam around the geometric center, framed by industrial steel and the cool curve of the planet. Blue-grey hard sci-fi pressure hull, carved dark metal and believable reflections. Bright at center, readable in 50 pixel crop. Large foreground platform, no spacecraft squadron, no people, no details of targeting or weapon construction.
+
+### Генератор щита
+
+Shield Generator, a compact deployable Protectorate artifact with a distinct, clearly mechanical outline. A squat field generator with a round coil nested between three heavy steel fins, mounted on a low triangular chassis on wet stone. A luminous blue field arcs outward like a partial transparent dome and brushes its top. One small amber latch of light anchors the center next to the icy coil. Brushed cobalt-grey pressure plates and rain mist. Tightly framed, readable blue arcs and ring in the center. Distinct from a fortress or spacecraft, no troops or weapons.
+
+### Инкубатор
+
+Incubator, a Growth artifact built by the alien organism rather than by humans. A hollow branching column of violet mineral roots cradles three stacked oblong translucent green hatch chambers linked by thick dark purple tendons. One open hatch at center spills chartreuse light from within, the other chambers form a distinct tiered rhythm. Twisted volcanic cavern, cool violet rim light, condensation, no figures or gore. A rooted structure with several chambers, visually distinct from the single teardrop Cocoon in the reference; focus on the central open hatch.
+
+### Кислотный плевун
+
+Acid Spitter, a small mobile Growth organism. Show the head and ribbed upper body of a crouching low four-limbed creature formed of layered purple mica bark and glossy translucent membranes. The head looks like two overlapping orchid petals parted around a central luminous acid-green pouch. A short lime arc of spat liquid catches the center light, with just a few droplets. Cool purple rim separates its silhouette from a misty rock opening. A nimble low creature rather than a massive colossus, botanical mineral character, no combat victim, no gore.
 
 ## Проверка в игре
 
