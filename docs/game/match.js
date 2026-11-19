@@ -1,6 +1,6 @@
-import { DECKS, FACTIONS, ROWS } from './cards.js';
-import { createCard, opponent, ROW_LIMIT, units } from './board.js';
-import { availableOrders, canUseLeader, enqueueCardEffect, runEffect } from './effects.js';
+import { FACTIONS, ROWS } from './cards.js';
+import { cardType, createCard, opponent, ROW_LIMIT, units } from './board.js';
+import { availableOrders, canCast, canUseLeader, enqueueCardEffect, orderAbility, runEffect } from './effects.js';
 
 export { ROW_LIMIT } from './board.js';
 
@@ -45,11 +45,11 @@ function createPlayer(side, definitions, random, faction, charges) {
   };
 }
 
-export function createMatch({ decks, humanFaction, random = Math.random, rules = MATCH_RULES } = {}) {
+export function createMatch({ decks, humanFaction = decks ? undefined : 'protectorate', random = Math.random, rules = MATCH_RULES } = {}) {
   const settings = { ...MATCH_RULES, ...rules };
   const human = FACTIONS[humanFaction];
   const bot = human ? FACTIONS[humanFaction === 'growth' ? 'protectorate' : 'growth'] : undefined;
-  const selectedDecks = decks ?? (human ? { human: human.deck, bot: bot.deck } : DECKS);
+  const selectedDecks = decks ?? { human: human.deck, bot: bot.deck };
   return {
     rules: settings,
     players: {
@@ -70,19 +70,33 @@ export function createMatch({ decks, humanFaction, random = Math.random, rules =
 }
 
 export function rowScore(player, row) {
-  return player.board[row].reduce((score, card) => score + card.power, 0);
+  return player.board[row].reduce((score, card) => score + (card.power ?? 0), 0);
 }
 
 export function totalScore(player) {
   return ROWS.reduce((score, row) => score + rowScore(player, row), 0);
 }
 
-export function canPlayCard(player, card) {
-  return player.board[card.definition.row].length < ROW_LIMIT;
+export function availableRows(player) {
+  return ROWS.filter((row) => player.board[row].length < ROW_LIMIT);
 }
 
-export function playableCards(player) {
-  return player.hand.filter((card) => canPlayCard(player, card));
+export function canPlayCard(match, side, card) {
+  return cardType(card) === 'effect' ? canCast(match, side, card) : availableRows(match.players[side]).length > 0;
+}
+
+export function playableCards(match, side) {
+  return match.players[side].hand.filter((card) => canPlayCard(match, side, card));
+}
+
+function playDestination(player, action) {
+  const row = action.row;
+  if (!ROWS.includes(row)) return null;
+  const line = player.board[row];
+  if (!line || line.length >= ROW_LIMIT) return null;
+  const position = action.position;
+  if (!Number.isInteger(position) || position < 0 || position > line.length) return null;
+  return { row, position };
 }
 
 function swapStartingCards(player, selectedIds) {
@@ -171,7 +185,9 @@ function markPassed(match, side, reason) {
 function progress(match, random) {
   while (match.phase === 'playing' && !match.pending) {
     if (match.effects.length > 0) {
-      runEffect(match, match.effects.shift(), random);
+      const job = match.effects.shift();
+      if (job.discard) match.players[job.side].discard.push(job.discard);
+      else runEffect(match, job, random);
       continue;
     }
 
@@ -191,8 +207,10 @@ function progress(match, random) {
       continue;
     }
 
-    if (playableCards(player).length || canUseLeader(match, side) || availableOrders(match, side).length) return;
-    markPassed(match, side, player.hand.length === 0 ? 'empty-hand' : 'full-row');
+    if (playableCards(match, side).length || canUseLeader(match, side) || availableOrders(match, side).length) return;
+    const reason = player.hand.length === 0 ? 'empty-hand'
+      : player.hand.every((card) => cardType(card) === 'effect') ? 'no-target' : 'full-row';
+    markPassed(match, side, reason);
     match.ending = 'effects';
   }
 }
@@ -202,7 +220,7 @@ function resumeEffect(match, side, action, random) {
   if (action.type !== 'target' || side !== pending.side || !pending.options.includes(action.cardId)) return match;
   const next = structuredClone(match);
   const choice = next.pending;
-  choice.job[choice.key] = action.cardId;
+  choice.job.refs[choice.key] = action.cardId;
   next.effects.unshift(choice.job);
   next.pending = null;
   progress(next, random);
@@ -215,15 +233,20 @@ export function applyAction(match, side, action, { random = Math.random } = {}) 
   if (match.turn !== side) return match;
 
   const player = match.players[side];
-  const { type, cardId, position } = action;
+  const { type, cardId } = action;
   if (type === 'order' && !availableOrders(match, side).some(({ card }) => card.id === cardId)) return match;
   if (type === 'leader' && !canUseLeader(match, side)) return match;
   if (type !== 'play' && type !== 'pass' && type !== 'order' && type !== 'leader') return match;
-  const cardIndex = type === 'play' && Number.isInteger(position) && position >= 0
-    ? player.hand.findIndex((card) =>
-      card.id === cardId && canPlayCard(player, card) && position <= player.board[card.definition.row].length)
-    : -1;
-  if (type === 'play' && cardIndex < 0) return match;
+  const cardIndex = type === 'play' ? player.hand.findIndex(({ id }) => id === cardId) : -1;
+  let destination;
+  if (type === 'play') {
+    const card = player.hand[cardIndex];
+    if (!card || !canPlayCard(match, side, card)) return match;
+    if (cardType(card) !== 'effect') {
+      destination = playDestination(player, action);
+      if (!destination) return match;
+    }
+  }
 
   const next = structuredClone(match);
   const current = next.players[side];
@@ -232,22 +255,26 @@ export function applyAction(match, side, action, { random = Math.random } = {}) 
     next.ending = 'effects';
   } else if (type === 'play') {
     const [card] = current.hand.splice(cardIndex, 1);
-    const row = card.definition.row;
-    current.board[row].splice(position, 0, card);
-    next.log.push({ type: 'play', side, row, name: card.definition.name, power: card.power });
+    if (destination) {
+      const { row, position } = destination;
+      current.board[row].splice(position, 0, card);
+    }
+    next.log.push({ type: 'play', side, row: destination?.row, name: card.definition.name,
+      power: card.power, cardType: cardType(card) });
     if (card.armor) next.log.push({ type: 'armor', side, name: card.definition.name, amount: card.armor });
-    enqueueCardEffect(next, side, card, 'deploy');
+    enqueueCardEffect(next, side, card, 'deploy', Boolean(destination));
+    if (!destination) next.effects.push({ discard: card, side });
     next.ending = 'effects';
   } else if (type === 'leader') {
     current.leader.charges -= 1;
     next.log.push({ type: 'leader', side, name: current.leader.name });
-    next.effects.push({ effect: current.leader.effect, side });
+    next.effects.push({ ability: current.leader.ability, side });
   } else {
     const { card } = availableOrders(next, side).find((unit) => unit.card.id === cardId);
     const order = card.definition.order;
     card.readyAt = current.turns + order.cooldown + 1;
     next.log.push({ type: 'order', side, name: card.definition.name });
-    next.effects.push({ effect: order.effect, side, sourceId: card.id, requiredSource: true });
+    next.effects.push({ ability: orderAbility(order), side, sourceId: card.id, requiredSource: true });
   }
 
   progress(next, random);

@@ -1,10 +1,16 @@
-import { LARVA, ROWS } from './cards.js';
+import { ROWS } from './cards.js';
 
 export const ROW_LIMIT = 9;
 export const opponent = (side) => side === 'human' ? 'bot' : 'human';
 
+export const cardType = ({ definition }) => definition.type ?? 'unit';
+export const isUnit = (card) => cardType(card) === 'unit';
+
 export function createCard(id, definition) {
-  return { id, definition, power: definition.power, armor: definition.armor ?? 0, readyAt: 0 };
+  const card = { id, definition, readyAt: 0 };
+  if (isUnit(card)) Object.assign(card, { power: definition.power, armor: definition.armor ?? 0 });
+  if (definition.timer !== undefined) card.timer = definition.timer;
+  return card;
 }
 
 export function units(match, side, rows = ROWS) {
@@ -26,15 +32,17 @@ export function neighbors(match, unit) {
 }
 
 export function boost(match, unit, amount) {
-  if (!unit || amount <= 0) return;
+  if (!unit || !isUnit(unit.card) || amount <= 0) return;
   unit.card.power += amount;
   match.log.push({ type: 'boost', side: unit.side, name: unit.card.definition.name, amount });
 }
 
 export function changeArmor(match, unit, amount) {
-  if (!unit || amount === 0) return;
-  unit.card.armor = (unit.card.armor ?? 0) + amount;
-  match.log.push({ type: 'armor', side: unit.side, name: unit.card.definition.name, amount });
+  if (!unit || !isUnit(unit.card) || amount === 0) return 0;
+  const change = Math.max(amount, -(unit.card.armor ?? 0));
+  unit.card.armor = (unit.card.armor ?? 0) + change;
+  if (change) match.log.push({ type: 'armor', side: unit.side, name: unit.card.definition.name, amount: change });
+  return -change;
 }
 
 export function removeUnit(match, unit, reason, consumerId) {
@@ -46,13 +54,13 @@ export function removeUnit(match, unit, reason, consumerId) {
   match.log.push({ type: reason === 'destroy' ? 'destroy' : 'death', side, name: card.definition.name, exile });
   if (reason !== 'destroy' && card.definition.deathwish) {
     match.effects.unshift({
-      effect: card.definition.deathwish, side, row, position, consumerId, deathwish: card.definition.name,
+      ability: card.definition.deathwish, side, row, position, refs: { consumer: consumerId }, deathwish: card.definition.name,
     });
   }
 }
 
 export function damage(match, unit, amount) {
-  if (!unit || amount <= 0) return;
+  if (!unit || !isUnit(unit.card) || amount <= 0) return;
   const absorbed = Math.min(amount, unit.card.armor ?? 0);
   changeArmor(match, unit, -absorbed);
   const lost = Math.min(unit.card.power, amount - absorbed);
@@ -62,7 +70,8 @@ export function damage(match, unit, amount) {
 }
 
 export function consume(match, victim, consumer, { multiplier = 1, extra = 0 } = {}) {
-  if (!victim || !consumer || victim.card.id === consumer.card.id) return;
+  if (!victim || !consumer || !isUnit(victim.card) || !isUnit(consumer.card) ||
+      victim.side !== consumer.side || victim.card.id === consumer.card.id) return 0;
   const nearby = neighbors(match, victim);
   const strength = victim.card.power;
   match.log.push({
@@ -70,18 +79,19 @@ export function consume(match, victim, consumer, { multiplier = 1, extra = 0 } =
   });
   removeUnit(match, victim, 'consume', consumer.card.id);
   boost(match, consumer, strength * multiplier + extra);
-  for (const unit of nearby) {
-    if (unit.card.definition.onNeighborConsumed) boost(match, unit, 2);
-  }
+  match.effects.unshift(...nearby.filter(({ card }) => card.definition.neighborConsumed)
+    .map((unit) => {
+      const { card, side } = unit;
+      return { ability: card.definition.neighborConsumed, sourceId: card.id, side, requiredSource: true };
+    }));
   return strength;
 }
 
-export function spawnLarvae(match, side, row, position, count) {
+export function spawnCards(match, side, row, position, count, definition) {
   const line = match.players[side].board[row];
   const added = Math.min(count, ROW_LIMIT - line.length);
   if (added <= 0) return;
-  const larvae = Array.from({ length: added }, () =>
-    createCard(`token-${++match.tokenCount}`, { ...LARVA, row }));
-  line.splice(position, 0, ...larvae);
-  match.log.push({ type: 'spawn', side, row, count: added });
+  const tokens = Array.from({ length: added }, () => createCard(`token-${++match.tokenCount}`, definition));
+  line.splice(position, 0, ...tokens);
+  match.log.push({ type: 'spawn', side, row, count: added, name: definition.name });
 }

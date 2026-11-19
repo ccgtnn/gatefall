@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { DECKS } from './fixtures/prototype-decks.js';
 import { BOT_RULES, chooseBotAction, createBotView } from '../docs/game/bot.js';
 import {
   ROW_LIMIT, applyAction, confirmMulligan, createMatch,
@@ -25,11 +26,11 @@ function choose(details, rules) {
   }, rules);
 }
 
-const play = (cardId, position = 0) => ({ type: 'play', cardId, position });
+const play = (cardId, position = 0, row = 'orbit') => ({ type: 'play', cardId, row, position });
 const pass = { type: 'pass' };
 
-test('the bot picks a median-strength card and appends it to its own row', () => {
-  assert.deepEqual(choose({ rowLengths: { orbit: 2, surface: 1 } }), play('3', 2));
+test('the bot picks a median-strength card and appends it to a row with space', () => {
+  assert.deepEqual(choose({ rowLengths: { orbit: 2, surface: 1 } }), play('3', 1, 'surface'));
 });
 
 test('the bot may pass with a large lead, except when it has one life left', () => {
@@ -65,7 +66,7 @@ test('among minimum-length wins it spends the lowest total power and preserves t
 });
 
 test('at 15 to 5, a bot on one life plays 6 and 7 in consecutive legal turns', () => {
-  let match = confirmMulligan(createMatch({ random: () => 0.999 }), []);
+  let match = confirmMulligan(createMatch({ decks: DECKS, random: () => 0.999 }), []);
   match.round = 3;
   const { human, bot } = match.players;
   human.lives = bot.lives = 1;
@@ -75,24 +76,24 @@ test('at 15 to 5, a bot on one life plays 6 and 7 in consecutive legal turns', (
   match.turn = 'human';
 
   match = applyAction(match, 'human', pass);
-  assert.deepEqual(chooseBotAction(createBotView(match)), play('6', 1));
-  match = applyAction(match, 'bot', play('6', 1));
+  assert.deepEqual(chooseBotAction(createBotView(match)), play('6', 0, 'surface'));
+  match = applyAction(match, 'bot', play('6', 0, 'surface'));
   assert.equal(match.turn, 'bot');
-  assert.deepEqual(chooseBotAction(createBotView(match)), play('7', 2));
-  match = applyAction(match, 'bot', play('7', 2));
+  assert.deepEqual(chooseBotAction(createBotView(match)), play('7', 1, 'orbit'));
+  match = applyAction(match, 'bot', play('7', 1, 'orbit'));
   assert.equal(match.result, 'loss');
   const round = match.log.find(({ type }) => type === 'round-end');
   assert.deepEqual(round.scores, { human: 15, bot: 18 });
 });
 
-test('a multi-card win must fit the free slots in each row', () => {
+test('a multi-card win needs enough combined spaces across both rows', () => {
   const details = {
     cards: [card(7), card(6), card(4, 'surface')],
-    rowLengths: { orbit: ROW_LIMIT - 1, surface: 3 },
+    rowLengths: { orbit: ROW_LIMIT - 1, surface: ROW_LIMIT - 1 },
     score: 5, opponentScore: 15, opponentPassed: true, lives: 1,
   };
-  assert.deepEqual(choose(details), play('4', 3));
-  assert.deepEqual(choose({ ...details, opponentScore: 16 }), pass);
+  assert.deepEqual(choose(details), play('4', ROW_LIMIT - 1));
+  assert.deepEqual(choose({ ...details, rowLengths: { orbit: ROW_LIMIT - 1, surface: ROW_LIMIT } }), pass);
   assert.deepEqual(choose({ ...details, cards: [] }), pass);
 });
 
@@ -114,7 +115,7 @@ test('the bot accounts for the next draw filling both hands', () => {
 });
 
 test('the bot view includes legal plays, row space and public opponent information', () => {
-  const match = createMatch({ random: () => 0.999 });
+  const match = createMatch({ decks: DECKS, random: () => 0.999 });
   const { human, bot } = match.players;
   bot.board.orbit = Array(ROW_LIMIT).fill(bot.hand[0]);
   human.passed = true;
@@ -124,7 +125,7 @@ test('the bot view includes legal plays, row space and public opponent informati
     'cards', 'handSize', 'lives', 'opponentHandSize', 'opponentLives', 'opponentPassed',
     'opponentScore', 'rowLengths', 'score',
   ]);
-  assert.deepEqual(view.cards, bot.hand.filter((card) => card.definition.row === 'surface'));
+  assert.deepEqual(view.cards, bot.hand);
   assert.deepEqual(view.rowLengths, { orbit: ROW_LIMIT, surface: 0 });
   assert.equal(view.opponentPassed, true);
   assert.equal(view.opponentLives, 1);

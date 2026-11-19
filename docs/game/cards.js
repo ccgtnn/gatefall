@@ -5,107 +5,148 @@ export const ROW_LABELS = Object.freeze({
   surface: 'Поверхность',
 });
 
-function defineDeck(prefix, entries) {
-  return Object.freeze(entries.map(([name, power, row, provision], index) =>
-    Object.freeze({ id: `${prefix}-${index + 1}`, name, power, row, provision }),
-  ));
-}
-
-export const DECKS = Object.freeze({
-  human: defineDeck('relay', [
-    ['Маяк касания', 1, 'orbit', 4],
-    ['Дежурный картограф', 2, 'surface', 4],
-    ['Зонд «Иней»', 2, 'orbit', 4],
-    ['Станция перехвата', 3, 'orbit', 4],
-    ['Караульный мех', 3, 'surface', 4],
-    ['Мастер шлюза', 3, 'surface', 4],
-    ['Рой отражателей', 4, 'orbit', 5],
-    ['Пилот челнока', 4, 'orbit', 5],
-    ['Канатный подъёмник', 4, 'surface', 5],
-    ['Колонна техников', 4, 'surface', 5],
-    ['Теневой спутник', 5, 'orbit', 5],
-    ['Фрегат «Стык»', 5, 'orbit', 5],
-    ['Полевой ретранслятор', 5, 'surface', 5],
-    ['Купол убежища', 5, 'surface', 5],
-    ['Ремонтный док', 6, 'orbit', 6],
-    ['Радарный пояс', 6, 'orbit', 6],
-    ['Караван реакторов', 6, 'surface', 6],
-    ['Группа буровиков', 6, 'surface', 6],
-    ['Крейсер «Гелиограф»', 7, 'orbit', 7],
-    ['Рельсовый бастион', 7, 'surface', 7],
-    ['Узел «Параллакс»', 7, 'surface', 7],
-    ['Кольцо наблюдения', 8, 'orbit', 8],
-    ['Гранитная колонна', 8, 'surface', 8],
-    ['Эскадра «Зенит»', 9, 'orbit', 9],
-    ['Опора горизонта', 10, 'surface', 10],
-  ]),
-  bot: defineDeck('drift', [
-    ['Сборщик пепла', 1, 'surface', 4],
-    ['Зонд «Рябь»', 2, 'orbit', 4],
-    ['Метеопост', 2, 'surface', 4],
-    ['Ловец импульсов', 3, 'orbit', 4],
-    ['Грузовой катер', 3, 'orbit', 4],
-    ['Забойный ровер', 3, 'surface', 4],
-    ['Буй скольжения', 4, 'orbit', 5],
-    ['Склад под реголитом', 4, 'surface', 5],
-    ['Архивная станция', 4, 'orbit', 5],
-    ['Резчик льда', 4, 'surface', 5],
-    ['Баржа «Вектор»', 5, 'orbit', 5],
-    ['Внешний буй', 5, 'orbit', 5],
-    ['Лёдоступ', 5, 'surface', 5],
-    ['Станция осадки', 5, 'surface', 5],
-    ['Патруль «Меридиан»', 6, 'orbit', 6],
-    ['Магнитная сеть', 6, 'orbit', 6],
-    ['Пустынные следопыты', 6, 'surface', 6],
-    ['Купол подземников', 6, 'surface', 6],
-    ['Крейсер «Уступ»', 7, 'orbit', 7],
-    ['Кольцевой буксир', 7, 'orbit', 7],
-    ['Тяжёлый землерой', 7, 'surface', 7],
-    ['Тихая флотилия', 8, 'orbit', 8],
-    ['Врата шахты', 8, 'surface', 8],
-    ['Глубинный цех', 9, 'surface', 9],
-    ['Цитадель дрейфа', 10, 'orbit', 10],
-  ]),
+export const CARD_TYPES = Object.freeze({ unit: 'Отряд', effect: 'Эффект', artifact: 'Артефакт' });
+export const RARITY_LABELS = Object.freeze({ bronze: 'Бронза', gold: 'Золото' });
+export const KEYWORDS = Object.freeze({
+  'Урон': 'Сначала снимает броню, затем силу. Отряд с нулевой силой гибнет.',
+  'Броня': 'Каждая единица поглощает 1 урон.',
+  'Усиление': 'Увеличивает текущую силу отряда.',
+  'Порождение': 'Добавляет новую карту в ряд, если есть место.',
+  'Поглощение': 'Своя жертва гибнет, её текущая сила переходит поглотившему, если карта не задаёт иное.',
+  'Уничтожение': 'Удаляет карту из игры без Завещания.',
+  'Завещание': 'Срабатывает при гибели от урона, поглощения или таймера.',
+  'Обречённость': 'При гибели карта уходит из игры, а её Завещание срабатывает.',
+  'Приказ': 'Способность применяется без расхода хода. Затем идёт перезарядка.',
+  'Соседи': 'Две ближайшие позиции слева и справа в том же ряду. Артефакты тоже занимают позиции.',
+  'Таймер': 'Считается в конце твоего хода, включая ход розыгрыша и пас.',
 });
 
+export const LARVA = Object.freeze({
+  id: 'larva', name: 'Личинка', type: 'unit', power: 1, text: 'Обречённая.',
+  doomed: true, token: true, keywords: ['Обречённость'],
+});
+
+const self = { scope: 'source' };
+const adjacent = { scope: 'neighbors', type: 'unit' };
+const allies = { scope: 'ally', type: 'unit' };
+const enemies = { scope: 'enemy', type: 'unit' };
+const larvae = { ...allies, token: true };
+const otherAlly = { ...allies, exclude: 'source' };
+const allyRow = { ...allies, row: 'source' };
+const chosen = (ref) => ({ scope: 'ref', ref });
+const action = (action, target, amount) => ({ action, target, amount });
+const ability = (steps, select = []) => ({ steps, select });
+const choice = (ref, targets, prompt, hint) => ({ ref, targets, prompt, ...hint });
+const enemyChoice = (amount) => choice('enemy', enemies,
+  'Выбери врага для урона.', { kind: 'damage', amount });
+const spawn = (position, row = 'source', amount = 1) => ({ action: 'spawn', card: LARVA, position, row, amount });
+const absorb = (target, options = {}) => ({ action: 'consume', target, receiver: self, ...options });
+const armorNeighbors = (amount) => ability([action('armor', adjacent, amount)]);
+const randomEnemy = choice('enemy', enemies, '', { mode: 'random' });
+const armorRemoved = { result: 'armor' };
+const victimPower = { stat: 'power', ref: 'victim' };
+const salvoDamage = { row: 'surface', then: 5, otherwise: 3 };
+
 const protectorate = [
-  ['shieldbearer', 'Щитоносец', 4, 'surface', 3, 'Броня 2.', { armor: 2 }],
-  ['infantry', 'Пехотинец линии', 4, 'surface', 2, 'При розыгрыше: соседи получают 1 броню.', { deploy: 'armor-neighbors' }],
-  ['engineer', 'Инженер укреплений', 5, 'surface', 3, 'При розыгрыше: дать 3 брони своей карте.', { deploy: 'engineer' }],
-  ['assault', 'Тяжёлый штурмовик', 5, 'surface', 5, 'Броня 3.', { armor: 3 }],
-  ['orbital-shield', 'Орбитальный щит', 6, 'orbit', 4, 'В конце хода: дать 1 броню соседям.', { endTurn: 'armor-neighbors' }],
-  ['standard', 'Знаменосец', 6, 'surface', 4, 'При розыгрыше: усилить бронированных соседей на 2.', { deploy: 'standard' }],
-  ['warden', 'Страж врат', 6, 'surface', 6, 'Броня 4. Нельзя сдвинуть.', { armor: 4, immovable: true }],
-  ['anvil', 'Таран «Наковальня»', 6, 'surface', 4, 'При розыгрыше: снять всю броню со своей карты и нанести столько же урона вражеской.', { deploy: 'anvil' }],
-  ['smelter', 'Переплавщик', 5, 'orbit', 3, 'При розыгрыше: снять броню с соседей и усилить себя на столько же.', { deploy: 'smelter' }],
-  ['relay', 'Наводчик щитов', 4, 'orbit', 3, 'При розыгрыше: дать 2 брони своей карте на Поверхности.', { deploy: 'relay' }],
-  ['frigate', 'Патрульный фрегат', 4, 'orbit', 4, 'Без эффекта.', {}],
-  ['colonel', 'Полковник Стены', 9, 'surface', 5, 'При розыгрыше: удвоить броню своих карт в этом ряду.', { deploy: 'colonel' }],
-  ['bastion', 'Бастион «Рубеж»', 11, 'surface', 7, 'Броня 6. При розыгрыше: дать 3 брони соседям.', { armor: 6, deploy: 'bastion' }],
-  ['commander', 'Командор щитов', 10, 'surface', 5, 'Приказ: снять 2 брони со своей карты и нанести 3 урона вражеской. Перезарядка: 2 хода.', { order: { effect: 'commander', cooldown: 2 } }],
+  ['shield-generator', 'Генератор щита', 6, null, 'В конце хода: дать 1 броню соседям.',
+    { type: 'artifact', endTurn: armorNeighbors(1), keywords: ['Броня', 'Соседи'] }],
+  ['infantry', 'Пехотинец линии', 4, 2, 'При розыгрыше: соседи получают 1 броню.',
+    { deploy: armorNeighbors(1), keywords: ['Броня', 'Соседи'] }],
+  ['engineer', 'Инженер укреплений', 5, 3, 'При розыгрыше: дать 3 брони своей карте.',
+    { deploy: ability([action('armor', chosen('ally'), 3)],
+      [choice('ally', allies, 'Выбери свой отряд для 3 брони.', { kind: 'armor' })]), keywords: ['Броня'] }],
+  ['assault', 'Тяжёлый штурмовик', 5, 5, 'Броня 3.', { armor: 3, keywords: ['Броня'] }],
+  ['orbital-shield', 'Орбитальный щит', 6, 4, 'В конце хода: дать 1 броню соседям.',
+    { endTurn: armorNeighbors(1), keywords: ['Броня', 'Соседи'] }],
+  ['standard', 'Знаменосец', 6, 4, 'При розыгрыше: усилить бронированных соседей на 2.',
+    { deploy: ability([action('boost', { ...adjacent, armorAtLeast: 1 }, 2)]), keywords: ['Усиление', 'Броня', 'Соседи'] }],
+  ['warden', 'Страж врат', 6, 6, 'Броня 4. Нельзя сдвинуть.', { armor: 4, immovable: true, keywords: ['Броня'] }],
+  ['anvil', 'Таран «Наковальня»', 6, 4, 'При розыгрыше: снять всю броню со своей карты и нанести столько же урона вражеской.',
+    { deploy: ability([
+      { action: 'armor', target: chosen('payer'), amount: { stat: 'armor', scale: -1 }, save: 'armor' },
+      action('damage', chosen('enemy'), armorRemoved),
+    ], [
+      choice('payer', { ...allies, armorAtLeast: 1 }, 'Выбери свою карту, с которой снять всю броню.', { kind: 'spend-armor' }),
+      enemyChoice({ stat: 'armor', ref: 'payer' }),
+    ]), keywords: ['Броня', 'Урон'] }],
+  ['smelter', 'Переплавщик', 5, 3, 'При розыгрыше: снять броню с соседей и усилить себя на столько же.',
+    { deploy: ability([
+      { action: 'armor', target: adjacent, amount: { stat: 'armor', scale: -1 }, save: 'armor' },
+      action('boost', self, armorRemoved),
+    ]), keywords: ['Броня', 'Усиление', 'Соседи'] }],
+  ['relay', 'Наводчик щитов', 4, 3, 'При розыгрыше: дать 2 брони своему отряду на Поверхности.',
+    { deploy: ability([action('armor', chosen('ally'), 2)],
+      [choice('ally', { ...allies, row: 'surface' }, 'Выбери свой отряд на Поверхности для 2 брони.', { kind: 'armor' })]), keywords: ['Броня'] }],
+  ['orbital-salvo', 'Орбитальный залп', 5, null, 'Нанести 3 урона вражескому отряду. Если цель на Поверхности, нанести 5 урона.',
+    { type: 'effect', deploy: ability([action('damage', chosen('enemy'), salvoDamage)],
+      [enemyChoice(salvoDamage)]), keywords: ['Урон'] }],
+  ['colonel', 'Полковник Стены', 9, 5, 'При розыгрыше: удвоить броню своих отрядов в этом ряду.',
+    { deploy: ability([action('armor', allyRow, { stat: 'armor' })]), keywords: ['Броня'] }],
+  ['bastion', 'Бастион «Рубеж»', 11, 7, 'Броня 6. При розыгрыше: дать 3 брони соседям.',
+    { armor: 6, deploy: armorNeighbors(3), keywords: ['Броня', 'Соседи'] }],
+  ['commander', 'Командор щитов', 10, 5, 'Приказ: снять 2 брони со своей карты и нанести 3 урона вражеской. Перезарядка: 2 хода.',
+    { order: {
+      cooldown: 2,
+      cost: ability([action('armor', chosen('payer'), -2)], [
+        choice('payer', { ...allies, armorAtLeast: 2 },
+          'Выбери свою карту, с которой снять 2 брони.', { kind: 'spend-armor', amount: 2 }),
+      ]),
+      ...ability([action('damage', chosen('enemy'), 3)], [enemyChoice(3)]),
+    }, keywords: ['Приказ', 'Броня', 'Урон'] }],
 ];
 
 const growth = [
-  ['cocoon', 'Кокон', 4, 'surface', 1, 'При розыгрыше: породить по личинке с каждой стороны. Завещание: усилить поглотившего на 2.', { deploy: 'cocoon', deathwish: 'cocoon-wish' }],
-  ['crawler', 'Ползун', 4, 'surface', 3, 'При розыгрыше: породить личинку справа.', { deploy: 'spawn-right' }],
-  ['vine', 'Ползучая лоза', 4, 'orbit', 2, 'При розыгрыше: породить личинку на Орбите. Завещание: 2 урона случайной вражеской карте.', { deploy: 'spawn-right', deathwish: 'vine-wish' }],
-  ['spore-sac', 'Споровый мешок', 5, 'orbit', 2, 'Завещание: породить 3 личинки на месте погибшей карты.', { deathwish: 'spore-wish' }],
-  ['nursery', 'Рассадник', 6, 'orbit', 3, 'В конце хода: породить личинку справа.', { endTurn: 'spawn-right' }],
-  ['acid-gland', 'Кислотная железа', 4, 'orbit', 3, 'Завещание: нанести 4 урона выбранной вражеской карте.', { deathwish: 'acid-wish' }],
-  ['scavenger', 'Трупоед', 5, 'surface', 2, 'При розыгрыше: поглотить своего соседа.', { deploy: 'scavenger' }],
-  ['gulper', 'Глотатель', 6, 'surface', 3, 'При розыгрыше: поглотить все личинки в своём ряду.', { deploy: 'gulper' }],
-  ['spitter', 'Кислотный плевун', 5, 'orbit', 3, 'При розыгрыше: поглотить свою личинку и нанести 4 урона вражеской карте.', { deploy: 'spitter' }],
-  ['predator', 'Хищный побег', 5, 'surface', 4, 'Когда рядом кого-то поглощают: усилить себя на 2.', { onNeighborConsumed: true }],
-  ['mutant', 'Мутант', 4, 'surface', 2, 'При розыгрыше: поглотить личинку-соседа и получить дополнительно 3 силы.', { deploy: 'mutant' }],
-  ['nest', 'Гнездо-мать', 9, 'orbit', 3, 'В конце хода: породить по личинке в каждом своём ряду.', { endTurn: 'nest' }],
-  ['colossus', 'Колосс', 11, 'surface', 5, 'При розыгрыше: поглотить всех своих соседей.', { deploy: 'colossus' }],
-  ['ravager', 'Выводок-разоритель', 10, 'surface', 4, 'При розыгрыше: поглотить свою карту и нанести урон вражеской в размере силы жертвы.', { deploy: 'ravager' }],
+  ['cocoon', 'Кокон', 4, 1, 'При розыгрыше: породить по личинке с каждой стороны. Завещание: усилить поглотившего на 2.',
+    { deploy: ability([spawn('left'), spawn('right')]),
+      deathwish: ability([action('boost', chosen('consumer'), 2)]), keywords: ['Порождение', 'Завещание', 'Поглощение'] }],
+  ['feast', 'Пиршество', 4, null, 'Выбранный свой отряд поглощает одну другую свою личинку и получает ещё +2 силы.',
+    { type: 'effect', deploy: ability([
+      absorb(chosen('victim'), { receiver: chosen('ally'), extra: 2 }),
+    ], [
+      choice('ally', allies, 'Выбери свой отряд для Пиршества.', { kind: 'boost' }),
+      choice('victim', { ...larvae, exclude: 'ally' }, 'Выбери личинку для поглощения.', { kind: 'consume' }),
+    ]), keywords: ['Поглощение', 'Усиление'] }],
+  ['vine', 'Ползучая лоза', 4, 2, 'При розыгрыше: породить личинку на Орбите. Завещание: 2 урона случайному вражескому отряду.',
+    { deploy: ability([spawn('right', 'orbit')]),
+      deathwish: ability([action('damage', chosen('enemy'), 2)], [randomEnemy]), keywords: ['Порождение', 'Завещание', 'Урон'] }],
+  ['spore-sac', 'Споровый мешок', 5, 2, 'Завещание: породить 3 личинки на месте погибшей карты.',
+    { deathwish: ability([spawn('death', 'death', 3)]), keywords: ['Завещание', 'Порождение'] }],
+  ['incubator', 'Инкубатор', 6, null, 'В конце хода: породить личинку справа. На третьем своём конце хода после порождения погибает.',
+    { type: 'artifact', timer: 3, endTurn: ability([spawn('right'), action('tick', self)]), keywords: ['Порождение', 'Таймер'] }],
+  ['acid-gland', 'Кислотная железа', 4, 3, 'Завещание: нанести 4 урона выбранному вражескому отряду.',
+    { deathwish: ability([action('damage', chosen('enemy'), 4)], [enemyChoice(4)]), keywords: ['Завещание', 'Урон'] }],
+  ['scavenger', 'Трупоед', 5, 2, 'При розыгрыше: поглотить своего соседа.',
+    { deploy: ability([absorb(chosen('victim'))],
+      [choice('victim', adjacent, 'Выбери соседа для поглощения.', { kind: 'consume' })]), keywords: ['Соседи', 'Поглощение'] }],
+  ['gulper', 'Глотатель', 6, 3, 'При розыгрыше: поглотить все личинки в своём ряду.',
+    { deploy: ability([absorb({ ...larvae, row: 'source' })]), keywords: ['Поглощение'] }],
+  ['spitter', 'Кислотный плевун', 5, 3, 'При розыгрыше: поглотить свою личинку и нанести 4 урона вражескому отряду.',
+    { deploy: ability([absorb(chosen('victim')), action('damage', chosen('enemy'), 4)], [
+      choice('victim', larvae, 'Выбери личинку для поглощения.', { kind: 'consume' }), enemyChoice(4),
+    ]), keywords: ['Поглощение', 'Урон'] }],
+  ['predator', 'Хищный побег', 5, 4, 'Когда рядом кого-то поглощают: усилить себя на 2.',
+    { neighborConsumed: ability([action('boost', self, 2)]), keywords: ['Соседи', 'Поглощение', 'Усиление'] }],
+  ['mutant', 'Мутант', 4, 2, 'При розыгрыше: поглотить личинку-соседа и получить дополнительно 3 силы.',
+    { deploy: ability([absorb(chosen('victim'), { extra: 3 })],
+      [choice('victim', { ...adjacent, token: true }, 'Выбери личинку-соседа.', { kind: 'consume' })]), keywords: ['Соседи', 'Поглощение'] }],
+  ['nest', 'Гнездо-мать', 9, 3, 'В конце хода: породить по личинке в каждом своём ряду.',
+    { endTurn: ability([spawn('right', 'all')]), keywords: ['Порождение'] }],
+  ['colossus', 'Колосс', 11, 5, 'При розыгрыше: поглотить всех своих соседей.',
+    { deploy: ability([absorb(adjacent)]), keywords: ['Соседи', 'Поглощение'] }],
+  ['ravager', 'Выводок-разоритель', 10, 4, 'При розыгрыше: поглотить свой отряд и нанести урон врагу в размере силы жертвы.',
+    { deploy: ability([
+      absorb(chosen('victim'), { multiplier: 0, save: 'strength' }),
+      action('damage', chosen('enemy'), { result: 'strength' }),
+    ], [
+      choice('victim', otherAlly, 'Выбери отряд для поглощения.', { kind: 'consume' }), enemyChoice(victimPower),
+    ]), keywords: ['Поглощение', 'Урон'] }],
 ];
 
 function factionCards(entries) {
-  return Object.freeze(entries.flatMap(([id, name, provision, row, power, text, rules], index) => {
+  return Object.freeze(entries.flatMap(([id, name, provision, power, text, rules], index) => {
     const rarity = index < 11 ? 'bronze' : 'gold';
-    const definition = Object.freeze({ id, name, provision, row, power, text, rarity, ...rules });
+    const stats = power === null ? {} : { power };
+    const definition = Object.freeze({ id, name, provision, type: 'unit', text, rarity, ...stats, ...rules });
     return rarity === 'bronze' ? [definition, definition] : [definition];
   }));
 }
@@ -113,14 +154,24 @@ function factionCards(entries) {
 export const FACTIONS = Object.freeze({
   protectorate: {
     name: 'Протекторат', strategy: 'Строй', deck: factionCards(protectorate),
-    leader: { name: 'Маршал Строя', effect: 'marshal', text: 'Дать 3 брони выбранной своей карте и её соседям.' },
+    leader: {
+      name: 'Маршал Строя', text: 'Дать 3 брони выбранному своему отряду и его соседям.',
+      ability: ability([
+        action('armor', chosen('ally'), 3),
+        action('armor', { ...adjacent, of: 'ally' }, 3),
+      ], [choice('ally', allies, 'Выбери отряд для брони Маршала и его соседей.', { kind: 'marshal' })]),
+    },
   },
   growth: {
     name: 'Поросль', strategy: 'Пожирание', deck: factionCards(growth),
-    leader: { name: 'Пожиратель', effect: 'devourer', text: 'Поглотить свою карту и передать удвоенную силу одному из её соседей.' },
+    leader: {
+      name: 'Пожиратель', text: 'Поглотить свой отряд и передать удвоенную силу одному из его соседей.',
+      ability: ability([
+        absorb(chosen('victim'), { receiver: chosen('ally'), multiplier: 2 }),
+      ], [
+        choice('victim', allies, 'Выбери жертву для Пожирателя.', { kind: 'consume' }),
+        choice('ally', { ...adjacent, of: 'victim' }, 'Выбери соседа, который получит удвоенную силу.', { kind: 'boost' }),
+      ]),
+    },
   },
-});
-
-export const LARVA = Object.freeze({
-  id: 'larva', name: 'Личинка', power: 1, text: 'Обречённая.', doomed: true, token: true,
 });

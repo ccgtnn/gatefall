@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DECKS, ROWS } from '../docs/game/cards.js';
+import { ROWS } from '../docs/game/cards.js';
+import { DECKS } from './fixtures/prototype-decks.js';
 import {
-  HAND_LIMIT, ROW_LIMIT, applyAction, confirmMulligan, createMatch, playableCards, totalScore,
+  HAND_LIMIT, ROW_LIMIT, applyAction, availableRows, confirmMulligan, createMatch, playableCards, totalScore,
 } from '../docs/game/match.js';
 import { chooseBotAction, createBotView } from '../docs/game/bot.js';
 
@@ -16,9 +17,10 @@ function orderedMatch({ human = DECKS.human, bot = DECKS.bot, starter = 'human',
 
 function playFirst(match) {
   const player = match.players[match.turn];
-  const [card] = playableCards(player);
+  const [card] = playableCards(match, match.turn);
+  const row = availableRows(player).includes(card.definition.row) ? card.definition.row : availableRows(player)[0];
   return applyAction(match, match.turn, {
-    type: 'play', cardId: card.id, position: player.board[card.definition.row].length,
+    type: 'play', cardId: card.id, row, position: player.board[row].length,
   });
 }
 
@@ -71,7 +73,7 @@ test('mulligan replaces up to three distinct cards before play and returns them 
   assert.deepEqual(setup.players.human.hand.slice(0, 4).map((card) => card.id), ids);
 });
 
-test('only the active side may move, and its card always goes into its own printed row', () => {
+test('only the active side may move, and the card goes into the chosen row', () => {
   const match = confirmMulligan(orderedMatch(), []);
   assert.strictEqual(applyAction(match, 'bot', pass), match);
   assert.strictEqual(applyAction(match, 'human', { type: 'play', cardId: 'missing', position: 0 }), match);
@@ -182,23 +184,19 @@ test('an empty hand triggers autopass as soon as that player would act', () => {
   ]);
 });
 
-test('a filled row rejects further cards of that row but permits cards in the other row', () => {
-  const definitions = Array.from({ length: 10 }, () => DECKS.human[0]);
-  definitions[9] = DECKS.human[1];
-  const setup = orderedMatch({ human: definitions, bot: [] });
+test('a filled row rejects placement there while the other row accepts the same card', () => {
+  const setup = orderedMatch({ human: Array(10).fill(DECKS.human[0]), bot: [] });
   let match = confirmMulligan(setup, []);
   for (let play = 0; play < ROW_LIMIT; play += 1) match = playFirst(match);
 
   assert.equal(match.players.human.board.orbit.length, ROW_LIMIT);
-  const [surfaceCard] = playableCards(match.players.human);
-  assert.equal(surfaceCard.definition.row, 'surface');
-  const overCap = { id: 'extra-orbit', definition: DECKS.human[0], power: 1 };
-  const fixture = structuredClone(match);
-  fixture.players.human.hand.unshift(overCap);
-  assert.strictEqual(applyAction(fixture, 'human', { type: 'play', cardId: overCap.id, position: ROW_LIMIT }), fixture);
-  assert.deepEqual(playableCards(fixture.players.human), [surfaceCard]);
-  const next = applyAction(fixture, 'human', { type: 'play', cardId: surfaceCard.id, position: 0 });
-  assert.ok(roundEvents(next, 'pass').some(({ reason }) => reason === 'full-row'));
+  const [card] = playableCards(match, 'human');
+  assert.strictEqual(applyAction(match, 'human', {
+    type: 'play', cardId: card.id, row: 'orbit', position: ROW_LIMIT,
+  }), match);
+  const next = applyAction(match, 'human', { type: 'play', cardId: card.id, row: 'surface', position: 0 });
+  assert.notStrictEqual(next, match);
+  assert.ok(next.players.human.discard.some(({ id }) => id === card.id));
 });
 
 test('128 reproducible matches terminate and keep each side’s cards in exactly one zone', () => {
@@ -208,7 +206,7 @@ test('128 reproducible matches terminate and keep each side’s cards in exactly
       roll = (Math.imul(1664525, roll) + 1013904223) >>> 0;
       return roll / 0x100000000;
     };
-    let match = confirmMulligan(createMatch({ random }), []);
+    let match = confirmMulligan(createMatch({ decks: DECKS, random }), []);
     for (let turn = 0; turn < 40 && match.phase === 'playing'; turn += 1) {
       if (match.turn === 'bot') {
         match = applyAction(match, 'bot', chooseBotAction(createBotView(match)));
@@ -232,7 +230,7 @@ test('position inserts the first, leftmost, rightmost and middle cards in the ex
   let match = confirmMulligan(setup, []);
   const cards = match.players.human.hand.slice(0, 4);
   const playAt = (card, position) => applyAction(match, 'human', {
-    type: 'play', cardId: card.id, position,
+    type: 'play', cardId: card.id, row: 'orbit', position,
   });
 
   for (const invalid of [undefined, -1, 1, 0.5, '0', NaN]) {
