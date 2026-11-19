@@ -1,3 +1,4 @@
+import { bindCardPlacement } from './card-placement.js';
 import { ROWS, ROW_LABELS } from './game/cards.js';
 import { BOT_DELAY_MS, chooseBotAction, createBotView } from './game/bot.js';
 import {
@@ -13,6 +14,10 @@ let match;
 let selected = new Set();
 let timer;
 const sideLabel = { human: 'Ты', bot: 'Бот' };
+
+const cancelPlacement = bindCardPlacement(screen, (cardId, position) => {
+  playHuman({ type: 'play', cardId, position });
+});
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -125,26 +130,26 @@ function mulliganScreen() {
   return panel;
 }
 
-function rowView(player, row) {
+function rowView(side, player, row) {
   const wrapper = element('div', 'board-row');
   const strength = rowScore(player, row);
   const label = element('div', 'row-label');
   label.append(element('span', null, ROW_LABELS[row]), element('strong', 'row-score', strength));
-  const slots = element('div', 'slots');
-  for (let index = 0; index < ROW_LIMIT; index += 1) {
-    const card = player.board[row][index];
-    const slot = element('div', 'slot');
-    if (card) {
-      const description = `${card.definition.name} · сила ${card.power}`;
-      slot.classList.add('filled');
-      slot.textContent = card.power;
-      slot.title = description;
-      slot.setAttribute('aria-label', description);
-      slot.setAttribute('role', 'img');
-    } else {
-      slot.setAttribute('aria-hidden', 'true');
-    }
+  const slots = element('div', 'row-line');
+  const cards = player.board[row];
+  if (side === 'human' && cards.length < ROW_LIMIT) slots.dataset.playRow = row;
+  for (const card of cards) {
+    const description = `${card.definition.name} · сила ${card.power}`;
+    const slot = element('div', 'slot filled', card.power);
+    slot.title = description;
+    slot.setAttribute('aria-label', description);
+    slot.setAttribute('role', 'img');
     slots.append(slot);
+  }
+  if (cards.length === 0) {
+    const placeholder = element('div', 'slot');
+    placeholder.setAttribute('aria-hidden', 'true');
+    slots.append(placeholder);
   }
   wrapper.append(label, slots);
   return wrapper;
@@ -166,7 +171,7 @@ function sideView(side) {
   summary.append(element('h2', null, sideLabel[side]), status, score);
   const rows = side === 'bot' ? ROWS : [...ROWS].reverse();
   const lines = element('div', 'board-rows');
-  lines.append(...rows.map((row) => rowView(player, row)));
+  lines.append(...rows.map((row) => rowView(side, player, row)));
   if (side === 'bot') section.append(summary, lines);
   else section.append(lines, summary);
   return section;
@@ -189,12 +194,14 @@ function playerHand() {
   }
 
   const cards = element('div', 'hand-grid');
+  panel.append(element('p', 'muted placement-hint', 'Перетащи карту в её ряд. Нажатие ставит карту справа.'));
   for (const card of human.hand) {
-    const node = cardButton(card, () => playHuman({
-      type: 'play',
-      cardId: card.id,
-      position: human.board[card.definition.row].length,
-    }));
+    const { row } = card.definition;
+    const node = cardButton(card, (event) => {
+      if (event.detail !== 0) return;
+      playHuman({ type: 'play', cardId: card.id, position: human.board[row].length });
+    });
+    node.dataset.cardRow = row;
     const hasSpace = canPlayCard(human, card);
     node.disabled = !active || !hasSpace;
     if (!hasSpace) {
@@ -250,6 +257,7 @@ function finishedScreen() {
 }
 
 function render() {
+  cancelPlacement();
   let content;
   switch (match?.phase) {
     case 'mulligan': content = mulliganScreen(); break;
@@ -277,7 +285,9 @@ function updateMatch(next) {
 
 function playHuman(action) {
   updateMatch(applyAction(match, 'human', action));
-  if (match.turn === 'human') screen.querySelector('.hand-card:enabled, #pass-button:enabled').focus();
+  if (match.turn === 'human') {
+    screen.querySelector('.hand-card:enabled, #pass-button:enabled')?.focus({ preventScroll: true });
+  }
 }
 
 render();

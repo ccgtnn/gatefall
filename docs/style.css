@@ -36,7 +36,8 @@ button:not(:disabled) { cursor: pointer; }
   margin-bottom: .75rem;
 }
 
-#phase, .muted, .round-result, .intro-copy { color: var(--subtle); }
+.brand { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .65rem; }
+#phase, .subtitle, .muted, .round-result, .intro-copy { color: var(--subtle); }
 
 .intro {
   min-height: 48vh;
@@ -112,18 +113,51 @@ button:not(:disabled) { cursor: pointer; }
 }
 
 .row-score { color: #f1f1f1; font-variant-numeric: tabular-nums; }
-.slots { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: .25rem; }
+.row-line {
+  --slot-width: min(2.2rem, calc((100% - 2rem) / 9));
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .25rem;
+  padding-inline: .25rem;
+  min-width: 0;
+  min-height: 2.35rem;
+  border-radius: 4px;
+}
+
+.row-line.is-available { background: #313131; box-shadow: inset 0 0 0 1px #797979; }
 .slot {
   display: grid;
   place-items: center;
+  flex: 0 0 var(--slot-width);
+  aspect-ratio: 1;
   min-width: 0;
-  height: clamp(1.65rem, 4.5vw, 2.2rem);
   border: 1px dashed var(--edge);
   border-radius: 3px;
   font-weight: 700;
 }
 
 .slot.filled { border: 1px solid #747474; background: var(--card); }
+.drop-marker {
+  position: absolute;
+  top: 50%;
+  width: 3px;
+  height: calc(100% - .3rem);
+  transform: translate(-50%, -50%);
+  border-radius: 3px;
+  background: #fff;
+  pointer-events: none;
+}
+
+.drop-marker.is-center {
+  width: var(--slot-width);
+  height: auto;
+  aspect-ratio: 1;
+  border: 2px solid #fff;
+  background: #ffffff20;
+}
+
 .turn {
   text-align: center;
   font-weight: 700;
@@ -134,6 +168,7 @@ button:not(:disabled) { cursor: pointer; }
 }
 
 .hand-header { margin-bottom: .5rem; }
+.placement-hint { min-height: 1.25rem; margin-bottom: .55rem; font-size: .875rem; }
 .hand-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .4rem; width: 100%; }
 .hand-card {
   display: grid;
@@ -148,6 +183,22 @@ button:not(:disabled) { cursor: pointer; }
   padding: .4rem;
   color: inherit;
   background: var(--card);
+}
+
+.hand .hand-card:not(:disabled) {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.hand-card.is-dragged { opacity: .4; cursor: grabbing; }
+.drag-ghost {
+  position: fixed;
+  z-index: 5;
+  transform: translate(-50%, -50%);
+  opacity: .8;
+  pointer-events: none;
 }
 
 .hand-card:not(:disabled):hover { background: #484848; }
