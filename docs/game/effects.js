@@ -5,7 +5,7 @@ import {
 
 export function canUseLeader(match, side) {
   const { leader } = match.players[side];
-  if (!leader || leader.charges === 0) return false;
+  if (!leader || leader.charges <= 0) return false;
   return leader.effect === 'marshal'
     ? units(match, side).length > 0
     : ROWS.some((row) => match.players[side].board[row].length >= 2);

@@ -241,3 +241,92 @@ button:not(:disabled) { cursor: pointer; }
 @media (min-width: 58rem) {
   .hand-grid { grid-template-columns: repeat(10, minmax(0, 1fr)); }
 }
+
+.deck-choices, .hand-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+}
+
+.deck-choice {
+  display: grid;
+  justify-items: start;
+  gap: .3rem;
+  min-width: 9.75rem;
+}
+
+.deck-choice strong { font-size: 1.05rem; }
+.hand-header { flex-wrap: wrap; }
+.hand-controls { margin-left: auto; }
+.hand-controls .button { padding-inline: .65rem; }
+
+.row-line { --slot-width: min(2.6rem, calc((100% - 1.65rem) / 9)); gap: .2rem; }
+.slot.filled {
+  position: relative;
+  place-items: stretch;
+  border: 0;
+  border-radius: 3px;
+  aspect-ratio: auto;
+  min-height: 2.75rem;
+}
+
+.unit-face {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: .08rem;
+  width: 100%;
+  min-height: 2.55rem;
+  padding: .08rem;
+  color: inherit;
+  text-align: center;
+  background: var(--card);
+  border: 1px solid #747474;
+  border-radius: 3px;
+  touch-action: manipulation;
+}
+
+.unit-power { line-height: 1; }
+.unit-face.is-doomed { border-style: dashed; }
+.card-marks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .05rem .14rem;
+  font-size: .75rem;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.card-marks:empty { display: none; }
+.armor-mark { color: #9ed4ff; }
+.wish-mark, .doomed-mark { color: #f1d29c; }
+.unit-order {
+  width: 100%;
+  padding: .08rem 0;
+  border: 1px solid #626262;
+  border-radius: 3px;
+  background: #38485a;
+  color: inherit;
+  font-size: .8rem;
+}
+.unit-order:disabled { opacity: .6; }
+.unit-face.effect-target {
+  background: #214b56;
+  border: 2px solid #99e9ff;
+  box-shadow: 0 0 0 1px #99e9ff;
+}
+.target-prompt { color: #b3efff; }
+.card-preview {
+  position: fixed;
+  inset: auto .75rem .75rem auto;
+  z-index: 8;
+  max-width: min(22rem, calc(100% - 1.5rem));
+  padding: .65rem .8rem;
+  background: #252b32;
+  border-color: #8897a9;
+  pointer-events: none;
+  box-shadow: 0 4px 16px #0008;
+}
+.card-preview p { margin-top: .2rem; }
+.faction-label { color: #e9e9e9; }

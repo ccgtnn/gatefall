@@ -1,5 +1,6 @@
 const DRAG_DISTANCE = 6;
 const SCROLL_EDGE = 56;
+const INSPECT_DELAY = 450;
 
 export function insertionPoint(row, cards, clientX) {
   if (cards.length === 0) return { position: 0, offset: row.width / 2 };
@@ -13,7 +14,7 @@ export function insertionPoint(row, cards, clientX) {
   return { position, offset: (leftEdge + rightEdge) / 2 - row.left };
 }
 
-export function bindCardPlacement(screen, play) {
+export function bindCardPlacement(screen, play, inspect) {
   const doc = screen.ownerDocument;
   const view = doc.defaultView;
   let gesture = null;
@@ -69,6 +70,7 @@ export function bindCardPlacement(screen, play) {
     const active = gesture;
     if (!active) return;
     gesture = null;
+    clearTimeout(active.holdTimer);
     if (active.ghost) {
       view.cancelAnimationFrame(active.frame);
       active.ghost.remove();
@@ -89,16 +91,26 @@ export function bindCardPlacement(screen, play) {
     if (!row) return;
     gesture = { pointerId: event.pointerId, card, row, startX: event.clientX, startY: event.clientY };
     card.setPointerCapture(event.pointerId);
+    if (inspect && event.pointerType === 'touch') {
+      const active = gesture;
+      active.holdTimer = setTimeout(() => {
+        active.inspected = true;
+        inspect(card);
+      }, INSPECT_DELAY);
+    }
   });
 
   screen.addEventListener('pointermove', (event) => {
     const active = gesture;
-    if (active?.pointerId !== event.pointerId) return;
+    if (active?.pointerId !== event.pointerId || active.inspected) return;
 
     active.x = event.clientX;
     active.y = event.clientY;
     if (!active.ghost && Math.hypot(active.x - active.startX, active.y - active.startY) < DRAG_DISTANCE) return;
-    if (!active.ghost) beginDrag(active);
+    if (!active.ghost) {
+      clearTimeout(active.holdTimer);
+      beginDrag(active);
+    }
     active.ghost.style.left = `${active.x}px`;
     active.ghost.style.top = `${active.y}px`;
     showTarget(active);
@@ -108,6 +120,10 @@ export function bindCardPlacement(screen, play) {
     const active = gesture;
     if (active?.pointerId !== event.pointerId) return;
 
+    if (active.inspected) {
+      cancel();
+      return;
+    }
     const { clientX, clientY } = event;
     const hit = doc.elementFromPoint(clientX, clientY);
     const position = active.ghost

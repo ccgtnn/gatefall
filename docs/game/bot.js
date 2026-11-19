@@ -84,9 +84,8 @@ export function chooseBotAction(view, rules = BOT_RULES) {
   return playCard(middle, view);
 }
 
-function damagePriority(card, amount) {
-  const lethal = amount >= card.power + (card.armor ?? 0);
-  return (lethal ? 100 : 0) + card.power;
+function lethalDamage(card, amount) {
+  return amount >= card.power + (card.armor ?? 0);
 }
 
 function sacrificePriority(card) {
@@ -102,13 +101,13 @@ function bestTarget(candidates, priority) {
 function pickBotTarget(match) {
   const { kind, amount, options } = match.pending;
   const candidates = options.map((id) => findUnit(match, id));
+  const lethal = kind === 'damage' ? candidates.filter(({ card }) => lethalDamage(card, amount)) : [];
   const priorities = {
-    damage: ({ card }) => damagePriority(card, amount),
     consume: ({ card }) => sacrificePriority(card),
     'spend-armor': ({ card }) => amount ? card.armor : card.armor * 100 + card.power,
     marshal: (unit) => neighbors(match, unit).length * 100 + unit.card.power,
   };
-  const target = bestTarget(candidates, priorities[kind] ?? (({ card }) => card.power));
+  const target = bestTarget(lethal.length ? lethal : candidates, priorities[kind] ?? (({ card }) => card.power));
   return { type: 'target', cardId: target.card.id };
 }
 
@@ -132,7 +131,7 @@ export function chooseBotTurn(match) {
   const [order] = availableOrders(match, 'bot');
   const alreadyWon = view.opponentPassed && view.score > view.opponentScore;
   if (!alreadyWon) {
-    if (order && enemies.some(({ card }) => damagePriority(card, 3) >= 100 || (card.armor ?? 0) <= 1)) {
+    if (order && enemies.some(({ card }) => lethalDamage(card, 3) || (card.armor ?? 0) <= 1)) {
       return { type: 'order', cardId: order.card.id };
     }
     if (beneficialLeader(match, view, allies)) return { type: 'leader' };
