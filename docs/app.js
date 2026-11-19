@@ -285,13 +285,13 @@ function cardStats(card) {
 }
 
 function cardMarks(card) {
+  const decorations = document.createDocumentFragment();
   const marks = element('span', 'card-marks');
   const { definition, timer } = card;
   if (definition.provision !== undefined) {
-    const rarity = definition.rarity === 'gold' ? 'З' : 'Б';
-    const provision = element('span', 'provision-mark ' + definition.rarity, rarity + definition.provision);
+    const provision = element('strong', 'provision-mark ' + definition.rarity, definition.provision);
     provision.title = RARITY_LABELS[definition.rarity] + ' · Провизия ' + definition.provision;
-    marks.append(provision);
+    decorations.append(provision);
   }
   for (const word of keywordsFor(card)) {
     if (word === 'Броня' && card.armor) continue;
@@ -306,7 +306,8 @@ function cardMarks(card) {
   }
   if (timer !== undefined) marks.append(element('span', 'timer-mark', '⌛' + timer));
   marks.setAttribute('aria-hidden', 'true');
-  return marks;
+  decorations.append(marks);
+  return decorations;
 }
 
 function cardLabel(card) {

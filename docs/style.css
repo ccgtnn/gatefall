@@ -341,8 +341,6 @@ button:not(:disabled) { cursor: pointer; }
 .board-row:has(.row-place:not([hidden])) .row-label { flex-wrap: wrap; }
 .hand .hand-card.is-unavailable, .mulligan .hand-card.is-unavailable { opacity: .64; cursor: default; }
 .unit-face.is-artifact { background: #30373c; }
-.provision-mark { color: #efb285; }
-.provision-mark.gold { color: #ffe087; }
 .timer-mark { color: #e3dcfb; }
 .unit-face .card-marks { font-size: .65rem; }
 dialog.card-preview {
@@ -428,9 +426,8 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 .hand-card[data-type="unit"] { padding-block-start: 1.48rem; }
 .unit-face[data-type="unit"] { align-content: end; padding-block: 1.35rem .17rem; }
 [data-type="unit"] > .card-stats { position: absolute; inset: 0; pointer-events: none; }
-.unit-power, .armor-stat {
+.unit-power, .armor-stat, .provision-mark {
   position: absolute;
-  top: var(--stat-inset);
   pointer-events: auto;
   display: grid;
   place-items: center;
@@ -441,6 +438,7 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
+.unit-power, .armor-stat { top: var(--stat-inset); }
 .unit-power {
   left: var(--stat-inset);
   border-radius: 50%;
@@ -455,6 +453,24 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   background: #a5d3ed;
   color: #102131;
   text-shadow: none;
+}
+.provision-mark {
+  right: var(--stat-inset);
+  bottom: var(--stat-inset);
+  border-radius: 50%;
+  background: #cd9466;
+  color: #26170c;
+}
+.provision-mark.gold { background: #f4d575; color: #342608; }
+.hand-card:has(> .provision-mark) .card-marks,
+.unit-face:has(> .provision-mark) .card-marks {
+  justify-self: stretch;
+  justify-content: flex-start;
+  padding-inline-end: calc(min(var(--stat-size), 50%) + var(--stat-inset));
+}
+.hand-card:has(> .provision-mark) .card-marks {
+  display: flex;
+  min-height: .8rem;
 }
 .type-shape { color: var(--faction-light, #e6efff); font-size: 1.12rem; line-height: 1; }
 .card-type-label { color: var(--subtle); font-size: .75rem; line-height: 1.1; }
@@ -547,10 +563,13 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 
 @media (max-width: 37rem) {
   .match-meta, .motion-setting { gap: .38rem; }
+  .hand-card, .unit-face {
+    --stat-size: 1rem;
+    --stat-font: clamp(.54rem, 2.5vw, .65rem);
+  }
   .unit-face {
     min-height: 3.25rem;
     --stat-inset: 1px;
-    --stat-font: clamp(.57rem, 2.7vw, .7rem);
   }
   .unit-face .card-marks { font-size: .66rem; gap: .09rem .1rem; }
   .unit-face .keyword-mark { font-size: .70rem; }
