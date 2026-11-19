@@ -488,6 +488,3 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   .unit-face .card-marks { font-size: .66rem; gap: .09rem .1rem; }
   .unit-face .keyword-mark { font-size: .70rem; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .motion-overlay { display: none; }
-}

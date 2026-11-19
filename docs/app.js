@@ -1,6 +1,6 @@
 import { bindCardPlacement } from './card-placement.js';
 import { presentJournalEvent } from './card-motion.js';
-import { motionDuration, playJournal } from './turn-playback.js';
+import { motionDuration, playJournal } from './turn-playback.js?v=motion-settings';
 import { CARD_TYPES, FACTIONS, KEYWORDS, RARITY_LABELS, ROWS, ROW_LABELS } from './game/cards.js';
 import { cardType, isUnit } from './game/board.js';
 import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js';
@@ -14,16 +14,23 @@ const screen = document.querySelector('#screen');
 const phaseLabel = document.querySelector('#phase');
 const announcement = document.querySelector('#announcement');
 const speedSetting = document.querySelector('#animation-speed');
+const systemSpeed = speedSetting.querySelector('[value="system"]');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const speedKey = 'gatefall.animation-speed';
 try {
-  speedSetting.value = localStorage.getItem(speedKey) === 'fast' ? 'fast' : 'normal';
-} catch {
-  speedSetting.value = 'normal';
-}
+  const saved = localStorage.getItem(speedKey);
+  if (saved === 'normal' || saved === 'fast') speedSetting.value = saved;
+} catch {}
 speedSetting.addEventListener('change', () => {
   try { localStorage.setItem(speedKey, speedSetting.value); } catch {}
 });
+
+function updateSystemSpeed() {
+  systemSpeed.textContent = reducedMotion.matches ? 'По системе (выключены)' : 'По системе (обычная)';
+}
+
+reducedMotion.addEventListener('change', updateSystemSpeed);
+updateSystemSpeed();
 
 let match;
 let selected = new Set();

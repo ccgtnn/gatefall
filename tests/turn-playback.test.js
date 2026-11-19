@@ -64,9 +64,11 @@ test('the next turn remains blocked until even the final animation finishes', as
   assert.deepEqual(marks, ['play', 'deathwish', 'next turn']);
 });
 
-test('motion follows the selected duration and honors reduced-motion', () => {
+test('system animation mode honors reduced motion, with an explicit in-game override', () => {
+  assert.equal(motionDuration('system', false), 320);
+  assert.equal(motionDuration('system', true), 0);
   assert.equal(motionDuration('normal', false), 320);
   assert.equal(motionDuration('fast', false), 200);
-  assert.equal(motionDuration('normal', true), 0);
-  assert.equal(motionDuration('fast', true), 0);
+  assert.equal(motionDuration('normal', true), 320);
+  assert.equal(motionDuration('fast', true), 200);
 });
