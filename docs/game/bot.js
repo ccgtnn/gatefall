@@ -1,4 +1,6 @@
 import { ROWS } from './cards.js';
+import { findUnit, neighbors, units } from './board.js';
+import { availableOrders, canUseLeader } from './effects.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
@@ -80,4 +82,60 @@ export function chooseBotAction(view, rules = BOT_RULES) {
   if (lives > 1 && lead >= rules.passLead) return pass;
   const middle = ordered[Math.floor((ordered.length - 1) / 2)];
   return playCard(middle, view);
+}
+
+function damagePriority(card, amount) {
+  const lethal = amount >= card.power + (card.armor ?? 0);
+  return (lethal ? 100 : 0) + card.power;
+}
+
+function sacrificePriority(card) {
+  if (card.definition.token) return 100;
+  if (card.definition.deathwish) return 50;
+  return -card.power;
+}
+
+function bestTarget(candidates, priority) {
+  return candidates.reduce((best, unit) => priority(unit) > priority(best) ? unit : best);
+}
+
+function pickBotTarget(match) {
+  const { kind, amount, options } = match.pending;
+  const candidates = options.map((id) => findUnit(match, id));
+  const priorities = {
+    damage: ({ card }) => damagePriority(card, amount),
+    consume: ({ card }) => sacrificePriority(card),
+    'spend-armor': ({ card }) => amount ? card.armor : card.armor * 100 + card.power,
+    marshal: (unit) => neighbors(match, unit).length * 100 + unit.card.power,
+  };
+  const target = bestTarget(candidates, priorities[kind] ?? (({ card }) => card.power));
+  return { type: 'target', cardId: target.card.id };
+}
+
+function beneficialLeader(match, view, allies) {
+  const player = match.players.bot;
+  if (!canUseLeader(match, 'bot')) return false;
+  if (player.leader.effect === 'marshal') {
+    return !view.opponentPassed && allies.some((unit) => neighbors(match, unit).length > 0);
+  }
+
+  const sacrifices = allies.filter((unit) => neighbors(match, unit).length > 0);
+  const { card } = bestTarget(sacrifices, ({ card }) => sacrificePriority(card));
+  return card.power >= 2 || Boolean(card.definition.deathwish) || view.score === view.opponentScore;
+}
+
+export function chooseBotTurn(match) {
+  if (match.pending) return pickBotTarget(match);
+  const view = createBotView(match);
+  const enemies = units(match, 'human');
+  const allies = units(match, 'bot');
+  const [order] = availableOrders(match, 'bot');
+  const alreadyWon = view.opponentPassed && view.score > view.opponentScore;
+  if (!alreadyWon) {
+    if (order && enemies.some(({ card }) => damagePriority(card, 3) >= 100 || (card.armor ?? 0) <= 1)) {
+      return { type: 'order', cardId: order.card.id };
+    }
+    if (beneficialLeader(match, view, allies)) return { type: 'leader' };
+  }
+  return chooseBotAction(view);
 }
