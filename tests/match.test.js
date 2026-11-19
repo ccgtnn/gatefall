@@ -16,7 +16,10 @@ function orderedMatch({ human = DECKS.human, bot = DECKS.bot, starter = 'human',
 
 function playFirst(match) {
   const player = match.players[match.turn];
-  return applyAction(match, match.turn, { type: 'play', cardId: playableCards(player)[0].id });
+  const [card] = playableCards(player);
+  return applyAction(match, match.turn, {
+    type: 'play', cardId: card.id, position: player.board[card.definition.row].length,
+  });
 }
 
 function endRound(match) {
@@ -71,7 +74,7 @@ test('mulligan replaces up to three distinct cards before play and returns them 
 test('only the active side may move, and its card always goes into its own printed row', () => {
   const match = confirmMulligan(orderedMatch(), []);
   assert.strictEqual(applyAction(match, 'bot', pass), match);
-  assert.strictEqual(applyAction(match, 'human', { type: 'play', cardId: 'missing' }), match);
+  assert.strictEqual(applyAction(match, 'human', { type: 'play', cardId: 'missing', position: 0 }), match);
   const [card] = match.players.human.hand;
   const next = playFirst(match);
   assert.deepEqual(next.players.human.board[card.definition.row], [card]);
@@ -192,9 +195,9 @@ test('a filled row rejects further cards of that row but permits cards in the ot
   const overCap = { id: 'extra-orbit', definition: DECKS.human[0], power: 1 };
   const fixture = structuredClone(match);
   fixture.players.human.hand.unshift(overCap);
-  assert.strictEqual(applyAction(fixture, 'human', { type: 'play', cardId: overCap.id }), fixture);
+  assert.strictEqual(applyAction(fixture, 'human', { type: 'play', cardId: overCap.id, position: ROW_LIMIT }), fixture);
   assert.deepEqual(playableCards(fixture.players.human), [surfaceCard]);
-  const next = applyAction(fixture, 'human', { type: 'play', cardId: surfaceCard.id });
+  const next = applyAction(fixture, 'human', { type: 'play', cardId: surfaceCard.id, position: 0 });
   assert.ok(roundEvents(next, 'pass').some(({ reason }) => reason === 'full-row'));
 });
 
@@ -222,4 +225,25 @@ test('128 reproducible matches terminate and keep each side’s cards in exactly
       assert.ok(player.hand.length <= HAND_LIMIT);
     }
   }
+});
+
+test('position inserts the first, leftmost, rightmost and middle cards in the expected order', () => {
+  const setup = orderedMatch({ human: DECKS.human.filter(({ row }) => row === 'orbit'), bot: [] });
+  let match = confirmMulligan(setup, []);
+  const cards = match.players.human.hand.slice(0, 4);
+  const playAt = (card, position) => applyAction(match, 'human', {
+    type: 'play', cardId: card.id, position,
+  });
+
+  for (const invalid of [undefined, -1, 1, 0.5, '0', NaN]) {
+    assert.strictEqual(playAt(cards[0], invalid), match);
+  }
+  match = playAt(cards[0], 0);
+  assert.deepEqual(match.players.human.board.orbit, [cards[0]]);
+  match = playAt(cards[1], 0);
+  assert.deepEqual(match.players.human.board.orbit, [cards[1], cards[0]]);
+  assert.strictEqual(playAt(cards[2], 3), match);
+  match = playAt(cards[2], 2);
+  match = playAt(cards[3], 1);
+  assert.deepEqual(match.players.human.board.orbit, [cards[1], cards[3], cards[0], cards[2]]);
 });

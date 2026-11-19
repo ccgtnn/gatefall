@@ -190,7 +190,11 @@ function playerHand() {
 
   const cards = element('div', 'hand-grid');
   for (const card of human.hand) {
-    const node = cardButton(card, () => playHuman({ type: 'play', cardId: card.id }));
+    const node = cardButton(card, () => playHuman({
+      type: 'play',
+      cardId: card.id,
+      position: human.board[card.definition.row].length,
+    }));
     const hasSpace = canPlayCard(human, card);
     node.disabled = !active || !hasSpace;
     if (!hasSpace) {

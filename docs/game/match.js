@@ -2,7 +2,7 @@ import { DECKS, ROWS } from './cards.js';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;
-const ROUND_DRAW = 3;
+export const ROUND_DRAW = 3;
 
 export const HAND_LIMIT = 10;
 export const ROW_LIMIT = 9;
@@ -179,8 +179,10 @@ export function applyAction(match, side, action) {
   if (match.phase !== 'playing' || match.turn !== side) return match;
 
   const player = match.players[side];
-  const cardIndex = action.type === 'play'
-    ? player.hand.findIndex((card) => card.id === action.cardId && canPlayCard(player, card))
+  const { type, cardId, position } = action;
+  const cardIndex = type === 'play' && Number.isInteger(position) && position >= 0
+    ? player.hand.findIndex((card) =>
+      card.id === cardId && canPlayCard(player, card) && position <= player.board[card.definition.row].length)
     : -1;
   if (action.type !== 'pass' && cardIndex === -1) return match;
 
@@ -191,7 +193,7 @@ export function applyAction(match, side, action) {
     const current = next.players[side];
     const [card] = current.hand.splice(cardIndex, 1);
     const row = card.definition.row;
-    current.board[row].push(card);
+    current.board[row].splice(position, 0, card);
     next.log.push({ type: 'play', side, row, name: card.definition.name, power: card.power });
   }
 
