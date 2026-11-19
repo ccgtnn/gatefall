@@ -71,6 +71,22 @@ function humanCanAct() {
   return !replaying && match.phase === 'playing' && match.turn === 'human' && !match.pending;
 }
 
+function cardArt(definition, className) {
+  const image = element('img', className);
+  image.src = './art/' + definition.art;
+  image.alt = '';
+  image.width = 480;
+  image.height = 720;
+  image.draggable = false;
+  return image;
+}
+
+function addCardCrop(node, definition) {
+  if (!definition.art) return;
+  node.classList.add('has-art');
+  node.prepend(cardArt(definition, 'card-art-crop'));
+}
+
 function showCard(card) {
   const { definition, power, armor, timer } = card;
   const details = [CARD_TYPES[cardType(card)], RARITY_LABELS[definition.rarity],
@@ -96,7 +112,13 @@ function showCard(card) {
     body.append(glossary);
   }
   body.append(close);
-  preview.replaceChildren(body);
+  if (definition.art) {
+    const layout = element('div', 'preview-layout');
+    layout.append(cardArt(definition, 'preview-art'), body);
+    preview.replaceChildren(layout);
+  } else {
+    preview.replaceChildren(body);
+  }
   if (!preview.open) preview.showModal();
 }
 
@@ -310,6 +332,7 @@ function cardButton(card, handler, placement = false) {
     element('span', 'card-name', name),
     cardMarks(card),
   );
+  addCardCrop(node, card.definition);
   cardInspection(node, card, placement);
   return node;
 }
@@ -402,6 +425,7 @@ function rowView(side, player, row, readyOrders) {
     face.dataset.faction = player.factionId ?? '';
     face.dataset.type = cardType(card);
     face.append(cardStats(card), cardMarks(card));
+    addCardCrop(face, card.definition);
     if (cardType(card) === 'artifact') face.classList.add('is-artifact');
     if (target) face.classList.add('effect-target');
     if (card.definition.doomed) face.classList.add('is-doomed');

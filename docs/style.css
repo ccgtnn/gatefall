@@ -444,6 +444,44 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 .unit-face .keyword-mark { font-size: .76rem; }
 .is-replaying .battlefield, .is-replaying .hand { pointer-events: none; }
 
+.has-art { isolation: isolate; overflow: hidden; }
+.has-art:not(.drag-ghost) { position: relative; }
+.card-art-crop, .has-art::after { position: absolute; inset: 0; pointer-events: none; }
+.card-art-crop {
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+.has-art::after {
+  content: '';
+  z-index: -1;
+  background: linear-gradient(#111724bb, #11172422 35%, #11172422 61%, #111724e6);
+}
+.hand-card.has-art::after { background: linear-gradient(90deg, #111724e6, #11172492 56%, #11172422); }
+.has-art .card-type-label { color: #e9edf2; }
+.has-art .card-stats, .has-art .card-marks, .has-art .card-name { text-shadow: 0 1px 3px #000, 0 0 5px #000; }
+.unit-face.has-art { align-content: space-between; padding-block: .17rem; }
+.unit-face.has-art.effect-target::after {
+  box-shadow: inset 0 0 0 1px #99e9ff, inset 0 0 12px #99e9ff;
+}
+.preview-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+  align-items: start;
+  gap: .9rem;
+  padding: 1rem;
+}
+.preview-layout .preview-body { padding: 0; }
+.preview-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  border: 1px solid var(--edge);
+}
+
 .motion-overlay {
   position: fixed;
   z-index: 12;
@@ -487,4 +525,8 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   .armor-stat { font-size: .82rem; }
   .unit-face .card-marks { font-size: .66rem; gap: .09rem .1rem; }
   .unit-face .keyword-mark { font-size: .70rem; }
+}
+@media (max-width: 30rem) {
+  .preview-layout { grid-template-columns: minmax(0, 1fr); }
+  .preview-art { max-width: min(100%, 32vh); justify-self: center; }
 }

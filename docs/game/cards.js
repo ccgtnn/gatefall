@@ -68,7 +68,7 @@ const protectorate = [
   ['engineer', 'Инженер укреплений', 5, 3, 'При розыгрыше: дать 3 брони своей карте.',
     { deploy: ability([action('armor', chosen('ally'), 3)],
       [choice('ally', allies, 'Выбери свой отряд для 3 брони.', { kind: 'armor' })]), keywords: ['Броня'] }],
-  ['assault', 'Тяжёлый штурмовик', 5, 5, 'Броня 3.', { armor: 3, keywords: ['Броня'] }],
+  ['assault', 'Тяжёлый штурмовик', 5, 5, 'Броня 3.', { art: 'assault.webp', armor: 3, keywords: ['Броня'] }],
   ['orbital-shield', 'Орбитальный щит', 6, 4, 'В конце хода: дать 1 броню соседям.',
     { endTurn: armorNeighbors(1), keywords: ['Броня', 'Соседи'] }],
   ['standard', 'Знаменосец', 6, 4, 'При розыгрыше: усилить бронированных соседей на 2.',
@@ -96,7 +96,7 @@ const protectorate = [
   ['colonel', 'Полковник Стены', 9, 5, 'При розыгрыше: удвоить броню своих отрядов в этом ряду.',
     { deploy: ability([action('armor', allyRow, { stat: 'armor' })]), keywords: ['Броня'] }],
   ['bastion', 'Бастион «Рубеж»', 11, 7, 'Броня 6. При розыгрыше: дать 3 брони соседям.',
-    { armor: 6, deploy: armorNeighbors(3), keywords: ['Броня', 'Соседи'] }],
+    { art: 'bastion.webp', armor: 6, deploy: armorNeighbors(3), keywords: ['Броня', 'Соседи'] }],
   ['commander', 'Командор щитов', 10, 5, 'Приказ: снять 2 брони со своей карты и нанести 3 урона вражеской. Перезарядка: 2 хода.',
     { order: {
       cooldown: 2,
@@ -110,7 +110,7 @@ const protectorate = [
 
 const growth = [
   ['cocoon', 'Кокон', 4, 1, 'При розыгрыше: породить по личинке с каждой стороны. Завещание: усилить поглотившего на 2.',
-    { deploy: ability([spawn('left'), spawn('right')]),
+    { art: 'cocoon.webp', deploy: ability([spawn('left'), spawn('right')]),
       deathwish: ability([action('boost', chosen('consumer'), 2)]), keywords: ['Порождение', 'Завещание', 'Поглощение'] }],
   ['feast', 'Пиршество', 4, null, 'Выбранный свой отряд поглощает одну другую свою личинку и получает ещё +2 силы.',
     { type: 'effect', deploy: ability([
@@ -145,7 +145,7 @@ const growth = [
   ['nest', 'Гнездо-мать', 9, 3, 'В конце хода: породить по личинке в каждом своём ряду.',
     { endTurn: ability([spawn('right', 'all')]), keywords: ['Порождение'] }],
   ['colossus', 'Колосс', 11, 5, 'При розыгрыше: поглотить всех своих соседей.',
-    { deploy: ability([absorb(adjacent)]), keywords: ['Соседи', 'Поглощение'] }],
+    { art: 'colossus.webp', deploy: ability([absorb(adjacent)]), keywords: ['Соседи', 'Поглощение'] }],
   ['ravager', 'Выводок-разоритель', 10, 4, 'При розыгрыше: поглотить свой отряд и нанести урон врагу в размере силы жертвы.',
     { deploy: ability([
       absorb(chosen('victim'), { multiplier: 0, save: 'strength' }),
