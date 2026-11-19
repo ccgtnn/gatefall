@@ -266,11 +266,14 @@ function keywordsFor(card) {
 
 function cardStats(card) {
   const stats = element('span', 'card-stats');
-  if (isUnit(card)) stats.append(element('strong', 'unit-power', card.power));
+  if (isUnit(card)) {
+    const power = element('strong', 'unit-power', card.power);
+    power.title = 'Сила ' + card.power;
+    stats.append(power);
+  }
   if (card.armor) {
-    const armor = element('strong', 'armor-stat');
+    const armor = element('strong', 'armor-stat', card.armor);
     armor.title = 'Броня ' + card.armor;
-    armor.append(element('span', null, '⬟'), document.createTextNode(String(card.armor)));
     stats.append(armor);
   }
   if (!isUnit(card)) {

@@ -417,25 +417,45 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   min-height: 3.4rem;
   gap: .22rem;
 }
+.hand-card, .unit-face {
+  --stat-size: 1.125rem;
+  --stat-inset: .13rem;
+  --stat-font: .74rem;
+}
+.hand-card:not(.drag-ghost), .unit-face { position: relative; }
 .card-stats { display: flex; flex-wrap: wrap; align-items: center; gap: .08rem .25rem; }
 .unit-face .card-stats { justify-content: center; }
-.unit-power {
-  color: #fff;
-  font-size: clamp(1.08rem, 2.8vw, 1.43rem);
-  line-height: 1;
+.hand-card[data-type="unit"] { padding-block-start: 1.48rem; }
+.unit-face[data-type="unit"] { align-content: end; padding-block: 1.35rem .17rem; }
+[data-type="unit"] > .card-stats { position: absolute; inset: 0; pointer-events: none; }
+.unit-power, .armor-stat {
+  position: absolute;
+  top: var(--stat-inset);
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+  width: min(var(--stat-size), calc(50% - var(--stat-inset)));
+  aspect-ratio: 1;
+  font-size: var(--stat-font);
   font-weight: 800;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
+}
+.unit-power {
+  left: var(--stat-inset);
+  border-radius: 50%;
+  background: #16202c;
+  box-shadow: inset 0 0 0 1px #d1d8df;
+  color: #fff;
+  text-shadow: none;
 }
 .armor-stat {
-  display: inline-flex;
-  align-items: center;
-  gap: .08rem;
-  color: #bce8ff;
-  font-size: .9rem;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
+  right: var(--stat-inset);
+  clip-path: polygon(50% 0, 100% 14%, 93% 61%, 78% 81%, 50% 100%, 22% 81%, 7% 61%, 0 14%);
+  background: #a5d3ed;
+  color: #102131;
+  text-shadow: none;
 }
-.armor-stat span { font-size: .65rem; }
 .type-shape { color: var(--faction-light, #e6efff); font-size: 1.12rem; line-height: 1; }
 .card-type-label { color: var(--subtle); font-size: .75rem; line-height: 1.1; }
 .keyword-mark { color: #f6f1dd; font-size: .82rem; min-width: .65em; text-align: center; }
@@ -445,7 +465,6 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 .is-replaying .battlefield, .is-replaying .hand { pointer-events: none; }
 
 .has-art { isolation: isolate; overflow: hidden; }
-.has-art:not(.drag-ghost) { position: relative; }
 .card-art-crop, .has-art::after { position: absolute; inset: 0; pointer-events: none; }
 .card-art-crop {
   z-index: -2;
@@ -460,9 +479,16 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   background: linear-gradient(#111724bb, #11172422 35%, #11172422 61%, #111724e6);
 }
 .hand-card.has-art::after { background: linear-gradient(90deg, #111724e6, #11172492 56%, #11172422); }
+.hand-card.has-art[data-type="unit"] { align-content: end; }
+.hand-card.has-art[data-type="unit"]::after {
+  background: linear-gradient(to top, #111724f2, #11172477 39%, transparent 74%);
+}
 .has-art .card-type-label { color: #e9edf2; }
-.has-art .card-stats, .has-art .card-marks, .has-art .card-name { text-shadow: 0 1px 3px #000, 0 0 5px #000; }
-.unit-face.has-art { align-content: space-between; padding-block: .17rem; }
+.has-art .type-shape, .has-art .card-marks, .has-art .card-name { text-shadow: 0 1px 3px #000, 0 0 5px #000; }
+.unit-face.has-art[data-type="unit"]::after {
+  background: linear-gradient(to top, #111724d2, transparent 32%);
+}
+.unit-face.has-art:not([data-type="unit"]) { align-content: space-between; padding-block: .17rem; }
 .unit-face.has-art.effect-target::after {
   box-shadow: inset 0 0 0 1px #99e9ff, inset 0 0 12px #99e9ff;
 }
@@ -521,8 +547,11 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 
 @media (max-width: 37rem) {
   .match-meta, .motion-setting { gap: .38rem; }
-  .unit-face { min-height: 3.25rem; }
-  .armor-stat { font-size: .82rem; }
+  .unit-face {
+    min-height: 3.25rem;
+    --stat-inset: 1px;
+    --stat-font: clamp(.57rem, 2.7vw, .7rem);
+  }
   .unit-face .card-marks { font-size: .66rem; gap: .09rem .1rem; }
   .unit-face .keyword-mark { font-size: .70rem; }
 }
