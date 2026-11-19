@@ -135,7 +135,11 @@ const operations = {
   damage,
   destroy: (match, target) => removeUnit(match, target, 'destroy'),
   tick: (match, target) => {
-    if (target.card.timer > 0 && --target.card.timer === 0) removeUnit(match, target, 'timer');
+    const { card, side } = target;
+    if (!(card.timer > 0)) return;
+    card.timer -= 1;
+    match.log.push({ type: 'tick', side, name: card.definition.name, cardId: card.id, remaining: card.timer });
+    if (card.timer === 0) removeUnit(match, target, 'timer');
   },
 };
 

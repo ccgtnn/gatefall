@@ -34,14 +34,14 @@ export function neighbors(match, unit) {
 export function boost(match, unit, amount) {
   if (!unit || !isUnit(unit.card) || amount <= 0) return;
   unit.card.power += amount;
-  match.log.push({ type: 'boost', side: unit.side, name: unit.card.definition.name, amount });
+  match.log.push({ type: 'boost', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, power: unit.card.power, amount });
 }
 
 export function changeArmor(match, unit, amount) {
   if (!unit || !isUnit(unit.card) || amount === 0) return 0;
   const change = Math.max(amount, -(unit.card.armor ?? 0));
   unit.card.armor = (unit.card.armor ?? 0) + change;
-  if (change) match.log.push({ type: 'armor', side: unit.side, name: unit.card.definition.name, amount: change });
+  if (change) match.log.push({ type: 'armor', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, armor: unit.card.armor, amount: change });
   return -change;
 }
 
@@ -51,7 +51,7 @@ export function removeUnit(match, unit, reason, consumerId) {
   player.board[row].splice(position, 1);
   const exile = reason === 'destroy' || card.definition.doomed;
   (exile ? player.exile : player.discard).push(card);
-  match.log.push({ type: reason === 'destroy' ? 'destroy' : 'death', side, name: card.definition.name, exile });
+  match.log.push({ type: reason === 'destroy' ? 'destroy' : 'death', side, name: card.definition.name, cardId: card.id, exile });
   if (reason !== 'destroy' && card.definition.deathwish) {
     match.effects.unshift({
       ability: card.definition.deathwish, side, row, position, refs: { consumer: consumerId }, deathwish: card.definition.name,
@@ -65,7 +65,7 @@ export function damage(match, unit, amount) {
   changeArmor(match, unit, -absorbed);
   const lost = Math.min(unit.card.power, amount - absorbed);
   unit.card.power -= lost;
-  match.log.push({ type: 'damage', side: unit.side, name: unit.card.definition.name, amount, absorbed, lost });
+  match.log.push({ type: 'damage', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, power: unit.card.power, amount, absorbed, lost });
   if (unit.card.power === 0) removeUnit(match, unit, 'damage');
 }
 
@@ -75,7 +75,7 @@ export function consume(match, victim, consumer, { multiplier = 1, extra = 0 } =
   const nearby = neighbors(match, victim);
   const strength = victim.card.power;
   match.log.push({
-    type: 'consume', side: victim.side, name: victim.card.definition.name, eater: consumer.card.definition.name, amount: strength,
+    type: 'consume', side: victim.side, name: victim.card.definition.name, cardId: victim.card.id, eaterId: consumer.card.id, eater: consumer.card.definition.name, amount: strength,
   });
   removeUnit(match, victim, 'consume', consumer.card.id);
   boost(match, consumer, strength * multiplier + extra);
@@ -93,5 +93,5 @@ export function spawnCards(match, side, row, position, count, definition) {
   if (added <= 0) return;
   const tokens = Array.from({ length: added }, () => createCard(`token-${++match.tokenCount}`, definition));
   line.splice(position, 0, ...tokens);
-  match.log.push({ type: 'spawn', side, row, count: added, name: definition.name });
+  match.log.push({ type: 'spawn', side, row, count: added, name: definition.name, position, cards: tokens.map((card) => ({ ...card })) });
 }

@@ -28,7 +28,8 @@ function shuffle(cards, random) {
   return cards;
 }
 
-function createPlayer(side, definitions, random, faction, charges) {
+function createPlayer(side, definitions, random, factionId, charges) {
+  const faction = FACTIONS[factionId];
   const cards = definitions.map((definition, index) => createCard(`${side}-${index + 1}`, definition));
   const deck = shuffle(cards, random);
   return {
@@ -41,6 +42,7 @@ function createPlayer(side, definitions, random, faction, charges) {
     turns: 0,
     leader: faction ? { ...faction.leader, charges } : null,
     faction: faction?.name,
+    factionId,
     passed: false,
   };
 }
@@ -48,13 +50,14 @@ function createPlayer(side, definitions, random, faction, charges) {
 export function createMatch({ decks, humanFaction = decks ? undefined : 'protectorate', random = Math.random, rules = MATCH_RULES } = {}) {
   const settings = { ...MATCH_RULES, ...rules };
   const human = FACTIONS[humanFaction];
-  const bot = human ? FACTIONS[humanFaction === 'growth' ? 'protectorate' : 'growth'] : undefined;
+  const botFaction = human ? (humanFaction === 'growth' ? 'protectorate' : 'growth') : undefined;
+  const bot = FACTIONS[botFaction];
   const selectedDecks = decks ?? { human: human.deck, bot: bot.deck };
   return {
     rules: settings,
     players: {
-      human: createPlayer('human', selectedDecks.human, random, human, settings.leaderCharges),
-      bot: createPlayer('bot', selectedDecks.bot, random, bot, settings.leaderCharges),
+      human: createPlayer('human', selectedDecks.human, random, humanFaction, settings.leaderCharges),
+      bot: createPlayer('bot', selectedDecks.bot, random, botFaction, settings.leaderCharges),
     },
     phase: 'mulligan',
     round: 1,
@@ -260,8 +263,9 @@ export function applyAction(match, side, action, { random = Math.random } = {}) 
       current.board[row].splice(position, 0, card);
     }
     next.log.push({ type: 'play', side, row: destination?.row, name: card.definition.name,
-      power: card.power, cardType: cardType(card) });
-    if (card.armor) next.log.push({ type: 'armor', side, name: card.definition.name, amount: card.armor });
+      power: card.power, cardType: cardType(card), cardId: card.id,
+      card: { ...card }, position: destination?.position });
+    if (card.armor) next.log.push({ type: 'armor', side, name: card.definition.name, cardId: card.id, armor: card.armor, amount: card.armor });
     enqueueCardEffect(next, side, card, 'deploy', Boolean(destination));
     if (!destination) next.effects.push({ discard: card, side });
     next.ending = 'effects';
@@ -273,7 +277,7 @@ export function applyAction(match, side, action, { random = Math.random } = {}) 
     const { card } = availableOrders(next, side).find((unit) => unit.card.id === cardId);
     const order = card.definition.order;
     card.readyAt = current.turns + order.cooldown + 1;
-    next.log.push({ type: 'order', side, name: card.definition.name });
+    next.log.push({ type: 'order', side, name: card.definition.name, cardId: card.id });
     next.effects.push({ ability: orderAbility(order), side, sourceId: card.id, requiredSource: true });
   }
 
