@@ -72,6 +72,7 @@ test('at 15 to 5, a bot on one life plays 6 and 7 in consecutive legal turns', (
   human.lives = bot.lives = 1;
   human.board.orbit = [card(7, 'orbit', 'human-7'), card(8, 'orbit', 'human-8')];
   bot.board.orbit = [card(5, 'orbit', 'bot-5')];
+  bot.board.surface = [];
   bot.hand = [card(6), card(7)];
   match.turn = 'human';
 
@@ -122,7 +123,7 @@ test('the bot view includes legal plays, row space and public opponent informati
   human.lives = 1;
   const view = createBotView(match);
   assert.deepEqual(Object.keys(view).sort(), [
-    'cards', 'handSize', 'lives', 'opponentHandSize', 'opponentLives', 'opponentPassed',
+    'cards', 'handSize', 'lives', 'mustPlay', 'opponentHandSize', 'opponentLives', 'opponentPassed',
     'opponentScore', 'rowLengths', 'score',
   ]);
   assert.deepEqual(view.cards, bot.hand);

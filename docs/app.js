@@ -1,14 +1,14 @@
 import { bindCardPlacement } from './card-placement.js';
 import { presentJournalEvent } from './card-motion.js';
 import { motionDuration, playJournal } from './turn-playback.js?v=motion-settings';
-import { CARD_TYPES, FACTIONS, KEYWORDS, RARITY_LABELS, ROWS, ROW_LABELS } from './game/cards.js';
+import { CARD_TYPES, FACTIONS, KEYWORDS, RARITY_LABELS, ROWS, ROW_LABELS } from './game/cards.js?v=round-rules';
 import { cardType, isUnit } from './game/board.js';
-import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js';
+import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=round-rules';
 import { availableOrders, canUseLeader } from './game/effects.js';
 import {
-  HAND_LIMIT, MULLIGAN_LIMIT, ROW_LIMIT, applyAction, canPlayCard,
-  confirmMulligan, createMatch, rowScore, totalScore,
-} from './game/match.js';
+  HAND_LIMIT, ROW_LIMIT, applyAction, canPass, canPlayCard,
+  confirmMulligan, createMatch, mulliganLimit, rowScore, totalScore,
+} from './game/match.js?v=round-rules';
 
 const screen = document.querySelector('#screen');
 const phaseLabel = document.querySelector('#phase');
@@ -68,13 +68,13 @@ function button(text, handler, className = 'button') {
 }
 
 function humanCanAct() {
-  return !replaying && match.turn === 'human' && !match.pending;
+  return !replaying && match.phase === 'playing' && match.turn === 'human' && !match.pending;
 }
 
 function showCard(card) {
   const { definition, power, armor, timer } = card;
   const details = [CARD_TYPES[cardType(card)], RARITY_LABELS[definition.rarity],
-    definition.provision !== undefined ? `Провизия ${definition.provision}` : 'Токен'].filter(Boolean);
+    definition.stratagem ? 'Стратагема' : definition.provision !== undefined ? `Провизия ${definition.provision}` : 'Токен'].filter(Boolean);
   const stats = [];
   if (isUnit(card)) stats.push(`Сила ${power}`, `Броня ${armor ?? 0}`);
   if (timer !== undefined) stats.push(`Таймер ${timer}`);
@@ -162,8 +162,9 @@ function roundText(event) {
 function eventText(event) {
   const side = sideLabel[event.side];
   switch (event.type) {
-    case 'mulligan': return `Заменено карт: ${event.count}.`;
+    case 'mulligan': return `${side}: заменено карт ${event.count}.`;
     case 'round-start': return `Раунд ${event.round}. Первый ход: ${side.toLowerCase()}.`;
+    case 'stratagem': return `${side}: на Поверхности появляется стратагема «${event.name}».`;
     case 'play': {
       if (!event.row) return `${side}: «${event.name}» · Эффект.`;
       return `${side}: «${event.name}» (${event.power ?? 'артефакт'}) → ${ROW_LABELS[event.row]}.`;
@@ -177,10 +178,8 @@ function eventText(event) {
       };
       return `${side}: ${reasons[event.reason]}.`;
     }
-    case 'draw': {
-      const burned = event.burned ? `, сгорело ${event.burned}` : '';
-      return `${side}: добор ${event.count}${burned}.`;
-    }
+    case 'turn-skip': return `${side}: ход завершён без паса. Нет карты для розыгрыша.`;
+    case 'draw': return `${side}: добор ${event.count}${event.extraSwaps ? ` · дополнительных замен +${event.extraSwaps}` : ''}.`;
     case 'round-end': return roundText(event);
     case 'armor': return `${side}, «${event.name}»: броня ${event.amount > 0 ? '+' : '−'}${Math.abs(event.amount)}.`;
     case 'boost': return `${side}, «${event.name}»: усиление +${event.amount}.`;
@@ -232,6 +231,7 @@ const keywordIcons = {
   'Поглощение': '◉',
   'Завещание': '†',
   'Приказ': '⚑',
+  'Рвение': 'ϟ',
   'Конец хода': '◷',
 };
 
@@ -332,7 +332,9 @@ function placeSelected(row) {
 }
 
 function mulliganScreen() {
-  phaseLabel.textContent = 'Перед первым раундом';
+  const limit = mulliganLimit(match, 'human');
+  const { extraSwaps } = match.players.human;
+  phaseLabel.textContent = `Перед раундом ${match.round}`;
   const panel = element('section', 'panel mulligan');
   const heading = element('h2', null, 'Муллиган');
   heading.tabIndex = -1;
@@ -340,7 +342,7 @@ function mulliganScreen() {
   const cards = element('div', 'hand-grid');
   const choices = match.players.human.hand.map((card) => cardButton(card, () => {
     if (selected.has(card.id)) selected.delete(card.id);
-    else if (selected.size < MULLIGAN_LIMIT) selected.add(card.id);
+    else if (selected.size < limit) selected.add(card.id);
     updateSelection();
   }));
   const confirm = button('Начать раунд', async () => {
@@ -349,18 +351,18 @@ function mulliganScreen() {
   }, 'button primary');
 
   function updateSelection() {
-    counter.textContent = `Выбрано ${selected.size} из ${MULLIGAN_LIMIT}`;
+    counter.textContent = `Выбрано ${selected.size} из ${limit}${extraSwaps ? ` · от лишнего добора +${extraSwaps}` : ''}`;
     for (const choice of choices) {
       const pressed = selected.has(choice.dataset.cardId);
       choice.setAttribute('aria-pressed', String(pressed));
-      choice.classList.toggle('is-unavailable', !pressed && selected.size === MULLIGAN_LIMIT);
+      choice.classList.toggle('is-unavailable', !pressed && selected.size === limit);
     }
   }
 
   cards.append(...choices);
   panel.append(
     heading,
-    element('p', 'muted', 'Выбери до трёх карт для замены или сразу начни раунд.'),
+    element('p', 'muted', 'Выбери карты для замены или сразу начни раунд.'),
     counter,
     cards,
     confirm,
@@ -406,7 +408,7 @@ function rowView(side, player, row, readyOrders) {
     cardInspection(face, card);
     slot.append(face);
     if (card.definition.order) {
-      const cooldown = Math.min(card.definition.order.cooldown, Math.max(0, card.readyAt - player.turns));
+      const cooldown = Math.min(Math.max(1, card.definition.order.cooldown ?? 0), Math.max(0, card.readyAt - player.turns));
       const order = button(cooldown ? `↻${cooldown}` : '⚑', () =>
         playHuman({ type: 'order', cardId: card.id }), 'unit-order');
       order.disabled = side !== 'human' || !humanCanAct() || !readyOrders.has(card.id);
@@ -459,7 +461,7 @@ function playerHand() {
   const header = element('div', 'hand-header');
   const pass = button('Пас', () => playHuman({ type: 'pass' }));
   pass.id = 'pass-button';
-  pass.disabled = !active;
+  pass.disabled = !active || !canPass(match, 'human');
   const controls = element('div', 'hand-controls');
   const leader = button(`${human.leader.name} · ${human.leader.charges}`, () => playHuman({ type: 'leader' }));
   leader.title = human.leader.text;
@@ -467,6 +469,7 @@ function playerHand() {
   controls.append(leader, pass);
   header.append(element('h2', null, `Твоя рука · ${human.hand.length}/${HAND_LIMIT}`), controls);
   panel.append(header);
+  if (active && human.usedAbility) panel.append(element('p', 'muted', 'Способность применена. Сыграй карту, чтобы завершить ход.'));
 
   if (human.hand.length === 0) {
     panel.append(element('p', 'muted', 'В руке нет карт.'));
@@ -580,9 +583,10 @@ async function updateMatch(next) {
   }
 
   match = next;
+  if (match.phase === 'mulligan') selected.clear();
   render();
   announcement.textContent = events.map(eventText).join(' ');
-  if (match.phase === 'finished') screen.querySelector('h2').focus();
+  if (match.phase === 'finished' || match.phase === 'mulligan') screen.querySelector('h2').focus();
   else if (match.pending?.side === 'human') {
     const target = screen.querySelector('.effect-target');
     target?.focus({ preventScroll: true });

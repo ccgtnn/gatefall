@@ -3,9 +3,9 @@ import test from 'node:test';
 import { ROWS } from '../docs/game/cards.js';
 import { DECKS } from './fixtures/prototype-decks.js';
 import {
-  HAND_LIMIT, ROW_LIMIT, applyAction, availableRows, confirmMulligan, createMatch, playableCards, totalScore,
+  HAND_LIMIT, ROW_LIMIT, applyAction, availableRows, confirmMulligan, createMatch, mulliganLimit, playableCards, totalScore,
 } from '../docs/game/match.js';
-import { chooseBotAction, createBotView } from '../docs/game/bot.js';
+import { chooseBotTurn } from '../docs/game/bot.js';
 
 const pass = { type: 'pass' };
 
@@ -68,7 +68,8 @@ test('mulligan replaces up to three distinct cards before play and returns them 
   assert.deepEqual(match.players.human.hand.slice(0, 3), human.deck.slice(0, 3));
   assert.deepEqual(match.players.human.deck.slice(-3), human.hand.slice(0, 3));
   assert.equal(match.players.human.hand.length, HAND_LIMIT);
-  assert.deepEqual(match.players.bot.hand, bot.hand);
+  const weakest = [...bot.hand].sort((left, right) => left.power - right.power).slice(0, 3);
+  assert.deepEqual(match.players.bot.deck.slice(-3).map(({ id }) => id).sort(), weakest.map(({ id }) => id).sort());
   assert.strictEqual(confirmMulligan(match, [ids[3]]), match);
   assert.deepEqual(setup.players.human.hand.slice(0, 4).map((card) => card.id), ids);
 });
@@ -101,21 +102,34 @@ test('a side stays passed while its opponent can play repeatedly', () => {
   assert.equal(totalScore(match.players.bot), 0);
 });
 
-test('draws burn all overflow, and both round-two and round-three draws consume three cards', () => {
+test('both later rounds start with a mulligan, keeping undrawn overflow in the deck for extra swaps', () => {
   let match = confirmMulligan(orderedMatch(), []);
   match = endRound(playFirst(match)); // Human wins round 1.
-  assert.deepEqual(roundEvents(match, 'draw').map(({ count, burned }) => [count, burned]),
+  assert.equal(match.phase, 'mulligan');
+  assert.equal(match.turn, null);
+  assert.deepEqual(roundEvents(match, 'draw').map(({ count, extraSwaps }) => [count, extraSwaps]),
     [[1, 2], [0, 3]]);
-  assert.equal(match.players.human.discard.length, 3); // One played and two burned.
-  assert.equal(match.players.bot.discard.length, 3);
+  assert.equal(match.players.human.discard.length, 1);
+  assert.equal(match.players.bot.discard.length, 0);
+  assert.equal(match.players.human.deck.length, 14);
+  assert.equal(match.players.bot.deck.length, 15);
+  assert.equal(mulliganLimit(match, 'human'), 4);
+  assert.equal(mulliganLimit(match, 'bot'), 5);
+  const swaps = match.players.human.hand.slice(0, 5).map(({ id }) => id);
+  assert.strictEqual(confirmMulligan(match, swaps), match);
+  match = confirmMulligan(match, swaps.slice(0, 4));
+  assert.deepEqual(roundEvents(match, 'mulligan').slice(-2).map(({ count }) => count), [4, 5]);
 
   match = applyAction(match, 'human', pass);
   match = applyAction(playFirst(match), 'bot', pass); // Bot wins round 2.
   assert.equal(match.round, 3);
-  assert.equal(match.turn, 'bot');
+  assert.equal(match.phase, 'mulligan');
+  assert.equal(match.turn, null);
+  assert.equal(match.starter, 'bot');
+  assert.equal(confirmMulligan(match, []).turn, 'bot');
   for (const player of Object.values(match.players)) {
     assert.equal(player.hand.length, HAND_LIMIT);
-    assert.equal(player.deck.length, 9);
+    assert.equal(player.deck.length, 14);
     assert.equal(totalScore(player), 0);
   }
 });
@@ -123,7 +137,7 @@ test('draws burn all overflow, and both round-two and round-three draws consume 
 test('a tied round costs both sides a life and retains the opening side by default', () => {
   const match = endRound(confirmMulligan(orderedMatch({ starter: 'bot' }), []));
   assert.equal(match.round, 2);
-  assert.equal(match.turn, 'bot');
+  assert.equal(confirmMulligan(match, []).turn, 'bot');
   assert.equal(match.players.human.lives, 1);
   assert.equal(match.players.bot.lives, 1);
   assert.equal(roundEvents(match, 'round-end')[0].winner, null);
@@ -134,36 +148,37 @@ test('alternate initiative uses the opposite previous starter even when the winn
   let match = playFirst(confirmMulligan(setup, []));
   match = endRound(match);
   assert.equal(match.round, 2);
-  assert.equal(match.turn, 'bot');
+  assert.equal(confirmMulligan(match, []).turn, 'bot');
 });
 
 test('zero lives ends the match with a win, loss, or draw', () => {
   const start = () => confirmMulligan(orderedMatch(), []);
 
-  const drawn = endRound(endRound(start()));
+  const drawn = endRound(confirmMulligan(endRound(start()), []));
   assert.equal(drawn.result, 'draw');
   assert.equal(drawn.turn, null);
   assert.equal(drawn.phase, 'finished');
   assert.strictEqual(applyAction(drawn, 'human', pass), drawn);
 
   let winning = endRound(playFirst(start()));
-  winning = endRound(playFirst(winning));
+  winning = endRound(playFirst(confirmMulligan(winning, [])));
   assert.equal(winning.result, 'win');
   assert.equal(winning.players.human.lives, 2);
   assert.equal(winning.players.bot.lives, 0);
 
   let losing = applyAction(start(), 'human', pass);
   losing = applyAction(playFirst(losing), 'bot', pass);
-  losing = endRound(playFirst(losing));
+  losing = endRound(playFirst(confirmMulligan(losing, [])));
   assert.equal(losing.result, 'loss');
   assert.equal(losing.players.human.lives, 0);
 });
 
 test('after a split in two rounds, round three decides the match', () => {
   let match = endRound(playFirst(confirmMulligan(orderedMatch(), [])));
+  match = confirmMulligan(match, []);
   match = applyAction(match, 'human', pass);
   match = applyAction(playFirst(match), 'bot', pass);
-  match = endRound(playFirst(match));
+  match = endRound(playFirst(confirmMulligan(match, [])));
   assert.equal(match.round, 3);
   assert.equal(match.result, 'loss');
   assert.equal(roundEvents(match, 'round-start').length, 3);
@@ -172,7 +187,7 @@ test('after a split in two rounds, round three decides the match', () => {
 
 test('an empty hand triggers autopass as soon as that player would act', () => {
   const shortDeck = DECKS.human.slice(0, 1);
-  let match = confirmMulligan(orderedMatch({ human: shortDeck }), []);
+  let match = playFirst(confirmMulligan(orderedMatch({ human: shortDeck, starter: 'bot' }), []));
   match = playFirst(match);
   assert.equal(match.turn, 'bot');
   assert.equal(match.players.human.passed, false);
@@ -196,7 +211,7 @@ test('a filled row rejects placement there while the other row accepts the same 
   }), match);
   const next = applyAction(match, 'human', { type: 'play', cardId: card.id, row: 'surface', position: 0 });
   assert.notStrictEqual(next, match);
-  assert.ok(next.players.human.discard.some(({ id }) => id === card.id));
+  assert.ok(next.players.human.board.surface.some(({ id }) => id === card.id));
 });
 
 test('128 reproducible matches terminate and keep each side’s cards in exactly one zone', () => {
@@ -207,11 +222,14 @@ test('128 reproducible matches terminate and keep each side’s cards in exactly
       return roll / 0x100000000;
     };
     let match = confirmMulligan(createMatch({ decks: DECKS, random }), []);
-    for (let turn = 0; turn < 40 && match.phase === 'playing'; turn += 1) {
-      if (match.turn === 'bot') {
-        match = applyAction(match, 'bot', chooseBotAction(createBotView(match)));
+    for (let turn = 0; turn < 100 && match.phase !== 'finished'; turn += 1) {
+      if (match.phase === 'mulligan') {
+        match = confirmMulligan(match, [], { random });
+      } else if (match.pending?.side === 'bot' || match.turn === 'bot') {
+        match = applyAction(match, 'bot', chooseBotTurn(match), { random });
       } else {
-        match = random() < 0.2 ? applyAction(match, 'human', pass) : playFirst(match);
+        match = playableCards(match, 'human').length === 0 || random() < 0.2
+          ? applyAction(match, 'human', pass) : playFirst(match);
       }
     }
     assert.equal(match.phase, 'finished');

@@ -1,5 +1,5 @@
-import { FACTIONS, ROWS } from './cards.js';
-import { cardType, createCard, opponent, ROW_LIMIT, units } from './board.js';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=round-rules';
+import { cardType, createCard, opponent, placeCards, ROW_LIMIT, units } from './board.js?v=round-rules';
 import { availableOrders, canCast, canUseLeader, enqueueCardEffect, orderAbility, runEffect } from './effects.js';
 
 export { ROW_LIMIT } from './board.js';
@@ -10,6 +10,7 @@ export const ROUND_DRAW = 3;
 
 export const HAND_LIMIT = 10;
 export const MULLIGAN_LIMIT = 3;
+const LATER_MULLIGAN_LIMIT = 2;
 
 export const MATCH_RULES = Object.freeze({
   nextStarter: 'winner',
@@ -40,6 +41,8 @@ function createPlayer(side, definitions, random, factionId, charges) {
     discard: [],
     exile: [],
     turns: 0,
+    usedAbility: false,
+    extraSwaps: 0,
     leader: faction ? { ...faction.leader, charges } : null,
     faction: faction?.name,
     factionId,
@@ -92,6 +95,11 @@ export function playableCards(match, side) {
   return match.players[side].hand.filter((card) => canPlayCard(match, side, card));
 }
 
+export function canPass(match, side) {
+  return match.phase === 'playing' && match.turn === side && !match.pending &&
+    !match.players[side].passed && !match.players[side].usedAbility;
+}
+
 function playDestination(player, action) {
   const row = action.row;
   if (!ROWS.includes(row)) return null;
@@ -102,12 +110,19 @@ function playDestination(player, action) {
   return { row, position };
 }
 
-function swapStartingCards(player, selectedIds) {
+export function mulliganLimit(match, side) {
+  return (match.round === 1 ? MULLIGAN_LIMIT : LATER_MULLIGAN_LIMIT) + match.players[side].extraSwaps;
+}
+
+function swapCards(player, selectedIds) {
+  const blacklist = new Set(player.hand.filter(({ id }) => selectedIds.has(id)).map(({ definition }) => definition.id));
   const returned = [];
   player.hand = player.hand.map((card) => {
-    if (!selectedIds.has(card.id) || player.deck.length === 0) return card;
+    if (!selectedIds.has(card.id)) return card;
+    const index = player.deck.findIndex(({ definition }) => !blacklist.has(definition.id));
+    if (index < 0) return card;
     returned.push(card);
-    return player.deck.shift();
+    return player.deck.splice(index, 1)[0];
   });
   player.deck.push(...returned);
   return returned.length;
@@ -117,32 +132,45 @@ function beginRound(match) {
   match.phase = 'playing';
   match.turn = match.starter;
   match.log.push({ type: 'round-start', round: match.round, side: match.starter });
+  if (match.round === 1) {
+    const card = createCard(FIRST_SIGNAL.id, FIRST_SIGNAL);
+    placeCards(match.players[match.starter], 'surface', 0, [card]);
+    match.log.push({ type: 'stratagem', side: match.starter, name: FIRST_SIGNAL.name });
+  }
 }
 
-export function confirmMulligan(match, cardIds) {
+const mulliganValue = ({ definition }) => definition.power ?? definition.provision ?? 0;
+
+export function confirmMulligan(match, cardIds, { random = Math.random } = {}) {
   if (match.phase !== 'mulligan') return match;
 
   const selectedIds = new Set(cardIds);
-  if (selectedIds.size > MULLIGAN_LIMIT) return match;
+  if (selectedIds.size > mulliganLimit(match, 'human')) return match;
   if (cardIds.some((id) => !match.players.human.hand.some((card) => card.id === id))) {
     return match;
   }
 
   const next = structuredClone(match);
-  const count = swapStartingCards(next.players.human, selectedIds);
-  next.log.push({ type: 'mulligan', count });
+  const { human, bot } = next.players;
+  const botChoices = [...bot.hand].sort((left, right) => mulliganValue(left) - mulliganValue(right))
+    .slice(0, mulliganLimit(next, 'bot')).map(({ id }) => id);
+  const counts = { human: swapCards(human, selectedIds), bot: swapCards(bot, new Set(botChoices)) };
+  for (const side of SIDES) {
+    next.players[side].extraSwaps = 0;
+    next.log.push({ type: 'mulligan', side, count: counts[side], round: next.round });
+  }
   beginRound(next);
-  progress(next, Math.random);
+  progress(next, random);
   return next;
 }
 
 function drawForRound(match, side) {
   const player = match.players[side];
-  const drawn = player.deck.splice(0, ROUND_DRAW);
-  const added = drawn.splice(0, HAND_LIMIT - player.hand.length);
-  player.hand.push(...added);
-  player.discard.push(...drawn);
-  match.log.push({ type: 'draw', side, count: added.length, burned: drawn.length });
+  const draw = Math.min(ROUND_DRAW, player.deck.length);
+  const count = Math.min(draw, HAND_LIMIT - player.hand.length);
+  player.hand.push(...player.deck.splice(0, count));
+  player.extraSwaps = draw - count;
+  match.log.push({ type: 'draw', side, count, extraSwaps: player.extraSwaps });
 }
 
 function resolveRound(match) {
@@ -177,7 +205,8 @@ function resolveRound(match) {
   }
   match.round += 1;
   for (const side of SIDES) drawForRound(match, side);
-  beginRound(match);
+  match.phase = 'mulligan';
+  match.turn = null;
 }
 
 function markPassed(match, side, reason) {
@@ -205,12 +234,19 @@ function progress(match, random) {
     if (match.ending === 'advance') {
       match.ending = null;
       player.turns += 1;
+      player.usedAbility = false;
       if (player.passed && match.players[otherSide].passed) resolveRound(match);
       else if (!match.players[otherSide].passed) match.turn = otherSide;
       continue;
     }
 
-    if (playableCards(match, side).length || canUseLeader(match, side) || availableOrders(match, side).length) return;
+    if (playableCards(match, side).length) return;
+    if (player.usedAbility) {
+      match.log.push({ type: 'turn-skip', side });
+      match.ending = 'effects';
+      continue;
+    }
+    if (canUseLeader(match, side) || availableOrders(match, side).length) return;
     const reason = player.hand.length === 0 ? 'empty-hand'
       : player.hand.every((card) => cardType(card) === 'effect') ? 'no-target' : 'full-row';
     markPassed(match, side, reason);
@@ -237,6 +273,7 @@ export function applyAction(match, side, action, { random = Math.random } = {}) 
 
   const player = match.players[side];
   const { type, cardId } = action;
+  if (type === 'pass' && !canPass(match, side)) return match;
   if (type === 'order' && !availableOrders(match, side).some(({ card }) => card.id === cardId)) return match;
   if (type === 'leader' && !canUseLeader(match, side)) return match;
   if (type !== 'play' && type !== 'pass' && type !== 'order' && type !== 'leader') return match;
@@ -260,7 +297,7 @@ export function applyAction(match, side, action, { random = Math.random } = {}) 
     const [card] = current.hand.splice(cardIndex, 1);
     if (destination) {
       const { row, position } = destination;
-      current.board[row].splice(position, 0, card);
+      placeCards(current, row, position, [card]);
     }
     next.log.push({ type: 'play', side, row: destination?.row, name: card.definition.name,
       power: card.power, cardType: cardType(card), cardId: card.id,
@@ -270,13 +307,15 @@ export function applyAction(match, side, action, { random = Math.random } = {}) 
     if (!destination) next.effects.push({ discard: card, side });
     next.ending = 'effects';
   } else if (type === 'leader') {
+    current.usedAbility = true;
     current.leader.charges -= 1;
     next.log.push({ type: 'leader', side, name: current.leader.name });
     next.effects.push({ ability: current.leader.ability, side });
   } else {
+    current.usedAbility = true;
     const { card } = availableOrders(next, side).find((unit) => unit.card.id === cardId);
     const order = card.definition.order;
-    card.readyAt = current.turns + order.cooldown + 1;
+    card.readyAt = current.turns + (order.cooldown ?? 0) + 1;
     next.log.push({ type: 'order', side, name: card.definition.name, cardId: card.id });
     next.effects.push({ ability: orderAbility(order), side, sourceId: card.id, requiredSource: true });
   }

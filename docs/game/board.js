@@ -13,6 +13,13 @@ export function createCard(id, definition) {
   return card;
 }
 
+export function placeCards(player, row, position, cards) {
+  for (const card of cards) {
+    if (card.definition.order) card.readyAt = player.turns + Number(!card.definition.zeal);
+  }
+  player.board[row].splice(position, 0, ...cards);
+}
+
 export function units(match, side, rows = ROWS) {
   return rows.flatMap((row) => match.players[side].board[row].map((card, position) => ({
     side, row, card, position,
@@ -92,6 +99,6 @@ export function spawnCards(match, side, row, position, count, definition) {
   const added = Math.min(count, ROW_LIMIT - line.length);
   if (added <= 0) return;
   const tokens = Array.from({ length: added }, () => createCard(`token-${++match.tokenCount}`, definition));
-  line.splice(position, 0, ...tokens);
+  placeCards(match.players[side], row, position, tokens);
   match.log.push({ type: 'spawn', side, row, count: added, name: definition.name, position, cards: tokens.map((card) => ({ ...card })) });
 }

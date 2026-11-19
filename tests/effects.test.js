@@ -194,7 +194,8 @@ test('end-of-turn effects run on play and pass, with no deathwish on round clean
   match = applyAction(match, 'human', { type: 'pass' });
   assert.equal(events(match, 'spawn').length, 4);
   assert.equal(events(match, 'deathwish').length, 0);
-  assert.deepEqual(match.players.human.exile.map(({ definition }) => definition.id), Array(4).fill('larva'));
+  assert.deepEqual(match.players.human.exile.filter(({ definition }) => definition.id === LARVA.id)
+    .map(({ definition }) => definition.id), Array(4).fill('larva'));
   assert.ok(match.players.human.discard.some(({ id }) => id === 'sac'));
 });
 
@@ -265,7 +266,11 @@ test('live faction matches resolve all choices, keep card identities unique, and
       return value / 2 ** 32;
     };
     let match = confirmMulligan(createMatch({ humanFaction: seed % 2 ? 'growth' : 'protectorate', random }), []);
-    for (let step = 0; step < 250 && match.phase === 'playing'; step += 1) {
+    for (let step = 0; step < 250 && match.phase !== 'finished'; step += 1) {
+      if (match.phase === 'mulligan') {
+        match = confirmMulligan(match, [], { random });
+        continue;
+      }
       const side = match.pending?.side ?? match.turn;
       const player = match.players[side];
       const [card] = playableCards(match, side);

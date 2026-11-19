@@ -1,7 +1,7 @@
 import { ROWS } from './cards.js';
 import { cardType, findUnit, isUnit, neighbors, units } from './board.js';
 import { availableOrders, canUseLeader, effectSwing } from './effects.js';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=round-rules';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
@@ -19,6 +19,7 @@ export function createBotView(match) {
     opponentLives: human.lives,
     handSize: bot.hand.length,
     opponentHandSize: human.hand.length,
+    mustPlay: bot.usedAbility,
   };
 }
 
@@ -66,25 +67,26 @@ function playCard(card, view) {
 }
 
 export function chooseBotAction(view, rules = BOT_RULES) {
-  const { cards, rowLengths, score, opponentScore, opponentPassed, lives, opponentLives } = view;
+  const { cards, rowLengths, score, opponentScore, opponentPassed, lives, opponentLives, mustPlay } = view;
   const lead = score - opponentScore;
   const pass = { type: 'pass' };
   if (cards.length === 0) return pass;
 
   const ordered = [...cards].sort((left, right) => scoreValue(left) - scoreValue(right));
   if (opponentPassed) {
-    if (lead > 0) return pass;
+    const fallback = mustPlay ? playCard(ordered[0], view) : pass;
+    if (lead > 0) return fallback;
     const winningCards = weakestWinningCards(ordered, rowLengths, 1 - lead);
-    if (winningCards.length === 0) return pass;
+    if (winningCards.length === 0) return fallback;
 
     const handAfterWin = Math.min(HAND_LIMIT, view.handSize - winningCards.length + ROUND_DRAW);
     const opponentAfterDraw = Math.min(HAND_LIMIT, view.opponentHandSize + ROUND_DRAW);
     const matchAtStake = lives === 1 || opponentLives === 1;
     const affordable = handAfterWin + rules.cardDeficitLimit >= opponentAfterDraw;
-    return matchAtStake || affordable ? playCard(winningCards[0], view) : pass;
+    return matchAtStake || affordable || mustPlay ? playCard(winningCards[0], view) : pass;
   }
 
-  if (lives > 1 && lead >= rules.passLead) return pass;
+  if (!mustPlay && lives > 1 && lead >= rules.passLead) return pass;
   const middle = ordered[Math.floor((ordered.length - 1) / 2)];
   return playCard(middle, view);
 }
