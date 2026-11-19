@@ -1,5 +1,6 @@
 import { bindCardPlacement } from './card-placement.js';
-import { FACTIONS, ROWS, ROW_LABELS } from './game/cards.js';
+import { CARD_TYPES, FACTIONS, KEYWORDS, RARITY_LABELS, ROWS, ROW_LABELS } from './game/cards.js';
+import { cardType, isUnit } from './game/board.js';
 import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js';
 import { availableOrders, canUseLeader } from './game/effects.js';
 import {
@@ -14,19 +15,21 @@ const announcement = document.querySelector('#announcement');
 let match;
 let selected = new Set();
 let timer;
-let previewTimer;
-const preview = document.createElement('aside');
+let selectedCardId;
+const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';
-preview.setAttribute('role', 'status');
-preview.hidden = true;
+preview.setAttribute('aria-labelledby', 'preview-title');
 document.body.append(preview);
+preview.addEventListener('click', (event) => {
+  if (event.target === preview) preview.close();
+});
 const sideLabel = { human: 'Ты', bot: 'Бот' };
 
-const cancelPlacement = bindCardPlacement(screen, (cardId, position) => {
-  playHuman({ type: 'play', cardId, position });
+const cancelPlacement = bindCardPlacement(screen, (cardId, row, position) => {
+  playHuman({ type: 'play', cardId, row, position });
 }, (node) => {
   const card = match.players.human.hand.find(({ id }) => id === node.dataset.cardId);
-  if (card) showCard(card, true);
+  if (card) showCard(card);
 });
 
 function element(tag, className, text) {
@@ -47,60 +50,84 @@ function humanCanAct() {
   return match.turn === 'human' && !match.pending;
 }
 
-function hideCard() {
-  clearTimeout(previewTimer);
-  preview.hidden = true;
-}
-
-function showCard(card, temporary = false) {
-  clearTimeout(previewTimer);
-  const { definition, power, armor } = card;
-  preview.replaceChildren(
-    element('strong', null, definition.name),
-    element('p', 'muted', `Сила ${power} · броня ${armor ?? 0} · ${ROW_LABELS[definition.row]}`),
-    element('p', null, definition.text ?? 'Без эффекта.'),
-  );
-  preview.hidden = false;
-  if (temporary) previewTimer = setTimeout(hideCard, 4500);
+function showCard(card) {
+  const { definition, power, armor, timer } = card;
+  const details = [CARD_TYPES[cardType(card)], RARITY_LABELS[definition.rarity],
+    definition.provision !== undefined ? `Провизия ${definition.provision}` : 'Токен'].filter(Boolean);
+  const stats = [];
+  if (isUnit(card)) stats.push(`Сила ${power}`, `Броня ${armor ?? 0}`);
+  if (timer !== undefined) stats.push(`Таймер ${timer}`);
+  const title = element('h2', null, definition.name);
+  title.id = 'preview-title';
+  const close = button('Закрыть', () => preview.close());
+  close.autofocus = true;
+  const body = element('div', 'preview-body');
+  body.append(title, element('p', 'muted', details.join(' · ')));
+  if (stats.length) body.append(element('p', 'preview-stats', stats.join(' · ')));
+  body.append(element('p', null, definition.text ?? 'Без эффекта.'));
+  if (definition.keywords?.length) {
+    const glossary = element('dl', 'preview-keywords');
+    for (const keyword of definition.keywords) {
+      glossary.append(element('dt', null, keyword), element('dd', null, KEYWORDS[keyword]));
+    }
+    body.append(glossary);
+  }
+  body.append(close);
+  preview.replaceChildren(body);
+  if (!preview.open) preview.showModal();
 }
 
 function cardInspection(node, card, placement = false) {
-  let timer;
-  let held = false;
+  let holdTimer;
+  let activated;
+  let pendingClick;
   let firstX, firstY;
-  node.addEventListener('pointerenter', (event) => {
-    if (event.pointerType === 'mouse' && !event.buttons) showCard(card);
+  function inspect(event) {
+    event.preventDefault();
+    clearTimeout(holdTimer);
+    clearTimeout(pendingClick);
+    showCard(card);
+  }
+  node.addEventListener('dblclick', inspect);
+  node.addEventListener('contextmenu', inspect);
+  node.addEventListener('keydown', (event) => {
+    if (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)) inspect(event);
   });
-  node.addEventListener('pointerleave', (event) => {
-    clearTimeout(timer);
-    if (event.pointerType === 'mouse') hideCard();
-  });
-  node.addEventListener('focus', () => {
-    if (node.matches(':focus-visible')) showCard(card);
-  });
-  node.addEventListener('blur', hideCard);
-  node.addEventListener('contextmenu', (event) => event.preventDefault());
   if (!placement) {
     node.addEventListener('pointerdown', (event) => {
-      held = false;
+      activated = false;
       if (event.pointerType !== 'touch') return;
       firstX = event.clientX;
       firstY = event.clientY;
-      timer = setTimeout(() => {
-        held = true;
-        showCard(card, true);
+      holdTimer = setTimeout(() => {
+        activated = true;
+        showCard(card);
       }, 450);
     });
     node.addEventListener('pointermove', (event) => {
-      if (Math.hypot(event.clientX - firstX, event.clientY - firstY) > 6) clearTimeout(timer);
+      if (Math.hypot(event.clientX - firstX, event.clientY - firstY) > 6) clearTimeout(holdTimer);
     });
-    for (const end of ['pointerup', 'pointercancel']) node.addEventListener(end, () => clearTimeout(timer));
-    node.addEventListener('click', (event) => {
-      if (!held) return;
-      event.stopImmediatePropagation();
-      held = false;
-    }, { capture: true });
+    for (const end of ['pointerup', 'pointercancel', 'pointerleave']) {
+      node.addEventListener(end, () => clearTimeout(holdTimer));
+    }
   }
+  node.addEventListener('click', (event) => {
+    if (activated || node.dataset.suppressClick) {
+      event.stopImmediatePropagation();
+      activated = false;
+      delete node.dataset.suppressClick;
+      return;
+    }
+    if (event.detail > 1) {
+      clearTimeout(pendingClick);
+      event.stopImmediatePropagation();
+    } else if (event.detail === 1 && node.classList.contains('effect-target') && event.pointerType !== 'touch') {
+      event.stopImmediatePropagation();
+      pendingClick = setTimeout(() => {
+        if (node.isConnected) node.click();
+      }, 520);
+    }
+  }, { capture: true });
 }
 
 function roundText(event) {
@@ -114,12 +141,16 @@ function eventText(event) {
   switch (event.type) {
     case 'mulligan': return `Заменено карт: ${event.count}.`;
     case 'round-start': return `Раунд ${event.round}. Первый ход: ${side.toLowerCase()}.`;
-    case 'play': return `${side}: «${event.name}» (${event.power}) → ${ROW_LABELS[event.row]}.`;
+    case 'play': {
+      if (!event.row) return `${side}: «${event.name}» · Эффект.`;
+      return `${side}: «${event.name}» (${event.power ?? 'артефакт'}) → ${ROW_LABELS[event.row]}.`;
+    }
     case 'pass': {
       const reasons = {
         manual: 'пас',
         'empty-hand': 'автопас, рука пуста',
-        'full-row': 'автопас, доступные ряды заполнены',
+        'full-row': 'автопас, ряды заполнены',
+        'no-target': 'автопас, нет допустимых целей',
       };
       return `${side}: ${reasons[event.reason]}.`;
     }
@@ -135,7 +166,7 @@ function eventText(event) {
     case 'destroy': return `Карта «${event.name}» уничтожена и уходит из игры.`;
     case 'consume': return `«${event.eater}» поглощает «${event.name}» (${event.amount} силы).`;
     case 'deathwish': return `Завещание: «${event.name}».`;
-    case 'spawn': return `${side}: ${ROW_LABELS[event.row]}, порождено личинок: ${event.count}.`;
+    case 'spawn': return `${side}: ${ROW_LABELS[event.row]}, порождение «${event.name}» ×${event.count}.`;
     case 'leader': return `${side}: способность лидера «${event.name}».`;
     case 'order': return `${side}: Приказ карты «${event.name}».`;
   }
@@ -144,6 +175,7 @@ function eventText(event) {
 function start(faction) {
   clearTimeout(timer);
   selected = new Set();
+  selectedCardId = undefined;
   match = createMatch({ humanFaction: faction });
   render();
   screen.querySelector('h2').focus();
@@ -170,35 +202,61 @@ function startScreen() {
 
 function cardMarks(card) {
   const marks = element('span', 'card-marks');
-  const { definition, armor } = card;
-  if (armor) marks.append(element('span', 'armor-mark', `Б${armor}`));
+  const { definition, armor, timer } = card;
+  if (definition.provision !== undefined) {
+    marks.append(element('span', `provision-mark ${definition.rarity}`,
+      `${definition.rarity === 'gold' ? 'З' : 'Б'}${definition.provision}`));
+  }
+  if (armor) marks.append(element('span', 'armor-mark', `Щ${armor}`));
   if (definition.doomed) marks.append(element('span', 'doomed-mark', 'О'));
-  if (definition.deathwish) marks.append(element('span', 'wish-mark', 'З'));
+  if (definition.deathwish) marks.append(element('span', 'wish-mark', 'Зав'));
+  if (timer !== undefined) marks.append(element('span', 'timer-mark', `⌛${timer}`));
+  marks.setAttribute('aria-hidden', 'true');
   return marks;
 }
 
 function cardLabel(card) {
-  const { definition, power, armor } = card;
-  const details = [definition.name, `сила ${power}`, ROW_LABELS[definition.row]];
+  const { definition, power, armor, timer } = card;
+  const details = [definition.name, CARD_TYPES[cardType(card)]];
+  if (isUnit(card)) details.push(`сила ${power}`);
   if (armor) details.push(`броня ${armor}`);
+  if (definition.rarity) details.push(RARITY_LABELS[definition.rarity], `провизия ${definition.provision}`);
   if (definition.doomed) details.push('Обречённая');
   if (definition.deathwish) details.push('Завещание');
+  if (timer !== undefined) details.push(`таймер ${timer}`);
   return details.join(' · ');
 }
 
 function cardButton(card, handler, placement = false) {
-  const { name, row } = card.definition;
+  const { name } = card.definition;
   const node = button(undefined, handler, 'hand-card');
   node.dataset.cardId = card.id;
+  node.dataset.type = cardType(card);
   node.setAttribute('aria-label', cardLabel(card));
   node.append(
-    element('strong', 'card-power', card.power),
+    element('strong', 'card-power', isUnit(card) ? card.power : CARD_TYPES[cardType(card)]),
     element('span', 'card-name', name),
-    element('span', 'card-row', ROW_LABELS[row]),
     cardMarks(card),
   );
   cardInspection(node, card, placement);
   return node;
+}
+
+function updatePlacementSelection() {
+  const card = match.players.human.hand.find(({ id }) => id === selectedCardId);
+  for (const node of screen.querySelectorAll('.hand [data-card-id]')) {
+    node.setAttribute('aria-pressed', String(node.dataset.cardId === selectedCardId));
+  }
+  for (const row of screen.querySelectorAll('[data-play-row]')) {
+    const available = Boolean(card && (cardType(card) === 'effect' || row.dataset.full !== 'true'));
+    row.classList.toggle('is-selectable', available);
+    row.parentElement.querySelector('.row-place').hidden = !available;
+  }
+}
+
+function placeSelected(row) {
+  if (!selectedCardId || !humanCanAct()) return;
+  playHuman({ type: 'play', cardId: selectedCardId, row, position: match.players.human.board[row].length });
 }
 
 function mulliganScreen() {
@@ -223,7 +281,7 @@ function mulliganScreen() {
     for (const choice of choices) {
       const pressed = selected.has(choice.dataset.cardId);
       choice.setAttribute('aria-pressed', String(pressed));
-      choice.disabled = !pressed && selected.size === MULLIGAN_LIMIT;
+      choice.classList.toggle('is-unavailable', !pressed && selected.size === MULLIGAN_LIMIT);
     }
   }
 
@@ -245,17 +303,29 @@ function rowView(side, player, row, readyOrders) {
   const label = element('div', 'row-label');
   label.append(element('span', null, ROW_LABELS[row]), element('strong', 'row-score', strength));
   const slots = element('div', 'row-line');
+  slots.dataset.castZone = '';
   const cards = player.board[row];
-  if (side === 'human' && cards.length < ROW_LIMIT) slots.dataset.playRow = row;
+  if (side === 'human') {
+    slots.dataset.playRow = row;
+    slots.dataset.full = String(cards.length >= ROW_LIMIT);
+    const place = button('Сюда', () => placeSelected(row), 'row-place');
+    place.setAttribute('aria-label', `Сыграть карту в ряд «${ROW_LABELS[row]}»`);
+    place.hidden = true;
+    label.append(place);
+    slots.addEventListener('click', (event) => {
+      if (!event.target.closest('button')) placeSelected(row);
+    });
+  }
   for (const card of cards) {
     const target = match.pending?.side === 'human' && match.pending.options.includes(card.id);
     const slot = element('div', 'slot filled');
     const face = button(undefined, () => {
       if (target) playHuman({ type: 'target', cardId: card.id });
-      else showCard(card, true);
+      else if (selectedCardId === undefined) showCard(card);
     }, 'unit-face');
     face.setAttribute('aria-label', cardLabel(card));
-    face.append(element('strong', 'unit-power', card.power), cardMarks(card));
+    face.append(element('strong', 'unit-power', isUnit(card) ? card.power : '◆'), cardMarks(card));
+    if (cardType(card) === 'artifact') face.classList.add('is-artifact');
     if (target) face.classList.add('effect-target');
     if (card.definition.doomed) face.classList.add('is-doomed');
     cardInspection(face, card);
@@ -327,20 +397,17 @@ function playerHand() {
   }
 
   const cards = element('div', 'hand-grid');
-  panel.append(element('p', 'muted placement-hint', 'Перетащи карту в её ряд. Нажатие ставит карту справа.'));
+  panel.append(element('p', 'muted placement-hint',
+    'Перетащи карту или выбери её и нажми на ряд. Двойной клик, правый клик или удержание открывают описание.'));
   for (const card of human.hand) {
-    const { row } = card.definition;
-    const node = cardButton(card, (event) => {
-      if (event.detail !== 0) return;
-      playHuman({ type: 'play', cardId: card.id, position: human.board[row].length });
-    }, active && canPlayCard(human, card));
-    node.dataset.cardRow = row;
-    const hasSpace = canPlayCard(human, card);
-    node.disabled = !active || !hasSpace;
-    if (!hasSpace) {
-      node.title = 'Ряд заполнен';
-      node.querySelector('.card-row').textContent = `${ROW_LABELS[card.definition.row]} · заполнен`;
-    }
+    const available = active && canPlayCard(match, 'human', card);
+    const node = cardButton(card, () => {
+      if (!available) return;
+      selectedCardId = card.id;
+      updatePlacementSelection();
+    }, available);
+    if (available) node.dataset.playCard = '';
+    else node.classList.add('is-unavailable');
     cards.append(node);
   }
   panel.append(cards);
@@ -399,7 +466,7 @@ function finishedScreen() {
 
 function render() {
   cancelPlacement();
-  hideCard();
+  selectedCardId = undefined;
   let content;
   switch (match?.phase) {
     case 'mulligan': content = mulliganScreen(); break;

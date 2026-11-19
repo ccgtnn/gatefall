@@ -185,7 +185,7 @@ button:not(:disabled) { cursor: pointer; }
   background: var(--card);
 }
 
-.hand .hand-card:not(:disabled) {
+.hand .hand-card[data-play-card] {
   cursor: grab;
   touch-action: none;
   user-select: none;
@@ -330,3 +330,42 @@ button:not(:disabled) { cursor: pointer; }
 }
 .card-preview p { margin-top: .2rem; }
 .faction-label { color: #e9e9e9; }
+
+.row-line.is-selectable { background: #263c40; box-shadow: inset 0 0 0 1px #7ec7d0; cursor: pointer; }
+.row-line.is-cast-target { background: #214b56; box-shadow: inset 0 0 0 2px #99e9ff; }
+.row-place {
+  margin-left: auto;
+  border: 1px solid #79bfc6;
+  border-radius: 3px;
+  padding: .1rem .35rem;
+  color: #c0f5f5;
+  background: #263c40;
+}
+.board-row:has(.row-place:not([hidden])) .row-label { flex-wrap: wrap; }
+.hand .hand-card.is-unavailable, .mulligan .hand-card.is-unavailable { opacity: .64; cursor: default; }
+.hand-card[data-type="effect"] .card-power, .hand-card[data-type="artifact"] .card-power { font-size: .82rem; }
+.unit-face.is-artifact { background: #30373c; }
+.provision-mark { color: #efb285; }
+.provision-mark.gold { color: #ffe087; }
+.timer-mark { color: #e3dcfb; }
+.unit-face .card-marks { font-size: .65rem; }
+dialog.card-preview {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(100% - 1.5rem, 32rem);
+  max-width: none;
+  max-height: min(86vh, 42rem);
+  padding: 0;
+  color: inherit;
+  pointer-events: auto;
+  border-color: #8897a9;
+}
+dialog.card-preview::backdrop { background: #0d1119cc; }
+.preview-body { display: grid; gap: .7rem; padding: 1rem; }
+.preview-body h2 { font-size: 1.45rem; }
+.preview-stats { font-weight: 700; }
+.preview-keywords { display: grid; gap: .15rem; margin: 0; }
+.preview-keywords dt { color: #9ed4ff; font-weight: 700; }
+.preview-keywords dd { margin: 0 0 .4rem; color: var(--subtle); }
+.preview-body .button { justify-self: end; }

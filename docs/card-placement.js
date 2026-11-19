@@ -20,15 +20,27 @@ export function bindCardPlacement(screen, play, inspect) {
   let gesture = null;
 
   function dropPosition(active, x, y) {
-    if (!active.row.contains(doc.elementFromPoint(x, y))) return null;
-    const cards = Array.from(active.row.querySelectorAll('.slot.filled'), (card) => card.getBoundingClientRect());
-    return insertionPoint(active.row.getBoundingClientRect(), cards, x);
+    const hit = doc.elementFromPoint(x, y);
+    const row = active.rows.find((line) => line.contains(hit));
+    if (!row) return null;
+    const cards = Array.from(row.querySelectorAll('.slot.filled'), (card) => card.getBoundingClientRect());
+    return {
+      row: row.dataset.playRow,
+      element: row,
+      empty: cards.length === 0,
+      ...insertionPoint(row.getBoundingClientRect(), cards, x),
+    };
   }
 
   function showTarget(active) {
     const target = dropPosition(active, active.x, active.y);
-    active.marker.hidden = target === null;
-    if (target !== null) active.marker.style.left = `${target.offset}px`;
+    for (const row of active.rows) row.classList.toggle('is-cast-target', active.isEffect && target?.element === row);
+    active.marker.hidden = target === null || active.isEffect;
+    if (target && !active.isEffect) {
+      target.element.append(active.marker);
+      active.marker.classList.toggle('is-center', target.empty);
+      active.marker.style.left = `${target.offset}px`;
+    }
   }
 
   function scrollNearEdge() {
@@ -55,14 +67,12 @@ export function bindCardPlacement(screen, play, inspect) {
     active.ghost = ghost;
     doc.body.append(ghost);
     active.card.classList.add('is-dragged');
-    active.row.classList.add('is-available');
+    for (const row of active.rows) row.classList.add('is-available');
 
     const marker = doc.createElement('span');
     marker.className = 'drop-marker';
-    marker.classList.toggle('is-center', active.row.querySelector('.slot.filled') === null);
     marker.setAttribute('aria-hidden', 'true');
     active.marker = marker;
-    active.row.append(marker);
     active.frame = view.requestAnimationFrame(scrollNearEdge);
   }
 
@@ -76,7 +86,7 @@ export function bindCardPlacement(screen, play, inspect) {
       active.ghost.remove();
       active.marker.remove();
       active.card.classList.remove('is-dragged');
-      active.row.classList.remove('is-available');
+      for (const row of active.rows) row.classList.remove('is-available', 'is-cast-target');
     }
     if (active.card.hasPointerCapture(active.pointerId)) {
       active.card.releasePointerCapture(active.pointerId);
@@ -85,16 +95,19 @@ export function bindCardPlacement(screen, play, inspect) {
 
   screen.addEventListener('pointerdown', (event) => {
     if (gesture || !event.isPrimary || event.button !== 0) return;
-    const card = event.target.closest('button[data-card-row]:enabled');
+    const card = event.target.closest('button[data-play-card]');
     if (!card) return;
-    const row = screen.querySelector(`[data-play-row="${card.dataset.cardRow}"]`);
-    if (!row) return;
-    gesture = { pointerId: event.pointerId, card, row, startX: event.clientX, startY: event.clientY };
+    delete card.dataset.suppressClick;
+    const isEffect = card.dataset.type === 'effect';
+    const rows = [...screen.querySelectorAll(isEffect ? '[data-cast-zone]' : '[data-play-row]')].filter((row) => isEffect || row.dataset.full !== 'true');
+    if (!rows.length) return;
+    gesture = { pointerId: event.pointerId, card, rows, isEffect, startX: event.clientX, startY: event.clientY };
     card.setPointerCapture(event.pointerId);
     if (inspect && event.pointerType === 'touch') {
       const active = gesture;
       active.holdTimer = setTimeout(() => {
         active.inspected = true;
+        card.dataset.suppressClick = 'true';
         inspect(card);
       }, INSPECT_DELAY);
     }
@@ -120,17 +133,10 @@ export function bindCardPlacement(screen, play, inspect) {
     const active = gesture;
     if (active?.pointerId !== event.pointerId) return;
 
-    if (active.inspected) {
-      cancel();
-      return;
-    }
-    const { clientX, clientY } = event;
-    const hit = doc.elementFromPoint(clientX, clientY);
-    const position = active.ghost
-      ? dropPosition(active, clientX, clientY)?.position
-      : active.card.contains(hit) ? active.row.querySelectorAll('.slot.filled').length : undefined;
+    const drop = active.ghost ? dropPosition(active, event.clientX, event.clientY) : null;
+    if (active.ghost || active.inspected) active.card.dataset.suppressClick = 'true';
     cancel();
-    if (position !== undefined) play(active.card.dataset.cardId, position);
+    if (drop) play(active.card.dataset.cardId, drop.row, drop.position);
   });
 
   function cancelPointer(event) {

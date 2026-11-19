@@ -15,7 +15,7 @@ test('a populated row offers positions at both edges and between neighboring car
   assert.deepEqual(insertionPoint(rowBounds, cardBounds, 190), { position: 2, offset: 116 });
 });
 
-function placementFixture(pointerType) {
+function placementFixture(pointerType, { isEffect = false, full = false } = {}) {
   const played = [];
   const listeners = new Map();
   const ghost = {
@@ -24,7 +24,7 @@ function placementFixture(pointerType) {
   const marker = { ...ghost, classList: { toggle() {} } };
   let captured = null;
   const card = {
-    dataset: { cardRow: 'orbit', cardId: 'orbit-card' },
+    dataset: { cardId: 'orbit-card', type: isEffect ? 'effect' : 'unit' },
     classList: { add() {}, remove() {} },
     getBoundingClientRect: () => ({ width: 32 }),
     cloneNode: () => ghost,
@@ -36,7 +36,8 @@ function placementFixture(pointerType) {
   };
   const slots = cardBounds.map((bounds) => ({ getBoundingClientRect: () => bounds }));
   const row = {
-    classList: { add() {}, remove() {} },
+    dataset: { playRow: 'orbit', full: String(full) },
+    classList: { add() {}, remove() {}, toggle() {} },
     contains: (hit) => hit === row,
     getBoundingClientRect: () => rowBounds,
     querySelector: () => slots[0],
@@ -51,9 +52,9 @@ function placementFixture(pointerType) {
       body: { append() {} },
     },
     addEventListener: (name, listener) => listeners.set(name, listener),
-    querySelector: () => row,
+    querySelectorAll: () => [row],
   };
-  bindCardPlacement(screen, (id, position) => played.push({ id, position }));
+  bindCardPlacement(screen, (id, row, position) => played.push({ id, row, position }));
 
   function send(type, x, y, overrides = {}) {
     listeners.get(type)({
@@ -74,7 +75,7 @@ for (const pointer of ['mouse', 'touch']) {
     assert.equal(marker.style.left, '87px');
     assert.deepEqual(played, []);
     send('pointerup', 106, 40);
-    assert.deepEqual(played, [{ id: 'orbit-card', position: 1 }]);
+    assert.deepEqual(played, [{ id: 'orbit-card', row: 'orbit', position: 1 }]);
     assert.equal(marker.removed, true);
   });
 }
@@ -92,9 +93,24 @@ test('cancelled drags and releases outside the correct row do not play the card'
   assert.deepEqual(played, []);
 });
 
-test('a tap appends a card at the right edge', () => {
+test('a tap does not place a card before the row is chosen', () => {
   const { send, played } = placementFixture('touch');
   send('pointerdown', 105, 90);
   send('pointerup', 105, 90);
-  assert.deepEqual(played, [{ id: 'orbit-card', position: 2 }]);
+  assert.deepEqual(played, []);
+});
+
+test('full rows block placement but accept a dragged Effect', () => {
+  const blocked = placementFixture('touch', { full: true });
+  blocked.send('pointerdown', 105, 90);
+  blocked.send('pointermove', 106, 40);
+  blocked.send('pointerup', 106, 40);
+  assert.deepEqual(blocked.played, []);
+
+  const cast = placementFixture('touch', { isEffect: true, full: true });
+  cast.send('pointerdown', 105, 90);
+  cast.send('pointermove', 106, 40);
+  cast.send('pointerup', 106, 40);
+  assert.deepEqual(cast.played, [{ id: 'orbit-card', row: 'orbit', position: 1 }]);
+  assert.equal(cast.marker.hidden, true);
 });
