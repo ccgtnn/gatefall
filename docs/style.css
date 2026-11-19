@@ -204,9 +204,7 @@ button:not(:disabled) { cursor: pointer; }
 .hand-card:not(:disabled):hover { background: #484848; }
 .hand-card:disabled { background: #2b2b2b; color: #cecece; }
 .hand-card[aria-pressed="true"] { background: #494949; border-color: #fff; box-shadow: inset 0 0 0 1px #fff; }
-.card-power { font-size: 1.15rem; line-height: 1; }
 .card-name { font-size: .875rem; overflow-wrap: anywhere; }
-.card-row { font-size: .8125rem; color: #cacaca; }
 .round-result { padding-inline: .2rem; }
 .finish .button { margin-top: .25rem; }
 
@@ -286,7 +284,6 @@ button:not(:disabled) { cursor: pointer; }
   touch-action: manipulation;
 }
 
-.unit-power { line-height: 1; }
 .unit-face.is-doomed { border-style: dashed; }
 .card-marks {
   display: flex;
@@ -343,7 +340,6 @@ button:not(:disabled) { cursor: pointer; }
 }
 .board-row:has(.row-place:not([hidden])) .row-label { flex-wrap: wrap; }
 .hand .hand-card.is-unavailable, .mulligan .hand-card.is-unavailable { opacity: .64; cursor: default; }
-.hand-card[data-type="effect"] .card-power, .hand-card[data-type="artifact"] .card-power { font-size: .82rem; }
 .unit-face.is-artifact { background: #30373c; }
 .provision-mark { color: #efb285; }
 .provision-mark.gold { color: #ffe087; }
@@ -369,3 +365,129 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 .preview-keywords dt { color: #9ed4ff; font-weight: 700; }
 .preview-keywords dd { margin: 0 0 .4rem; color: var(--subtle); }
 .preview-body .button { justify-self: end; }
+
+.match-meta, .motion-setting {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .45rem .85rem;
+}
+.motion-setting { color: var(--subtle); font-size: .875rem; }
+.motion-setting select {
+  min-height: 2rem;
+  padding: .2rem .45rem;
+  border: 1px solid #777d89;
+  border-radius: 4px;
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+}
+
+[data-faction="protectorate"] {
+  --faction-edge: #7da9cd;
+  --faction-light: #d3eafa;
+  --faction-face: #233443;
+  --faction-second: #1d2935;
+}
+[data-faction="growth"] {
+  --faction-edge: #8eb892;
+  --faction-light: #d8f3c8;
+  --faction-face: #243c31;
+  --faction-second: #322743;
+}
+.deck-choice, .hand-card, .unit-face {
+  color: var(--faction-light, #f1f1f1);
+  border-color: var(--faction-edge, #747474);
+  background: linear-gradient(150deg, var(--faction-face, #363636), var(--faction-second, #303030));
+}
+.hand-card:hover, .deck-choice:not(:disabled):hover {
+  background: var(--faction-face, #484848);
+}
+.hand-card[aria-pressed="true"] { outline: 2px solid var(--faction-light, #fff); outline-offset: -2px; }
+.unit-face.is-artifact {
+  border-style: double;
+  background: repeating-linear-gradient(145deg, var(--faction-face, #30373c) 0 7px, var(--faction-second, #273037) 7px 14px);
+}
+.hand-card[data-type="artifact"] { border-style: double; }
+.hand-card[data-type="effect"] { border-block-start-style: dashed; }
+.faction-label { color: var(--faction-light, #e9e9e9); }
+
+.row-line { --slot-width: min(3.7rem, calc((100% - 1.65rem) / 9)); }
+.unit-face {
+  min-height: 3.4rem;
+  gap: .22rem;
+}
+.card-stats { display: flex; flex-wrap: wrap; align-items: center; gap: .08rem .25rem; }
+.unit-face .card-stats { justify-content: center; }
+.unit-power {
+  color: #fff;
+  font-size: clamp(1.08rem, 2.8vw, 1.43rem);
+  line-height: 1;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.armor-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: .08rem;
+  color: #bce8ff;
+  font-size: .9rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.armor-stat span { font-size: .65rem; }
+.type-shape { color: var(--faction-light, #e6efff); font-size: 1.12rem; line-height: 1; }
+.card-type-label { color: var(--subtle); font-size: .75rem; line-height: 1.1; }
+.keyword-mark { color: #f6f1dd; font-size: .82rem; min-width: .65em; text-align: center; }
+.card-marks { align-items: center; }
+.unit-face .card-marks { font-size: .72rem; gap: .09rem .16rem; }
+.unit-face .keyword-mark { font-size: .76rem; }
+.is-replaying .battlefield, .is-replaying .hand { pointer-events: none; }
+
+.motion-overlay {
+  position: fixed;
+  z-index: 12;
+  pointer-events: none;
+  margin: 0;
+}
+.slot.filled.motion-departure { position: fixed; }
+.motion-flight, .motion-activation {
+  max-width: min(13rem, calc(100vw - 1.5rem));
+  padding: .4rem .62rem;
+  border: 1px solid var(--faction-edge, #c5d9ef);
+  border-radius: 5px;
+  color: var(--faction-light, #f6fbff);
+  background: var(--faction-face, #22313d);
+  text-align: center;
+  font-size: .9rem;
+  line-height: 1.15;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.motion-activation { border-color: #cead75; color: #ffebc4; background: #443626; }
+.motion-number {
+  font-size: 1.65rem;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-shadow: 0 1px 4px #000, 1px 0 2px #000;
+}
+.motion-damage { color: #ff8282; }
+.motion-boost { color: #9ff6a2; }
+.motion-shield {
+  color: #bbedff;
+  font-size: 2.55rem;
+  line-height: 1;
+  text-shadow: 0 0 8px #8cdeff, 0 0 18px #94e5ff;
+}
+
+@media (max-width: 37rem) {
+  .match-meta, .motion-setting { gap: .38rem; }
+  .unit-face { min-height: 3.25rem; }
+  .armor-stat { font-size: .82rem; }
+  .unit-face .card-marks { font-size: .66rem; gap: .09rem .1rem; }
+  .unit-face .keyword-mark { font-size: .70rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .motion-overlay { display: none; }
+}

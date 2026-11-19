@@ -1,4 +1,6 @@
 import { bindCardPlacement } from './card-placement.js';
+import { presentJournalEvent } from './card-motion.js';
+import { motionDuration, playJournal } from './turn-playback.js';
 import { CARD_TYPES, FACTIONS, KEYWORDS, RARITY_LABELS, ROWS, ROW_LABELS } from './game/cards.js';
 import { cardType, isUnit } from './game/board.js';
 import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js';
@@ -11,11 +13,23 @@ import {
 const screen = document.querySelector('#screen');
 const phaseLabel = document.querySelector('#phase');
 const announcement = document.querySelector('#announcement');
+const speedSetting = document.querySelector('#animation-speed');
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+const speedKey = 'gatefall.animation-speed';
+try {
+  speedSetting.value = localStorage.getItem(speedKey) === 'fast' ? 'fast' : 'normal';
+} catch {
+  speedSetting.value = 'normal';
+}
+speedSetting.addEventListener('change', () => {
+  try { localStorage.setItem(speedKey, speedSetting.value); } catch {}
+});
 
 let match;
 let selected = new Set();
 let timer;
 let selectedCardId;
+let replaying = false;
 const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';
 preview.setAttribute('aria-labelledby', 'preview-title');
@@ -29,7 +43,7 @@ const cancelPlacement = bindCardPlacement(screen, (cardId, row, position) => {
   playHuman({ type: 'play', cardId, row, position });
 }, (node) => {
   const card = match.players.human.hand.find(({ id }) => id === node.dataset.cardId);
-  if (card) showCard(card);
+  if (card && !replaying) showCard(card);
 });
 
 function element(tag, className, text) {
@@ -47,7 +61,7 @@ function button(text, handler, className = 'button') {
 }
 
 function humanCanAct() {
-  return match.turn === 'human' && !match.pending;
+  return !replaying && match.turn === 'human' && !match.pending;
 }
 
 function showCard(card) {
@@ -65,9 +79,11 @@ function showCard(card) {
   body.append(title, element('p', 'muted', details.join(' · ')));
   if (stats.length) body.append(element('p', 'preview-stats', stats.join(' · ')));
   body.append(element('p', null, definition.text ?? 'Без эффекта.'));
-  if (definition.keywords?.length) {
+  const glossaryWords = new Set(definition.keywords);
+  if (definition.endTurn) glossaryWords.add('Конец хода');
+  if (glossaryWords.size) {
     const glossary = element('dl', 'preview-keywords');
-    for (const keyword of definition.keywords) {
+    for (const keyword of glossaryWords) {
       glossary.append(element('dt', null, keyword), element('dd', null, KEYWORDS[keyword]));
     }
     body.append(glossary);
@@ -168,6 +184,7 @@ function eventText(event) {
     case 'deathwish': return `Завещание: «${event.name}».`;
     case 'spawn': return `${side}: ${ROW_LABELS[event.row]}, порождение «${event.name}» ×${event.count}.`;
     case 'leader': return `${side}: способность лидера «${event.name}».`;
+    case 'tick': return 'Таймер «' + event.name + '»: ' + event.remaining + '.';
     case 'order': return `${side}: Приказ карты «${event.name}».`;
   }
 }
@@ -189,6 +206,7 @@ function startScreen() {
   const choices = element('div', 'deck-choices');
   for (const [id, faction] of Object.entries(FACTIONS)) {
     const choice = button(undefined, () => start(id), 'button deck-choice');
+    choice.dataset.faction = id;
     choice.append(
       element('strong', null, faction.name),
       element('span', 'muted', faction.strategy),
@@ -200,17 +218,61 @@ function startScreen() {
   return panel;
 }
 
+const keywordIcons = {
+  'Броня': '⬟',
+  'Урон': '✷',
+  'Порождение': '✦',
+  'Поглощение': '◉',
+  'Завещание': '†',
+  'Приказ': '⚑',
+  'Конец хода': '◷',
+};
+
+function keywordsFor(card) {
+  const { definition } = card;
+  const words = new Set(definition.keywords);
+  if (definition.endTurn) words.add('Конец хода');
+  return [...words].filter((word) => keywordIcons[word]);
+}
+
+function cardStats(card) {
+  const stats = element('span', 'card-stats');
+  if (isUnit(card)) stats.append(element('strong', 'unit-power', card.power));
+  if (card.armor) {
+    const armor = element('strong', 'armor-stat');
+    armor.title = 'Броня ' + card.armor;
+    armor.append(element('span', null, '⬟'), document.createTextNode(String(card.armor)));
+    stats.append(armor);
+  }
+  if (!isUnit(card)) {
+    const icon = element('span', 'type-shape', cardType(card) === 'artifact' ? '◆' : '✧');
+    icon.title = CARD_TYPES[cardType(card)];
+    stats.append(icon);
+  }
+  return stats;
+}
+
 function cardMarks(card) {
   const marks = element('span', 'card-marks');
-  const { definition, armor, timer } = card;
+  const { definition, timer } = card;
   if (definition.provision !== undefined) {
-    marks.append(element('span', `provision-mark ${definition.rarity}`,
-      `${definition.rarity === 'gold' ? 'З' : 'Б'}${definition.provision}`));
+    const rarity = definition.rarity === 'gold' ? 'З' : 'Б';
+    const provision = element('span', 'provision-mark ' + definition.rarity, rarity + definition.provision);
+    provision.title = RARITY_LABELS[definition.rarity] + ' · Провизия ' + definition.provision;
+    marks.append(provision);
   }
-  if (armor) marks.append(element('span', 'armor-mark', `Щ${armor}`));
-  if (definition.doomed) marks.append(element('span', 'doomed-mark', 'О'));
-  if (definition.deathwish) marks.append(element('span', 'wish-mark', 'Зав'));
-  if (timer !== undefined) marks.append(element('span', 'timer-mark', `⌛${timer}`));
+  for (const word of keywordsFor(card)) {
+    if (word === 'Броня' && card.armor) continue;
+    const icon = element('span', 'keyword-mark', keywordIcons[word]);
+    icon.title = word;
+    marks.append(icon);
+  }
+  if (definition.doomed) {
+    const doomed = element('span', 'doomed-mark', 'О');
+    doomed.title = 'Обречённая';
+    marks.append(doomed);
+  }
+  if (timer !== undefined) marks.append(element('span', 'timer-mark', '⌛' + timer));
   marks.setAttribute('aria-hidden', 'true');
   return marks;
 }
@@ -224,6 +286,7 @@ function cardLabel(card) {
   if (definition.doomed) details.push('Обречённая');
   if (definition.deathwish) details.push('Завещание');
   if (timer !== undefined) details.push(`таймер ${timer}`);
+  details.push(...keywordsFor(card).filter((word) => word !== 'Завещание' && (word !== 'Броня' || !armor)));
   return details.join(' · ');
 }
 
@@ -232,9 +295,11 @@ function cardButton(card, handler, placement = false) {
   const node = button(undefined, handler, 'hand-card');
   node.dataset.cardId = card.id;
   node.dataset.type = cardType(card);
+  node.dataset.faction = match.players.human.factionId ?? '';
   node.setAttribute('aria-label', cardLabel(card));
   node.append(
-    element('strong', 'card-power', isUnit(card) ? card.power : CARD_TYPES[cardType(card)]),
+    cardStats(card),
+    element('span', 'card-type-label', CARD_TYPES[cardType(card)]),
     element('span', 'card-name', name),
     cardMarks(card),
   );
@@ -271,9 +336,9 @@ function mulliganScreen() {
     else if (selected.size < MULLIGAN_LIMIT) selected.add(card.id);
     updateSelection();
   }));
-  const confirm = button('Начать раунд', () => {
-    updateMatch(confirmMulligan(match, [...selected]));
-    document.querySelector('#turn-label').focus();
+  const confirm = button('Начать раунд', async () => {
+    await updateMatch(confirmMulligan(match, [...selected]));
+    document.querySelector('#turn-label')?.focus();
   }, 'button primary');
 
   function updateSelection() {
@@ -317,14 +382,17 @@ function rowView(side, player, row, readyOrders) {
     });
   }
   for (const card of cards) {
-    const target = match.pending?.side === 'human' && match.pending.options.includes(card.id);
+    const target = !replaying && match.pending?.side === 'human' && match.pending.options.includes(card.id);
     const slot = element('div', 'slot filled');
+    slot.dataset.boardCard = card.id;
     const face = button(undefined, () => {
       if (target) playHuman({ type: 'target', cardId: card.id });
-      else if (selectedCardId === undefined) showCard(card);
+      else if (!replaying && selectedCardId === undefined) showCard(card);
     }, 'unit-face');
     face.setAttribute('aria-label', cardLabel(card));
-    face.append(element('strong', 'unit-power', isUnit(card) ? card.power : '◆'), cardMarks(card));
+    face.dataset.faction = player.factionId ?? '';
+    face.dataset.type = cardType(card);
+    face.append(cardStats(card), cardMarks(card));
     if (cardType(card) === 'artifact') face.classList.add('is-artifact');
     if (target) face.classList.add('effect-target');
     if (card.definition.doomed) face.classList.add('is-doomed');
@@ -354,6 +422,8 @@ function rowView(side, player, row, readyOrders) {
 function sideView(side) {
   const player = match.players[side];
   const section = element('section', 'side');
+  section.dataset.side = side;
+  section.dataset.faction = player.factionId ?? '';
   const summary = element('div', 'side-summary');
   const status = element('div', 'side-status');
   status.append(
@@ -429,7 +499,7 @@ function battlefield() {
   const game = element('div', 'game');
   const field = element('div', 'panel battlefield');
   const { pending } = match;
-  const turn = element('p', 'turn', pending
+  const turn = element('p', 'turn', replaying ? 'Розыгрыш…' : pending
     ? pending.side === 'human' ? pending.prompt : 'Бот выбирает цель…'
     : match.turn === 'human' ? 'Твой ход' : 'Ход бота');
   if (pending?.side === 'human') turn.classList.add('target-prompt');
@@ -466,6 +536,7 @@ function finishedScreen() {
 
 function render() {
   cancelPlacement();
+  screen.classList.toggle('is-replaying', replaying);
   selectedCardId = undefined;
   let content;
   switch (match?.phase) {
@@ -477,10 +548,30 @@ function render() {
   screen.replaceChildren(content);
 }
 
-function updateMatch(next) {
-  if (next === match) return;
+function renderPlayback(state) {
+  match = state;
+  render();
+}
+
+async function updateMatch(next) {
+  if (replaying || next === match) return;
   clearTimeout(timer);
-  const events = next.log.slice(match.log.length);
+  const before = match;
+  const events = next.log.slice(before.log.length);
+  if (before.phase === 'playing' && events.length && motionDuration(speedSetting.value, reducedMotion.matches)) {
+    replaying = true;
+    screen.classList.add('is-replaying');
+    try {
+      await playJournal(before, events, (event, commit) => presentJournalEvent(
+        screen, event, commit, renderPlayback, motionDuration(speedSetting.value, reducedMotion.matches),
+      ));
+    } catch (error) {
+      console.warn('Playback stopped early', error);
+    } finally {
+      replaying = false;
+    }
+  }
+
   match = next;
   render();
   announcement.textContent = events.map(eventText).join(' ');
@@ -494,8 +585,9 @@ function updateMatch(next) {
   }
 }
 
-function playHuman(action) {
-  updateMatch(applyAction(match, 'human', action));
+async function playHuman(action) {
+  if (replaying) return;
+  await updateMatch(applyAction(match, 'human', action));
   if (humanCanAct()) screen.querySelector('#pass-button:enabled')?.focus({ preventScroll: true });
 }
 
