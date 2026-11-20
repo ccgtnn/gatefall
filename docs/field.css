@@ -172,7 +172,11 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   padding: 3px 7px;
 }
 .bot-hand { grid-area: bot; align-items: start; }
-.hand-fan { grid-area: hand; align-items: end; }
+.hand-fan {
+  grid-area: hand;
+  align-items: end;
+  padding-block-end: clamp(7px, 1.4dvh, 14px);
+}
 .card-back {
   display: block;
   flex: 0 0 calc(var(--hand-width) * .58);
@@ -200,6 +204,9 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   z-index: 2;
 }
 .hand-fan > .hand-card.is-dragged { opacity: .4; }
+.hand-fan .hand-card:not(:last-child):not(:hover, :focus-visible, [aria-pressed="true"]) .armor-stat {
+  right: calc(23% + var(--stat-inset));
+}
 
 .hand-card, .unit-face {
   --stat-size: clamp(14px, 3.3dvh, 24px);
@@ -232,6 +239,11 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   border-radius: 50%;
 }
 .card-state.unit-order { z-index: 1; }
+button.unit-order:not(:disabled)::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+}
 .card-state.unit-order:not(:disabled).order-ready, .card-state.order-ready {
   border-color: #aaf9da;
   background: #184d42;
