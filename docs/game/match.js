@@ -71,6 +71,7 @@ export function createMatch({ decks, humanFaction = decks ? undefined : 'protect
     tokenCount: 0,
     effects: [],
     pending: null,
+    playedCard: false,
     ending: null,
   };
 }
@@ -97,7 +98,11 @@ export function playableCards(match, side) {
 
 export function canPass(match, side) {
   return match.phase === 'playing' && match.turn === side && !match.pending &&
-    !match.players[side].passed && !match.players[side].usedAbility;
+    !match.playedCard && !match.players[side].passed && !match.players[side].usedAbility;
+}
+
+export function canEndTurn(match, side) {
+  return match.phase === 'playing' && match.turn === side && !match.pending && match.playedCard;
 }
 
 function playDestination(player, action) {
@@ -233,6 +238,7 @@ function progress(match, random) {
     }
     if (match.ending === 'advance') {
       match.ending = null;
+      match.playedCard = false;
       player.turns += 1;
       player.usedAbility = false;
       if (player.passed && match.players[otherSide].passed) resolveRound(match);
@@ -240,6 +246,11 @@ function progress(match, random) {
       continue;
     }
 
+    if (match.playedCard) {
+      if (availableOrders(match, side).length) return;
+      match.ending = 'effects';
+      continue;
+    }
     if (playableCards(match, side).length) return;
     if (player.usedAbility) {
       match.log.push({ type: 'turn-skip', side });
@@ -274,14 +285,15 @@ export function applyAction(match, side, action, { random = Math.random } = {}) 
   const player = match.players[side];
   const { type, cardId } = action;
   if (type === 'pass' && !canPass(match, side)) return match;
+  if (type === 'end-turn' && !canEndTurn(match, side)) return match;
   if (type === 'order' && !availableOrders(match, side).some(({ card }) => card.id === cardId)) return match;
-  if (type === 'leader' && !canUseLeader(match, side)) return match;
-  if (type !== 'play' && type !== 'pass' && type !== 'order' && type !== 'leader') return match;
+  if (type === 'leader' && (match.playedCard || !canUseLeader(match, side))) return match;
+  if (type !== 'play' && type !== 'pass' && type !== 'order' && type !== 'leader' && type !== 'end-turn') return match;
   const cardIndex = type === 'play' ? player.hand.findIndex(({ id }) => id === cardId) : -1;
   let destination;
   if (type === 'play') {
     const card = player.hand[cardIndex];
-    if (!card || !canPlayCard(match, side, card)) return match;
+    if (match.playedCard || !card || !canPlayCard(match, side, card)) return match;
     if (cardType(card) !== 'effect') {
       destination = playDestination(player, action);
       if (!destination) return match;
@@ -292,6 +304,8 @@ export function applyAction(match, side, action, { random = Math.random } = {}) 
   const current = next.players[side];
   if (type === 'pass') {
     markPassed(next, side, 'manual');
+    next.ending = 'effects';
+  } else if (type === 'end-turn') {
     next.ending = 'effects';
   } else if (type === 'play') {
     const [card] = current.hand.splice(cardIndex, 1);
@@ -305,7 +319,7 @@ export function applyAction(match, side, action, { random = Math.random } = {}) 
     if (card.armor) next.log.push({ type: 'armor', side, name: card.definition.name, cardId: card.id, armor: card.armor, amount: card.armor });
     enqueueCardEffect(next, side, card, 'deploy', Boolean(destination));
     if (!destination) next.effects.push({ discard: card, side });
-    next.ending = 'effects';
+    next.playedCard = true;
   } else if (type === 'leader') {
     current.usedAbility = true;
     current.leader.charges -= 1;

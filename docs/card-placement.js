@@ -1,5 +1,4 @@
 const DRAG_DISTANCE = 6;
-const SCROLL_EDGE = 56;
 const INSPECT_DELAY = 450;
 
 export function insertionPoint(row, cards, clientX) {
@@ -16,7 +15,6 @@ export function insertionPoint(row, cards, clientX) {
 
 export function bindCardPlacement(screen, play, inspect) {
   const doc = screen.ownerDocument;
-  const view = doc.defaultView;
   let gesture = null;
 
   function dropPosition(active, x, y) {
@@ -43,21 +41,6 @@ export function bindCardPlacement(screen, play, inspect) {
     }
   }
 
-  function scrollNearEdge() {
-    const active = gesture;
-    if (!active?.ghost) return;
-
-    const { y } = active;
-    const bottomDistance = view.innerHeight - y;
-    const direction = y < SCROLL_EDGE ? -1 : bottomDistance < SCROLL_EDGE ? 1 : 0;
-    if (direction !== 0) {
-      const previousY = view.scrollY;
-      view.scrollBy(0, direction * 12);
-      if (view.scrollY !== previousY) showTarget(active);
-    }
-    active.frame = view.requestAnimationFrame(scrollNearEdge);
-  }
-
   function beginDrag(active) {
     const ghost = active.card.cloneNode(true);
     ghost.classList.add('drag-ghost');
@@ -73,7 +56,6 @@ export function bindCardPlacement(screen, play, inspect) {
     marker.className = 'drop-marker';
     marker.setAttribute('aria-hidden', 'true');
     active.marker = marker;
-    active.frame = view.requestAnimationFrame(scrollNearEdge);
   }
 
   function cancel() {
@@ -82,7 +64,6 @@ export function bindCardPlacement(screen, play, inspect) {
     gesture = null;
     clearTimeout(active.holdTimer);
     if (active.ghost) {
-      view.cancelAnimationFrame(active.frame);
       active.ghost.remove();
       active.marker.remove();
       active.card.classList.remove('is-dragged');

@@ -1,7 +1,7 @@
 import { ROWS } from './cards.js';
 import { cardType, findUnit, isUnit, neighbors, units } from './board.js';
 import { availableOrders, canUseLeader, effectSwing } from './effects.js';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=round-rules';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=post-play-orders';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
@@ -146,7 +146,8 @@ export function chooseBotTurn(match) {
         return { type: 'order', cardId: order.card.id };
       }
     }
-    if (beneficialLeader(match, view, allies)) return { type: 'leader' };
+    if (!match.playedCard && beneficialLeader(match, view, allies)) return { type: 'leader' };
   }
+  if (match.playedCard) return { type: 'end-turn' };
   return chooseBotAction(view);
 }

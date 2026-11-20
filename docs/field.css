@@ -101,7 +101,8 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
 .field-center .row-place { position: absolute; right: 4px; bottom: 3px; z-index: 2; font-size: .7rem; }
 
 .field-center .slot, .field-center .slot.filled {
-  height: min(100%, calc(var(--slot-width) * 1.5));
+  height: 100%;
+  max-height: min(12.9dvh, 8.1rem);
   min-height: 0;
   aspect-ratio: auto;
 }
@@ -182,6 +183,8 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
     linear-gradient(145deg, var(--faction-face, #283745), var(--faction-second, #211f2e));
   transform: translateY(calc(var(--fan-drop) * -.45)) rotate(calc(var(--fan-angle) * -1));
 }
+.card-back[data-faction="protectorate"] { --back-image: url("./art/back-protectorate.webp"); }
+.card-back[data-faction="growth"] { --back-image: url("./art/back-growth.webp"); }
 .card-back + .card-back { margin-inline-start: calc(var(--hand-width) * -.16); }
 
 .hand-fan > .hand-card {
@@ -236,8 +239,9 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   box-shadow: 0 0 5px #62f3b59c;
 }
 .card-state.order-sleep { color: #c0cddb; border-color: #676f7a; }
-.slot:has(.unit-face > .card-state) .unit-order { left: auto; right: 2px; transform: none; }
 .drag-ghost { min-height: 0; aspect-ratio: 2 / 3; }
+.motion-flight.has-art { width: clamp(40px, 11dvh, 88px); aspect-ratio: 2 / 3; padding: 0; }
+.motion-flight.has-art::after { content: none; }
 
 .mulligan.mulligan-overlay {
   position: absolute;
@@ -312,12 +316,9 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   .mulligan-overlay .hand-card { width: min(100%, 21dvh); height: auto; }
 }
 @media (max-height: 430px), (max-width: 660px) {
-  .field-center .row-name { display: none; }
-  .field-center .board-row { grid-template-columns: minmax(0, 1fr) 23px; }
+  .field-center .board-row { grid-template-columns: minmax(0, 1fr) 3.25rem; }
   .field-center .row-label { padding-inline: 2px; align-items: center; }
   .field-center .row-place { font-size: .58rem; }
-  .card-kind, .unit-face .card-state, .slot > .card-state { inset-block-start: auto; box-shadow: none; }
-  .card-kind { inset-block-start: 2px; }
 }
 @media (orientation: portrait) and (max-width: 739px) {
   .in-match .subtitle { display: none; }

@@ -4,7 +4,7 @@ import { createCard, placeCards } from '../docs/game/board.js';
 import { chooseBotTurn } from '../docs/game/bot.js';
 import { FACTIONS, FIRST_SIGNAL } from '../docs/game/cards.js';
 import { availableOrders } from '../docs/game/effects.js';
-import { applyAction, canPass, confirmMulligan, createMatch, mulliganLimit } from '../docs/game/match.js';
+import { applyAction, canEndTurn, canPass, confirmMulligan, createMatch, mulliganLimit } from '../docs/game/match.js';
 
 const pass = { type: 'pass' };
 const definitions = new Map(Object.values(FACTIONS).flatMap(({ deck }) => deck.map((card) => [card.id, card])));
@@ -29,7 +29,7 @@ test('leader locks pass until a card is played, then the next owner turn can pas
   assert.equal(match.turn, 'human');
   assert.equal(canPass(match, 'human'), false);
   assert.strictEqual(applyAction(match, 'human', pass), match);
-  match = action(match, 'play', 'play');
+  match = action(action(match, 'play', 'play'), 'end-turn');
   assert.equal(match.turn, 'bot');
   match = applyAction(match, 'bot', pass);
   assert.equal(canPass(match, 'human'), true);
@@ -159,4 +159,76 @@ test('unused First Signal disappears in round one and is never redeployed', () =
   assert.equal(match.players.human.board.surface.length, 0);
   assert.equal(match.players.bot.board.surface.length, 0);
   assert.equal(match.log.filter(({ type }) => type === 'stratagem').length, 1);
+});
+
+
+test('a played card opens the order window and blocks a second card, pass and leader', () => {
+  let match = confirmMulligan(setup(), []);
+  match.players.human.hand = [unit('first'), unit('second')];
+  assert.strictEqual(action(match, 'end-turn'), match);
+  match = action(match, 'play', 'first');
+  assert.equal(match.turn, 'human');
+  assert.equal(match.players.human.turns, 0);
+  assert.equal(canEndTurn(match, 'human'), true);
+  assert.equal(canPass(match, 'human'), false);
+  assert.strictEqual(action(match, 'play', 'second'), match);
+  assert.strictEqual(action(match, 'pass'), match);
+  assert.strictEqual(action(match, 'leader'), match);
+  assert.strictEqual(action(match, 'end-turn', undefined, 'bot'), match);
+  match = action(match, 'order', FIRST_SIGNAL.id);
+  assert.equal(canEndTurn(match, 'human'), false);
+  assert.strictEqual(action(match, 'end-turn'), match);
+  match = action(match, 'target', 'first');
+  assert.equal(match.players.human.board.orbit[0].power, 7);
+  assert.equal(match.turn, 'bot');
+  assert.equal(match.players.human.turns, 1);
+  assert.equal(match.playedCard, false);
+});
+
+test('manual end runs end-of-turn effects once and keeps unused orders for the next turn', () => {
+  let match = confirmMulligan(setup(), []);
+  match.players.human.board.orbit = [unit('unit')];
+  match.players.human.hand = [unit('incubator', 'incubator'), unit('spare')];
+  match = action(match, 'play', 'incubator');
+  assert.equal(match.players.human.board.orbit[1].timer, 3);
+  assert.ok(!match.log.some(({ type }) => type === 'spawn'));
+  match = action(match, 'end-turn');
+  assert.equal(match.turn, 'bot');
+  assert.equal(match.players.human.board.orbit[1].timer, 2);
+  assert.equal(match.log.filter(({ type }) => type === 'spawn').length, 1);
+  match = action(match, 'pass');
+  assert.equal(canPass(match, 'human'), true);
+  assert.ok(availableOrders(match, 'human').some(({ card }) => card.id === FIRST_SIGNAL.id));
+});
+
+test('the bot uses an order made legal by its play, or ends the turn if already ahead of a passed player', () => {
+  for (const opponentPassed of [false, true]) {
+    let match = confirmMulligan(setup('bot'), []);
+    match.players.bot.hand = [unit('first'), unit('spare')];
+    match = action(match, 'play', 'first');
+    assert.equal(match.turn, 'bot');
+    match.players.human.passed = opponentPassed;
+    const choice = chooseBotTurn(match);
+    assert.deepEqual(choice, opponentPassed ? { type: 'end-turn' } : { type: 'order', cardId: FIRST_SIGNAL.id });
+    match = applyAction(match, 'bot', choice);
+    if (opponentPassed) {
+      assert.equal(match.playedCard, false);
+      assert.equal(match.players.bot.passed, false);
+    } else {
+      match = applyAction(match, 'bot', chooseBotTurn(match));
+      assert.equal(match.turn, 'human');
+    }
+    assert.equal(match.players.bot.hand[0].id, 'spare');
+  }
+});
+
+test('playing with no available order auto-ends even if there is a sleeping order on the board', () => {
+  let match = confirmMulligan(setup('bot'), []);
+  match = action(match, 'pass');
+  match.players.human.hand = [unit('commander', 'commander'), unit('spare')];
+  match = action(match, 'play', 'commander');
+  assert.equal(match.players.human.turns, 1);
+  assert.equal(match.turn, 'human');
+  assert.equal(match.playedCard, false);
+  assert.equal(canPass(match, 'human'), true);
 });

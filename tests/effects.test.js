@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { chooseBotTurn } from '../docs/game/bot.js';
 import { createCard } from '../docs/game/board.js';
-import { FACTIONS, LARVA } from '../docs/game/cards.js';
-import { applyAction, availableRows, confirmMulligan, createMatch, playableCards, ROW_LIMIT } from '../docs/game/match.js';
+import { FACTIONS, FIRST_SIGNAL, LARVA } from '../docs/game/cards.js';
+import { applyAction, availableRows, canEndTurn, confirmMulligan, createMatch, playableCards, ROW_LIMIT } from '../docs/game/match.js';
 
 const definitions = new Map(Object.values(FACTIONS).flatMap(({ deck }) => deck.map((card) => [card.id, card])));
 const basic = { id: 'basic', name: 'Обычная карта', type: 'unit', power: 4 };
@@ -18,7 +18,11 @@ function unit(id, definitionId, overrides = {}) {
 function fixture({ faction = 'protectorate', charges = 0 } = {}) {
   const match = createMatch({ humanFaction: faction, random: () => 0.999, rules: { leaderCharges: charges } });
   match.starter = 'human';
-  return confirmMulligan(match, []);
+  const started = confirmMulligan(match, []);
+  // Isolate the card under test from the opening stratagem.
+  const surface = started.players.human.board.surface;
+  assert.equal(surface.pop().id, FIRST_SIGNAL.id);
+  return started;
 }
 
 function board(match, side, row, ...cards) {
@@ -277,6 +281,7 @@ test('live faction matches resolve all choices, keep card identities unique, and
       let action;
       if (side === 'bot') action = chooseBotTurn(match);
       else if (match.pending) action = { type: 'target', cardId: match.pending.options[0] };
+      else if (canEndTurn(match, side)) action = { type: 'end-turn' };
       else if (!card || random() < 0.12) action = { type: 'pass' };
       else {
         const row = availableRows(player)[0];

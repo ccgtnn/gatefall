@@ -3,7 +3,7 @@ import test from 'node:test';
 import { ROWS } from '../docs/game/cards.js';
 import { DECKS } from './fixtures/prototype-decks.js';
 import {
-  HAND_LIMIT, ROW_LIMIT, applyAction, availableRows, confirmMulligan, createMatch, mulliganLimit, playableCards, totalScore,
+  HAND_LIMIT, ROW_LIMIT, applyAction, availableRows, canEndTurn, confirmMulligan, createMatch, mulliganLimit, playableCards, totalScore,
 } from '../docs/game/match.js';
 import { chooseBotTurn } from '../docs/game/bot.js';
 
@@ -19,9 +19,13 @@ function playFirst(match) {
   const player = match.players[match.turn];
   const [card] = playableCards(match, match.turn);
   const row = availableRows(player).includes(card.definition.row) ? card.definition.row : availableRows(player)[0];
-  return applyAction(match, match.turn, {
-    type: 'play', cardId: card.id, row, position: player.board[row].length,
-  });
+  return playAndEnd(match, { type: 'play', cardId: card.id, row, position: player.board[row].length });
+}
+
+function playAndEnd(match, action) {
+  const side = match.turn;
+  const next = applyAction(match, side, action);
+  return next !== match && canEndTurn(next, side) ? applyAction(next, side, { type: 'end-turn' }) : next;
 }
 
 function endRound(match) {
@@ -247,7 +251,7 @@ test('position inserts the first, leftmost, rightmost and middle cards in the ex
   const setup = orderedMatch({ human: DECKS.human.filter(({ row }) => row === 'orbit'), bot: [] });
   let match = confirmMulligan(setup, []);
   const cards = match.players.human.hand.slice(0, 4);
-  const playAt = (card, position) => applyAction(match, 'human', {
+  const playAt = (card, position) => playAndEnd(match, {
     type: 'play', cardId: card.id, row: 'orbit', position,
   });
 

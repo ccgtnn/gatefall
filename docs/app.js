@@ -1,14 +1,14 @@
-import { bindCardPlacement } from './card-placement.js';
-import { presentJournalEvent } from './card-motion.js';
+import { bindCardPlacement } from './card-placement.js?v=field-6';
+import { presentJournalEvent } from './card-motion.js?v=field-6';
 import { motionDuration, playJournal } from './turn-playback.js?v=motion-settings';
 import { CARD_TYPES, FACTIONS, KEYWORDS, RARITY_LABELS, ROWS, ROW_LABELS } from './game/cards.js?v=silhouettes-2';
 import { cardType, isUnit } from './game/board.js';
-import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=round-rules';
+import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=post-play-orders';
 import { availableOrders, canUseLeader } from './game/effects.js';
 import {
-  HAND_LIMIT, ROW_LIMIT, applyAction, canPass, canPlayCard,
+  HAND_LIMIT, ROW_LIMIT, applyAction, canEndTurn, canPass, canPlayCard,
   confirmMulligan, createMatch, mulliganLimit, rowScore, totalScore,
-} from './game/match.js?v=silhouettes-2';
+} from './game/match.js?v=post-play-orders';
 
 const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
@@ -42,7 +42,7 @@ let mulliganFieldVisible = false;
 let openPile;
 const drawer = element('dialog', 'field-drawer');
 drawer.setAttribute('aria-labelledby', 'drawer-title');
-drawer.addEventListener('close', () => { openPile = undefined; });
+drawer.addEventListener('close', () => { if (!drawer.open) openPile = undefined; });
 drawer.addEventListener('click', (event) => {
   if (event.target === drawer) drawer.close();
 });
@@ -306,7 +306,7 @@ function decorateCard(node, card, player, { orderOnField = false } = {}) {
   }
   const word = definition.order ? 'Приказ' : definition.deathwish ? 'Завещание'
     : definition.doomed ? 'Обречённая' : keywordsFor(card).find((keyword) => keyword !== 'Броня');
-  if (timer !== undefined || (word && !orderOnField)) {
+  if (!orderOnField && (timer !== undefined || word)) {
     const mark = element('span', 'card-state', timer !== undefined ? timer : keywordIcons[word] ?? '○');
     mark.title = timer !== undefined ? 'Таймер ' + timer : word;
     if (word === 'Приказ' && timer === undefined) mark.classList.add('order-sleep');
@@ -614,9 +614,12 @@ function battlefield() {
   left.append(pileView('bot', 'discard'), leaderView('bot'),
     button('Журнал', () => showDrawer('journal'), 'button field-log'), leaderView('human'), pileView('human', 'discard'));
   const right = element('div', 'field-rail field-right');
-  const pass = button('Пас', () => playHuman({ type: 'pass' }), 'button field-action');
-  pass.id = 'pass-button';
-  pass.disabled = !humanCanAct() || !canPass(match, 'human');
+  const afterPlay = match.turn === 'human' && match.playedCard;
+  const action = button(afterPlay ? 'Конец хода' : 'Пас', () =>
+    playHuman({ type: afterPlay ? 'end-turn' : 'pass' }), 'button field-action');
+  action.id = 'pass-button';
+  action.disabled = !humanCanAct() || !(afterPlay ? canEndTurn(match, 'human') : canPass(match, 'human'));
+  if (humanCanAct() && !afterPlay && players.human.usedAbility) action.title = 'Сыграй карту после применения способности';
   const botCount = element('span', 'field-hand-count', players.bot.hand.length + '/' + HAND_LIMIT);
   botCount.title = 'Карт в руке у бота';
   const humanCount = element('span', 'field-hand-count', players.human.hand.length + '/' + HAND_LIMIT);
@@ -625,7 +628,7 @@ function battlefield() {
   botCorner.append(botCount, pileView('bot', 'deck'));
   const humanCorner = element('div', 'field-corner');
   humanCorner.append(humanCount, pileView('human', 'deck'));
-  right.append(botCorner, scoreView('bot'), pass, scoreView('human'), humanCorner);
+  right.append(botCorner, scoreView('bot'), action, scoreView('human'), humanCorner);
   field.append(left, botHand(), center, playerHand(), right);
   game.append(field);
   if (phase === 'mulligan') {

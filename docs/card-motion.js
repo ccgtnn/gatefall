@@ -59,7 +59,16 @@ function fly(screen, event, current, handOrigin, duration) {
   const view = screen.ownerDocument.defaultView;
   const from = handOrigin ?? { x: destination.x, y: -30 };
   const startY = Math.max(-40, Math.min(view.innerHeight + 40, from.y));
-  const card = floatNode(screen, 'motion-flight', event.name, destination);
+  const art = event.card?.definition.art;
+  const card = floatNode(screen, 'motion-flight', art ? '' : event.name, destination);
+  if (art) {
+    const image = screen.ownerDocument.createElement('img');
+    image.className = 'card-art-crop';
+    image.src = './art/' + art;
+    image.alt = '';
+    card.classList.add('has-art');
+    card.append(image);
+  }
   card.dataset.faction = screen.querySelector('[data-side="' + event.side + '"]')?.dataset.faction ?? '';
   const slide = (factor) => point((from.x - destination.x) * factor, (startY - destination.y) * factor);
   const motion = animate(card, [
