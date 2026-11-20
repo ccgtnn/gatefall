@@ -359,15 +359,6 @@ button:not(:disabled) { cursor: pointer; }
 
 .row-line.is-selectable { background: #263c40; box-shadow: inset 0 0 0 1px #7ec7d0; cursor: pointer; }
 .row-line.is-cast-target { background: #214b56; box-shadow: inset 0 0 0 2px #99e9ff; }
-.row-place {
-  margin-left: auto;
-  border: 1px solid #79bfc6;
-  border-radius: 3px;
-  padding: .1rem .35rem;
-  color: #c0f5f5;
-  background: #263c40;
-}
-.board-row:has(.row-place:not([hidden])) .row-label { flex-wrap: wrap; }
 .hand .hand-card.is-unavailable, .mulligan .hand-card.is-unavailable { opacity: .64; cursor: default; }
 .unit-face.is-artifact { background: #30373c; }
 .timer-mark { color: #e3dcfb; }
@@ -399,6 +390,23 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   align-items: center;
   gap: .45rem .85rem;
 }
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  min-height: 26px;
+  padding: 0 3px;
+  border: 1px solid #537085;
+  border-radius: 4px;
+  color: #f2f8fc;
+  background: #1b2e3a;
+}
+.icon-button:hover { background: #316a75; }
+.field-settings { font-size: 1rem; line-height: 1; }
+.settings-dialog { width: min(26rem, 95vw); color: inherit; }
+.settings-dialog::backdrop { background: #070e16af; }
+.settings-dialog .motion-setting { margin-bottom: .8rem; }
+#fullscreen-status:not(:empty) { margin-top: .6rem; font-size: .85rem; }
 .motion-setting { color: var(--subtle); font-size: .875rem; }
 .motion-setting select {
   min-height: 2rem;

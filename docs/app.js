@@ -14,6 +14,10 @@ const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
 const phaseLabel = document.querySelector('#phase');
 const announcement = document.querySelector('#announcement');
+const settings = document.querySelector('#settings');
+const fullscreenButton = document.querySelector('#fullscreen');
+const fullscreenStatus = document.querySelector('#fullscreen-status');
+const fullscreenMode = matchMedia('(display-mode: fullscreen)');
 const speedSetting = document.querySelector('#animation-speed');
 const systemSpeed = speedSetting.querySelector('[value="system"]');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -32,6 +36,39 @@ function updateSystemSpeed() {
 
 reducedMotion.addEventListener('change', updateSystemSpeed);
 updateSystemSpeed();
+
+function syncFullscreen() {
+  const installedFullscreen = fullscreenMode.matches && !document.fullscreenElement;
+  fullscreenButton.hidden = installedFullscreen;
+  fullscreenButton.disabled = !document.fullscreenEnabled;
+  fullscreenButton.textContent = document.fullscreenElement ? 'Выйти из полного экрана' : 'На весь экран';
+}
+
+function showSettings() {
+  fullscreenStatus.textContent = document.fullscreenEnabled || fullscreenMode.matches
+    ? '' : 'Браузер не поддерживает полноэкранный режим. Попробуй установить игру через меню браузера.';
+  syncFullscreen();
+  settings.showModal();
+}
+
+fullscreenButton.addEventListener('click', async () => {
+  fullscreenStatus.textContent = '';
+  try {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    } else {
+      await document.documentElement.requestFullscreen();
+      if (matchMedia('(pointer: coarse)').matches) {
+        await window.screen.orientation?.lock?.('landscape').catch(() => {});
+      }
+    }
+  } catch {
+    fullscreenStatus.textContent = 'Не удалось переключить полноэкранный режим.';
+  }
+});
+document.addEventListener('fullscreenchange', syncFullscreen);
+fullscreenMode.addEventListener('change', syncFullscreen);
+document.querySelector('#start-settings').addEventListener('click', showSettings);
 
 let match;
 let selected = new Set();
@@ -75,6 +112,17 @@ function button(text, handler, className = 'button') {
   node.type = 'button';
   node.addEventListener('click', handler);
   return node;
+}
+
+function iconButton(icon, label, handler, className = '') {
+  const node = button(icon, handler, ('icon-button ' + className).trim());
+  node.setAttribute('aria-label', label);
+  node.title = label;
+  return node;
+}
+
+function settingsButton() {
+  return iconButton('⚙', 'Настройки', showSettings, 'field-settings');
 }
 
 function humanCanAct() {
@@ -344,7 +392,7 @@ function updatePlacementSelection() {
   for (const row of screen.querySelectorAll('[data-play-row]')) {
     const available = Boolean(card && (cardType(card) === 'effect' || row.dataset.full !== 'true'));
     row.classList.toggle('is-selectable', available);
-    row.parentElement.querySelector('.row-place').hidden = !available;
+    row.parentElement.querySelector('button.row-label').disabled = !available;
   }
 }
 
@@ -395,7 +443,7 @@ function mulliganScreen() {
   const actions = element('div', 'mulligan-actions');
   actions.append(button('Посмотреть поле', () => setMulliganField(true)), confirm);
   cards.append(...choices);
-  panel.append(header, cards, actions);
+  panel.append(header, cards, actions, settingsButton());
   updateSelection();
   return panel;
 }
@@ -403,7 +451,13 @@ function mulliganScreen() {
 function rowView(side, player, row, readyOrders) {
   const wrapper = element('div', 'board-row');
   const strength = rowScore(player, row);
-  const label = element('div', 'row-label');
+  const label = side === 'human'
+    ? button(undefined, () => placeSelected(row), 'row-label')
+    : element('div', 'row-label');
+  if (side === 'human') {
+    label.disabled = true;
+    label.setAttribute('aria-label', `Сыграть карту в ряд «${ROW_LABELS[row]}» · сила ${strength}`);
+  }
   const score = element('strong', 'row-score', strength);
   score.title = ROW_LABELS[row] + ' · ' + strength;
   score.setAttribute('aria-label', score.title);
@@ -414,12 +468,10 @@ function rowView(side, player, row, readyOrders) {
   if (side === 'human') {
     slots.dataset.playRow = row;
     slots.dataset.full = String(cards.length >= ROW_LIMIT);
-    const place = button('Сюда', () => placeSelected(row), 'row-place');
-    place.setAttribute('aria-label', `Сыграть карту в ряд «${ROW_LABELS[row]}»`);
-    place.hidden = true;
-    label.append(place);
     slots.addEventListener('click', (event) => {
-      if (!event.target.closest('button')) placeSelected(row);
+      if (slots.classList.contains('is-selectable') && !event.target.closest('.unit-order')) {
+        placeSelected(row);
+      }
     });
   }
   for (const card of cards) {
@@ -478,6 +530,7 @@ function playerHand() {
   const active = humanCanAct() && !match.playedCard;
   const cards = element('section', 'hand hand-fan');
   cards.setAttribute('aria-label', 'Твоя рука · ' + human.hand.length);
+  cards.style.setProperty('--hand-count', Math.max(1, human.hand.length));
   for (const [index, card] of human.hand.entries()) {
     const available = active && canPlayCard(match, 'human', card);
     const node = cardButton(card, () => {
@@ -485,20 +538,20 @@ function playerHand() {
         if (!replaying) showCard(card);
         return;
       }
-      selectedCardId = card.id;
+      selectedCardId = selectedCardId === card.id ? undefined : card.id;
       updatePlacementSelection();
     }, available);
     if (available) node.dataset.playCard = '';
     if (active && !available) node.classList.add('is-unavailable');
-    fanCard(node, index, human.hand.length);
+    fanCard(node, index, human.hand.length, 1);
     cards.append(node);
   }
   return cards;
 }
 
-function fanCard(node, index, count) {
+function fanCard(node, index, count, angle = 2) {
   const distance = index - (count - 1) / 2;
-  node.style.setProperty('--fan-angle', (distance * 2) + 'deg');
+  node.style.setProperty('--fan-angle', (distance * angle) + 'deg');
   node.style.setProperty('--fan-drop', (distance ** 2 / 3) + 'px');
 }
 
@@ -544,6 +597,7 @@ function scoreView(side) {
   const lives = element('span', 'field-lives', '◆'.repeat(player.lives) + '◇'.repeat(2 - player.lives));
   lives.setAttribute('aria-label', 'Жизни ' + player.lives + '/2');
   panel.append(total, lives);
+  if (side === 'bot') panel.append(element('span', 'field-round', 'Раунд ' + match.round));
   if (player.passed) panel.append(element('span', 'field-passed', 'Пас'));
   return panel;
 }
@@ -597,7 +651,6 @@ function logView() {
 }
 
 function battlefield() {
-  phaseLabel.textContent = 'Раунд ' + match.round;
   const game = element('div', 'match-screen');
   const field = element('div', 'match-board');
   const { pending, players, phase } = match;
@@ -611,8 +664,9 @@ function battlefield() {
   const center = element('div', 'field-center battlefield');
   center.append(sideView('bot'), turn, sideView('human'));
   const left = element('div', 'field-rail field-left');
-  left.append(pileView('bot', 'discard'), leaderView('bot'),
-    button('Журнал', () => showDrawer('journal'), 'button field-log'), leaderView('human'), pileView('human', 'discard'));
+  left.append(settingsButton(), pileView('bot', 'discard'), leaderView('bot'),
+    iconButton('▤', 'Журнал ходов', () => showDrawer('journal'), 'field-log'),
+    leaderView('human'), pileView('human', 'discard'));
   const right = element('div', 'field-rail field-right');
   const afterPlay = match.turn === 'human' && match.playedCard;
   const action = button(afterPlay ? 'Конец хода' : 'Пас', () =>
@@ -637,7 +691,9 @@ function battlefield() {
       ? button('К муллигану', () => setMulliganField(false), 'button mulligan-return')
       : mulliganScreen());
   }
-  game.append(element('div', 'rotate-notice', 'Поверни телефон'));
+  const rotate = element('div', 'rotate-notice');
+  rotate.append(element('p', null, 'Поверни телефон'), settingsButton());
+  game.append(rotate);
   return game;
 }
 

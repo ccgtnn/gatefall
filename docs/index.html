@@ -4,10 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#181818">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>Gatefall — Угасшие врата</title>
-  <link rel="stylesheet" href="./style.css?v=complete-art-5">
-  <link rel="stylesheet" href="./field.css?v=field-6-mulligan">
-  <script type="module" src="./app.js?v=field-6-orders"></script>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="stylesheet" href="./style.css?v=landscape">
+  <link rel="stylesheet" href="./field.css?v=landscape">
+  <script type="module" src="./app.js?v=landscape"></script>
 </head>
 <body>
   <div id="app">
@@ -18,19 +21,28 @@
       </div>
       <div class="match-meta">
         <p id="phase"></p>
-        <label class="motion-setting">
-          <span>Анимации</span>
-          <select id="animation-speed" aria-label="Скорость анимаций">
-            <option value="system">По системе</option>
-            <option value="normal">Обычная скорость</option>
-            <option value="fast">Быстрая скорость</option>
-          </select>
-        </label>
+        <button id="start-settings" type="button" class="icon-button" aria-label="Настройки" title="Настройки">⚙</button>
       </div>
     </header>
     <main id="screen"></main>
     <p id="announcement" class="visually-hidden" aria-live="polite"></p>
     <noscript>Для партии нужен JavaScript.</noscript>
   </div>
+  <dialog id="settings" class="panel settings-dialog" aria-labelledby="settings-title">
+    <div class="drawer-header">
+      <h2 id="settings-title">Настройки</h2>
+      <form method="dialog"><button type="submit" class="icon-button" aria-label="Закрыть" title="Закрыть">×</button></form>
+    </div>
+    <label class="motion-setting">
+      <span>Анимации</span>
+      <select id="animation-speed" aria-label="Скорость анимаций">
+        <option value="system">По системе</option>
+        <option value="normal">Обычная скорость</option>
+        <option value="fast">Быстрая скорость</option>
+      </select>
+    </label>
+    <button id="fullscreen" type="button" class="button">На весь экран</button>
+    <p id="fullscreen-status" class="muted" role="status"></p>
+  </dialog>
 </body>
 </html>
