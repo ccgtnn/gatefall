@@ -132,3 +132,20 @@ test('infection playback updates the badge and strength without changing the pre
   assert.equal(unit.statuses.infection, 1);
   assert.equal(unit.power, 5);
 });
+
+test('playback moves a revived card from discard and applies a counter draw exactly once', () => {
+  const before = confirmMulligan(createMatch({ random: () => 0 }), []);
+  const recruit = card('recruit', 'protectorate', 'assault');
+  const drawn = before.players.human.deck[0];
+  before.players.human.discard = [recruit];
+  const visual = createPlaybackState(before);
+  applyJournalEvent(visual, { type: 'play', side: 'human', cardId: recruit.id, card: recruit,
+    from: 'discard', row: 'orbit', position: 0 });
+  applyJournalEvent(visual, { type: 'counter', side: 'human', cardId: recruit.id, remaining: 0 });
+  applyJournalEvent(visual, { type: 'draw', side: 'human', count: 1, cards: [drawn] });
+  assert.deepEqual(visual.players.human.discard, []);
+  assert.equal(before.players.human.discard.length, 1);
+  assert.equal(visual.players.human.board.orbit[0].counter, 0);
+  assert.equal(visual.players.human.hand.at(-1).id, drawn.id);
+  assert.equal(visual.players.human.deck.some(({ id }) => id === drawn.id), false);
+});

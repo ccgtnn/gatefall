@@ -1,11 +1,11 @@
-import { statusCount } from '../game/board.js?v=step-14';
+import { createCard, statusCount } from '../game/board.js?v=step-15';
 import { insertionPoint } from '../card-placement.js?v=field-6';
 import { button, element, iconButton, sideLabel } from './dom.js?v=step-11';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=step-14';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=step-14';
-import { playerHand } from './hand.js?v=step-14';
-import { availableOrders, canUseLeader, rowArmor } from '../game/effects.js?v=step-14';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=step-14';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=step-15';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=step-15';
+import { playerHand } from './hand.js?v=step-15';
+import { availableOrders, canUseLeader, rowArmor } from '../game/effects.js?v=step-15';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=step-15';
 
 export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, isMulliganFieldVisible, setMulliganField,
   playHuman, humanCanAct, placeSelected, settingsButton, showDrawer, selectCard, mulliganScreen }) {
@@ -13,14 +13,13 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     const wrapper = element('div', 'board-row');
     const pending = !isReplaying() && match.pending?.side === 'human' ? match.pending : null;
     const eligible = side === 'human' && pending?.options.includes(row);
-    const armorTarget = eligible && pending.kind === 'armor-row';
-    const spawnTarget = eligible && pending.kind === 'spawn-row';
-    const rowTarget = armorTarget || spawnTarget;
+    const rowTarget = pending?.selectionSide === side && pending.options.includes(row);
+    const armorTarget = rowTarget && pending.kind === 'armor-row';
     const deckPlacement = eligible && pending.kind === 'deck-placement';
     const chooseRow = () => playHuman({ type: 'target', cardId: row });
     const place = (position) => playHuman({ type: 'place', row, position });
     const strength = rowScore(player, row);
-    const label = side === 'human'
+    const label = side === 'human' || rowTarget
       ? button(undefined, rowTarget ? chooseRow : () => placeSelected(row), 'row-label')
       : element('div', 'row-label');
     if (side === 'human') {
@@ -39,7 +38,8 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       label.classList.add('effect-target');
       label.setAttribute('aria-label', armorTarget
         ? `Снять броню с ряда «${ROW_LABELS[row]}» · броня ${rowArmor(player, row)}`
-        : `Породить личинки в ряду «${ROW_LABELS[row]}»`);
+        : side === 'bot' ? `Нанести урон во вражеском ряду «${ROW_LABELS[row]}»`
+          : `Породить личинки в ряду «${ROW_LABELS[row]}»`);
     }
     const slots = element('div', 'row-line');
     slots.dataset.castZone = '';
@@ -49,6 +49,8 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     if (side === 'human') {
       slots.dataset.playRow = row;
       slots.dataset.full = String(cards.length >= ROW_LIMIT);
+    }
+    if (side === 'human' || rowTarget) {
       slots.addEventListener('click', (event) => {
         if (event.target.closest('.unit-order, .placement-choice')) return;
         if (rowTarget) chooseRow();
@@ -181,7 +183,8 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     const node = viewable ? button(undefined, () => showDrawer({ side, pile }), 'field-pile')
       : element('div', 'field-pile');
     node.dataset.faction = player.factionId ?? '';
-    if (pile === 'deck') node.dataset.deckSide = side;
+    node.dataset.pileSide = side;
+    node.dataset.pile = pile;
     node.title = label;
     node.setAttribute('aria-label', label);
     node.append(element('span', 'pile-icon', pile === 'deck' ? '▤' : '▱'), element('strong', null, count));
@@ -195,9 +198,16 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     title.id = 'deck-choice-title';
     panel.setAttribute('aria-labelledby', title.id);
     const choices = element('div', 'deck-choice-cards');
-    for (const id of pending.options) {
-      const card = human.deck.find((item) => item.id === id);
-      const node = cardButton(card, () => playHuman({ type: 'target', cardId: id }), human);
+    const pile = pending.pile ?? 'deck';
+    const selectable = pending.options.map((id) => human[pile].find((card) => card.id === id));
+    const scrollable = pending.kind === 'deck-top' || pile === 'discard';
+    if (scrollable) {
+      panel.classList.add('pile-offer');
+      selectable.sort((a, b) => a.definition.name.localeCompare(b.definition.name, 'ru'));
+    }
+    for (const item of selectable) {
+      const card = pile === 'discard' ? createCard(item.id, item.definition) : item;
+      const node = cardButton(card, () => playHuman({ type: 'target', cardId: card.id }), human);
       node.classList.add('effect-target');
       node.append(element('span', 'deck-choice-name', card.definition.name));
       choices.append(node);
@@ -216,9 +226,9 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     const humanOrders = readyOrderIds(match, 'human');
     center.append(sideView(match, 'bot', readyOrderIds(match, 'bot')), sideView(match, 'human', humanOrders));
     if (!isReplaying() && pending?.side === 'human') {
-      if (pending.kind === 'deck-card') center.append(deckChoice(match));
+      if (pending.kind === 'deck-card' || pending.kind === 'deck-top') center.append(deckChoice(match));
       else {
-        const picked = pending.kind === 'deck-placement' && players.human.deck.find(({ id }) => id === pending.cardId);
+        const picked = pending.kind === 'deck-placement' && players.human[pending.pile ?? 'deck'].find(({ id }) => id === pending.cardId);
         const prompt = picked ? picked.definition.name + ' · ' + pending.prompt : pending.prompt;
         center.append(element('p', 'field-message target-prompt', prompt));
       }

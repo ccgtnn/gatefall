@@ -654,3 +654,31 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 .motion-poison { color: #bcff72; }
 
 .motion-annihilation { background: radial-gradient(ellipse, #fff 8%, #dceaffda 42%, transparent 72%); }
+
+.catalog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+}
+.catalog-filters [aria-pressed="true"] {
+  border-color: #c2d9ee;
+  background: #334a60;
+}
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 6rem), 1fr));
+  gap: .85rem .6rem;
+}
+.catalog-entry {
+  display: grid;
+  align-content: start;
+  gap: .35rem;
+  text-align: center;
+  font-size: .82rem;
+}
+.catalog-entry .hand-card {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  min-height: 0;
+  touch-action: manipulation;
+}

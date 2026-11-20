@@ -1,6 +1,6 @@
 import { button, element } from './dom.js?v=step-11';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=step-14';
-import { cardType, isUnit, statusCount } from '../game/board.js?v=step-14';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=step-15';
+import { cardType, isUnit, statusCount } from '../game/board.js?v=step-15';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';
@@ -26,13 +26,14 @@ export function addCardCrop(node, definition) {
 }
 
 export function showCard(card, { leader = false } = {}) {
-  const { definition, power, armor, timer } = card;
+  const { definition, power, armor, timer, counter } = card;
   const details = leader ? ['Лидер'] : [CARD_TYPES[cardType(card)], definition.faction === NEUTRAL && 'Нейтральная', RARITY_LABELS[definition.rarity],
     definition.stratagem ? 'Стратагема' : definition.provision !== undefined ? `Провизия ${definition.provision}` : 'Токен'].filter(Boolean);
   const stats = [];
   const infection = statusCount(card, 'infection');
   if (infection) stats.push('Заражение ' + infection);
   if (!leader && isUnit(card)) stats.push(`Сила ${power}`, `Броня ${armor ?? 0}`);
+  if (counter > 0) stats.push(`Счётчик ${counter}`);
   if (timer !== undefined) stats.push(`Таймер ${timer}`);
   const title = element('h2', null, definition.name);
   title.id = 'preview-title';
@@ -153,7 +154,7 @@ function cardStats(card) {
 }
 
 export function decorateCard(node, card, player, { orderOnField = false } = {}) {
-  const { definition, timer } = card;
+  const { definition, timer, counter } = card;
   const type = cardType(card);
   node.dataset.type = type;
   node.dataset.faction = definition.faction === NEUTRAL ? NEUTRAL : player.factionId ?? '';
@@ -167,9 +168,9 @@ export function decorateCard(node, card, player, { orderOnField = false } = {}) 
   }
   const word = definition.order ? 'Приказ' : definition.deathwish ? 'Завещание'
     : statusCount(card, 'doomed') ? 'Обречённая' : keywordsFor(card).find((keyword) => keyword !== 'Броня');
-  if (!orderOnField && (timer !== undefined || word)) {
-    const mark = element('span', 'card-state', timer !== undefined ? timer : keywordIcons[word] ?? '○');
-    mark.title = timer !== undefined ? 'Таймер ' + timer : word;
+  if (!orderOnField && (counter > 0 || timer !== undefined || word)) {
+    const mark = element('span', 'card-state', counter > 0 ? counter : timer ?? keywordIcons[word] ?? '○');
+    mark.title = counter > 0 ? 'Счётчик ' + counter : timer !== undefined ? 'Таймер ' + timer : word;
     if (word === 'Приказ' && timer === undefined) mark.classList.add('order-sleep');
     node.append(mark);
   }
@@ -184,7 +185,7 @@ export function decorateCard(node, card, player, { orderOnField = false } = {}) 
 }
 
 function cardLabel(card) {
-  const { definition, power, armor, timer } = card;
+  const { definition, power, armor, timer, counter } = card;
   const details = [definition.name, CARD_TYPES[cardType(card)]];
   if (definition.faction === NEUTRAL) details.push('Нейтральная');
   if (isUnit(card)) details.push(`сила ${power}`);
@@ -194,6 +195,7 @@ function cardLabel(card) {
   const infection = statusCount(card, 'infection');
   if (infection) details.push('Заражение ' + infection);
   if (definition.deathwish) details.push('Завещание');
+  if (counter > 0) details.push(`счётчик ${counter}`);
   if (timer !== undefined) details.push(`таймер ${timer}`);
   details.push(...keywordsFor(card).filter((word) => word !== 'Завещание' && (word !== 'Броня' || !armor)));
   return details.join(' · ');

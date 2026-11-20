@@ -1,4 +1,4 @@
-import { ROWS } from './game/cards.js?v=step-14';
+import { ROWS } from './game/cards.js?v=step-15';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;
@@ -47,8 +47,14 @@ export function applyJournalEvent(state, event) {
   if (!player) return;
 
   if (type === 'pass') player.passed = true;
+  if (type === 'draw' && event.cards) {
+    const drawn = new Set(event.cards.map(({ id }) => id));
+    player.deck = player.deck.filter(({ id }) => !drawn.has(id));
+    player.hand.push(...event.cards);
+    return;
+  }
   if (type === 'play') {
-    const pile = event.from === 'deck' ? 'deck' : 'hand';
+    const pile = event.from ?? 'hand';
     player[pile] = player[pile].filter(({ id }) => id !== cardId);
     if (row) player.board[row].splice(event.position, 0, { ...event.card });
     return;
@@ -67,7 +73,12 @@ export function applyJournalEvent(state, event) {
     const line = player.board[row];
     const index = line.findIndex(({ id }) => id === cardId);
     if (index === -1) continue;
-    if (type === 'death' || type === 'destroy') line.splice(index, 1);
+    if (type === 'death' || type === 'destroy' || type === 'discard') {
+      const [card] = line.splice(index, 1);
+      const pile = event.exile ? 'exile' : 'discard';
+      player[pile] = [...player[pile], card];
+      break;
+    }
     if (type === 'boost' || type === 'damage') line[index].power = event.power;
     if (type === 'armor') line[index].armor = event.armor;
     if (type === 'status') {
@@ -78,6 +89,7 @@ export function applyJournalEvent(state, event) {
     }
     if (type === 'order-ready') line[index].readyAt = event.readyAt;
     if (type === 'tick') line[index].timer = event.remaining;
+    if (type === 'counter') line[index].counter = event.remaining;
     break;
   }
 }

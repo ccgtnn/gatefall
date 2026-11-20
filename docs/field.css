@@ -566,3 +566,22 @@ body:has(#app[data-animation-speed="fast"]) .field-drawer[open] { animation-dura
   text-align: center;
 }
 .leader-placeholder { color: var(--faction-edge, #a9bbc9); font-size: 1.14rem; }
+
+.pile-offer {
+  max-height: 88dvh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.pile-offer .deck-choice-cards {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  justify-items: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: .25rem;
+}
+.pile-offer .hand-card {
+  width: 100%;
+  min-width: 0;
+  touch-action: pan-y;
+}

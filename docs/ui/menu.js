@@ -1,6 +1,6 @@
 import { button, element, sideLabel } from './dom.js?v=step-11';
-import { ROW_LABELS } from '../game/cards.js?v=step-14';
-import { cardButton, showCard } from './cards.js?v=step-14';
+import { ROW_LABELS } from '../game/cards.js?v=step-15';
+import { cardButton, showCard } from './cards.js?v=step-15';
 
 export function roundText(event) {
   const { scores, winner } = event;
@@ -16,7 +16,7 @@ export function eventText(event) {
     case 'stratagem': return `${side}: на Поверхности появляется стратагема «${event.name}».`;
     case 'play': {
       if (!event.row) return `${side}: «${event.name}» · Эффект${event.initiative ? ' · Инициатива' : ''}.`;
-      return `${side}: «${event.name}» (${event.power ?? 'артефакт'})${event.from === 'deck' ? ' из колоды' : ''} → ${ROW_LABELS[event.row]}.`;
+      return `${side}: «${event.name}» (${event.power ?? 'артефакт'})${event.from === 'deck' ? ' из колоды' : event.from === 'discard' ? ' из сброса' : ''} → ${ROW_LABELS[event.row]}.`;
     }
     case 'pass': {
       const reasons = {
@@ -28,6 +28,7 @@ export function eventText(event) {
       return `${side}: ${reasons[event.reason]}.`;
     }
     case 'turn-skip': return `${side}: ход завершён без паса. Нет карты для розыгрыша.`;
+    case 'deck-top': return `${side}: карта перемещена на верх колоды.`;
     case 'draw': return `${side}: добор ${event.count}${event.extraSwaps ? ` · дополнительных замен +${event.extraSwaps}` : ''}.`;
     case 'round-end': return roundText(event);
     case 'status': {
@@ -41,11 +42,13 @@ export function eventText(event) {
     case 'boost': return `${side}, «${event.name}»: усиление +${event.amount}.`;
     case 'damage': return `${side}, «${event.name}»: урон ${event.amount}, броня поглотила ${event.absorbed}, потеря силы ${event.lost}.`;
     case 'death': return `«${event.name}» погибает и ${event.exile ? 'уходит из игры' : 'попадает в сброс'}.`;
+    case 'discard': return `«${event.name}» отправляется в сброс.`;
     case 'destroy': return `Карта «${event.name}» уничтожена и уходит из игры.`;
     case 'consume': return `«${event.eater}» поглощает «${event.name}» (${event.amount} силы).`;
     case 'deathwish': return `Завещание: «${event.name}».`;
     case 'spawn': return `${side}: ${ROW_LABELS[event.row]}, порождение «${event.name}» ×${event.count}.`;
     case 'leader': return `${side}: способность лидера «${event.name}».`;
+    case 'counter': return `Счётчик «${event.name}»: ${event.remaining}.`;
     case 'tick': return 'Таймер «' + event.name + '»: ' + event.remaining + '.';
     case 'order': return `${side}: Приказ карты «${event.name}».`;
   }

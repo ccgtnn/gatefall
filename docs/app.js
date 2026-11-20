@@ -1,17 +1,17 @@
 import { bindCardPlacement } from './card-placement.js?v=field-6';
-import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=step-14';
+import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=step-15';
 import { clearParticles } from './particles.js?v=step-14';
-import { playJournal } from './turn-playback.js?v=step-14';
-import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=step-14';
-import { FACTIONS } from './game/cards.js?v=step-14';
-import { applyAction, createMatch } from './game/match.js?v=step-14';
+import { playJournal } from './turn-playback.js?v=step-15';
+import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=step-15';
+import { FACTIONS } from './game/cards.js?v=step-15';
+import { applyAction, createMatch } from './game/match.js?v=step-15';
 import { element, iconButton } from './ui/dom.js?v=step-11';
-import { preview, showCard } from './ui/cards.js?v=step-14';
-import { createBattlefield } from './ui/field.js?v=step-14';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=step-14';
-import { createMatchMenu, eventText } from './ui/menu.js?v=step-14';
-import { finishedScreen, leaderScreen, startScreen } from './ui/screens.js?v=step-14';
-import { createSettings } from './ui/settings.js?v=step-14';
+import { preview, showCard } from './ui/cards.js?v=step-15';
+import { createBattlefield } from './ui/field.js?v=step-15';
+import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=step-15';
+import { createMatchMenu, eventText } from './ui/menu.js?v=step-15';
+import { catalogScreen, finishedScreen, leaderScreen, startScreen } from './ui/screens.js?v=step-15';
+import { createSettings } from './ui/settings.js?v=step-15';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
 
@@ -26,6 +26,7 @@ const noticeTimers = new Map();
 const announcement = document.querySelector('#announcement');
 let match;
 let selectedFaction;
+let browsingCatalog = false;
 let matchSession = 0;
 let timer;
 let selectedCardId;
@@ -97,6 +98,12 @@ function selectFaction(faction) {
   screen.querySelector('h2').focus({ preventScroll: true });
 }
 
+function showCatalog(visible) {
+  browsingCatalog = visible;
+  render();
+  screen.querySelector('h2').focus({ preventScroll: true });
+}
+
 function start(faction, leader) {
   selectedFaction = undefined;
   mulliganFieldVisible = false;
@@ -158,9 +165,11 @@ function render() {
     case 'mulligan':
     case 'playing': content = battlefield(); break;
     case 'finished': content = finishedScreen(match, phaseLabel, start, leaveMatch); break;
-    default: content = selectedFaction
-      ? leaderScreen(phaseLabel, selectedFaction, start, () => selectFaction(undefined))
-      : startScreen(phaseLabel, selectFaction, stats);
+    default:
+      if (browsingCatalog) content = catalogScreen(phaseLabel, () => showCatalog(false));
+      else if (selectedFaction) content = leaderScreen(phaseLabel, selectedFaction, start, () => selectFaction(undefined));
+      else content = startScreen(phaseLabel, selectFaction, stats, () => showCatalog(true));
+
   }
   screen.replaceChildren(content);
   menu.refresh(match, replaying);

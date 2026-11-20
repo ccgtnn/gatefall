@@ -1,9 +1,10 @@
 import { button, element } from './dom.js?v=step-11';
-import { FACTIONS } from '../game/cards.js?v=step-14';
-import { addCardCrop } from './cards.js?v=step-14';
-import { logView, roundText } from './menu.js?v=step-14';
+import { createCard } from '../game/board.js?v=step-15';
+import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from '../game/cards.js?v=step-15';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=step-15';
+import { logView, roundText } from './menu.js?v=step-15';
 
-export function startScreen(phaseLabel, start, stats) {
+export function startScreen(phaseLabel, start, stats, openCatalog) {
   phaseLabel.textContent = '';
   const panel = element('section', 'intro');
   const heading = element('h2', null, 'Выбери колоду');
@@ -21,7 +22,39 @@ export function startScreen(phaseLabel, start, stats) {
     addCardCrop(choice, faction.leader);
     choices.append(choice);
   }
-  panel.append(heading, choices, element('p', 'muted', 'Бот сыграет второй колодой.'));
+  panel.append(heading, choices, element('p', 'muted', 'Бот сыграет второй колодой.'), button('Все карты', openCatalog));
+  return panel;
+}
+
+export function catalogScreen(phaseLabel, back) {
+  phaseLabel.textContent = '';
+  const panel = element('section', 'intro card-catalog');
+  const heading = element('h2', null, 'Все карты');
+  heading.tabIndex = -1;
+  const toolbar = element('div', 'catalog-filters');
+  const grid = element('div', 'catalog-grid');
+  const groups = [[NEUTRAL, 'Нейтральные', NEUTRAL_CARDS], ...Object.entries(FACTIONS)
+    .map(([id, faction]) => [id, faction.name, faction.deck.filter(({ faction }) => faction === id)])];
+  const filters = new Map();
+
+  function select(factionId, definitions) {
+    for (const [id, filter] of filters) filter.setAttribute('aria-pressed', String(id === factionId));
+    const unique = [...new Map(definitions.map((definition) => [definition.id, definition])).values()];
+    grid.replaceChildren(...unique.map((definition) => {
+      const card = createCard(definition.id, definition);
+      const item = element('div', 'catalog-entry');
+      item.append(cardButton(card, () => showCard(card), { factionId }), element('span', null, definition.name));
+      return item;
+    }));
+  }
+
+  for (const [id, name, definitions] of groups) {
+    const filter = button(name, () => select(id, definitions));
+    filters.set(id, filter);
+    toolbar.append(filter);
+  }
+  select(NEUTRAL, NEUTRAL_CARDS);
+  panel.append(heading, toolbar, grid, button('К выбору колоды', back));
   return panel;
 }
 

@@ -1,8 +1,8 @@
-import { NEUTRAL } from './game/cards.js?v=step-14';
+import { NEUTRAL } from './game/cards.js?v=step-15';
 import { burstParticles } from './particles.js?v=step-14';
 
 const VISUAL_EVENTS = new Set([
-  'play', 'damage', 'boost', 'armor', 'status', 'death', 'destroy', 'spawn', 'deathwish', 'consume', 'consume-group', 'leader', 'order',
+  'play', 'damage', 'boost', 'armor', 'status', 'death', 'destroy', 'discard', 'spawn', 'deathwish', 'consume', 'consume-group', 'leader', 'order',
 ]);
 
 function rects(screen) {
@@ -376,8 +376,8 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
   const previous = rects(screen);
   const previousScores = new Map(Array.from(screen.querySelectorAll('[data-score]'),
     (node) => [node.dataset.score, Number(node.textContent)]));
-  const deck = event.from === 'deck' ? screen.querySelector('[data-deck-side="' + event.side + '"]') : null;
-  const origin = deck ? center(deck.getBoundingClientRect())
+  const pile = event.from ? screen.querySelector('[data-pile-side="' + event.side + '"][data-pile="' + event.from + '"]') : null;
+  const origin = pile ? center(pile.getBoundingClientRect())
     : event.type === 'play' && event.side === 'human' ? oldHandPosition(screen, event.cardId) : null;
   render(commit());
   const current = rects(screen);
@@ -418,6 +418,7 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
     case 'boost':
       motions.push(...floatingNumber(screen, entry, '+' + event.amount, 'boost', duration));
       break;
+    case 'discard':
     case 'death':
     case 'destroy':
       if (event.visual === 'annihilation') {
