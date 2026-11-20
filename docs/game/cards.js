@@ -25,7 +25,7 @@ export const KEYWORDS = Object.freeze({
 
 export const LARVA = Object.freeze({
   id: 'larva', name: 'Личинка', type: 'unit', power: 1, text: 'Обречённая.',
-  doomed: true, token: true, keywords: ['Обречённость'],
+  art: 'larva.webp', doomed: true, token: true, keywords: ['Обречённость'],
 });
 
 const self = { scope: 'source' };
@@ -51,7 +51,7 @@ const salvoDamage = { row: 'surface', then: 5, otherwise: 3 };
 
 export const FIRST_SIGNAL = Object.freeze({
   id: 'first-signal', name: 'Первый сигнал', type: 'artifact', stratagem: true, token: true,
-  zeal: true, doomed: true,
+  art: 'first-signal.webp', zeal: true, doomed: true,
   text: 'Рвение. Обречённый. Приказ: усилить свой отряд на 5. После применения или в конце первого раунда уходит из игры.',
   keywords: ['Приказ', 'Рвение', 'Усиление', 'Обречённость'],
   order: {
@@ -168,7 +168,7 @@ export const FACTIONS = Object.freeze({
   protectorate: {
     name: 'Протекторат', strategy: 'Строй', deck: factionCards(protectorate),
     leader: {
-      name: 'Маршал Строя', text: 'Дать 3 брони выбранному своему отряду и его соседям.',
+      name: 'Маршал Строя', art: 'marshal.webp', text: 'Дать 3 брони выбранному своему отряду и его соседям.',
       ability: ability([
         action('armor', chosen('ally'), 3),
         action('armor', { ...adjacent, of: 'ally' }, 3),
@@ -178,7 +178,7 @@ export const FACTIONS = Object.freeze({
   growth: {
     name: 'Поросль', strategy: 'Пожирание', deck: factionCards(growth),
     leader: {
-      name: 'Пожиратель', text: 'Поглотить свой отряд и передать удвоенную силу одному из его соседей.',
+      name: 'Пожиратель', art: 'devourer.webp', text: 'Поглотить свой отряд и передать удвоенную силу одному из его соседей.',
       ability: ability([
         absorb(chosen('victim'), { receiver: chosen('ally'), multiplier: 2 }),
       ], [

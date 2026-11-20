@@ -270,6 +270,19 @@ button:not(:disabled) { cursor: pointer; }
 }
 
 .deck-choice strong { font-size: 1.05rem; }
+.deck-choice.has-art { min-height: 7rem; position: relative; align-content: end; }
+.deck-choice.has-art .muted { color: #d8dde7; }
+.side-identity { display: flex; align-items: center; gap: .45rem; }
+.leader-portrait {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid var(--faction-edge, #747474);
+  border-radius: 4px;
+  background: var(--faction-face, #363636);
+  overflow: hidden;
+}
+.leader-image { display: block; width: 100%; height: 100%; object-fit: cover; }
 .hand-header { flex-wrap: wrap; }
 .hand-controls { margin-left: auto; }
 .hand-controls .button { padding-inline: .65rem; }
@@ -511,6 +524,7 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   background: linear-gradient(#111724bb, #11172422 35%, #11172422 61%, #111724e6);
 }
 .hand-card.has-art::after { background: linear-gradient(90deg, #111724e6, #11172492 56%, #11172422); }
+.deck-choice.has-art::after { background: linear-gradient(to top, #101724f0, #10172481 52%, transparent 83%); }
 .hand-card.has-art[data-type="unit"] { align-content: end; }
 .hand-card.has-art[data-type="unit"]::after {
   background: linear-gradient(to top, #111724f2, #11172477 39%, transparent 74%);

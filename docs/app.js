@@ -1,14 +1,14 @@
 import { bindCardPlacement } from './card-placement.js';
 import { presentJournalEvent } from './card-motion.js';
 import { motionDuration, playJournal } from './turn-playback.js?v=motion-settings';
-import { CARD_TYPES, FACTIONS, KEYWORDS, RARITY_LABELS, ROWS, ROW_LABELS } from './game/cards.js?v=complete-art-4';
+import { CARD_TYPES, FACTIONS, KEYWORDS, RARITY_LABELS, ROWS, ROW_LABELS } from './game/cards.js?v=complete-art-5';
 import { cardType, isUnit } from './game/board.js';
 import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=round-rules';
 import { availableOrders, canUseLeader } from './game/effects.js';
 import {
   HAND_LIMIT, ROW_LIMIT, applyAction, canPass, canPlayCard,
   confirmMulligan, createMatch, mulliganLimit, rowScore, totalScore,
-} from './game/match.js?v=complete-art-4';
+} from './game/match.js?v=complete-art-5';
 
 const screen = document.querySelector('#screen');
 const phaseLabel = document.querySelector('#phase');
@@ -87,12 +87,12 @@ function addCardCrop(node, definition) {
   node.prepend(cardArt(definition, 'card-art-crop'));
 }
 
-function showCard(card) {
+function showCard(card, { leader = false } = {}) {
   const { definition, power, armor, timer } = card;
-  const details = [CARD_TYPES[cardType(card)], RARITY_LABELS[definition.rarity],
+  const details = leader ? ['Лидер'] : [CARD_TYPES[cardType(card)], RARITY_LABELS[definition.rarity],
     definition.stratagem ? 'Стратагема' : definition.provision !== undefined ? `Провизия ${definition.provision}` : 'Токен'].filter(Boolean);
   const stats = [];
-  if (isUnit(card)) stats.push(`Сила ${power}`, `Броня ${armor ?? 0}`);
+  if (!leader && isUnit(card)) stats.push(`Сила ${power}`, `Броня ${armor ?? 0}`);
   if (timer !== undefined) stats.push(`Таймер ${timer}`);
   const title = element('h2', null, definition.name);
   title.id = 'preview-title';
@@ -240,6 +240,7 @@ function startScreen() {
       element('span', 'muted', faction.strategy),
       element('span', null, faction.leader.name),
     );
+    addCardCrop(choice, faction.leader);
     choices.append(choice);
   }
   panel.append(heading, choices, element('p', 'muted', 'Бот сыграет второй колодой.'));
@@ -481,7 +482,16 @@ function sideView(side) {
 
   const score = element('strong', 'total', totalScore(player));
   score.setAttribute('aria-label', `Общая сила ${totalScore(player)}`);
-  summary.append(element('h2', null, sideLabel[side]), status, score);
+  const identity = element('div', 'side-identity');
+  identity.append(element('h2', null, sideLabel[side]));
+  if (player.leader?.art) {
+    const portrait = button(undefined, () => showCard({ definition: player.leader }, { leader: true }), 'leader-portrait');
+    portrait.setAttribute('aria-label', `Лидер · ${player.leader.name}`);
+    portrait.title = player.leader.name;
+    portrait.append(cardArt(player.leader, 'leader-image'));
+    identity.prepend(portrait);
+  }
+  summary.append(identity, status, score);
   const rows = side === 'bot' ? ROWS : [...ROWS].reverse();
   const lines = element('div', 'board-rows');
   const readyOrders = new Set(availableOrders(match, side).map(({ card }) => card.id));
