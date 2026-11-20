@@ -1,6 +1,7 @@
 const layers = new WeakMap();
 const presets = {
   dust: { count: 12, color: '#d4bea0', speed: .55, gravity: .2 },
+  starlight: { count: 28, color: '#e7f6ff', speed: 1.36, gravity: 0 },
   sparks: { count: 19, color: '#ffa044', speed: 1.2, gravity: .75 },
   slime: { count: 15, color: '#88e342', speed: .37, gravity: 1.25 },
   shards: { count: 15, color: '#9adfff', speed: 1.15, gravity: .6 },
@@ -30,6 +31,10 @@ function drawBurst(ctx, burst, now) {
   const t = (now - start) / (end - start);
   ctx.fillStyle = color;
   ctx.strokeStyle = color;
+  if (kind === 'starlight') {
+    ctx.shadowColor = '#b9d9ff';
+    ctx.shadowBlur = 6;
+  }
   if (kind === 'dust') {
     ctx.globalAlpha = .62 * (1 - t) ** 2;
     ctx.lineWidth = 1.8;
@@ -53,6 +58,7 @@ function drawBurst(ctx, burst, now) {
     ctx.fill();
   }
   ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
 }
 
 export function clearParticles(doc) {

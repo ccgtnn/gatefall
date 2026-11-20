@@ -1,6 +1,6 @@
 import { button, element, sideLabel } from './dom.js?v=step-11';
-import { ROW_LABELS } from '../game/cards.js?v=card-art-13';
-import { cardButton, showCard } from './cards.js?v=card-art-13';
+import { ROW_LABELS } from '../game/cards.js?v=step-14';
+import { cardButton, showCard } from './cards.js?v=step-14';
 
 export function roundText(event) {
   const { scores, winner } = event;
@@ -15,7 +15,7 @@ export function eventText(event) {
     case 'round-start': return `Раунд ${event.round}. Первый ход: ${side.toLowerCase()}.`;
     case 'stratagem': return `${side}: на Поверхности появляется стратагема «${event.name}».`;
     case 'play': {
-      if (!event.row) return `${side}: «${event.name}» · Эффект.`;
+      if (!event.row) return `${side}: «${event.name}» · Эффект${event.initiative ? ' · Инициатива' : ''}.`;
       return `${side}: «${event.name}» (${event.power ?? 'артефакт'})${event.from === 'deck' ? ' из колоды' : ''} → ${ROW_LABELS[event.row]}.`;
     }
     case 'pass': {

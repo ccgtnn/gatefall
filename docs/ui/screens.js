@@ -1,7 +1,7 @@
 import { button, element } from './dom.js?v=step-11';
-import { FACTIONS } from '../game/cards.js?v=card-art-13';
-import { addCardCrop } from './cards.js?v=card-art-13';
-import { logView, roundText } from './menu.js?v=card-art-13';
+import { FACTIONS } from '../game/cards.js?v=step-14';
+import { addCardCrop } from './cards.js?v=step-14';
+import { logView, roundText } from './menu.js?v=step-14';
 
 export function startScreen(phaseLabel, start, stats) {
   phaseLabel.textContent = '';

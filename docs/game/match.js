@@ -1,8 +1,8 @@
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=card-art-13';
-import { announcePlay, availableRows, cardType, createCard, opponent, placeCards, playDestination, statusCount, units } from './board.js?v=card-art-13';
-import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, orderAbility, playTiming, runEffect } from './effects.js?v=card-art-13';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=step-14';
+import { announcePlay, availableRows, cardType, createCard, opponent, placeCards, playDestination, statusCount, units } from './board.js?v=step-14';
+import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, orderAbility, playTiming, runEffect } from './effects.js?v=step-14';
 
-export { availableRows, ROW_LIMIT } from './board.js?v=card-art-13';
+export { availableRows, ROW_LIMIT } from './board.js?v=step-14';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;
@@ -335,8 +335,8 @@ export function applyAction(match, side, action, { random = Math.random } = {}) 
       const { row, position } = destination;
       placeCards(current, row, position, [card]);
     }
-    announcePlay(next, side, card, destination);
     const timing = playTiming(next, side, card);
+    announcePlay(next, side, card, destination, timing === 'initiative' ? { initiative: true } : undefined);
     current.roundActed = true;
     enqueueCardEffect(next, side, card, timing, Boolean(destination));
     if (!destination) next.effects.push({ discard: card, side });

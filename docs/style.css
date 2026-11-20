@@ -418,6 +418,12 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   font: inherit;
 }
 
+[data-faction="neutral"] {
+  --faction-edge: #a7abb1;
+  --faction-face: #303236;
+  --faction-light: #f1f2f3;
+}
+
 [data-faction="protectorate"] {
   --faction-edge: #7da9cd;
   --faction-light: #d3eafa;
@@ -646,3 +652,5 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 .leader-description { font-size: .85rem; color: #e2eff7; }
 .motion-infection { background: radial-gradient(ellipse, #abff555c, #4cd32b60); border: 1px solid #a5ff6a; }
 .motion-poison { color: #bcff72; }
+
+.motion-annihilation { background: radial-gradient(ellipse, #fff 8%, #dceaffda 42%, transparent 72%); }

@@ -1,4 +1,5 @@
-import { burstParticles } from './particles.js?v=step-10';
+import { NEUTRAL } from './game/cards.js?v=step-14';
+import { burstParticles } from './particles.js?v=step-14';
 
 const VISUAL_EVENTS = new Set([
   'play', 'damage', 'boost', 'armor', 'status', 'death', 'destroy', 'spawn', 'deathwish', 'consume', 'consume-group', 'leader', 'order',
@@ -71,7 +72,8 @@ function fly(screen, event, current, handOrigin, duration) {
     card.classList.add('has-art');
     card.append(image);
   }
-  card.dataset.faction = screen.querySelector('[data-side="' + event.side + '"]')?.dataset.faction ?? '';
+  card.dataset.faction = event.card?.definition.faction === NEUTRAL ? NEUTRAL
+    : screen.querySelector('[data-side="' + event.side + '"]')?.dataset.faction ?? '';
   const slide = (factor) => point((from.x - destination.x) * factor, (startY - destination.y) * factor);
   const motion = animate(card, [
     { transform: 'translate(-50%, -50%) ' + slide(1) + ' scale(.92)', opacity: .3 },
@@ -122,6 +124,27 @@ function leave(screen, entry, faction, duration) {
   ], duration).finally(() => clone.remove()), animate(clone.querySelector('.unit-face'), [
     { opacity: 1 }, { opacity: growth ? .58 : .28, offset: .42 }, { opacity: 0 },
   ], duration)];
+}
+
+function annihilate(screen, entry, duration) {
+  if (!entry) return [];
+  const { rect } = entry;
+  const { x, y } = center(rect);
+  const clone = ghostCard(screen, entry);
+  burstParticles(screen.ownerDocument, 'starlight', x, y, rect.width, duration * .8, duration * .18);
+  return [
+    animate(clone, [
+      { opacity: 1, transform: 'scale(1)' },
+      { opacity: .9, transform: 'scale(1.06)', offset: .2 },
+      { opacity: 0, transform: 'scale(.75)', offset: .65 },
+      { opacity: 0, transform: 'scale(.75)' },
+    ], duration).finally(() => clone.remove()),
+    ...cardFlash(screen, entry, 'motion-annihilation', [
+      { opacity: 0, transform: 'translate(-50%, -50%) scale(.35)' },
+      { opacity: .94, transform: 'translate(-50%, -50%) scale(1.1)', offset: .24 },
+      { opacity: 0, transform: 'translate(-50%, -50%) scale(1.45)' },
+    ], duration),
+  ];
 }
 
 function swallow(screen, victims, eater, duration) {
@@ -397,7 +420,9 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
       break;
     case 'death':
     case 'destroy':
-      if (event.reason !== 'consume') {
+      if (event.visual === 'annihilation') {
+        motions.push(...annihilate(screen, previous.get(event.cardId), duration));
+      } else if (event.reason !== 'consume') {
         const faction = screen.querySelector('[data-side="' + event.side + '"]')?.dataset.faction;
         motions.push(...leave(screen, previous.get(event.cardId), faction, duration));
       }

@@ -1,6 +1,6 @@
 import { button, element } from './dom.js?v=step-11';
-import { CARD_TYPES, KEYWORDS, RARITY_LABELS } from '../game/cards.js?v=card-art-13';
-import { cardType, isUnit, statusCount } from '../game/board.js?v=card-art-13';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=step-14';
+import { cardType, isUnit, statusCount } from '../game/board.js?v=step-14';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';
@@ -27,7 +27,7 @@ export function addCardCrop(node, definition) {
 
 export function showCard(card, { leader = false } = {}) {
   const { definition, power, armor, timer } = card;
-  const details = leader ? ['Лидер'] : [CARD_TYPES[cardType(card)], RARITY_LABELS[definition.rarity],
+  const details = leader ? ['Лидер'] : [CARD_TYPES[cardType(card)], definition.faction === NEUTRAL && 'Нейтральная', RARITY_LABELS[definition.rarity],
     definition.stratagem ? 'Стратагема' : definition.provision !== undefined ? `Провизия ${definition.provision}` : 'Токен'].filter(Boolean);
   const stats = [];
   const infection = statusCount(card, 'infection');
@@ -156,7 +156,7 @@ export function decorateCard(node, card, player, { orderOnField = false } = {}) 
   const { definition, timer } = card;
   const type = cardType(card);
   node.dataset.type = type;
-  node.dataset.faction = player.factionId ?? '';
+  node.dataset.faction = definition.faction === NEUTRAL ? NEUTRAL : player.factionId ?? '';
   node.dataset.rarity = definition.rarity ?? '';
   node.setAttribute('aria-label', cardLabel(card));
   node.append(cardStats(card));
@@ -186,6 +186,7 @@ export function decorateCard(node, card, player, { orderOnField = false } = {}) 
 function cardLabel(card) {
   const { definition, power, armor, timer } = card;
   const details = [definition.name, CARD_TYPES[cardType(card)]];
+  if (definition.faction === NEUTRAL) details.push('Нейтральная');
   if (isUnit(card)) details.push(`сила ${power}`);
   if (armor) details.push(`броня ${armor}`);
   if (definition.rarity) details.push(RARITY_LABELS[definition.rarity], `провизия ${definition.provision}`);
