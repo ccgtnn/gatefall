@@ -93,11 +93,11 @@ test('round result can show the final board before cleanup and before the next r
   assert.equal(previous.players.human.board.orbit.length, 1);
 });
 
-test('animation speeds honor the system reduced motion preference', () => {
+test('system motion follows the preference and explicit speeds override it', () => {
   assert.equal(motionDuration('system', false), 320);
   assert.equal(motionDuration('system', true), 0);
   assert.equal(motionDuration('normal', false), 320);
   assert.equal(motionDuration('fast', false), 200);
-  assert.equal(motionDuration('normal', true), 0);
-  assert.equal(motionDuration('fast', true), 0);
+  assert.equal(motionDuration('normal', true), 320);
+  assert.equal(motionDuration('fast', true), 200);
 });
