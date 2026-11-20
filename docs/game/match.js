@@ -1,4 +1,4 @@
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=complete-art-1';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=complete-art-2';
 import { cardType, createCard, opponent, placeCards, ROW_LIMIT, units } from './board.js?v=round-rules';
 import { availableOrders, canCast, canUseLeader, enqueueCardEffect, orderAbility, runEffect } from './effects.js';
 
