@@ -94,7 +94,7 @@ test('strategic bots simulate favorable uses and legal choices for all six leade
         bot.board.surface[1] = commander;
       }
       for (const difficulty of ['normal', 'hard']) {
-        assert.deepEqual(chooseBotTurn(match, difficulty), leaderAction, leader.id + ' ' + difficulty);
+        assert.deepEqual(chooseBotTurn(match, difficulty, { rolloutSamples: 0 }), leaderAction, leader.id + ' ' + difficulty);
         let next = act(match, leaderAction, 'bot');
         while (next.pending) {
           const chosen = act(next, chooseBotTurn(next, difficulty), 'bot');

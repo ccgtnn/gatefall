@@ -1,7 +1,8 @@
+import { compareRollouts } from './bot-rollouts.js?v=step-17';
 import { ROWS } from './cards.js?v=step-16';
 import { cardType, units } from './board.js?v=step-16';
-import { availableOrders, canUseLeader, destructionRolls, destructionSwing } from './effects.js?v=step-16';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=step-16';
+import { availableOrders, canUseLeader, destructionRolls, destructionSwing, rowArmor } from './effects.js?v=step-16';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=step-17';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -227,56 +228,78 @@ function cheapestTwoTurnWin(ranked, search) {
   return best;
 }
 
-export function chooseStrategicTarget(match, pickTarget, difficulty = 'normal') {
+function report(options, action, reason, candidates = []) {
+  options.onDecision?.({
+    action, reason,
+    candidates: candidates.slice(0, 3).map(({ action, rating, average, samples }) => ({
+      action, score: average === undefined ? rating : 100 * average, samples,
+    })),
+  });
+  return action;
+}
+
+function protectsGuardian(candidate, player) {
+  const { action } = candidate;
+  const card = player.hand.find(({ id }) => id === action.cardId);
+  if (card?.definition.id !== 'gate-guardian' ||
+      !player.hand.some(({ definition }) => definition.id === 'shield-overload')) return true;
+  const other = ROWS.find((row) => row !== action.row);
+  return player.board[other].length >= ROW_LIMIT || rowArmor(player, action.row) <= rowArmor(player, other);
+}
+
+export function chooseStrategicTarget(match, pickTarget, difficulty = 'normal', options = {}) {
   const fallback = pickTarget(match);
   if (match.pending.side !== 'bot') return fallback;
   const state = publicMatch(match);
   const search = deadline();
-  let best;
+  const ranked = [];
   for (const action of choices(state)) {
     if (search.expired()) break;
     const candidate = evaluateAction(state, 'bot', action, search);
     if (!candidate) continue;
     const rating = difficulty === 'hard' ? replyRating(candidate, state.round, search) : candidate.rating;
-    if (!best || rating > best.rating) best = { action, rating };
+    ranked.push({ action, rating });
   }
-  return best?.action ?? fallback;
+  ranked.sort((a, b) => b.rating - a.rating);
+  return report(options, ranked[0]?.action ?? fallback, 'Выбор цели или позиции по итогам розыгрыша.', ranked);
 }
 
-export function chooseStrategicTurn(match, difficulty, oldAction) {
-  const search = deadline();
+export function chooseStrategicTurn(match, difficulty, oldAction, options = {}) {
+  const search = deadline(difficulty === 'hard' ? (match.playedCard ? 45 : 380) : BOT_BUDGET_MS);
+  const decide = (action, reason, ranked) => report(options, action, reason, ranked);
   const { bot, human } = match.players;
   const { round } = match;
   const hard = difficulty === 'hard';
   const lead = totalScore(bot) - totalScore(human);
   const canPass = !bot.usedAbility && !match.playedCard;
-  if (canPass && human.passed && lead > 0) return PASS;
+  if (canPass && lead > 0 && (human.passed || (round === 3 && !human.hand.length))) {
+    return decide(PASS, 'Очков для победы уже хватает.');
+  }
 
   const previousRound = match.log.findLast(({ type }) => type === 'round-end');
   const dryPass = round === 2 && previousRound?.winner === 'bot';
-  if (canPass && dryPass && !human.passed) return PASS;
+  if (canPass && dryPass && !human.passed && (!hard || bot.lives === human.lives)) {
+    return decide(PASS, 'После победы в первом раунде сохраняю карты.');
+  }
 
   const roundStart = match.log.findLastIndex(({ type }) => type === 'round-start');
   const spent = match.log.slice(roundStart + 1).filter(({ type, side, from }) => type === 'play' && side === 'bot' && !from).length;
   const budget = hard ? 4 : 3;
   const average = Math.max(3, bot.hand.reduce((sum, card) => sum + (card.power ?? 4), 0) / Math.max(1, bot.hand.length));
-  if (canPass && round === 1 && (spent >= budget || (!human.passed && lead > average))) return PASS;
+  if (canPass && round === 1 && !human.passed && lead > average) return decide(PASS, 'В первом раунде уже есть запас очков.');
+  if (canPass && round === 1 && spent >= budget) return decide(PASS, 'Достигнут лимит карт на первый раунд.');
 
   const state = publicMatch(match);
   if (match.playedCard) {
-    if (human.passed && lead > 0) return END;
+    if (human.passed && lead > 0) return decide(END, 'Очков уже достаточно. Сохраняю Приказы.');
     const baseline = evaluateAction(state, 'bot', END, search);
     const evaluate = (candidate) => hard ? replyRating(candidate, round, search) : candidate.rating;
-    let rating = baseline ? evaluate(baseline) + .08 : Infinity;
-    let action = END;
+    const ranked = [{ action: END, rating: baseline ? evaluate(baseline) + .08 : Infinity }];
     for (const candidate of rankAbilities(state, search)) {
-      const score = evaluate(candidate);
-      if (score > rating) {
-        rating = score;
-        action = candidate.action;
-      }
+      ranked.push({ action: candidate.action, rating: evaluate(candidate) });
     }
-    return action;
+    ranked.sort((a, b) => b.rating - a.rating);
+    return decide(ranked[0].action, 'Сравниваю завершение хода и доступные Приказы.', ranked);
   }
 
   // Give ordinary plays and ability sequences separate shares of the same time budget.
@@ -284,44 +307,73 @@ export function chooseStrategicTurn(match, difficulty, oldAction) {
   const ranked = rankPlays(state, { expired: () => search.expired() || playSearch.expired() });
   const abilitySearch = deadline(hard ? 100 : 130);
   const withAbilities = rankAbilities(state, { expired: () => search.expired() || abilitySearch.expired() });
-  const ready = canPass ? ranked.filter(({ reserveCost }) => reserveCost === 0) : ranked;
+  const allowed = hard ? ranked.filter((candidate) => protectsGuardian(candidate, bot)) : ranked;
+  const canConserve = canPass && (round !== 3 || allowed.some(({ reserveCost }) => reserveCost === 0));
+  const ready = canConserve ? allowed.filter(({ reserveCost }) => reserveCost === 0) : allowed;
   const best = ready[0];
   const ability = withAbilities[0];
-  if (!best) return ability?.action ?? (ranked.length ? PASS : oldAction);
+  if (!best) {
+    return decide(ability?.action ?? (ranked.length && canPass && round < 3 ? PASS : oldAction),
+      'Сохраняю ремувал для более ценной цели или использую доступную способность.', withAbilities);
+  }
   const bestGain = Math.max(0, ...ready.map(({ next }) => margin(next) - lead));
   const expectedCards = bestGain > 0 ? Math.max(1, Math.ceil((1 - lead) / bestGain)) : Infinity;
   const affordable = (cards) => Math.min(HAND_LIMIT, bot.hand.length - cards + ROUND_DRAW) + (hard ? 1 : 0)
     >= Math.min(HAND_LIMIT, human.hand.length + ROUND_DRAW);
 
   if (canPass && round === 1 && !human.passed && lead < -average &&
-      (!affordable(expectedCards) || expectedCards > budget - spent)) return PASS;
+      (!affordable(expectedCards) || expectedCards > budget - spent)) {
+    return decide(PASS, 'Догонять в первом раунде слишком дорого.', ready);
+  }
 
   if (human.passed) {
-    const winning = ranked.filter(({ next }) => margin(next) > 0).sort((a, b) => a.cost - b.cost)[0];
-    if (winning && (!canPass || round > 1 || affordable(1))) return winning.action;
-
-    const twoTurnWin = hard ? cheapestTwoTurnWin(ranked, search) : null;
-    if (twoTurnWin && (!canPass || !dryPass && (round > 1 || (spent + 2 <= budget && affordable(2))))) {
-      return twoTurnWin.action;
+    const winning = allowed.filter(({ next }) => margin(next) > 0).sort((a, b) => a.cost - b.cost);
+    if (winning.length && (!canPass || round > 1 || affordable(1))) {
+      return decide(winning[0].action, 'Закрываю раунд самой дешёвой картой, которой хватает для победы.', winning);
     }
-    if (canPass && (dryPass || (round === 1 && (expectedCards > budget - spent || !affordable(expectedCards))))) return PASS;
-    return ability && ability.rating > best.rating ? ability.action : best.action;
+
+    const twoTurnWin = hard ? cheapestTwoTurnWin(ready, { expired: () => search.expired() || abilitySearch.expired() }) : null;
+    if (twoTurnWin && (!canPass || !dryPass && (round > 1 || (spent + 2 <= budget && affordable(2))))) {
+      return decide(twoTurnWin.action, 'Закрываю раунд двумя недорогими картами.', ready);
+    }
+    if (canPass && (dryPass || (round === 1 && (expectedCards > budget - spent || !affordable(expectedCards))))) {
+      return decide(PASS, 'Дальнейшая борьба за раунд слишком дорога.', ready);
+    }
+    if (!hard || !canPass) {
+      const candidates = [...ready, ...withAbilities].sort((a, b) => b.rating - a.rating);
+      return decide(candidates[0].action, 'Выбираю лучший ответ после паса соперника.', candidates);
+    }
   }
 
   const candidates = [...ready, ...withAbilities].sort((a, b) => b.rating - a.rating);
   if (!hard) {
     const near = candidates.filter(({ rating }) => candidates[0].rating - rating > .001 && candidates[0].rating - rating < .08);
-    return near.length && Math.random() < .12 ? near[0].action : candidates[0].action;
+    const explore = near.length && Math.random() < .12;
+    return decide(explore ? near[0].action : candidates[0].action,
+      explore ? 'Оценки близки. Выбираю один из равноценных вариантов.' : 'Лучшая оценка розыгрыша.', candidates);
   }
-  let selected = candidates[0];
-  let rating = -Infinity;
-  for (const candidate of candidates.slice(0, 8)) {
-    if (search.expired()) break;
-    const score = replyRating(candidate, round, search);
-    if (score > rating) {
-      rating = score;
-      selected = candidate;
+  // Keep distinct cards and both rows in the shortlist before considering equivalent slots.
+  const seen = new Set();
+  const shortlist = candidates.filter(({ action }) => {
+    const key = [action.type, action.cardId, action.row].join('/');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 8);
+  if (canPass && (dryPass || (round === 1 && spent >= 1) ||
+      (round === 2 && bot.lives > human.lives))) {
+    const pass = evaluateAction(state, 'bot', PASS, search);
+    if (pass) {
+      if (shortlist.length === 8) shortlist.pop();
+      shortlist.push({ ...pass, action: PASS });
     }
   }
-  return selected.action;
+  const plausible = shortlist.length > 1;
+  const simulated = plausible && options.pickTarget && compareRollouts(match, shortlist, { ...options, expired: search.expired });
+  if (simulated?.length) {
+    return decide(simulated[0].action, 'Лучший средний исход раунда с учётом оставшихся карт.', simulated);
+  }
+  const tactical = shortlist.map((candidate) => ({ ...candidate, rating: replyRating(candidate, round, search) }))
+    .sort((a, b) => b.rating - a.rating);
+  return decide(tactical[0].action, 'Выбираю по тактической оценке и видимому ответу соперника.', tactical);
 }

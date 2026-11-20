@@ -294,7 +294,7 @@ function progress(match, random) {
   }
 }
 
-function resumeEffect(match, side, action, random) {
+function resumeEffect(match, side, action, random, copy) {
   const { pending } = match;
   if (side !== pending.side) return match;
   const placement = pending.kind === 'deck-placement';
@@ -302,7 +302,7 @@ function resumeEffect(match, side, action, random) {
     ? playDestination(match.players[side], action)
     : !placement && action.type === 'target' && pending.options.includes(action.cardId) && action.cardId;
   if (!selection) return match;
-  const next = structuredClone(match);
+  const next = copy(match);
   const choice = next.pending;
   choice.job.refs[choice.key] = selection;
   next.effects.unshift(choice.job);
@@ -311,9 +311,9 @@ function resumeEffect(match, side, action, random) {
   return next;
 }
 
-export function applyAction(match, side, action, { random = Math.random } = {}) {
+export function applyAction(match, side, action, { random = Math.random, copy = structuredClone } = {}) {
   if (match.phase !== 'playing') return match;
-  if (match.pending) return resumeEffect(match, side, action, random);
+  if (match.pending) return resumeEffect(match, side, action, random, copy);
   if (match.turn !== side) return match;
 
   const player = match.players[side];
@@ -334,7 +334,7 @@ export function applyAction(match, side, action, { random = Math.random } = {}) 
     }
   }
 
-  const next = structuredClone(match);
+  const next = copy(match);
   const current = next.players[side];
   if (type === 'pass') {
     markPassed(next, side, 'manual');

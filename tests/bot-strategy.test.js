@@ -98,12 +98,12 @@ test('Growth places a scavenger next to a larva and can trigger a valuable death
   assert.deepEqual(chooseBotTurn(eating, 'hard'), { type: 'target', cardId: 'cocoon' });
 });
 
-test('changing hidden cards of either deck or the opponent hand cannot change a decision', () => {
+test('changing the opponent’s hidden cards or either deck order cannot change a decision', () => {
   const match = position(3);
   const hidden = structuredClone(match);
-  hidden.players.human.hand = hidden.players.human.hand.map(() => plain('secret', 1000));
-  hidden.players.human.deck = [plain('secret-deck', 1000)];
-  hidden.players.bot.deck = [plain('future-draw', 1000)];
+  hidden.players.human.hand = hidden.players.human.hand.map(({ id }) => plain(id, 1000));
+  hidden.players.human.deck = hidden.players.human.deck.toReversed().map(({ id }) => plain(id, 1000));
+  hidden.players.bot.deck.reverse();
   for (const difficulty of ['normal', 'hard']) {
     assert.deepEqual(chooseBotTurn(match, difficulty), chooseBotTurn(hidden, difficulty));
   }
@@ -167,4 +167,52 @@ test('hard anticipates a visible Surface-only reply without reading the enemy ha
   match.players.human.leader = { ...FACTIONS.protectorate.leaders.find(({ id }) => id === 'fleet-admiral'), charges: 1 };
   assert.equal(chooseBotTurn(match, 'normal').row, 'surface');
   assert.equal(chooseBotTurn(match, 'hard').row, 'orbit');
+});
+
+test('the deciding round refuses to pass with legal cards when behind or the opponent can still reply', () => {
+  for (const difficulty of ['easy', 'normal', 'hard']) {
+    const match = position(3);
+    match.players.bot.hand = [plain('one', 1), plain('two', 2)];
+    match.players.bot.board.orbit = [plain('ahead', 20)];
+    assert.notEqual(chooseBotTurn(match, difficulty).type, 'pass');
+
+    match.players.bot.board.orbit = [];
+    match.players.human.board.orbit = [plain('enemy', 20)];
+    match.players.human.passed = true;
+    assert.equal(chooseBotTurn(match, difficulty).type, 'play');
+  }
+});
+
+test('hard defends a passed second-round bleed with a cheap win', () => {
+  const match = position(2, 'human');
+  match.players.bot.lives = 1;
+  match.players.human.passed = true;
+  match.players.human.board.orbit = [plain('bleed', 4)];
+  match.players.bot.hand = [member('finisher', 'growth', 'colossus'), plain('cheap', 5)];
+  assert.equal(chooseBotTurn(match, 'hard').cardId, 'cheap');
+});
+
+test('hard places Gate Guardian outside the row it is building for Shield Overload', () => {
+  const match = position(3);
+  match.players.bot.hand = [member('guard', 'protectorate', 'gate-guardian'),
+    member('overload', 'protectorate', 'shield-overload')];
+  match.players.bot.board.orbit = [member('bastion', 'protectorate', 'bastion')];
+  const action = chooseBotTurn(match, 'hard');
+  assert.equal(action.cardId, 'guard');
+  assert.equal(action.row, 'surface');
+});
+
+test('hard reports ranked public decisions and scores from completed rollouts without mutating the match', () => {
+  const match = position(3);
+  const before = structuredClone(match);
+  let trace;
+  const action = chooseBotTurn(match, 'hard', {
+    rolloutSamples: 2, onDecision: (report) => { trace = report; },
+  });
+  assert.deepEqual(match, before);
+  assert.deepEqual(trace.action, action);
+  assert.equal(trace.candidates.length, 3);
+  assert.deepEqual(trace.candidates[0].action, action);
+  assert.ok(trace.candidates.every(({ score, samples }) => Number.isFinite(score) && samples === 2));
+  assert.ok(trace.candidates[0].score >= trace.candidates[1].score);
 });

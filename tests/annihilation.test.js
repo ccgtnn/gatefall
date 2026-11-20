@@ -113,6 +113,7 @@ test('both strategic bots value an Initiative sweep and avoid exiling their only
     match.players.bot.board.orbit[0].power = 9;
     assert.equal(chooseBotTurn(match, difficulty).cardId, 'ordinary', difficulty);
     match.players.bot.hand = [spell()];
+    match.round = 2;
     assert.equal(chooseBotTurn(match, difficulty).type, 'pass', difficulty);
   }
 });

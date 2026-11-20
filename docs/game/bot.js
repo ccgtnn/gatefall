@@ -1,9 +1,9 @@
 import { ROWS } from './cards.js?v=step-16';
 import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=step-16';
 import { availableOrders, canUseLeader, destructionSwing, effectSwing, rowArmor, rowDamage } from './effects.js?v=step-16';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=step-16';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=step-17';
 
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=step-16';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=step-17';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
@@ -114,7 +114,7 @@ function bestTarget(candidates, priority) {
   return candidates.reduce((best, unit) => priority(unit) > priority(best) ? unit : best);
 }
 
-function pickBotTarget(match) {
+export function pickBotTarget(match) {
   const { kind, amount, amounts, options, preferHigherAmount } = match.pending;
   const player = match.players[match.pending.side];
   if (kind === 'armor-row') {
@@ -192,10 +192,26 @@ function chooseEasyTurn(match) {
   return chooseBotAction(view);
 }
 
-export function chooseBotTurn(match, difficulty = 'easy') {
+export function chooseBotTurn(match, difficulty = 'easy', options = {}) {
+  let decision;
+  const strategy = { ...options, pickTarget: pickBotTarget, onDecision: (trace) => { decision = trace; } };
+  let action;
   if (match.pending && (difficulty !== 'easy' || match.pending.kind === 'deck-placement')) {
-    return chooseStrategicTarget(match, pickBotTarget, difficulty);
+    action = chooseStrategicTarget(match, pickBotTarget, difficulty, strategy);
+  } else {
+    const fallback = chooseEasyTurn(match);
+    action = difficulty === 'normal' || difficulty === 'hard'
+      ? chooseStrategicTurn(match, difficulty, fallback, strategy) : fallback;
   }
-  if (difficulty !== 'normal' && difficulty !== 'hard') return chooseEasyTurn(match);
-  return chooseStrategicTurn(match, difficulty, chooseEasyTurn(match));
+  if (action.type === 'pass' && match.round === 3) {
+    const { bot, human } = match.players;
+    const [card] = playableCards(match, 'bot');
+    if (card && (totalScore(bot) <= totalScore(human) || (!human.passed && human.hand.length))) {
+      const row = ROWS.find((name) => bot.board[name].length < ROW_LIMIT);
+      action = { type: 'play', cardId: card.id, ...(row && { row, position: bot.board[row].length }) };
+      decision = { reason: 'В решающем раунде продолжаю играть, пока соперник может ответить или ведёт по очкам.' };
+    }
+  }
+  options.onDecision?.({ reason: 'Ход по правилам лёгкого бота.', candidates: [], ...decision, action });
+  return action;
 }
