@@ -95,7 +95,7 @@ const protectorate = [
   ['reinforcements', 'Подкрепление', 6, null, 'Покажи 3 случайных бронзовых отряда из своей колоды. Выбери один и сыграй его.',
     { art: 'reinforcements.webp', type: 'effect', deploy: ability([{ action: 'play-from-deck', filter: { rarity: 'bronze' }, choose: 3 }]) }],
   ['orbital-salvo', 'Орбитальный залп', 5, null, 'Нанести 3 урона вражескому отряду. Если цель на Поверхности, нанести 5 урона.',
-    { type: 'effect', art: 'orbital-salvo.webp', deploy: ability([action('damage', chosen('enemy'), salvoDamage)],
+    { removalReserve: 4, type: 'effect', art: 'orbital-salvo.webp', deploy: ability([action('damage', chosen('enemy'), salvoDamage)],
       [enemyChoice(salvoDamage)]), keywords: ['Урон'] }],
   ['colonel', 'Полковник Стены', 9, 5, 'При розыгрыше: удвоить броню своих отрядов в этом ряду.',
     { art: 'colonel.webp?v=2', deploy: ability([action('armor', allyRow, { stat: 'armor' })]), keywords: ['Броня'] }],
@@ -111,7 +111,7 @@ const protectorate = [
       ...ability([action('damage', chosen('enemy'), 3)], [enemyChoice(3)]),
     }, keywords: ['Приказ', 'Броня', 'Урон'] }],
   ['shield-overload', 'Перегрузка щитов', 11, null, 'Выбери свой ряд. Сними всю броню со своих карт в нём. За каждую снятую единицу брони нанеси 1 урон случайному вражескому отряду.',
-    { art: 'shield-overload.webp', type: 'effect', deploy: ability([
+    { removalReserve: 5, art: 'shield-overload.webp', type: 'effect', deploy: ability([
       { action: 'select-row', ref: 'row', filter: 'armor', prompt: 'Выбери свой ряд, с которого снять броню.' },
       { action: 'armor', target: { ...allies, rowRef: 'row' }, amount: { stat: 'armor', scale: -1 }, save: 'armor' },
       { action: 'scatter', amount: armorRemoved },
@@ -173,7 +173,7 @@ const strongestPresent = { targets: strongest };
 const annihilate = { action: 'destroy', target: strongest, visual: 'annihilation' };
 
 export const ANNIHILATION = Object.freeze({
-  id: 'annihilation', name: 'Аннигиляция', art: 'annihilation.webp', faction: NEUTRAL, type: 'effect', rarity: 'gold', provision: 12,
+  id: 'annihilation', name: 'Аннигиляция', art: 'annihilation.webp', removalReserve: 8, faction: NEUTRAL, type: 'effect', rarity: 'gold', provision: 12,
   text: 'Уничтожь сильнейший отряд на поле, свой или чужой. При равенстве выбери случайный из сильнейших. Инициатива: уничтожь все отряды с наибольшей силой.',
   deploy: { ...ability([{ ...annihilate, mode: 'random' }]), when: strongestPresent },
   initiative: { ...ability([annihilate]), when: strongestPresent },
@@ -198,6 +198,7 @@ export const NEUTRAL_CARDS = Object.freeze([
       deploy: ability([{ action: 'choose-deck-top' }]),
     }],
     ['emp-grenade', 'ЭМИ-граната', 'bronze', 5, null, 'Сними всю броню с вражеского отряда. Нанеси 2 урона плюс число снятых единиц брони.', {
+      removalReserve: 4,
       art: 'emp-grenade.webp',
       type: 'effect',
       deploy: ability([
@@ -207,6 +208,7 @@ export const NEUTRAL_CARDS = Object.freeze([
       keywords: ['Броня', 'Урон'],
     }],
     ['gravity-pulse', 'Гравитационный импульс', 'bronze', 6, null, 'Нанеси 1 урон всем отрядам в выбранном вражеском ряду.', {
+      removalReserve: 4,
       art: 'gravity-pulse.webp',
       type: 'effect', deploy: ability([
         { action: 'select-row', ref: 'row', filter: 'units', prompt: 'Выбери вражеский ряд для Гравитационного импульса.' },
@@ -231,6 +233,7 @@ export const NEUTRAL_CARDS = Object.freeze([
       }, keywords: ['Приказ', 'Усиление'],
     }],
     ['bounty-hunter', 'Охотник за головами', 'gold', 10, 4, 'Нанеси 6 урона вражескому отряду. Если он погиб от этого удара, усиль себя на 2.', {
+      removalReserve: 5,
       art: 'bounty-hunter.webp',
       deploy: ability([
         { ...action('damage', chosen('enemy'), 6), save: 'kill' },
@@ -247,35 +250,47 @@ export const NEUTRAL_CARDS = Object.freeze([
   })),
 ]);
 
-const testingNeutrals = {
+const presetNeutrals = {
   protectorate: ['recon-drone', 'emp-grenade', 'gate-relic', 'gate-guardian'],
   growth: ['veteran-mercenary', 'gravity-pulse', 'liaison', 'field-medic'],
 };
 
+const singleBronzes = {
+  protectorate: ['shield-generator', 'orbital-shield', 'standard', 'warden', 'anvil', 'reinforcements'],
+  growth: ['spore-sac', 'incubator', 'gulper', 'swarm-call'],
+};
+
 function factionCards(entries, faction) {
-  return Object.freeze([...entries.flatMap(([id, name, provision, power, text, rules], index) => {
+  return Object.freeze(entries.map(([id, name, provision, power, text, rules], index) => {
     const rarity = index < 11 ? 'bronze' : 'gold';
     const stats = power === null ? {} : { power };
-    const definition = Object.freeze({ id, name, provision, type: 'unit', text, rarity, faction, ...stats, ...rules });
-    return rarity === 'bronze' ? [definition, definition] : [definition];
-  }), ...NEUTRAL_CARDS.filter(({ id }) => id === ANNIHILATION.id || testingNeutrals[faction].includes(id))]);
+    return Object.freeze({ id, name, provision, type: 'unit', text, rarity, faction, ...stats, ...rules });
+  }));
+}
+
+function presetCards(pool, faction) {
+  return Object.freeze([
+    ...pool.flatMap((definition) => definition.rarity === 'bronze' && !singleBronzes[faction].includes(definition.id)
+      ? [definition, definition] : [definition]),
+    ...NEUTRAL_CARDS.filter(({ id }) => id === ANNIHILATION.id || presetNeutrals[faction].includes(id)),
+  ]);
 }
 
 const protectorateLeaders = Object.freeze([
   {
-    id: 'marshal', name: 'Маршал Строя', art: 'marshal.webp', text: 'Дать 3 брони выбранному своему отряду и его соседям.',
+    id: 'marshal', provisionBonus: 15, name: 'Маршал Строя', art: 'marshal.webp', text: 'Дать 3 брони выбранному своему отряду и его соседям.',
     ability: ability([
       action('armor', chosen('ally'), 3), action('armor', { ...adjacent, of: 'ally' }, 3),
     ], [choice('ally', allies, 'Выбери отряд для брони Маршала и его соседей.', { kind: 'marshal' })]),
   },
   {
-    id: 'supreme-commander', name: 'Верховный командор', text: 'Усилить свою карту на 2. Если у неё есть Приказ, сделать его готовым.',
+    id: 'supreme-commander', provisionBonus: 15, name: 'Верховный командор', text: 'Усилить свою карту на 2. Если у неё есть Приказ, сделать его готовым.',
     ability: ability([
       action('boost', chosen('ally'), 2), action('ready-order', chosen('ally')),
     ], [choice('ally', { scope: 'ally', unitOrOrder: true }, 'Выбери свою карту для усиления и подготовки Приказа.', { kind: 'ready-order' })]),
   },
   {
-    id: 'fleet-admiral', name: 'Адмирал флота', text: 'Нанести 4 урона вражескому отряду на Поверхности.',
+    id: 'fleet-admiral', provisionBonus: 15, name: 'Адмирал флота', text: 'Нанести 4 урона вражескому отряду на Поверхности.',
     ability: ability([action('damage', chosen('enemy'), 4)], [
       choice('enemy', { ...enemies, row: 'surface' }, 'Выбери врага на Поверхности для 4 урона.', { kind: 'damage', amount: 4 }),
     ]),
@@ -284,7 +299,7 @@ const protectorateLeaders = Object.freeze([
 
 const growthLeaders = Object.freeze([
   {
-    id: 'devourer', name: 'Пожиратель', art: 'devourer.webp', text: 'Поглотить свой отряд и передать удвоенную силу одному из его соседей.',
+    id: 'devourer', provisionBonus: 15, name: 'Пожиратель', art: 'devourer.webp', text: 'Поглотить свой отряд и передать удвоенную силу одному из его соседей.',
     ability: ability([
       absorb(chosen('victim'), { receiver: chosen('ally'), multiplier: 2 }),
     ], [
@@ -293,14 +308,14 @@ const growthLeaders = Object.freeze([
     ]),
   },
   {
-    id: 'brood-mother', name: 'Матка', text: 'Породить 3 личинки в выбранном своём ряду.',
+    id: 'brood-mother', provisionBonus: 15, name: 'Матка', text: 'Породить 3 личинки в выбранном своём ряду.',
     ability: ability([
       { action: 'select-row', ref: 'row', filter: 'space', prompt: 'Выбери свой ряд для трёх личинок.' },
       { ...spawn('right', 'source', 3), rowRef: 'row' },
     ]),
   },
   {
-    id: 'carrier', name: 'Носитель', text: 'Наложить Заражение 3 на вражеский отряд и его соседей.',
+    id: 'carrier', provisionBonus: 15, name: 'Носитель', text: 'Наложить Заражение 3 на вражеский отряд и его соседей.',
     ability: ability([
       { ...action('status', chosen('enemy'), 3), status: 'infection' },
       { ...action('status', { ...adjacent, of: 'enemy' }, 3), status: 'infection' },
@@ -308,13 +323,12 @@ const growthLeaders = Object.freeze([
   },
 ]);
 
+function faction(id, name, strategy, entries, leaders) {
+  const pool = factionCards(entries, id);
+  return { name, strategy, pool, deck: presetCards(pool, id), leader: leaders[0], leaders };
+}
+
 export const FACTIONS = Object.freeze({
-  protectorate: {
-    name: 'Протекторат', strategy: 'Строй', deck: factionCards(protectorate, 'protectorate'),
-    leader: protectorateLeaders[0], leaders: protectorateLeaders,
-  },
-  growth: {
-    name: 'Поросль', strategy: 'Пожирание', deck: factionCards(growth, 'growth'),
-    leader: growthLeaders[0], leaders: growthLeaders,
-  },
+  protectorate: faction('protectorate', 'Протекторат', 'Строй', protectorate, protectorateLeaders),
+  growth: faction('growth', 'Поросль', 'Пожирание', growth, growthLeaders),
 });

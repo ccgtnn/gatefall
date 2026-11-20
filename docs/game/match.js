@@ -1,3 +1,4 @@
+import { inspectDeck } from './decks.js?v=step-16';
 import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=neutral-art-complete';
 import { announcePlay, availableRows, cardType, createCard, HAND_LIMIT, opponent, placeCards, playDestination, statusCount, takeCards, units } from './board.js?v=neutral-art-complete';
 import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, orderAbility, playTiming, runEffect } from './effects.js?v=neutral-art-complete';
@@ -79,6 +80,19 @@ export function createMatch({ decks, humanFaction = decks ? undefined : 'protect
     playedCard: false,
     ending: null,
   };
+}
+
+export function createDeckMatch(deck, options = {}) {
+  const result = inspectDeck(deck);
+  if (!result.valid) return null;
+  const botFaction = deck.factionId === 'growth' ? 'protectorate' : 'growth';
+  return createMatch({
+    random: options.random,
+    rules: options.rules,
+    decks: { human: result.cards, bot: FACTIONS[botFaction].deck },
+    humanFaction: deck.factionId,
+    humanLeader: result.leader.id,
+  });
 }
 
 export function rowScore(player, row) {

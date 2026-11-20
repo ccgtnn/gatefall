@@ -235,7 +235,7 @@ export function enqueueEndTurn(match, side) {
 }
 
 const operations = {
-  discard: (match, target) => removeUnit(match, target, 'discard'),
+
   counter: (match, { card, side }) => {
     if (!(card.counter > 0)) return;
     card.counter -= 1;
@@ -243,7 +243,7 @@ const operations = {
     if (card.counter === 0) match.effects.unshift({ ability: card.definition.counter.effect,
       side, sourceId: card.id, requiredSource: true });
   },
-  armor: (match, target, amount) => applyStatus(match, target, 'armor', amount),
+  armor: (match, target, amount, sourceDefinitionId) => applyStatus(match, target, 'armor', amount, { sourceDefinitionId }),
   'infection-tick': tickInfection,
   'ready-order': (match, { card, side }) => {
     if (!card.definition.order || card.readyAt <= match.players[side].turns) return;
@@ -364,7 +364,12 @@ export function runEffect(match, job, random) {
     const [receiver] = targets(match, job, step.receiver);
     result = consume(match, target, receiver, step);
   } else if (step.action === 'destroy') {
-    removeUnit(match, target, 'destroy', undefined, step.visual ? { visual: step.visual } : undefined);
+    removeUnit(match, target, 'destroy', undefined, {
+      sourceDefinitionId: job.sourceDefinitionId,
+      ...(step.visual && { visual: step.visual }),
+    });
+  } else if (step.action === 'discard') {
+    removeUnit(match, target, 'discard', undefined, { sourceDefinitionId: job.causeDefinitionId });
   } else if (step.action === 'status') {
     result = applyStatus(match, target, step.status, valueOf(match, job, step.amount, target));
   } else {

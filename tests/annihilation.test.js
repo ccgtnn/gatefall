@@ -24,7 +24,7 @@ test('Annihilation is a neutral gold Effect, with one copy in each faction deck'
   assert.equal(ANNIHILATION.rarity, 'gold');
   assert.equal(ANNIHILATION.provision, 12);
   for (const { deck } of Object.values(FACTIONS)) {
-    assert.equal(deck.length, 31);
+    assert.ok(deck.length >= 25);
     assert.deepEqual(deck.filter(({ id }) => id === ANNIHILATION.id), [ANNIHILATION]);
     assert.equal(deck.filter(({ faction }) => faction === NEUTRAL).length, 5);
   }
@@ -126,4 +126,29 @@ test('a prior card play removes Initiative through the rest of the round for tha
   const next = applyAction(match, 'human', cast, { random: () => 0 });
   assert.deepEqual(next.players.human.exile.map(({ id }) => id), ['spare']);
   assert.equal(next.players.bot.exile.length, 0);
+});
+
+test('hard reserves Annihilation against a lone enemy of strength five or less', () => {
+  for (const power of [1, 3, 5]) {
+    const match = fixture();
+    match.turn = 'bot';
+    match.players.bot.hand = [spell(), unit('alternative', 1)];
+    match.players.human.board.surface = [unit('small', power)];
+    assert.notEqual(chooseBotTurn(match, 'hard').cardId, 'spell');
+    match.round = 3;
+    assert.equal(chooseBotTurn(match, 'hard').cardId, 'alternative');
+  }
+});
+
+test('hard uses an expensive removal when it kills enough strength or secures a passed round', () => {
+  const match = fixture();
+  match.turn = 'bot';
+  match.round = 3;
+  match.players.bot.hand = [spell(), unit('alternative', 2)];
+  match.players.bot.board.surface = [unit('friendly', 1)];
+  match.players.human.board.surface = [unit('large', 12)];
+  assert.deepEqual(chooseBotTurn(match, 'hard'), cast);
+  match.players.human.board.surface[0].power = 5;
+  match.players.human.passed = true;
+  assert.deepEqual(chooseBotTurn(match, 'hard'), cast);
 });

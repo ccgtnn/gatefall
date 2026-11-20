@@ -103,7 +103,7 @@ export function applyStatus(match, unit, status, amount, extra) {
   const context = { source: card, neighbors: neighbors(match, unit) };
   const effects = emit(match, event, context);
   if (status === 'armor' && before > 0 && count === 0) {
-    effects.push(...emit(match, { type: 'armor-break', side, cardId: card.id }, { ...context, journal: false }));
+    effects.push(...emit(match, { type: 'armor-break', side, cardId: card.id, sourceDefinitionId: extra?.sourceDefinitionId }, { ...context, journal: false }));
   }
   match.effects.unshift(...effects);
   return before - count;
@@ -125,14 +125,14 @@ export function removeUnit(match, unit, reason, consumerId, extra) {
   (exile ? player.exile : player.discard).push(card);
   const death = reason === 'destroy' || reason === 'discard' ? undefined : { row, position, refs: { consumer: consumerId } };
   match.effects.unshift(...emit(match, {
-    type: death ? 'death' : reason, side, name: card.definition.name, cardId: card.id, exile, reason, ...extra,
+    type: death ? 'death' : reason, side, name: card.definition.name, cardId: card.id, power: card.power, exile, reason, ...extra,
   }, { source: card, death }));
 }
 
 export function damage(match, unit, amount, sourceDefinitionId, extra) {
   if (!unit || !isUnit(unit.card) || amount <= 0) return;
   const absorbed = Math.min(amount, unit.card.armor ?? 0);
-  applyStatus(match, unit, 'armor', -absorbed, extra);
+  applyStatus(match, unit, 'armor', -absorbed, { ...extra, sourceDefinitionId });
   const lost = Math.min(unit.card.power, amount - absorbed);
   unit.card.power -= lost;
   emit(match, { type: 'damage', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, power: unit.card.power, amount, absorbed, lost, sourceDefinitionId, ...extra });

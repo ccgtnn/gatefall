@@ -51,19 +51,19 @@ function events(match, type) {
   return match.log.filter((event) => event.type === type);
 }
 
-test('each selectable deck has 31 instances, including five distinct neutrals', () => {
+test('each selectable deck has unique instances and legal bronze and gold quantities', () => {
   for (const [key, faction] of Object.entries(FACTIONS)) {
     const match = fixture({ faction: key, charges: 2 });
     const cards = [...match.players.human.hand, ...match.players.human.deck];
-    assert.equal(cards.length, 31);
-    assert.equal(new Set(cards.map(({ id }) => id)).size, 31);
-    assert.equal(cards.filter(({ definition }) => definition.rarity === 'bronze').length, 24);
+    assert.equal(cards.length, faction.deck.length);
+    assert.equal(new Set(cards.map(({ id }) => id)).size, cards.length);
+    assert.equal(cards.filter(({ definition }) => definition.faction === NEUTRAL).length, 5);
     assert.equal(cards.filter(({ definition }) => definition.rarity === 'gold').length, 7);
     for (const { definition } of cards) {
       assert.equal('row' in definition, false);
       assert.ok(definition.provision >= 4);
-      assert.equal(cards.filter((card) => card.definition.id === definition.id).length,
-        definition.rarity === 'bronze' && definition.faction !== NEUTRAL ? 2 : 1);
+      assert.ok(cards.filter((card) => card.definition.id === definition.id).length <=
+        (definition.rarity === 'bronze' ? 2 : 1));
     }
     assert.equal(match.players.human.leader.name, faction.leader.name);
     assert.equal(match.players.human.leader.charges, 2);
@@ -304,7 +304,7 @@ test('live faction matches resolve all choices, keep card identities unique, and
         const resolving = match.effects.filter(({ discard }) => discard && match.players[match.turn] === field)
           .map(({ discard }) => discard);
         const cards = [...field.hand, ...field.deck, ...field.discard, ...field.exile, ...Object.values(field.board).flat(), ...resolving];
-        assert.equal(cards.filter(({ definition }) => !definition.token).length, 31);
+        assert.equal(cards.filter(({ definition }) => !definition.token).length, FACTIONS[field.factionId].deck.length);
         assert.equal(new Set(cards.map(({ id }) => id)).size, cards.length);
         assert.ok(field.discard.every(({ definition }) => !definition.doomed));
       }

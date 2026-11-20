@@ -7,7 +7,7 @@ export function emit(match, event, { source, neighbors = [], death, journal = tr
       deathwish: source.definition.name });
   }
   const self = source?.definition.events?.[event.type] ?? (event.type === 'turn-end' ? source?.definition.endTurn : undefined);
-  if (self) jobs.push({ ability: self, side, sourceId: source.id, sourceDefinitionId: source.definition.id, requiredSource: true });
+  if (self) jobs.push({ ability: self, side, sourceId: source.id, sourceDefinitionId: source.definition.id, causeDefinitionId: event.sourceDefinitionId, requiredSource: true });
   for (const { card, side } of neighbors) {
     const ability = card.definition.neighborEvents?.[event.type];
     if (ability) jobs.push({ ability, sourceId: card.id, side, requiredSource: true });

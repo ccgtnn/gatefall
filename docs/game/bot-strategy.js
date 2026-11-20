@@ -113,6 +113,20 @@ function choices(state) {
   return ids.map((id) => ({ type: 'target', cardId: id }));
 }
 
+function removalShortfall(before, after, actor, card) {
+  const reserve = card?.definition?.removalReserve;
+  if (actor !== 'bot' || !reserve) return 0;
+  if (before.players.human.passed && margin(after) > 0) return 0;
+  let swing = 0;
+  for (const event of after.log.slice(before.log.length)) {
+    if (event.sourceDefinitionId !== card.definition.id) continue;
+    const lost = event.type === 'damage' ? event.lost
+      : event.type === 'destroy' || event.type === 'discard' ? event.power ?? 0 : 0;
+    swing += event.side === actor ? -lost : lost;
+  }
+  return Math.max(0, reserve - swing);
+}
+
 function evaluateAction(state, side, action, search) {
   function finish(next, depth) {
     const actor = next.pending?.side ?? next.turn;
@@ -137,25 +151,23 @@ function evaluateAction(state, side, action, search) {
   function advance(before, actor, move, depth) {
     const card = move.type === 'play' && before.players[actor].hand.find(({ id }) => id === move.cardId);
     const rolls = destructionRolls(before, actor, card);
-    if (rolls.length === 1) {
-      const next = applyAction(before, actor, move, SIMULATION);
-      return next === before ? undefined : finish(next, depth);
-    }
-
     let worst;
     let total = 0;
+    let shortfall = 0;
     for (const roll of rolls) {
-      if (search.expired()) return;
-      const next = applyAction(before, actor, move, { random: () => roll });
+      if (rolls.length > 1 && search.expired()) return;
+      const next = applyAction(before, actor, move, roll === .5 ? SIMULATION : { random: () => roll });
       const result = next !== before && finish(next, depth);
       if (!result) return;
+      shortfall += removalShortfall(before, result.next, actor, card);
       total += result.rating;
-      // Pass calculations require a line that wins even if the tie goes against the actor.
+      // Keep a conservative outcome for pass calculations when targets are random.
       if (!worst || (actor === 'bot' ? margin(result.next) < margin(worst) : margin(result.next) > margin(worst))) {
         worst = result.next;
       }
     }
-    return { next: worst, rating: total / rolls.length };
+    const reserveCost = shortfall / rolls.length;
+    return { next: worst, rating: total / rolls.length - reserveCost * 1.5, reserveCost };
   }
   return advance(state, side, action, 0);
 }
@@ -272,10 +284,11 @@ export function chooseStrategicTurn(match, difficulty, oldAction) {
   const ranked = rankPlays(state, { expired: () => search.expired() || playSearch.expired() });
   const abilitySearch = deadline(hard ? 100 : 130);
   const withAbilities = rankAbilities(state, { expired: () => search.expired() || abilitySearch.expired() });
-  const best = ranked[0];
+  const ready = canPass ? ranked.filter(({ reserveCost }) => reserveCost === 0) : ranked;
+  const best = ready[0];
   const ability = withAbilities[0];
-  if (!best) return ability?.action ?? oldAction;
-  const bestGain = Math.max(0, ...ranked.map(({ next }) => margin(next) - lead));
+  if (!best) return ability?.action ?? (ranked.length ? PASS : oldAction);
+  const bestGain = Math.max(0, ...ready.map(({ next }) => margin(next) - lead));
   const expectedCards = bestGain > 0 ? Math.max(1, Math.ceil((1 - lead) / bestGain)) : Infinity;
   const affordable = (cards) => Math.min(HAND_LIMIT, bot.hand.length - cards + ROUND_DRAW) + (hard ? 1 : 0)
     >= Math.min(HAND_LIMIT, human.hand.length + ROUND_DRAW);
@@ -295,7 +308,7 @@ export function chooseStrategicTurn(match, difficulty, oldAction) {
     return ability && ability.rating > best.rating ? ability.action : best.action;
   }
 
-  const candidates = [...ranked, ...withAbilities].sort((a, b) => b.rating - a.rating);
+  const candidates = [...ready, ...withAbilities].sort((a, b) => b.rating - a.rating);
   if (!hard) {
     const near = candidates.filter(({ rating }) => candidates[0].rating - rating > .001 && candidates[0].rating - rating < .08);
     return near.length && Math.random() < .12 ? near[0].action : candidates[0].action;
