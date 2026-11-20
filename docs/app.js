@@ -1,5 +1,6 @@
 import { bindCardPlacement } from './card-placement.js?v=field-6';
 import { presentJournalEvent } from './card-motion.js?v=step-7';
+import { createSoundEffects } from './sound.js?v=step-9';
 import { motionDuration, playJournal } from './turn-playback.js?v=round-results';
 import { CARD_TYPES, FACTIONS, KEYWORDS, RARITY_LABELS, ROWS, ROW_LABELS } from './game/cards.js?v=growth-art-3';
 import { cardType, isUnit } from './game/board.js';
@@ -35,6 +36,16 @@ try {
 } catch {}
 speedSetting.addEventListener('change', () => {
   try { localStorage.setItem(speedKey, speedSetting.value); } catch {}
+});
+
+const soundSetting = document.querySelector('#sound-enabled');
+const soundKey = 'gatefall.sound-enabled';
+try { soundSetting.checked = localStorage.getItem(soundKey) !== 'off'; } catch {}
+const sounds = createSoundEffects(soundSetting.checked);
+soundSetting.addEventListener('change', () => {
+  sounds.setEnabled(soundSetting.checked);
+  if (soundSetting.checked) sounds.unlock();
+  try { localStorage.setItem(soundKey, soundSetting.checked ? 'on' : 'off'); } catch {}
 });
 
 function updateSystemSpeed() {
@@ -325,6 +336,7 @@ function showNotice(notice, text, duration) {
 }
 
 function start(faction) {
+  sounds.unlock();
   mulliganFieldVisible = false;
   announcement.textContent = '';
   match = createMatch({ humanFaction: faction });
@@ -845,6 +857,7 @@ async function updateMatch(next) {
     try {
       await playJournal(before, events, async (event, commit, state) => {
         if (session !== matchSession) return;
+        sounds.play(event);
         if (event.type === 'round-end') {
           await showRoundResult(event, state);
           if (session === matchSession) commit();
@@ -857,6 +870,8 @@ async function updateMatch(next) {
     } finally {
       if (session === matchSession) replaying = false;
     }
+  } else {
+    events.forEach(sounds.play);
   }
 
   if (session !== matchSession) return;
@@ -883,6 +898,7 @@ async function updateMatch(next) {
 
 async function playHuman(action) {
   if (!match || replaying) return;
+  sounds.unlock();
   const session = matchSession;
   await updateMatch(applyAction(match, 'human', action));
   if (session === matchSession && match && humanCanAct()) screen.querySelector('#pass-button:enabled')?.focus({ preventScroll: true });

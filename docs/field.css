@@ -157,6 +157,7 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   gap: .4rem;
   margin-top: .75rem;
 }
+.sound-setting { display: block; margin-bottom: .75rem; }
 #leave-description { margin-top: .45rem; }
 .opponent-passed {
   position: absolute;
