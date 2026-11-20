@@ -488,3 +488,62 @@ body:has(#app[data-animation-speed="fast"]) .field-drawer[open] { animation-dura
 .rules-dialog dt { margin-top: .55rem; font-weight: 700; color: #c7e8fa; }
 .rules-dialog dd { margin: .15rem 0 0; }
 .deck-choice .deck-record { font-size: .76rem; color: #e2eff7; font-variant-numeric: tabular-nums; }
+
+.deck-choice {
+  position: absolute;
+  z-index: 4;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: min(92%, 27rem);
+  padding: .55rem;
+  background: #101e29;
+}
+.deck-choice h2 { margin: 0 0 .45rem; font-size: clamp(.85rem, 3.5dvh, 1.2rem); }
+.deck-choice-cards { display: flex; justify-content: center; gap: .4rem; }
+.deck-choice-cards .hand-card {
+  flex: 1 1 0;
+  max-width: 7rem;
+  min-width: 0;
+  aspect-ratio: 2 / 3;
+  height: auto;
+  max-height: 46dvh;
+  touch-action: manipulation;
+}
+.deck-choice-name {
+  position: absolute;
+  z-index: 1;
+  inset: auto 0 0;
+  padding: .16em;
+  background: #0b1822e8;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+  font-size: clamp(.6rem, 2.7dvh, .88rem);
+}
+.placement-choices {
+  position: absolute;
+  z-index: 2;
+  inset: auto 2px 2px;
+  display: flex;
+  justify-content: center;
+  gap: var(--row-card-gap);
+}
+.placement-choice {
+  flex: 0 1 var(--slot-width);
+  min-width: 0;
+  min-height: min(26px, 33cqh);
+  padding: 0;
+  background: #09232c;
+  color: #effaff;
+  border: 1px solid #7ec7d0;
+  border-radius: 3px;
+}
+.card-art-placeholder {
+  position: absolute;
+  inset: 35% 2px 15%;
+  align-content: center;
+  text-align: center;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: clamp(.5rem, 2.1dvh, .9rem);
+  line-height: 1.1;
+}

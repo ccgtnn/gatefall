@@ -1,9 +1,9 @@
 import { emit } from './events.js?v=step-12';
-import { ROWS, ROW_LABELS } from './cards.js';
+import { ROWS, ROW_LABELS } from './cards.js?v=step-12';
 import {
   announcePlay, availableRows, boost, cardType, changeArmor, consume, damage, findUnit,
   isUnit, neighbors, opponent, placeCards, removeUnit, spawnCards, units,
-} from './board.js?v=step-10';
+} from './board.js?v=step-12';
 
 function reference(match, job, key = 'source') {
   return findUnit(match, key === 'source' ? job.sourceId : job.refs?.[key]);
@@ -192,7 +192,7 @@ function playFromDeck(match, job, step, random) {
 }
 
 const operations = {
-  armor: changeArmor,
+  armor: (match, target, amount) => changeArmor(match, target, amount),
   boost,
   damage,
   destroy: (match, target) => removeUnit(match, target, 'destroy'),
@@ -252,7 +252,7 @@ export function runEffect(match, job, random) {
     }
     job.hits -= 1;
     match.effects.unshift(job);
-    damage(match, enemies[Math.floor(random() * enemies.length)], 1, job.sourceDefinitionId, { scattered: true });
+    damage(match, enemies[Math.floor(random() * enemies.length)], 1, job.sourceDefinitionId, { scattered: true, attacker: job.side, sourceRow: job.refs.row });
     return;
   }
   if (step.action === 'spawn') {

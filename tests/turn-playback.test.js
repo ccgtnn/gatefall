@@ -101,3 +101,20 @@ test('system motion follows the preference and explicit speeds override it', () 
   assert.equal(motionDuration('normal', true), 320);
   assert.equal(motionDuration('fast', true), 200);
 });
+
+test('deck plays keep the hand intact and grouped victims disappear together before individual deaths', () => {
+  const before = confirmMulligan(createMatch({ random: () => 0 }), []);
+  const human = before.players.human;
+  const lord = card('lord', 'growth', 'broodlord');
+  human.deck.push(lord);
+  const visual = createPlaybackState(before);
+  applyJournalEvent(visual, { type: 'play', side: 'human', row: 'orbit', cardId: 'lord',
+    position: 0, card: lord, from: 'deck' });
+  assert.deepEqual(visual.players.human.hand, human.hand);
+  assert.ok(!visual.players.human.deck.some(({ id }) => id === 'lord'));
+  assert.ok(human.deck.some(({ id }) => id === 'lord'));
+  applyJournalEvent(visual, { type: 'consume-group', side: 'human', cardIds: ['a', 'b'], eaterId: 'lord' });
+  assert.deepEqual([...visual.hiddenDuringPlayback], ['a', 'b']);
+  applyJournalEvent(visual, { type: 'death', side: 'human', cardId: 'a' });
+  assert.deepEqual([...visual.hiddenDuringPlayback], ['b']);
+});

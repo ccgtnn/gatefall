@@ -1,15 +1,15 @@
 import { bindCardPlacement } from './card-placement.js?v=field-6';
-import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=step-10-effects';
+import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=step-12';
 import { clearParticles } from './particles.js?v=step-10';
-import { playJournal } from './turn-playback.js?v=step-11-motion';
-import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=step-11-strategy';
-import { FACTIONS } from './game/cards.js?v=growth-art-3';
-import { applyAction, createMatch } from './game/match.js?v=step-10';
+import { playJournal } from './turn-playback.js?v=step-12';
+import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=step-12';
+import { FACTIONS } from './game/cards.js?v=step-12';
+import { applyAction, createMatch } from './game/match.js?v=step-12';
 import { element, iconButton } from './ui/dom.js?v=step-11';
-import { preview, showCard } from './ui/cards.js?v=step-11';
-import { createBattlefield } from './ui/field.js?v=step-11';
+import { preview, showCard } from './ui/cards.js?v=step-12';
+import { createBattlefield } from './ui/field.js?v=step-12';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=step-11';
-import { createMatchMenu, eventText } from './ui/menu.js?v=step-11';
+import { createMatchMenu, eventText } from './ui/menu.js?v=step-12';
 import { finishedScreen, startScreen } from './ui/screens.js?v=step-11-complete';
 import { createSettings } from './ui/settings.js?v=step-11-complete';
 
@@ -190,7 +190,9 @@ async function updateMatch(next) {
           if (session === matchSession) commit();
           return;
         }
-        await presentJournalEvent(screen, event, commit, renderPlayback, duration);
+        await presentJournalEvent(screen, event, commit, (state) => {
+          if (session === matchSession) renderPlayback(state);
+        }, duration);
       });
     } catch (error) {
       console.warn('Playback stopped early', error);

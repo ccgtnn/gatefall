@@ -1,4 +1,4 @@
-import { ROWS } from './game/cards.js';
+import { ROWS } from './game/cards.js?v=step-12';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;
@@ -18,6 +18,7 @@ export function createPlaybackState(previous) {
     ...previous,
     log: [...previous.log],
     pending: null,
+    hiddenDuringPlayback: new Set(),
     players: {
       human: copyPlayer(previous.players.human),
       bot: copyPlayer(previous.players.bot),
@@ -47,7 +48,8 @@ export function applyJournalEvent(state, event) {
 
   if (type === 'pass') player.passed = true;
   if (type === 'play') {
-    player.hand = player.hand.filter(({ id }) => id !== cardId);
+    const pile = event.from === 'deck' ? 'deck' : 'hand';
+    player[pile] = player[pile].filter(({ id }) => id !== cardId);
     if (row) player.board[row].splice(event.position, 0, { ...event.card });
     return;
   }
@@ -55,6 +57,10 @@ export function applyJournalEvent(state, event) {
     player.board[row].splice(event.position, 0, ...event.cards.map((card) => ({ ...card })));
     return;
   }
+  if (type === 'consume-group') {
+    for (const id of event.cardIds) state.hiddenDuringPlayback.add(id);
+  }
+  if (type === 'death') state.hiddenDuringPlayback.delete(cardId);
   if (!cardId) return;
 
   for (const row of ROWS) {

@@ -610,3 +610,11 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   .preview-layout { grid-template-columns: minmax(0, 1fr); }
   .preview-art { max-width: min(100%, 32vh); justify-self: center; }
 }
+
+.motion-projectile {
+  width: .52rem;
+  height: .52rem;
+  border-radius: 50%;
+  background: #e8faff;
+  box-shadow: 0 0 .7rem .2rem #69d6ff;
+}

@@ -1,6 +1,6 @@
 import { button, element, sideLabel } from './dom.js?v=step-11';
-import { ROW_LABELS } from '../game/cards.js?v=growth-art-3';
-import { cardButton, showCard } from './cards.js?v=step-11';
+import { ROW_LABELS } from '../game/cards.js?v=step-12';
+import { cardButton, showCard } from './cards.js?v=step-12';
 
 export function roundText(event) {
   const { scores, winner } = event;
@@ -16,7 +16,7 @@ export function eventText(event) {
     case 'stratagem': return `${side}: на Поверхности появляется стратагема «${event.name}».`;
     case 'play': {
       if (!event.row) return `${side}: «${event.name}» · Эффект.`;
-      return `${side}: «${event.name}» (${event.power ?? 'артефакт'}) → ${ROW_LABELS[event.row]}.`;
+      return `${side}: «${event.name}» (${event.power ?? 'артефакт'})${event.from === 'deck' ? ' из колоды' : ''} → ${ROW_LABELS[event.row]}.`;
     }
     case 'pass': {
       const reasons = {

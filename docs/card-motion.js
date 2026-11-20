@@ -1,7 +1,7 @@
 import { burstParticles } from './particles.js?v=step-10';
 
 const VISUAL_EVENTS = new Set([
-  'play', 'damage', 'boost', 'armor', 'death', 'destroy', 'spawn', 'deathwish', 'consume', 'leader', 'order',
+  'play', 'damage', 'boost', 'armor', 'death', 'destroy', 'spawn', 'deathwish', 'consume', 'consume-group', 'leader', 'order',
 ]);
 
 function rects(screen) {
@@ -124,18 +124,21 @@ function leave(screen, entry, faction, duration) {
   ], duration)];
 }
 
-function swallow(screen, victim, eater, duration) {
-  if (!victim || !eater) return [];
-  const clone = ghostCard(screen, victim);
-  victim.node.style.opacity = '0';
-  const from = center(victim.rect);
+function swallow(screen, victims, eater, duration) {
+  if (!victims.length || !eater) return [];
   const to = center(eater.rect);
-  const slide = point(to.x - from.x, to.y - from.y);
-  return [animate(clone, [
-    { opacity: 1, transform: 'scale(1)' },
-    { opacity: .9, transform: slide + ' scale(.27)', offset: .68 },
-    { opacity: 0, transform: slide + ' scale(.06)' },
-  ], duration).finally(() => clone.remove()), animate(eater.node.querySelector('.unit-face'), [
+  const flights = victims.map((victim) => {
+    const clone = ghostCard(screen, victim);
+    victim.node.style.opacity = '0';
+    const from = center(victim.rect);
+    const slide = point(to.x - from.x, to.y - from.y);
+    return animate(clone, [
+      { opacity: 1, transform: 'scale(1)' },
+      { opacity: .9, transform: slide + ' scale(.27)', offset: .68 },
+      { opacity: 0, transform: slide + ' scale(.06)' },
+    ], duration).finally(() => clone.remove());
+  });
+  return [...flights, animate(eater.node.querySelector('.unit-face'), [
     { transform: 'scale(1)' },
     { transform: 'scale(1)', offset: .5 },
     { transform: 'scale(1.17,1.13)', offset: .69 },
@@ -181,6 +184,20 @@ function orbitalBeam(screen, rect, duration) {
     { transform: 'translateX(-50%) scale(1,1)', opacity: 1, offset: .27 },
     { transform: 'translateX(-50%) scale(.2,1)', opacity: 0 },
   ], duration).finally(() => beam.remove());
+}
+
+function projectile(screen, event, entry, duration) {
+  if (!entry) return Promise.resolve();
+  const sourceLine = screen.querySelector('[data-side="' + event.attacker + '"] [data-row="' + event.sourceRow + '"]');
+  const floor = screen.querySelector('.field-center');
+  if (!floor) return Promise.resolve();
+  const from = center((sourceLine ?? floor).getBoundingClientRect());
+  const to = center(entry.rect);
+  const shot = floatNode(screen, 'motion-projectile', '', from);
+  return animate(shot, [
+    { transform: point(0, 0) + ' scale(.65)', opacity: .8 },
+    { transform: point(to.x - from.x, to.y - from.y) + ' scale(1.2)', opacity: 1 },
+  ], duration).finally(() => shot.remove());
 }
 
 function hit(screen, entry, event, duration) {
@@ -320,10 +337,25 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
     return;
   }
 
+  if (event.type === 'armor' && event.scattered) {
+    commit();
+    return;
+  }
+  if (event.scattered) {
+    await projectile(screen, event, rects(screen).get(event.cardId), duration * .43);
+    duration *= .52;
+  }
+  if (event.type === 'consume' && event.grouped) {
+    commit();
+    return;
+  }
+
   const previous = rects(screen);
   const previousScores = new Map(Array.from(screen.querySelectorAll('[data-score]'),
     (node) => [node.dataset.score, Number(node.textContent)]));
-  const origin = event.type === 'play' && event.side === 'human' ? oldHandPosition(screen, event.cardId) : null;
+  const deck = event.from === 'deck' ? screen.querySelector('[data-deck-side="' + event.side + '"]') : null;
+  const origin = deck ? center(deck.getBoundingClientRect())
+    : event.type === 'play' && event.side === 'human' ? oldHandPosition(screen, event.cardId) : null;
   render(commit());
   const current = rects(screen);
   const entry = current.get(event.cardId);
@@ -344,7 +376,11 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
       motions.push(...hit(screen, entry, event, duration));
       break;
     case 'consume':
-      motions.push(...swallow(screen, entry, current.get(event.eaterId), duration));
+      motions.push(...swallow(screen, entry ? [entry] : [], current.get(event.eaterId), duration));
+      break;
+    case 'consume-group':
+      motions.push(...swallow(screen, event.cardIds.map((id) => previous.get(id)).filter(Boolean),
+        current.get(event.eaterId), duration));
       break;
     case 'boost':
       motions.push(...floatingNumber(screen, entry, '+' + event.amount, 'boost', duration));

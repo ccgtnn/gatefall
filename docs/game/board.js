@@ -1,4 +1,4 @@
-import { ROWS } from './cards.js';
+import { ROWS } from './cards.js?v=step-12';
 import { emit } from './events.js?v=step-12';
 
 export const ROW_LIMIT = 9;
@@ -64,11 +64,11 @@ export function boost(match, unit, amount) {
   match.log.push({ type: 'boost', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, power: unit.card.power, amount });
 }
 
-export function changeArmor(match, unit, amount) {
+export function changeArmor(match, unit, amount, extra) {
   if (!unit || !isUnit(unit.card) || amount === 0) return 0;
   const change = Math.max(amount, -(unit.card.armor ?? 0));
   unit.card.armor = (unit.card.armor ?? 0) + change;
-  if (change) emit(match, { type: 'armor', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, armor: unit.card.armor, amount: change });
+  if (change) emit(match, { type: 'armor', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, armor: unit.card.armor, amount: change, ...extra });
   return -change;
 }
 
@@ -87,7 +87,7 @@ export function removeUnit(match, unit, reason, consumerId) {
 export function damage(match, unit, amount, sourceDefinitionId, extra) {
   if (!unit || !isUnit(unit.card) || amount <= 0) return;
   const absorbed = Math.min(amount, unit.card.armor ?? 0);
-  changeArmor(match, unit, -absorbed);
+  changeArmor(match, unit, -absorbed, extra);
   const lost = Math.min(unit.card.power, amount - absorbed);
   unit.card.power -= lost;
   emit(match, { type: 'damage', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, power: unit.card.power, amount, absorbed, lost, sourceDefinitionId, ...extra });

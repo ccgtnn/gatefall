@@ -1,7 +1,7 @@
-import { ROWS } from './cards.js';
-import { cardType, units } from './board.js?v=step-10';
-import { availableOrders, canUseLeader } from './effects.js?v=step-10';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=step-10';
+import { ROWS } from './cards.js?v=step-12';
+import { cardType, units } from './board.js?v=step-12';
+import { availableOrders, canUseLeader } from './effects.js?v=step-12';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=step-12';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };

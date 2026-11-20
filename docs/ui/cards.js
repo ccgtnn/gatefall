@@ -1,6 +1,6 @@
 import { button, element } from './dom.js?v=step-11';
-import { CARD_TYPES, KEYWORDS, RARITY_LABELS } from '../game/cards.js?v=growth-art-3';
-import { cardType, isUnit } from '../game/board.js?v=step-10';
+import { CARD_TYPES, KEYWORDS, RARITY_LABELS } from '../game/cards.js?v=step-12';
+import { cardType, isUnit } from '../game/board.js?v=step-12';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';
@@ -171,6 +171,7 @@ export function decorateCard(node, card, player, { orderOnField = false } = {}) 
     node.append(mark);
   }
   addCardCrop(node, definition);
+  if (!definition.art) node.append(element('span', 'card-art-placeholder', definition.name));
 }
 
 function cardLabel(card) {
