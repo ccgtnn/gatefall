@@ -102,7 +102,7 @@ test('instant mulligan replaces the same slot repeatedly and keeps excluded copi
   human.hand = [unit('left'), unit('original', 'assault'), unit('right')];
   human.deck = [
     unit('original-copy', 'assault'), unit('replacement', 'bastion'), unit('replacement-copy', 'bastion'),
-    unit('second', 'cocoon'), unit('last', 'mutant'),
+    unit('second', 'cocoon'), unit('last', 'spitter'),
   ];
   assert.strictEqual(replaceMulliganCard(setupMatch, 'missing'), setupMatch);
   let match = replaceMulliganCard(setupMatch, 'original');

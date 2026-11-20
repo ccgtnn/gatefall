@@ -1,6 +1,6 @@
 import { ROWS } from './cards.js';
 import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=step-10';
-import { availableOrders, canUseLeader, effectSwing } from './effects.js?v=step-10';
+import { availableOrders, canUseLeader, effectSwing, rowArmor } from './effects.js?v=step-10';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=step-10';
 
 import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=step-11';
@@ -11,8 +11,15 @@ export const BOT_DELAY_MS = 700;
 export function createBotView(match) {
   const { human, bot } = match.players;
   return {
-    cards: playableCards(match, 'bot').map((card) =>
-      cardType(card) === 'effect' ? { ...card, swing: effectSwing(match, 'bot', card) } : card),
+    cards: playableCards(match, 'bot').map((card) => {
+      if (cardType(card) === 'effect') return { ...card, swing: effectSwing(match, 'bot', card) };
+      if (card.definition.id !== 'broodlord') return card;
+      const rows = ROWS.filter((row) => bot.board[row].length < ROW_LIMIT);
+      const larvae = (row) => bot.board[row].filter(({ definition }) => definition.id === 'larva')
+        .reduce((sum, unit) => sum + unit.power, 0);
+      const preferredRow = rows.reduce((best, row) => larvae(row) > larvae(best) ? row : best);
+      return { ...card, preferredRow, swing: card.power + larvae(preferredRow) };
+    }),
     rowLengths: Object.fromEntries(ROWS.map((row) => [row, bot.board[row].length])),
     score: totalScore(bot),
     opponentScore: totalScore(human),
@@ -25,7 +32,7 @@ export function createBotView(match) {
   };
 }
 
-const scoreValue = (card) => card.power ?? card.swing ?? 0;
+const scoreValue = (card) => card.swing ?? card.power ?? 0;
 
 function weakestWinningCards(ordered, rowLengths, target) {
   let openPlaces = ROWS.reduce((total, row) => total + ROW_LIMIT - rowLengths[row], 0);
@@ -64,7 +71,7 @@ function weakestWinningCards(ordered, rowLengths, target) {
 
 function playCard(card, view) {
   if (cardType(card) === 'effect') return { type: 'play', cardId: card.id };
-  const row = ROWS.reduce((best, next) => view.rowLengths[next] < view.rowLengths[best] ? next : best);
+  const row = card.preferredRow ?? ROWS.reduce((best, next) => view.rowLengths[next] < view.rowLengths[best] ? next : best);
   return { type: 'play', cardId: card.id, row, position: view.rowLengths[row] };
 }
 
@@ -109,6 +116,21 @@ function bestTarget(candidates, priority) {
 
 function pickBotTarget(match) {
   const { kind, amount, amounts, options, preferHigherAmount } = match.pending;
+  const player = match.players[match.pending.side];
+  if (kind === 'armor-row') {
+    const row = bestTarget(options, (row) => rowArmor(player, row));
+    return { type: 'target', cardId: row };
+  }
+  if (kind === 'deck-card') {
+    const optionsSet = new Set(options);
+    const card = bestTarget(player.deck.filter(({ id }) => optionsSet.has(id)), ({ definition }) =>
+      definition.power + (definition.armor ?? 0) * .15 + Number(Boolean(definition.deploy)));
+    return { type: 'target', cardId: card.id };
+  }
+  if (kind === 'deck-placement') {
+    const row = bestTarget(options, (row) => -player.board[row].length);
+    return { type: 'place', row, position: player.board[row].length };
+  }
   const optionsWithUnits = options.map((id) => findUnit(match, id));
   const highest = Math.max(0, ...Object.values(amounts ?? {}));
   const candidates = preferHigherAmount ? optionsWithUnits.filter(({ card }) => amounts[card.id] === highest) : optionsWithUnits;
@@ -155,6 +177,7 @@ function chooseEasyTurn(match) {
 }
 
 export function chooseBotTurn(match, difficulty = 'easy') {
+  if (match.pending?.kind === 'deck-placement') return chooseStrategicTarget(match, pickBotTarget);
   if (difficulty !== 'normal' && difficulty !== 'hard') return chooseEasyTurn(match);
   if (match.pending) {
     return difficulty === 'hard' ? chooseStrategicTarget(match, pickBotTarget) : pickBotTarget(match);

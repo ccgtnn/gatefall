@@ -1,9 +1,8 @@
-import { emit } from './events.js?v=step-12';
 import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=growth-art-3';
-import { cardType, createCard, opponent, placeCards, ROW_LIMIT, units } from './board.js?v=step-10';
+import { announcePlay, availableRows, cardType, createCard, opponent, placeCards, playDestination, units } from './board.js?v=step-10';
 import { availableOrders, canCast, canUseLeader, enqueueCardEffect, orderAbility, runEffect } from './effects.js?v=step-10';
 
-export { ROW_LIMIT } from './board.js?v=step-10';
+export { availableRows, ROW_LIMIT } from './board.js?v=step-10';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;
@@ -86,10 +85,6 @@ export function totalScore(player) {
   return ROWS.reduce((score, row) => score + rowScore(player, row), 0);
 }
 
-export function availableRows(player) {
-  return ROWS.filter((row) => player.board[row].length < ROW_LIMIT);
-}
-
 export function canPlayCard(match, side, card) {
   return cardType(card) === 'effect' ? canCast(match, side, card) : availableRows(match.players[side]).length > 0;
 }
@@ -105,16 +100,6 @@ export function canPass(match, side) {
 
 export function canEndTurn(match, side) {
   return match.phase === 'playing' && match.turn === side && !match.pending && match.playedCard;
-}
-
-function playDestination(player, action) {
-  const row = action.row;
-  if (!ROWS.includes(row)) return null;
-  const line = player.board[row];
-  if (!line || line.length >= ROW_LIMIT) return null;
-  const position = action.position;
-  if (!Number.isInteger(position) || position < 0 || position > line.length) return null;
-  return { row, position };
 }
 
 export function mulliganLimit(match, side) {
@@ -293,10 +278,15 @@ function progress(match, random) {
 
 function resumeEffect(match, side, action, random) {
   const { pending } = match;
-  if (action.type !== 'target' || side !== pending.side || !pending.options.includes(action.cardId)) return match;
+  if (side !== pending.side) return match;
+  const placement = pending.kind === 'deck-placement';
+  const selection = placement && action.type === 'place' && pending.options.includes(action.row)
+    ? playDestination(match.players[side], action)
+    : !placement && action.type === 'target' && pending.options.includes(action.cardId) && action.cardId;
+  if (!selection) return match;
   const next = structuredClone(match);
   const choice = next.pending;
-  choice.job.refs[choice.key] = action.cardId;
+  choice.job.refs[choice.key] = selection;
   next.effects.unshift(choice.job);
   next.pending = null;
   progress(next, random);
@@ -339,10 +329,7 @@ export function applyAction(match, side, action, { random = Math.random } = {}) 
       const { row, position } = destination;
       placeCards(current, row, position, [card]);
     }
-    emit(next, { type: 'play', side, row: destination?.row, name: card.definition.name,
-      power: card.power, cardType: cardType(card), cardId: card.id,
-      card: { ...card }, position: destination?.position });
-    if (card.armor) emit(next, { type: 'armor', side, name: card.definition.name, cardId: card.id, armor: card.armor, amount: card.armor });
+    announcePlay(next, side, card, destination);
     enqueueCardEffect(next, side, card, 'deploy', Boolean(destination));
     if (!destination) next.effects.push({ discard: card, side });
     next.playedCard = true;

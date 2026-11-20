@@ -83,10 +83,10 @@ test('the strategic bot inserts between two armored allies for the double boost'
   }
 });
 
-test('Growth places a mutant next to a larva and can trigger a valuable deathwish', () => {
+test('Growth places a scavenger next to a larva and can trigger a valuable deathwish', () => {
   const match = position(3);
-  match.players.bot.hand = [member('mutant', 'growth', 'mutant')];
-  match.players.bot.board.surface = [standard('larva', LARVA)];
+  match.players.bot.hand = [member('eater', 'growth', 'scavenger')];
+  match.players.bot.board.surface = [member('predator', 'growth', 'predator'), standard('larva', LARVA)];
   const action = chooseBotTurn(match, 'normal');
   assert.equal(action.row, 'surface');
   const pending = applyAction(match, 'bot', action);
@@ -106,5 +106,31 @@ test('changing hidden cards of either deck or the opponent hand cannot change a 
   hidden.players.bot.deck = [plain('future-draw', 1000)];
   for (const difficulty of ['normal', 'hard']) {
     assert.deepEqual(chooseBotTurn(match, difficulty), chooseBotTurn(hidden, difficulty));
+  }
+});
+
+test('the bot cashes in its armored row for Shield Overload', () => {
+  const match = position(3);
+  match.players.bot.hand = [member('overload', 'protectorate', 'shield-overload'), plain('ordinary', 4)];
+  match.players.bot.board.orbit = [member('small-shield', 'protectorate', 'assault')];
+  match.players.bot.board.surface = [member('big-shield', 'protectorate', 'bastion')];
+  match.players.human.board.orbit = [plain('enemy', 15)];
+  for (const difficulty of ['normal', 'hard']) {
+    const action = chooseBotTurn(match, difficulty);
+    assert.deepEqual(action, { type: 'play', cardId: 'overload' });
+    const pending = applyAction(match, 'bot', action);
+    assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'surface' });
+  }
+});
+
+test('the bot plays Broodlord in the row with three larvae', () => {
+  const match = position(3);
+  match.players.bot.hand = [member('lord', 'growth', 'broodlord'), plain('ordinary', 5)];
+  match.players.bot.board.orbit = [standard('spare-larva', LARVA)];
+  match.players.bot.board.surface = ['a', 'b', 'c'].map((id) => standard(id, LARVA));
+  for (const difficulty of ['normal', 'hard']) {
+    const action = chooseBotTurn(match, difficulty);
+    assert.equal(action.cardId, 'lord');
+    assert.equal(action.row, 'surface');
   }
 });

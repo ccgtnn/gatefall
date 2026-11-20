@@ -21,6 +21,25 @@ export function placeCards(player, row, position, cards) {
   player.board[row].splice(position, 0, ...cards);
 }
 
+export function playDestination(player, { row, position }) {
+  if (!ROWS.includes(row)) return null;
+  const line = player.board[row];
+  if (line.length >= ROW_LIMIT || !Number.isInteger(position) || position < 0 || position > line.length) return null;
+  return { row, position };
+}
+
+export function availableRows(player) {
+  return ROWS.filter((row) => player.board[row].length < ROW_LIMIT);
+}
+
+export function announcePlay(match, side, card, destination, extra) {
+  emit(match, { type: 'play', side, row: destination?.row, name: card.definition.name,
+    power: card.power, cardType: cardType(card), cardId: card.id,
+    card: { ...card }, position: destination?.position, ...extra });
+  if (card.armor) emit(match, { type: 'armor', side, name: card.definition.name, cardId: card.id,
+    armor: card.armor, amount: card.armor });
+}
+
 export function units(match, side, rows = ROWS) {
   return rows.flatMap((row) => match.players[side].board[row].map((card, position) => ({
     side, row, card, position,
@@ -65,23 +84,23 @@ export function removeUnit(match, unit, reason, consumerId) {
   }, { source: card, death }));
 }
 
-export function damage(match, unit, amount, sourceDefinitionId) {
+export function damage(match, unit, amount, sourceDefinitionId, extra) {
   if (!unit || !isUnit(unit.card) || amount <= 0) return;
   const absorbed = Math.min(amount, unit.card.armor ?? 0);
   changeArmor(match, unit, -absorbed);
   const lost = Math.min(unit.card.power, amount - absorbed);
   unit.card.power -= lost;
-  emit(match, { type: 'damage', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, power: unit.card.power, amount, absorbed, lost, sourceDefinitionId });
+  emit(match, { type: 'damage', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, power: unit.card.power, amount, absorbed, lost, sourceDefinitionId, ...extra });
   if (unit.card.power === 0) removeUnit(match, unit, 'damage');
 }
 
-export function consume(match, victim, consumer, { multiplier = 1, extra = 0 } = {}) {
+export function consume(match, victim, consumer, { multiplier = 1, extra = 0, grouped } = {}) {
   if (!victim || !consumer || !isUnit(victim.card) || !isUnit(consumer.card) ||
       victim.side !== consumer.side || victim.card.id === consumer.card.id) return 0;
   const nearby = neighbors(match, victim);
   const strength = victim.card.power;
   const reactions = emit(match, {
-    type: 'consume', side: victim.side, name: victim.card.definition.name, cardId: victim.card.id, eaterId: consumer.card.id, eater: consumer.card.definition.name, amount: strength,
+    type: 'consume', side: victim.side, name: victim.card.definition.name, cardId: victim.card.id, eaterId: consumer.card.id, eater: consumer.card.definition.name, amount: strength, ...(grouped && { grouped }),
   }, { neighbors: nearby });
   removeUnit(match, victim, 'consume', consumer.card.id);
   boost(match, consumer, strength * multiplier + extra);

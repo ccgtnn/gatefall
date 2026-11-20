@@ -14,7 +14,7 @@ function publicMatch(match) {
     ...match,
     log: [],
     players: {
-      bot: { ...bot, deck: [], discard: [], exile: [] },
+      bot: { ...bot, deck: [...bot.deck].sort((a, b) => a.id.localeCompare(b.id)), discard: [], exile: [] },
       human: {
         lives: human.lives, board: human.board, passed: human.passed, turns: human.turns,
         usedAbility: human.usedAbility, leader: human.leader, deck: [], discard: [], exile: [],
@@ -68,7 +68,11 @@ function plays(state) {
 function rankPlays(state, pickTarget, costWeight) {
   return plays(state).map(({ action, cost }) => {
     const next = simulate(state, action, pickTarget);
-    return { action, cost, next, rating: value(next) - costWeight * cost };
+    const played = state.players.bot.hand.find(({ id }) => id === action.cardId);
+    const larvae = played.definition.id === 'broodlord'
+      ? state.players.bot.board[action.row].filter(({ definition }) => definition.id === 'larva').length : null;
+    const preserveFinisher = larvae !== null && larvae < 3 && state.round < 3 && !state.players.human.passed;
+    return { action, cost, next, rating: value(next) - costWeight * cost - (preserveFinisher ? 2 : 0) };
   }).sort((a, b) => b.rating - a.rating || a.cost - b.cost);
 }
 
@@ -111,8 +115,12 @@ export function chooseStrategicTarget(match, pickTarget) {
   const preferred = pickTarget(match);
   let best = preferred;
   let score = -Infinity;
-  for (const cardId of [preferred.cardId, ...match.pending.options.filter((id) => id !== preferred.cardId)]) {
-    const action = { type: 'target', cardId };
+  const { kind, options } = match.pending;
+  const actions = kind === 'deck-placement' ? options.flatMap((row) =>
+    Array.from({ length: state.players.bot.board[row].length + 1 }, (_, position) =>
+      ({ type: 'place', row, position }))) : options.filter((id) => id !== preferred.cardId)
+    .map((cardId) => ({ type: 'target', cardId }));
+  for (const action of [preferred, ...actions]) {
     const rating = value(simulate(state, action, pickTarget));
     if (rating > score) {
       score = rating;
@@ -135,7 +143,7 @@ export function chooseStrategicTurn(match, difficulty, pickTarget, oldAction) {
   if (canPass && dryPass && !human.passed) return PASS;
 
   const roundStart = match.log.findLastIndex(({ type }) => type === 'round-start');
-  const spent = match.log.slice(roundStart + 1).filter(({ type, side }) => type === 'play' && side === 'bot').length;
+  const spent = match.log.slice(roundStart + 1).filter(({ type, side, from }) => type === 'play' && side === 'bot' && from !== 'deck').length;
   const budget = hard ? 4 : 3;
   const average = Math.max(3, bot.hand.reduce((sum, card) => sum + (card.power ?? 4), 0) / Math.max(1, bot.hand.length));
   if (canPass && round === 1 && (spent >= budget || (!human.passed && lead > average))) return PASS;

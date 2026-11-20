@@ -9,6 +9,12 @@ const definitions = new Map(Object.values(FACTIONS).flatMap(({ deck }) => deck.m
 const basic = { id: 'basic', name: 'Обычная карта', type: 'unit', power: 4 };
 definitions.set('shieldbearer', { ...basic, id: 'shieldbearer', name: 'Щитоносец', power: 3, armor: 2 });
 definitions.set('frigate', { ...basic, id: 'frigate', name: 'Патрульный фрегат' });
+definitions.set('relay', { ...basic, id: 'relay', name: 'Наводчик щитов', power: 3,
+  deploy: {
+    select: [{ ref: 'ally', targets: { scope: 'ally', type: 'unit', row: 'surface' }, kind: 'armor' }],
+    steps: [{ action: 'armor', target: { scope: 'ref', ref: 'ally' }, amount: 2 }],
+  },
+});
 definitions.set('nursery', { ...basic, id: 'nursery', name: 'Рассадник', power: 3 });
 
 function unit(id, definitionId, overrides = {}) {
@@ -45,14 +51,14 @@ function events(match, type) {
   return match.log.filter((event) => event.type === type);
 }
 
-test('each selectable deck has 25 instances, two of each bronze and one of each gold', () => {
+test('each selectable deck has 26 instances, two of each bronze and one of each gold', () => {
   for (const [key, faction] of Object.entries(FACTIONS)) {
     const match = fixture({ faction: key, charges: 2 });
     const cards = [...match.players.human.hand, ...match.players.human.deck];
-    assert.equal(cards.length, 25);
-    assert.equal(new Set(cards.map(({ id }) => id)).size, 25);
+    assert.equal(cards.length, 26);
+    assert.equal(new Set(cards.map(({ id }) => id)).size, 26);
     assert.equal(cards.filter(({ definition }) => definition.rarity === 'bronze').length, 22);
-    assert.equal(cards.filter(({ definition }) => definition.rarity === 'gold').length, 3);
+    assert.equal(cards.filter(({ definition }) => definition.rarity === 'gold').length, 4);
     for (const { definition } of cards) {
       assert.equal('row' in definition, false);
       assert.ok(definition.provision >= 4);
@@ -280,7 +286,10 @@ test('live faction matches resolve all choices, keep card identities unique, and
       const [card] = playableCards(match, side);
       let action;
       if (side === 'bot') action = chooseBotTurn(match);
-      else if (match.pending) action = { type: 'target', cardId: match.pending.options[0] };
+      else if (match.pending?.kind === 'deck-placement') {
+        const row = match.pending.options[0];
+        action = { type: 'place', row, position: player.board[row].length };
+      } else if (match.pending) action = { type: 'target', cardId: match.pending.options[0] };
       else if (canEndTurn(match, side)) action = { type: 'end-turn' };
       else if (!card || random() < 0.12) action = { type: 'pass' };
       else {
@@ -295,7 +304,7 @@ test('live faction matches resolve all choices, keep card identities unique, and
         const resolving = match.effects.filter(({ discard }) => discard && match.players[match.turn] === field)
           .map(({ discard }) => discard);
         const cards = [...field.hand, ...field.deck, ...field.discard, ...field.exile, ...Object.values(field.board).flat(), ...resolving];
-        assert.equal(cards.filter(({ definition }) => !definition.token).length, 25);
+        assert.equal(cards.filter(({ definition }) => !definition.token).length, 26);
         assert.equal(new Set(cards.map(({ id }) => id)).size, cards.length);
         assert.ok(field.discard.every(({ definition }) => !definition.doomed));
       }
@@ -467,4 +476,87 @@ test('artifact immunity holds even for an effect that selects all board cards', 
   assert.equal('power' in structure, false);
   assert.equal('armor' in structure, false);
   assert.equal(events(match, 'damage').length, 0);
+});
+
+test('Reinforcements offers random eligible physical copies, then plays one in the chosen position with deploy', () => {
+  let match = fixture();
+  hand(match, unit('offer', 'reinforcements'));
+  const original = [unit('a', 'assault'), unit('b', 'warden'), unit('c', 'infantry'), unit('d', 'standard'),
+    unit('effect', 'orbital-salvo'), unit('gold', 'bastion')];
+  match.players.human.deck = original;
+  board(match, 'human', 'surface', unit('left', 'frigate'), unit('right', 'frigate'));
+  match = applyAction(match, 'human', { type: 'play', cardId: 'offer' }, { random: () => .6 });
+  assert.equal(match.pending.kind, 'deck-card');
+  assert.deepEqual(match.pending.options, ['c', 'b', 'd']);
+  assert.strictEqual(target(match, 'a'), match);
+  assert.strictEqual(target(match, 'c', 'bot'), match);
+  match = target(match, 'c');
+  assert.equal(match.pending.kind, 'deck-placement');
+  const place = (position) => applyAction(match, 'human', { type: 'place', row: 'surface', position });
+  assert.strictEqual(place(3), match);
+  const next = place(1);
+  assert.deepEqual(next.players.human.board.surface.map(({ id, armor }) => [id, armor]), [['left', 1], ['c', 0], ['right', 1]]);
+  assert.deepEqual(next.players.human.deck.map(({ id }) => id), ['a', 'b', 'd', 'effect', 'gold']);
+  assert.deepEqual(next.players.human.discard.map(({ id }) => id), ['offer']);
+  assert.deepEqual(events(next, 'play').map(({ from }) => from), [undefined, 'deck']);
+});
+
+test('Reinforcements offers all eligible units when fewer than three and is unavailable with no room or units', () => {
+  const match = fixture();
+  hand(match, unit('offer', 'reinforcements'));
+  match.players.human.deck = [unit('captain', 'bastion')];
+  assert.ok(!playableCards(match, 'human').some(({ id }) => id === 'offer'));
+  match.players.human.deck.push(unit('a', 'warden'), unit('b', 'warden'));
+  assert.deepEqual(play(match, 'offer').pending.options, ['a', 'b']);
+  for (const row of ['orbit', 'surface']) {
+    match.players.human.board[row] = Array.from({ length: ROW_LIMIT }, (_, index) => unit(row + index, 'frigate'));
+  }
+  assert.ok(!playableCards(match, 'human').some(({ id }) => id === 'offer'));
+});
+
+test('Swarm Call filters by printed power and faction, then spawns beside the played unit after deploy', () => {
+  let match = fixture({ faction: 'growth' });
+  hand(match, unit('call', 'swarm-call'));
+  const cocoon = unit('cocoon', 'cocoon');
+  cocoon.power = 8;
+  match.players.human.deck = [unit('foreign', 'infantry'), unit('strong', 'predator'), unit('gold', 'nest'),
+    unit('artifact', 'incubator'), cocoon];
+  board(match, 'human', 'surface', unit('neighbor', 'frigate'));
+  match = play(match, 'call');
+  assert.equal(match.pending.kind, 'deck-placement');
+  assert.equal(match.pending.cardId, 'cocoon');
+  match = applyAction(match, 'human', { type: 'place', row: 'surface', position: 1 });
+  assert.deepEqual(match.players.human.board.surface.map(({ definition }) => definition.id),
+    ['frigate', 'larva', 'cocoon', 'larva', 'larva']);
+  assert.deepEqual(events(match, 'spawn').map(({ position }) => position), [1, 3, 3]);
+});
+
+test('Shield Overload spends only the selected armor and scatters independent hits among surviving units', () => {
+  let match = fixture();
+  hand(match, unit('overload', 'shield-overload'));
+  board(match, 'human', 'orbit', unit('reserve', 'shieldbearer'));
+  board(match, 'human', 'surface', unit('one', 'shieldbearer'), unit('two', 'shieldbearer'));
+  board(match, 'bot', 'surface', unit('fragile', 'cocoon'), unit('shield', 'shieldbearer'), unit('artifact', 'incubator'));
+  match = play(match, 'overload');
+  assert.deepEqual(match.pending.options, ['orbit', 'surface']);
+  match = target(match, 'surface');
+  assert.equal(match.players.human.board.orbit[0].armor, 2);
+  assert.deepEqual(match.players.human.board.surface.map(({ armor }) => armor), [0, 0]);
+  assert.deepEqual(events(match, 'damage').map(({ cardId, amount, scattered }) => [cardId, amount, scattered]),
+    [['fragile', 1, true], ['shield', 1, true], ['shield', 1, true], ['shield', 1, true]]);
+  assert.equal(match.players.bot.board.surface[0].power, 2);
+});
+
+test('Broodlord groups only larvae in its row and doubles their current power', () => {
+  let match = fixture({ faction: 'growth' });
+  hand(match, unit('lord', 'broodlord'));
+  const grown = createCard('grown', LARVA);
+  grown.power = 3;
+  board(match, 'human', 'surface', grown, createCard('small', LARVA), unit('predator', 'predator'));
+  board(match, 'human', 'orbit', createCard('elsewhere', LARVA));
+  match = play(match, 'lord', 1);
+  assert.deepEqual(match.players.human.board.surface.map(({ id, power }) => [id, power]), [['lord', 12], ['predator', 6]]);
+  assert.equal(match.players.human.board.orbit[0].id, 'elsewhere');
+  assert.deepEqual(events(match, 'consume-group')[0].cardIds, ['grown', 'small']);
+  assert.equal(events(match, 'consume').length, 2);
 });

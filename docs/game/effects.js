@@ -1,6 +1,8 @@
+import { emit } from './events.js?v=step-12';
 import { ROWS, ROW_LABELS } from './cards.js';
 import {
-  boost, cardType, changeArmor, consume, damage, findUnit, neighbors, opponent, removeUnit, spawnCards, units,
+  announcePlay, availableRows, boost, cardType, changeArmor, consume, damage, findUnit,
+  isUnit, neighbors, opponent, placeCards, removeUnit, spawnCards, units,
 } from './board.js?v=step-10';
 
 function reference(match, job, key = 'source') {
@@ -9,7 +11,7 @@ function reference(match, job, key = 'source') {
 
 function targets(match, job, query) {
   const origin = reference(match, job, query.of);
-  const row = query.row === 'source' ? reference(match, job)?.row : query.row;
+  const row = query.row === 'source' ? reference(match, job)?.row : query.rowRef ? job.refs?.[query.rowRef] : query.row;
   if (query.row && !row) return [];
   let candidates;
   switch (query.scope) {
@@ -24,6 +26,7 @@ function targets(match, job, query) {
     (!row || unit.row === row) &&
     (!query.type || cardType(unit.card) === query.type) &&
     (!query.token || unit.card.definition.token) &&
+    (!query.definitionId || unit.card.definition.id === query.definitionId) &&
     (!query.exclude || unit.card.id !== reference(match, job, query.exclude)?.card.id) &&
     (query.armorAtLeast === undefined || (unit.card.armor ?? 0) >= query.armorAtLeast) &&
     (query.powerAtLeast === undefined || (unit.card.power ?? 0) >= query.powerAtLeast));
@@ -40,8 +43,29 @@ function viableChoices(match, job, index) {
   }, index + 1).length);
 }
 
+export function rowArmor(player, row) {
+  return player.board[row].reduce((sum, card) => sum + (card.armor ?? 0), 0);
+}
+
+function deckCandidates(player, filter) {
+  return player.deck.filter(({ definition }) => (definition.type ?? 'unit') === 'unit' &&
+    (!filter.rarity || definition.rarity === filter.rarity) &&
+    (!filter.faction || definition.faction === filter.faction) &&
+    (filter.maxPower === undefined || definition.power <= filter.maxPower));
+}
+
+function chooseSubset(cards, count, random) {
+  return Array.from({ length: Math.min(count, cards.length) }, () =>
+    cards.splice(Math.floor(random() * cards.length), 1)[0].id);
+}
+
 function canStart(match, job) {
-  const { when, select } = job.ability;
+  const { when, select, steps } = job.ability;
+  const player = match.players[job.side];
+  if (steps.some((step) => step.action === 'play-from-deck' &&
+    (!availableRows(player).length || !deckCandidates(player, step.filter).length))) return false;
+  if (steps.some((step) => step.action === 'select-armored-row') &&
+      !ROWS.some((row) => rowArmor(player, row))) return false;
   return (!when || targets(match, job, when.targets).length >= (when.atLeast ?? 1)) &&
     (!select?.length || viableChoices(match, job, 0).length > 0);
 }
@@ -129,6 +153,44 @@ function spawn(match, job, step) {
   }
 }
 
+function pause(match, job, kind, key, options, prompt, extra) {
+  match.pending = { side: job.side, kind, key, options, prompt, job, ...extra };
+}
+
+function playFromDeck(match, job, step, random) {
+  const player = match.players[job.side];
+  const rows = availableRows(player);
+  if (!rows.length) return true;
+  if (!job.refs.deckCard) {
+    const options = chooseSubset(deckCandidates(player, step.filter), step.choose ?? 1, random);
+    if (!options.length) return true;
+    if (step.choose) {
+      pause(match, job, 'deck-card', 'deckCard', options, 'Выбери отряд из колоды.');
+      return false;
+    }
+    [job.refs.deckCard] = options;
+  }
+  if (!job.refs.deckPlacement) {
+    pause(match, job, 'deck-placement', 'deckPlacement', rows, 'Выбери ряд и позицию для отряда.',
+      { cardId: job.refs.deckCard });
+    return false;
+  }
+  const index = player.deck.findIndex(({ id }) => id === job.refs.deckCard);
+  if (index < 0) return true;
+  const [card] = player.deck.splice(index, 1);
+  const destination = job.refs.deckPlacement;
+  placeCards(player, destination.row, destination.position, [card]);
+  announcePlay(match, job.side, card, destination, { from: 'deck' });
+  if (step.after) match.effects.unshift({ side: job.side, sourceId: card.id, requiredSource: true,
+    ability: { steps: [step.after] } });
+  const ability = card.definition.deploy;
+  if (ability) match.effects.unshift({ ability, side: job.side, sourceId: card.id,
+    sourceDefinitionId: card.definition.id, requiredSource: true });
+  delete job.refs.deckCard;
+  delete job.refs.deckPlacement;
+  return true;
+}
+
 const operations = {
   armor: changeArmor,
   boost,
@@ -160,6 +222,39 @@ export function runEffect(match, job, random) {
 
   const step = job.ability.steps[job.index];
   if (!step) return;
+  if (step.action === 'select-armored-row') {
+    if (!job.refs[step.ref]) {
+      const player = match.players[job.side];
+      pause(match, job, 'armor-row', step.ref, ROWS.filter((row) => rowArmor(player, row)),
+        'Выбери свой ряд, с которого снять броню.');
+      return;
+    }
+    job.index += 1;
+    match.effects.unshift(job);
+    return;
+  }
+  if (step.action === 'play-from-deck') {
+    const queued = match.effects.length;
+    if (playFromDeck(match, job, step, random)) {
+      job.index += 1;
+      match.effects.splice(match.effects.length - queued, 0, job);
+    }
+    return;
+  }
+  if (step.action === 'scatter') {
+    job.hits ??= valueOf(match, job, step.amount);
+    const enemies = units(match, opponent(job.side)).filter(({ card }) => isUnit(card));
+    if (!enemies.length || job.hits <= 0) {
+      delete job.hits;
+      job.index += 1;
+      match.effects.unshift(job);
+      return;
+    }
+    job.hits -= 1;
+    match.effects.unshift(job);
+    damage(match, enemies[Math.floor(random() * enemies.length)], 1, job.sourceDefinitionId, { scattered: true });
+    return;
+  }
   if (step.action === 'spawn') {
     spawn(match, job, step);
     job.index += 1;
@@ -167,7 +262,13 @@ export function runEffect(match, job, random) {
     return;
   }
 
-  job.remaining ??= targets(match, job, step.target).map(({ card }) => card.id);
+  if (!job.remaining) {
+    job.remaining = targets(match, job, step.target).map(({ card }) => card.id);
+    if (step.grouped && job.remaining.length) {
+      const [receiver] = targets(match, job, step.receiver);
+      emit(match, { type: 'consume-group', side: job.side, cardIds: [...job.remaining], eaterId: receiver.card.id });
+    }
+  }
   const next = job.remaining.shift();
   if (job.remaining.length === 0) {
     delete job.remaining;
@@ -192,10 +293,20 @@ export function runEffect(match, job, random) {
 // Estimate immediate score swing from public targets for the bot's existing pass calculation.
 export function effectSwing(match, side, card) {
   const ability = card.definition.deploy;
+  const player = match.players[side];
   const job = { ability, side };
   let swing = 0;
   for (const step of ability?.steps ?? []) {
     if (step.action === 'consume') swing += step.extra ?? 0;
+    if (step.action === 'play-from-deck') {
+      const deck = deckCandidates(player, step.filter);
+      swing += deck.reduce((sum, candidate) => sum + candidate.definition.power, 0) / Math.max(1, deck.length)
+        + Number(Boolean(step.after));
+    }
+    if (step.action === 'scatter') {
+      const health = units(match, opponent(side)).reduce((sum, { card }) => sum + (card.power ?? 0), 0);
+      swing += Math.min(health, Math.max(...ROWS.map((row) => rowArmor(player, row))));
+    }
     if (step.action !== 'damage') continue;
     const index = (ability.select ?? []).findIndex(({ ref }) => ref === step.target.ref);
     const options = index < 0 ? targets(match, job, step.target) : targets(match, job, ability.select[index].targets);

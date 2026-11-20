@@ -87,9 +87,8 @@ const protectorate = [
       { action: 'armor', target: adjacent, amount: { stat: 'armor', scale: -1 }, save: 'armor' },
       action('boost', self, armorRemoved),
     ]), keywords: ['Броня', 'Усиление', 'Соседи'] }],
-  ['relay', 'Наводчик щитов', 4, 3, 'При розыгрыше: дать 2 брони своему отряду на Поверхности.',
-    { art: 'relay.webp', deploy: ability([action('armor', chosen('ally'), 2)],
-      [choice('ally', { ...allies, row: 'surface' }, 'Выбери свой отряд на Поверхности для 2 брони.', { kind: 'armor' })]), keywords: ['Броня'] }],
+  ['reinforcements', 'Подкрепление', 6, null, 'Покажи 3 случайных бронзовых отряда из своей колоды. Выбери один и сыграй его.',
+    { type: 'effect', deploy: ability([{ action: 'play-from-deck', filter: { rarity: 'bronze' }, choose: 3 }]) }],
   ['orbital-salvo', 'Орбитальный залп', 5, null, 'Нанести 3 урона вражескому отряду. Если цель на Поверхности, нанести 5 урона.',
     { type: 'effect', art: 'orbital-salvo.webp', deploy: ability([action('damage', chosen('enemy'), salvoDamage)],
       [enemyChoice(salvoDamage)]), keywords: ['Урон'] }],
@@ -106,6 +105,12 @@ const protectorate = [
       ]),
       ...ability([action('damage', chosen('enemy'), 3)], [enemyChoice(3)]),
     }, keywords: ['Приказ', 'Броня', 'Урон'] }],
+  ['shield-overload', 'Перегрузка щитов', 11, null, 'Выбери свой ряд. Сними всю броню со своих карт в нём. За каждую снятую единицу брони нанеси 1 урон случайному вражескому отряду.',
+    { type: 'effect', deploy: ability([
+      { action: 'select-armored-row', ref: 'row' },
+      { action: 'armor', target: { ...allies, rowRef: 'row' }, amount: { stat: 'armor', scale: -1 }, save: 'armor' },
+      { action: 'scatter', amount: armorRemoved },
+    ]), keywords: ['Броня', 'Урон'] }],
 ];
 
 const growth = [
@@ -139,9 +144,9 @@ const growth = [
     ]), keywords: ['Поглощение', 'Урон'] }],
   ['predator', 'Хищный побег', 5, 4, 'Когда рядом кого-то поглощают: усилить себя на 2.',
     { art: 'predator.webp', neighborEvents: { consume: ability([action('boost', self, 2)]) }, keywords: ['Соседи', 'Поглощение', 'Усиление'] }],
-  ['mutant', 'Мутант', 4, 2, 'При розыгрыше: поглотить личинку-соседа и получить дополнительно 3 силы.',
-    { art: 'mutant.webp?v=3', deploy: ability([absorb(chosen('victim'), { extra: 3 })],
-      [choice('victim', { ...adjacent, token: true }, 'Выбери личинку-соседа.', { kind: 'consume' })]), keywords: ['Соседи', 'Поглощение'] }],
+  ['swarm-call', 'Зов роя', 5, null, 'Сыграй из колоды случайный бронзовый отряд Поросли с напечатанной силой до 3. Породи личинку рядом с ним.',
+    { type: 'effect', deploy: ability([{ action: 'play-from-deck',
+      filter: { rarity: 'bronze', faction: 'growth', maxPower: 3 }, after: spawn('right') }]), keywords: ['Порождение'] }],
   ['nest', 'Гнездо-мать', 9, 3, 'В конце хода: породить по личинке в каждом своём ряду.',
     { art: 'nest.webp', endTurn: ability([spawn('right', 'all')]), keywords: ['Порождение'] }],
   ['colossus', 'Колосс', 11, 5, 'При розыгрыше: поглотить всех своих соседей.',
@@ -153,20 +158,23 @@ const growth = [
     ], [
       choice('victim', otherAlly, 'Выбери отряд для поглощения.', { kind: 'consume' }), enemyChoice(victimPower),
     ]), keywords: ['Поглощение', 'Урон'] }],
+  ['broodlord', 'Владыка выводка', 11, 4, 'При розыгрыше: поглоти всех личинок в своём ряду и получи удвоенную их силу.',
+    { deploy: ability([absorb({ ...allies, row: 'source', definitionId: LARVA.id }, { multiplier: 2, grouped: true })]),
+      keywords: ['Поглощение'] }],
 ];
 
-function factionCards(entries) {
+function factionCards(entries, faction) {
   return Object.freeze(entries.flatMap(([id, name, provision, power, text, rules], index) => {
     const rarity = index < 11 ? 'bronze' : 'gold';
     const stats = power === null ? {} : { power };
-    const definition = Object.freeze({ id, name, provision, type: 'unit', text, rarity, ...stats, ...rules });
+    const definition = Object.freeze({ id, name, provision, type: 'unit', text, rarity, faction, ...stats, ...rules });
     return rarity === 'bronze' ? [definition, definition] : [definition];
   }));
 }
 
 export const FACTIONS = Object.freeze({
   protectorate: {
-    name: 'Протекторат', strategy: 'Строй', deck: factionCards(protectorate),
+    name: 'Протекторат', strategy: 'Строй', deck: factionCards(protectorate, 'protectorate'),
     leader: {
       name: 'Маршал Строя', art: 'marshal.webp', text: 'Дать 3 брони выбранному своему отряду и его соседям.',
       ability: ability([
@@ -176,7 +184,7 @@ export const FACTIONS = Object.freeze({
     },
   },
   growth: {
-    name: 'Поросль', strategy: 'Пожирание', deck: factionCards(growth),
+    name: 'Поросль', strategy: 'Пожирание', deck: factionCards(growth, 'growth'),
     leader: {
       name: 'Пожиратель', art: 'devourer.webp', text: 'Поглотить свой отряд и передать удвоенную силу одному из его соседей.',
       ability: ability([
