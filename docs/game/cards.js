@@ -64,7 +64,7 @@ const protectorate = [
   ['shield-generator', 'Генератор щита', 6, null, 'В конце хода: дать 1 броню соседям.',
     { type: 'artifact', art: 'shield-generator.webp', endTurn: armorNeighbors(1), keywords: ['Броня', 'Соседи'] }],
   ['infantry', 'Пехотинец линии', 4, 2, 'При розыгрыше: соседи получают 1 броню.',
-    { art: 'infantry.webp', deploy: armorNeighbors(1), keywords: ['Броня', 'Соседи'] }],
+    { art: 'infantry.webp?v=2', deploy: armorNeighbors(1), keywords: ['Броня', 'Соседи'] }],
   ['engineer', 'Инженер укреплений', 5, 3, 'При розыгрыше: дать 3 брони своей карте.',
     { art: 'engineer.webp', deploy: ability([action('armor', chosen('ally'), 3)],
       [choice('ally', allies, 'Выбери свой отряд для 3 брони.', { kind: 'armor' })]), keywords: ['Броня'] }],
@@ -73,7 +73,7 @@ const protectorate = [
     { art: 'orbital-shield.webp', endTurn: armorNeighbors(1), keywords: ['Броня', 'Соседи'] }],
   ['standard', 'Знаменосец', 6, 4, 'При розыгрыше: усилить бронированных соседей на 2.',
     { art: 'standard.webp', deploy: ability([action('boost', { ...adjacent, armorAtLeast: 1 }, 2)]), keywords: ['Усиление', 'Броня', 'Соседи'] }],
-  ['warden', 'Страж врат', 6, 6, 'Броня 4. Нельзя сдвинуть.', { art: 'warden.webp', armor: 4, immovable: true, keywords: ['Броня'] }],
+  ['warden', 'Страж врат', 6, 6, 'Броня 4. Нельзя сдвинуть.', { art: 'warden.webp?v=2', armor: 4, immovable: true, keywords: ['Броня'] }],
   ['anvil', 'Таран «Наковальня»', 6, 4, 'При розыгрыше: снять всю броню со своей карты и нанести столько же урона вражеской.',
     { art: 'anvil.webp', deploy: ability([
       { action: 'armor', target: chosen('payer'), amount: { stat: 'armor', scale: -1 }, save: 'armor' },
@@ -83,7 +83,7 @@ const protectorate = [
       enemyChoice({ stat: 'armor', ref: 'payer' }),
     ]), keywords: ['Броня', 'Урон'] }],
   ['smelter', 'Переплавщик', 5, 3, 'При розыгрыше: снять броню с соседей и усилить себя на столько же.',
-    { art: 'smelter.webp', deploy: ability([
+    { art: 'smelter.webp?v=2', deploy: ability([
       { action: 'armor', target: adjacent, amount: { stat: 'armor', scale: -1 }, save: 'armor' },
       action('boost', self, armorRemoved),
     ]), keywords: ['Броня', 'Усиление', 'Соседи'] }],
@@ -94,11 +94,11 @@ const protectorate = [
     { type: 'effect', art: 'orbital-salvo.webp', deploy: ability([action('damage', chosen('enemy'), salvoDamage)],
       [enemyChoice(salvoDamage)]), keywords: ['Урон'] }],
   ['colonel', 'Полковник Стены', 9, 5, 'При розыгрыше: удвоить броню своих отрядов в этом ряду.',
-    { art: 'colonel.webp', deploy: ability([action('armor', allyRow, { stat: 'armor' })]), keywords: ['Броня'] }],
+    { art: 'colonel.webp?v=2', deploy: ability([action('armor', allyRow, { stat: 'armor' })]), keywords: ['Броня'] }],
   ['bastion', 'Бастион «Рубеж»', 11, 7, 'Броня 6. При розыгрыше: дать 3 брони соседям.',
     { art: 'bastion.webp', armor: 6, deploy: armorNeighbors(3), keywords: ['Броня', 'Соседи'] }],
   ['commander', 'Командор щитов', 10, 5, 'Приказ: снять 2 брони со своей карты и нанести 3 урона вражеской. Перезарядка: 2 хода.',
-    { art: 'commander.webp', order: {
+    { art: 'commander.webp?v=2', order: {
       cooldown: 2,
       cost: ability([action('armor', chosen('payer'), -2)], [
         choice('payer', { ...allies, armorAtLeast: 2 },
@@ -127,7 +127,7 @@ const growth = [
   ['incubator', 'Инкубатор', 6, null, 'В конце хода: породить личинку справа. На третьем своём конце хода после порождения погибает.',
     { type: 'artifact', art: 'incubator.webp', timer: 3, endTurn: ability([spawn('right'), action('tick', self)]), keywords: ['Порождение', 'Таймер'] }],
   ['acid-gland', 'Кислотная железа', 4, 3, 'Завещание: нанести 4 урона выбранному вражескому отряду.',
-    { art: 'acid-gland.webp', deathwish: ability([action('damage', chosen('enemy'), 4)], [enemyChoice(4)]), keywords: ['Завещание', 'Урон'] }],
+    { art: 'acid-gland.webp?v=2', deathwish: ability([action('damage', chosen('enemy'), 4)], [enemyChoice(4)]), keywords: ['Завещание', 'Урон'] }],
   ['scavenger', 'Трупоед', 5, 2, 'При розыгрыше: поглотить своего соседа.',
     { art: 'scavenger.webp?v=2', deploy: ability([absorb(chosen('victim'))],
       [choice('victim', adjacent, 'Выбери соседа для поглощения.', { kind: 'consume' })]), keywords: ['Соседи', 'Поглощение'] }],

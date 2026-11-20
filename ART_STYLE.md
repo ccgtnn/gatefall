@@ -51,10 +51,11 @@ Incubator, a Growth artifact built by the alien organism rather than by humans. 
 
 ### Кислотный плевун
 
-Acid Spitter, a small mobile Growth organism. Show the head and ribbed upper body of a crouching low four-limbed creature formed of layered purple mica bark and glossy translucent membranes. The head looks like two overlapping orchid petals parted around a central luminous acid-green pouch. A short lime arc of spat liquid catches the center light, with just a few droplets. Cool purple rim separates its silhouette from a misty rock opening. A nimble low creature rather than a massive colossus, botanical mineral character, no combat victim, no gore.
+Acid Spitter, a small mobile Growth organism. Frame the head in profile, with clearly separated wedge-shaped jaws in layered violet mineral armor. An acid-green jet crosses the center from the open mouth. Blue fog and pale violet rim light outline the teeth and jaw.
 
 ## Проверка в игре
 
 - Исходник вертикальный, 2:3. В центральной части кадра должны оставаться узнаваемые детали и световое пятно при кропе до размеров маленькой карты.
+- Сравнивайте центральные кропы карт одной фракции рядом. У Поросли роль передаёт анатомия, у бойцов Протектората — поза и снаряжение. Свечение подчёркивает эти отличия.
 - Сначала смотрим на силу, броню и силуэт на малой карте. Фон и детали иллюстрации читаем в крупном просмотре.
 - Экспорт для игры — WebP 480 × 720. Маленькая карта показывает центральный кроп, крупная — полный кадр. Иллюстрации лежат в [docs/art](docs/art).
