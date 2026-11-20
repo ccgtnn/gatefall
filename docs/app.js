@@ -664,7 +664,8 @@ function pileView(side, pile) {
   const count = player[pile].length;
   const name = pile === 'deck' ? 'Колода' : 'Сброс';
   const label = sideLabel[side] + ' · ' + name + ' · ' + count;
-  const node = pile === 'discard' ? button(undefined, () => showDrawer(side), 'field-pile')
+  const viewable = pile === 'discard' || side === 'human';
+  const node = viewable ? button(undefined, () => showDrawer({ side, pile }), 'field-pile')
     : element('div', 'field-pile');
   node.dataset.faction = player.factionId ?? '';
   node.title = label;
@@ -675,23 +676,29 @@ function pileView(side, pile) {
 
 function fillDrawer() {
   const journal = openPile === 'journal';
-  const player = match.players[openPile];
-  const title = element('h2', null, journal ? 'Журнал ходов' : 'Сброс · ' + player.faction);
+  const { side, pile } = openPile;
+  const player = match.players[side];
+  const title = element('h2', null, journal ? 'Журнал ходов'
+    : pile === 'deck' ? 'Твоя колода' : 'Сброс · ' + player.faction);
   title.id = 'drawer-title';
   const header = element('header', 'drawer-header');
   header.append(title, button('Закрыть', () => drawer.close()));
-  if (!journal) {
-    const cards = element('div', 'discard-grid');
-    cards.append(...player.discard.map((card) => cardButton(card, () => showCard(card), false, player)));
-    if (!player.discard.length) cards.append(element('p', 'muted', 'Сброс пуст.'));
-    drawer.replaceChildren(header, cards);
+  if (journal) {
+    drawer.replaceChildren(header, logView().querySelector('ol'));
     return;
   }
-  const list = logView().querySelector('ol');
-  drawer.replaceChildren(header, list);
+
+  const cards = element('div', 'pile-grid');
+  const ordered = player[pile].toSorted((left, right) =>
+    (right.power ?? 0) - (left.power ?? 0) ||
+    left.definition.name.localeCompare(right.definition.name, 'ru'));
+  cards.append(...ordered.map((card) => cardButton(card, () => showCard(card), false, player)));
+  if (!ordered.length) cards.append(element('p', 'muted', pile === 'deck' ? 'Колода пуста.' : 'Сброс пуст.'));
+  drawer.replaceChildren(header, cards);
 }
 
 function showDrawer(pile) {
+  if (pile.side === 'bot' && pile.pile === 'deck') return;
   openPile = pile;
   fillDrawer();
   drawer.showModal();

@@ -368,9 +368,9 @@ button.unit-order:not(:disabled)::before {
 @media (prefers-reduced-motion: reduce) { .field-drawer[open] { animation: none; } }
 .drawer-header { display: flex; align-items: center; justify-content: space-between; gap: 1em; margin-bottom: .8rem; }
 .field-drawer .log-list { max-height: none; }
-.discard-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-.discard-grid .hand-card { aspect-ratio: 2 / 3; min-height: 0; }
-.discard-grid p { grid-column: 1 / -1; }
+.pile-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.pile-grid .hand-card { aspect-ratio: 2 / 3; min-height: 0; padding: 0; }
+.pile-grid p { grid-column: 1 / -1; }
 
 .rotate-notice { display: none; }
 @media (max-height: 340px) {
