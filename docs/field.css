@@ -143,7 +143,16 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   text-align: center;
   pointer-events: none;
 }
-#match-notice { z-index: 4; }
+#match-notice, #coin-notice { z-index: 4; }
+#match-notice { top: 41%; }
+#coin-notice { top: 23%; }
+.settings-actions:not([hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin-top: .75rem;
+}
+#leave-description { margin-top: .45rem; }
 .opponent-passed {
   position: absolute;
   z-index: 1;
@@ -390,7 +399,7 @@ button.unit-order:not(:disabled)::before {
   .field-score .field-total { font-size: clamp(1rem, 5dvh, 1.25rem); }
 }
 @media (orientation: portrait) and (max-width: 739px) {
-  .match-screen > :not(.rotate-notice), #match-notice { visibility: hidden; }
+  .match-screen > :not(.rotate-notice), #match-notice, #coin-notice { visibility: hidden; }
   .rotate-notice {
     position: absolute;
     inset: 0;

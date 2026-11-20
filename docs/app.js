@@ -13,9 +13,13 @@ import {
 const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
 const phaseLabel = document.querySelector('#phase');
-const notice = document.querySelector('#match-notice');
+const turnNotice = document.querySelector('#match-notice');
+const coinNotice = document.querySelector('#coin-notice');
+const noticeTimers = new Map();
 const announcement = document.querySelector('#announcement');
 const settings = document.querySelector('#settings');
+const matchMenu = document.querySelector('#match-menu');
+const leaveDialog = document.querySelector('#leave-match');
 const fullscreenButton = document.querySelector('#fullscreen');
 const fullscreenStatus = document.querySelector('#fullscreen-status');
 const fullscreenMode = matchMedia('(display-mode: fullscreen)');
@@ -46,6 +50,7 @@ function syncFullscreen() {
 }
 
 function showSettings() {
+  matchMenu.hidden = !app.classList.contains('in-match');
   fullscreenStatus.textContent = document.fullscreenEnabled || fullscreenMode.matches
     ? '' : 'Браузер не поддерживает полноэкранный режим. Попробуй установить игру через меню браузера.';
   syncFullscreen();
@@ -74,9 +79,24 @@ document.addEventListener('fullscreenchange', syncFullscreen);
 fullscreenMode.addEventListener('change', syncFullscreen);
 document.querySelector('#start-settings').addEventListener('click', showSettings);
 
+for (const [id, title, label] of [
+  ['new-game', 'Начать новую партию?', 'Новая партия'],
+  ['surrender', 'Сдаться?', 'Сдаться'],
+]) {
+  document.getElementById(id).addEventListener('click', () => {
+    leaveDialog.querySelector('#leave-title').textContent = title;
+    leaveDialog.querySelector('#leave-confirm').textContent = label;
+    leaveDialog.returnValue = '';
+    leaveDialog.showModal();
+  });
+}
+leaveDialog.addEventListener('close', () => {
+  if (leaveDialog.returnValue === 'leave') leaveMatch();
+});
+
 let match;
+let matchSession = 0;
 let timer;
-let noticeTimer;
 let selectedCardId;
 let replaying = false;
 let mulliganFieldVisible = false;
@@ -288,27 +308,41 @@ function eventText(event) {
   }
 }
 
-function hideNotice() {
-  clearTimeout(noticeTimer);
+function hideNotice(notice) {
+  clearTimeout(noticeTimers.get(notice));
+  noticeTimers.delete(notice);
   notice.hidden = true;
   notice.textContent = '';
 }
 
-function showNotice(text, duration) {
-  clearTimeout(noticeTimer);
-  notice.textContent = text;
+function showNotice(notice, text, duration) {
+  hideNotice(notice);
   notice.hidden = false;
-  noticeTimer = setTimeout(hideNotice, duration);
+  notice.textContent = text;
+  noticeTimers.set(notice, setTimeout(() => hideNotice(notice), duration));
 }
 
 function start(faction) {
-  clearTimeout(timer);
-  mulliganFieldVisible = false;
-  selectedCardId = undefined;
   match = createMatch({ humanFaction: faction });
   render();
-  showNotice('Монетка: ты ходишь ' + (match.starter === 'human' ? 'первым' : 'вторым'), 1500);
-  screen.querySelector('h2').focus();
+  showNotice(coinNotice, 'Монетка: ты ходишь ' + (match.starter === 'human' ? 'первым' : 'вторым'), 1500);
+  screen.querySelector('h2').focus({ preventScroll: true });
+}
+
+function leaveMatch() {
+  matchSession += 1;
+  clearTimeout(timer);
+  hideNotice(coinNotice);
+  hideNotice(turnNotice);
+  match = undefined;
+  replaying = false;
+  mulliganFieldVisible = false;
+  announcement.textContent = '';
+  for (const dialog of [settings, drawer, preview]) {
+    if (dialog.open) dialog.close();
+  }
+  render();
+  screen.querySelector('h2').focus({ preventScroll: true });
 }
 
 function startScreen() {
@@ -741,11 +775,7 @@ function finishedScreen() {
   panel.append(
     heading,
     ...rounds.map((event) => element('p', 'round-result', roundText(event))),
-    button('Ещё раз', () => {
-      match = undefined;
-      render();
-      screen.querySelector('h2').focus();
-    }, 'button primary'),
+    button('Ещё раз', leaveMatch, 'button primary'),
   );
   game.append(panel, logView());
   return game;
@@ -780,6 +810,7 @@ function renderPlayback(state) {
 
 async function updateMatch(next) {
   if (replaying || next === match) return;
+  const session = matchSession;
   clearTimeout(timer);
   const before = match;
   const events = next.log.slice(before.log.length);
@@ -787,24 +818,28 @@ async function updateMatch(next) {
     replaying = true;
     screen.classList.add('is-replaying');
     try {
-      await playJournal(before, events, (event, commit) => presentJournalEvent(
-        screen, event, commit, renderPlayback, motionDuration(speedSetting.value, reducedMotion.matches),
-      ));
+      await playJournal(before, events, (event, commit) => {
+        if (session === matchSession) {
+          return presentJournalEvent(screen, event, commit, renderPlayback,
+            motionDuration(speedSetting.value, reducedMotion.matches));
+        }
+      });
     } catch (error) {
       console.warn('Playback stopped early', error);
     } finally {
-      replaying = false;
+      if (session === matchSession) replaying = false;
     }
   }
 
+  if (session !== matchSession) return;
   match = next;
   if (match.phase === 'mulligan') {
     mulliganFieldVisible = false;
   }
   render();
   const changedTurn = match.phase === 'playing' && match.turn !== before.turn;
-  if (changedTurn) showNotice(match.turn === 'human' ? 'Твой ход' : 'Ход противника', 1000);
-  else if (match.phase !== 'playing') hideNotice();
+  if (changedTurn) showNotice(turnNotice, match.turn === 'human' ? 'Твой ход' : 'Ход противника', 1000);
+  else if (match.phase !== 'playing') hideNotice(turnNotice);
   announcement.textContent = events.map(eventText).join(' ');
   if (match.phase === 'finished' || match.phase === 'mulligan') screen.querySelector('h2')?.focus({ preventScroll: true });
   else if (match.pending?.side === 'human') {
@@ -819,9 +854,10 @@ async function updateMatch(next) {
 }
 
 async function playHuman(action) {
-  if (replaying) return;
+  if (!match || replaying) return;
+  const session = matchSession;
   await updateMatch(applyAction(match, 'human', action));
-  if (humanCanAct()) screen.querySelector('#pass-button:enabled')?.focus({ preventScroll: true });
+  if (session === matchSession && match && humanCanAct()) screen.querySelector('#pass-button:enabled')?.focus({ preventScroll: true });
 }
 
 render();

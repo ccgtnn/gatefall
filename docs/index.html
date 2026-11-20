@@ -9,8 +9,8 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icon-192.png">
   <link rel="stylesheet" href="./style.css?v=landscape">
-  <link rel="stylesheet" href="./field.css?v=step-7">
-  <script type="module" src="./app.js?v=step-7"></script>
+  <link rel="stylesheet" href="./field.css?v=step-7-menu">
+  <script type="module" src="./app.js?v=step-7-menu"></script>
 </head>
 <body>
   <div id="app">
@@ -25,6 +25,7 @@
       </div>
     </header>
     <main id="screen"></main>
+    <p id="coin-notice" class="field-message" role="status" hidden></p>
     <p id="match-notice" class="field-message" role="status" hidden></p>
     <p id="announcement" class="visually-hidden" aria-live="polite"></p>
     <noscript>Для партии нужен JavaScript.</noscript>
@@ -44,6 +45,18 @@
     </label>
     <button id="fullscreen" type="button" class="button">На весь экран</button>
     <p id="fullscreen-status" class="muted" role="status"></p>
+    <div id="match-menu" class="settings-actions" hidden>
+      <button id="new-game" type="button" class="button">Новая партия</button>
+      <button id="surrender" type="button" class="button">Сдаться</button>
+    </div>
+  </dialog>
+  <dialog id="leave-match" class="panel settings-dialog" aria-labelledby="leave-title" aria-describedby="leave-description">
+    <h2 id="leave-title"></h2>
+    <p id="leave-description">Текущий матч закончится. Ты вернёшься к выбору колоды.</p>
+    <form method="dialog" class="settings-actions">
+      <button value="cancel" class="button" autofocus>Отмена</button>
+      <button id="leave-confirm" value="leave" class="button primary"></button>
+    </form>
   </dialog>
 </body>
 </html>
