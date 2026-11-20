@@ -57,13 +57,16 @@ fullscreenButton.addEventListener('click', async () => {
     if (document.fullscreenElement) {
       await document.exitFullscreen();
     } else {
+      settings.close();
       await document.documentElement.requestFullscreen();
       if (matchMedia('(pointer: coarse)').matches) {
         await window.screen.orientation?.lock?.('landscape').catch(() => {});
       }
     }
-  } catch {
+  } catch (error) {
+    console.warn('Fullscreen request failed', error);
     fullscreenStatus.textContent = 'Не удалось переключить полноэкранный режим.';
+    if (!settings.open) settings.showModal();
   }
 });
 document.addEventListener('fullscreenchange', syncFullscreen);

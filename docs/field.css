@@ -57,7 +57,7 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   position: relative;
   display: grid;
   container-type: size;
-  grid-template-columns: minmax(0, 1fr) clamp(47px, 8dvh, 76px);
+  grid-template-columns: minmax(0, 1fr) clamp(55px, 8dvh, 76px);
   gap: 0;
   align-items: stretch;
   min-height: 0;
@@ -87,7 +87,7 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   border: 0;
   border-radius: 4px;
   background: transparent;
-  font-size: clamp(.55rem, 1.6dvh, .8rem);
+  font-size: clamp(.55rem, 1.6dvh, .72rem);
 }
 .field-center .row-score { font-size: 1.25em; }
 .field-center .row-label:enabled { background: #263c40; }
@@ -215,7 +215,7 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
 .hand-fan .hand-card:not(:last-child):not([aria-pressed="true"]) .armor-stat {
   right: calc(var(--fan-card-width) * .15 + var(--stat-inset));
 }
-.hand-fan .hand-card .card-stats > strong { width: min(var(--stat-size), 37%); }
+.hand-fan .hand-card .card-stats > strong { width: min(var(--stat-size), 33%); }
 @media (max-height: 360px) {
   .hand-fan > .hand-card { --fan-angle-use: calc(var(--fan-angle) * .55); --fan-offset: 0px; }
 }
