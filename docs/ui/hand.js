@@ -1,7 +1,7 @@
 import { button, element } from './dom.js?v=step-11';
-import { cardType } from '../game/board.js?v=neutral-art-15';
-import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=neutral-art-15';
-import { cardButton, showCard } from './cards.js?v=neutral-art-15';
+import { cardType } from '../game/board.js?v=neutral-art-complete';
+import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=neutral-art-complete';
+import { cardButton, showCard } from './cards.js?v=neutral-art-complete';
 
 export function updatePlacementSelection(screen, match, selectedCardId) {
   const card = match.players.human.hand.find(({ id }) => id === selectedCardId);

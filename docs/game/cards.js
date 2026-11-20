@@ -184,14 +184,17 @@ export const NEUTRAL_CARDS = Object.freeze([
   ANNIHILATION,
   ...[
     ['veteran-mercenary', 'Наёмник-ветеран', 'bronze', 4, 3, 'Нанеси 2 урона своему отряду. Усиль себя на 3.', {
+      art: 'veteran-mercenary.webp',
       deploy: ability([action('damage', chosen('ally'), 2), action('boost', self, 3)],
         [choice('ally', allies, 'Выбери свой отряд для 2 урона.', { kind: 'friendly-damage', amount: 2 })]),
       keywords: ['Урон', 'Усиление'],
     }],
     ['smuggler', 'Контрабандист', 'bronze', 4, 3, 'Инициатива: усиль себя на 3.', {
+      art: 'smuggler.webp',
       initiative: ability([action('boost', self, 3)]), keywords: ['Инициатива', 'Усиление'],
     }],
     ['recon-drone', 'Разведдрон', 'bronze', 4, 2, 'Посмотри свою колоду и выбери карту. Она становится верхней.', {
+      art: 'recon-drone.webp',
       deploy: ability([{ action: 'choose-deck-top' }]),
     }],
     ['emp-grenade', 'ЭМИ-граната', 'bronze', 5, null, 'Сними всю броню с вражеского отряда. Нанеси 2 урона плюс число снятых единиц брони.', {
@@ -204,19 +207,23 @@ export const NEUTRAL_CARDS = Object.freeze([
       keywords: ['Броня', 'Урон'],
     }],
     ['gravity-pulse', 'Гравитационный импульс', 'bronze', 6, null, 'Нанеси 1 урон всем отрядам в выбранном вражеском ряду.', {
+      art: 'gravity-pulse.webp',
       type: 'effect', deploy: ability([
         { action: 'select-row', ref: 'row', filter: 'units', prompt: 'Выбери вражеский ряд для Гравитационного импульса.' },
         action('damage', { ...enemies, rowRef: 'row' }, 1),
       ]), keywords: ['Урон'],
     }],
     ['liaison', 'Связной', 'gold', 9, 4, 'Счётчик 4: возьми карту.', {
+      art: 'liaison.webp',
       counter: { amount: 4, effect: ability([{ action: 'draw', amount: 1 }]) },
       keywords: ['Счётчик'],
     }],
     ['field-medic', 'Полевой реаниматор', 'gold', 9, 3, 'Сыграй бронзовый отряд из своего сброса.', {
+      art: 'field-medic.webp',
       deploy: ability([{ action: 'play-from-discard', filter: { rarity: 'bronze' } }]),
     }],
     ['gate-relic', 'Реликт врат', 'gold', 9, null, 'Приказ (перезарядка 2): усиль свой отряд на 3.', {
+      art: 'gate-relic.webp',
       type: 'artifact', order: {
         ...ability([action('boost', chosen('ally'), 3)],
           [choice('ally', allies, 'Выбери свой отряд для усиления на 3.', { kind: 'boost' })]),

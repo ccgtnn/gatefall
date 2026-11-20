@@ -1,8 +1,8 @@
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=neutral-art-15';
-import { announcePlay, availableRows, cardType, createCard, HAND_LIMIT, opponent, placeCards, playDestination, statusCount, takeCards, units } from './board.js?v=neutral-art-15';
-import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, orderAbility, playTiming, runEffect } from './effects.js?v=neutral-art-15';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=neutral-art-complete';
+import { announcePlay, availableRows, cardType, createCard, HAND_LIMIT, opponent, placeCards, playDestination, statusCount, takeCards, units } from './board.js?v=neutral-art-complete';
+import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, orderAbility, playTiming, runEffect } from './effects.js?v=neutral-art-complete';
 
-export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=neutral-art-15';
+export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=neutral-art-complete';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;

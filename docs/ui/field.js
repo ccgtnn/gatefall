@@ -1,11 +1,11 @@
-import { createCard, statusCount } from '../game/board.js?v=neutral-art-15';
+import { createCard, statusCount } from '../game/board.js?v=neutral-art-complete';
 import { insertionPoint } from '../card-placement.js?v=field-6';
 import { button, element, iconButton, sideLabel } from './dom.js?v=step-11';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=neutral-art-15';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=neutral-art-15';
-import { playerHand } from './hand.js?v=neutral-art-15';
-import { availableOrders, canUseLeader, rowArmor } from '../game/effects.js?v=neutral-art-15';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=neutral-art-15';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=neutral-art-complete';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=neutral-art-complete';
+import { playerHand } from './hand.js?v=neutral-art-complete';
+import { availableOrders, canUseLeader, rowArmor } from '../game/effects.js?v=neutral-art-complete';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=neutral-art-complete';
 
 export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, isMulliganFieldVisible, setMulliganField,
   playHuman, humanCanAct, placeSelected, settingsButton, showDrawer, selectCard, mulliganScreen }) {

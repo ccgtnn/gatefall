@@ -1,6 +1,6 @@
-import { bindRulesMenu } from './rules.js?v=neutral-art-15';
+import { bindRulesMenu } from './rules.js?v=neutral-art-complete';
 import { createSoundEffects, DEFAULT_VOLUME } from '../sound.js?v=step-10-volume';
-import { motionDuration } from '../turn-playback.js?v=neutral-art-15';
+import { motionDuration } from '../turn-playback.js?v=neutral-art-complete';
 
 export function createSettings(app, onLeave) {
   const settings = document.querySelector('#settings');

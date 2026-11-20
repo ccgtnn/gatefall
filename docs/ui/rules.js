@@ -1,4 +1,4 @@
-import { KEYWORDS } from '../game/cards.js?v=neutral-art-15';
+import { KEYWORDS } from '../game/cards.js?v=neutral-art-complete';
 import { element } from './dom.js?v=step-11';
 
 export function bindRulesMenu() {

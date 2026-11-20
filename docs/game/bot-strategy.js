@@ -1,7 +1,7 @@
-import { ROWS } from './cards.js?v=neutral-art-15';
-import { cardType, units } from './board.js?v=neutral-art-15';
-import { availableOrders, canUseLeader, destructionRolls, destructionSwing } from './effects.js?v=neutral-art-15';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=neutral-art-15';
+import { ROWS } from './cards.js?v=neutral-art-complete';
+import { cardType, units } from './board.js?v=neutral-art-complete';
+import { availableOrders, canUseLeader, destructionRolls, destructionSwing } from './effects.js?v=neutral-art-complete';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=neutral-art-complete';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
