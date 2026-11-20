@@ -134,3 +134,28 @@ test('the bot plays Broodlord in the row with three larvae', () => {
     assert.equal(action.row, 'surface');
   }
 });
+
+test('bot preserves finishers when their current payoff is weak', () => {
+  for (const difficulty of ['normal', 'hard']) {
+    const shields = position(3);
+    shields.players.bot.hand = [member('overload', 'protectorate', 'shield-overload'), plain('ordinary', 4)];
+    shields.players.bot.board.orbit = [member('small', 'protectorate', 'assault')];
+    shields.players.human.board.orbit = [plain('enemy', 2)];
+    assert.equal(chooseBotTurn(shields, difficulty).cardId, 'ordinary');
+
+    const brood = position(3);
+    brood.players.bot.hand = [member('lord', 'growth', 'broodlord'), plain('ordinary', 4)];
+    assert.equal(chooseBotTurn(brood, difficulty).cardId, 'ordinary');
+  }
+});
+
+test('both strategic bots explore multiple targets in one chain', () => {
+  const match = position(3);
+  match.players.bot.hand = [member('shot', 'growth', 'ravager')];
+  match.players.bot.board.surface = [plain('costly', 8), member('spores', 'growth', 'spore-sac')];
+  match.players.human.board.surface = [plain('small', 2), plain('large', 6)];
+  const pending = applyAction(match, 'bot', { type: 'play', cardId: 'shot', row: 'orbit', position: 0 });
+  for (const difficulty of ['normal', 'hard']) {
+    assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'spores' });
+  }
+});

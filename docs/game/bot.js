@@ -177,10 +177,9 @@ function chooseEasyTurn(match) {
 }
 
 export function chooseBotTurn(match, difficulty = 'easy') {
-  if (match.pending?.kind === 'deck-placement') return chooseStrategicTarget(match, pickBotTarget);
-  if (difficulty !== 'normal' && difficulty !== 'hard') return chooseEasyTurn(match);
-  if (match.pending) {
-    return difficulty === 'hard' ? chooseStrategicTarget(match, pickBotTarget) : pickBotTarget(match);
+  if (match.pending && (difficulty !== 'easy' || match.pending.kind === 'deck-placement')) {
+    return chooseStrategicTarget(match, pickBotTarget, difficulty);
   }
-  return chooseStrategicTurn(match, difficulty, pickBotTarget, chooseEasyTurn(match));
+  if (difficulty !== 'normal' && difficulty !== 'hard') return chooseEasyTurn(match);
+  return chooseStrategicTurn(match, difficulty, chooseEasyTurn(match));
 }

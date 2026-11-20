@@ -6,7 +6,8 @@ import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalSco
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
 const SIMULATION = { random: () => .5 };
-const HIDDEN_CARD = { definition: { type: 'effect', deploy: { steps: [] } } };
+const UNKNOWN_PLAY = { id: 'unknown-play', definition: { type: 'effect', deploy: { steps: [] } } };
+export const BOT_BUDGET_MS = 300;
 
 function publicMatch(match) {
   const { bot, human } = match.players;
@@ -15,29 +16,10 @@ function publicMatch(match) {
     log: [],
     players: {
       bot: { ...bot, deck: [...bot.deck].sort((a, b) => a.id.localeCompare(b.id)), discard: [], exile: [] },
-      human: {
-        lives: human.lives, board: human.board, passed: human.passed, turns: human.turns,
-        usedAbility: human.usedAbility, leader: human.leader, deck: [], discard: [], exile: [],
-        hand: Array(human.hand.length).fill(HIDDEN_CARD),
-      },
+      human: { ...human, deck: [], discard: [], exile: [],
+        hand: human.hand.length ? [UNKNOWN_PLAY] : [] },
     },
   };
-}
-
-function resolveChoices(state, pickTarget) {
-  // Selections can queue other selections through deathwish and order effects.
-  while (state.pending) {
-    const next = applyAction(state, state.pending.side, pickTarget(state), SIMULATION);
-    if (next === state) break;
-    state = next;
-  }
-  return state;
-}
-
-function simulate(match, action, pickTarget) {
-  const next = resolveChoices(applyAction(match, match.pending?.side ?? 'bot', action, SIMULATION), pickTarget);
-  if (next.phase !== 'playing' || next.turn !== 'bot' || !next.playedCard || next.pending) return next;
-  return resolveChoices(applyAction(next, 'bot', END, SIMULATION), pickTarget);
 }
 
 function margin(state) {
@@ -46,91 +28,179 @@ function margin(state) {
   return totalScore(state.players.bot) - totalScore(state.players.human);
 }
 
-function value(state) {
-  const score = margin(state);
-  if (state.phase !== 'playing' || state.players.human.passed) return score;
-  const armor = (side) => units(state, side).reduce((sum, { card }) => sum + (card.armor ?? 0), 0);
-  return score + .16 * (armor('bot') - armor('human'));
+function potential(card) {
+  const { definition: { id, provision, deploy, endTurn, order } } = card;
+  if (id === 'shield-overload' || id === 'broodlord') return 11;
+  return (card.power ?? (provision ?? 5) * .7)
+    + (deploy ? 1 : 0) + (endTurn || order ? 1.5 : 0);
 }
 
-function plays(state) {
-  const { board } = state.players.bot;
-  return playableCards(state, 'bot').flatMap((card) => {
-    const cost = (card.definition.provision ?? 4) + (card.power ?? 0) * .15;
+function boardValue(state, side) {
+  const player = state.players[side];
+  if (player.passed) return 0;
+  const ready = new Set(availableOrders(state, side).map(({ card }) => card.id));
+  return units(state, side).reduce((sum, { card }) => {
+    const { definition, power, armor, timer } = card;
+    return sum + (armor ?? 0) * .12 + (definition.id === 'larva' ? .12 : 0)
+      + (ready.has(card.id) ? 1.15 : definition.order ? .35 : 0)
+      + (definition.endTurn ? (timer === undefined ? 1.25 : .5 * Math.min(timer, 3)) : 0)
+      - .72 * Math.min(power ?? 0, card.statuses?.infection ?? 0);
+  }, (player.leader?.charges ?? 0) * 1.45);
+}
+
+function value(state, round) {
+  const { human, bot } = state.players;
+  const handWeight = round === 3 ? .13 : .28;
+  const future = state.phase !== 'playing' || human.passed ? 0 : boardValue(state, 'bot') - boardValue(state, 'human');
+  return margin(state) + future + handWeight * bot.hand.reduce((sum, card) => sum + potential(card), 0);
+}
+
+function usesNeighbors(ability) {
+  return ability?.steps.some((step) => step.target?.scope === 'neighbors' ||
+    step.receiver?.scope === 'neighbors' || step.action === 'spawn')
+    || ability?.select?.some((pick) => pick.targets.scope === 'neighbors');
+}
+
+function positions(player, row, card) {
+  const line = player.board[row];
+  const valid = new Set([line.length, 0]);
+  const adjacent = usesNeighbors(card.definition.deploy) || usesNeighbors(card.definition.endTurn);
+  for (let i = 1; i < line.length; i += 1) {
+    const neighbors = [line[i - 1].definition, line[i].definition];
+    if (adjacent || neighbors.some((def) => usesNeighbors(def.endTurn) || def.neighborEvents)) valid.add(i);
+  }
+  return [...valid];
+}
+
+function placements(state, side, card, rows = ROWS) {
+  const player = state.players[side];
+  return rows.flatMap((row) => player.board[row].length >= ROW_LIMIT ? [] : positions(player, row, card)
+    .map((position) => ({ row, position })));
+}
+
+function plays(state, side) {
+  return playableCards(state, side).flatMap((card) => {
     const action = { type: 'play', cardId: card.id };
+    const cost = (card.definition.provision ?? 4) + (card.power ?? 0) * .15;
     if (cardType(card) === 'effect') return [{ action, cost }];
-    return ROWS.flatMap((row) => board[row].length >= ROW_LIMIT ? [] :
-      Array.from({ length: board[row].length + 1 }, (_, position) =>
-        ({ action: { ...action, row, position }, cost })));
+    return placements(state, side, card).map((placement) => ({ action: { ...action, ...placement }, cost }));
   });
 }
 
-function rankPlays(state, pickTarget, costWeight) {
-  return plays(state).map(({ action, cost }) => {
-    const next = simulate(state, action, pickTarget);
-    const played = state.players.bot.hand.find(({ id }) => id === action.cardId);
-    const larvae = played.definition.id === 'broodlord'
-      ? state.players.bot.board[action.row].filter(({ definition }) => definition.id === 'larva').length : null;
-    const preserveFinisher = larvae !== null && larvae < 3 && state.round < 3 && !state.players.human.passed;
-    return { action, cost, next, rating: value(next) - costWeight * cost - (preserveFinisher ? 2 : 0) };
-  }).sort((a, b) => b.rating - a.rating || a.cost - b.cost);
+function abilities(state, side) {
+  const actions = availableOrders(state, side).map(({ card }) => ({ type: 'order', cardId: card.id }));
+  if (!state.playedCard && canUseLeader(state, side)) actions.push({ type: 'leader' });
+  return actions;
 }
 
-function lookAhead(candidates, pickTarget, opponentPassed, limit = 4) {
-  const tried = new Set();
-  const lines = [];
-  for (const first of candidates) {
-    const { next, action } = first;
-    if (tried.has(action.cardId) || next.phase !== 'playing' || next.pending || next.players.bot.passed) continue;
-    tried.add(action.cardId);
-    // Estimate a follow-up on the visible board. When the opponent is still active,
-    // this is a setup estimate, with no assumptions about their hidden cards.
-    const after = { ...next, log: [], turn: 'bot', playedCard: false };
-    const following = rankPlays(after, pickTarget, opponentPassed ? 0 : .16);
-    const winning = opponentPassed ? following.filter(({ next }) => margin(next) > 0)
-      .sort((a, b) => a.cost - b.cost)[0] : null;
-    if (following.length) lines.push({ first, second: winning ?? following[0], wins: Boolean(winning) });
-    if (tried.size === limit) break;
+function choices(state) {
+  const { kind, options, side, cardId } = state.pending;
+  if (kind === 'deck-placement') {
+    const card = state.players[side].deck.find((item) => item.id === cardId);
+    return placements(state, side, card, options).map((destination) => ({ type: 'place', ...destination }));
   }
-  return lines;
+  return options.map((id) => ({ type: 'target', cardId: id }));
 }
 
-function bestAbility(state, pickTarget, oldAction, afterPlay) {
-  const actions = availableOrders(state, 'bot').map(({ card }) => ({ type: 'order', cardId: card.id }));
-  if (!afterPlay && canUseLeader(state, 'bot')) actions.push({ type: 'leader' });
-  if (!actions.length) return null;
-  const baseline = afterPlay ? value(simulate(state, END, pickTarget)) : value(state);
-  const ranked = actions.map((action) => ({ action, gain: value(simulate(state, action, pickTarget)) - baseline }))
-    .sort((a, b) => b.gain - a.gain);
-  if (ranked[0]?.gain > .65) return ranked[0].action;
-  if (oldAction.type === 'order' && ranked.some(({ action, gain }) => action.cardId === oldAction.cardId && gain > 0)) {
-    return oldAction;
-  }
-  return null;
-}
-
-export function chooseStrategicTarget(match, pickTarget) {
-  if (match.pending.side !== 'bot') return pickTarget(match);
-  const state = publicMatch(match);
-  const preferred = pickTarget(match);
-  let best = preferred;
-  let score = -Infinity;
-  const { kind, options } = match.pending;
-  const actions = kind === 'deck-placement' ? options.flatMap((row) =>
-    Array.from({ length: state.players.bot.board[row].length + 1 }, (_, position) =>
-      ({ type: 'place', row, position }))) : options.filter((id) => id !== preferred.cardId)
-    .map((cardId) => ({ type: 'target', cardId }));
-  for (const action of [preferred, ...actions]) {
-    const rating = value(simulate(state, action, pickTarget));
-    if (rating > score) {
-      score = rating;
-      best = action;
+function evaluateAction(state, side, action, search) {
+  function finish(next, depth) {
+    const actor = next.pending?.side ?? next.turn;
+    if (depth >= 36 || (!next.pending && (next.phase !== 'playing' || actor !== side ||
+        next.players[side].turns !== state.players[side].turns))) {
+      return { next, rating: value(next, state.round) };
     }
+
+    let actions;
+    if (next.pending) actions = choices(next);
+    else if (next.playedCard) actions = [END, ...abilities(next, side)];
+    else actions = plays(next, side).map(({ action }) => action);
+
+    let best;
+    for (const continuation of actions) {
+      if (search.expired()) break;
+      const following = applyAction(next, actor, continuation, SIMULATION);
+      if (following === next) continue;
+      const result = finish(following, depth + 1);
+      if (result && (!best || (actor === 'bot' ? result.rating > best.rating : result.rating < best.rating))) best = result;
+    }
+    return best;
+  }
+  const next = applyAction(state, side, action, SIMULATION);
+  return next === state ? undefined : finish(next, 0);
+}
+
+function deadline(time = BOT_BUDGET_MS) {
+  const end = performance.now() + time;
+  return { expired: () => performance.now() >= end };
+}
+
+function rankPlays(state, search) {
+  const ranked = [];
+  for (const { action, cost } of plays(state, 'bot')) {
+    if (search.expired()) break;
+    const candidate = evaluateAction(state, 'bot', action, search);
+    if (candidate) ranked.push({ ...candidate, action, cost });
+  }
+  return ranked.sort((a, b) => b.rating - a.rating || a.cost - b.cost);
+}
+
+function rankAbilities(state, search) {
+  const ranked = [];
+  for (const action of abilities(state, 'bot')) {
+    if (search.expired()) break;
+    const candidate = evaluateAction(state, 'bot', action, search);
+    if (candidate) ranked.push({ ...candidate, action });
+  }
+  return ranked.sort((a, b) => b.rating - a.rating);
+}
+
+function replyRating(candidate, round, search) {
+  const state = candidate.next;
+  if (state.phase !== 'playing' || state.turn !== 'human' || state.players.human.passed) return candidate.rating;
+  const actions = [...plays(state, 'human').map(({ action }) => action), ...abilities(state, 'human')];
+  if (!actions.length) actions.push(PASS);
+  let worst = Infinity;
+  for (const action of actions) {
+    if (search.expired()) break;
+    const response = evaluateAction(state, 'human', action, search);
+    if (response) worst = Math.min(worst, value(response.next, round));
+  }
+  return Number.isFinite(worst) ? .3 * candidate.rating + .7 * worst : candidate.rating;
+}
+
+function cheapestTwoTurnWin(ranked, search) {
+  const tried = new Set();
+  let best;
+  for (const first of ranked) {
+    const { next, action } = first;
+    if (search.expired() || tried.size >= 4) break;
+    if (tried.has(action.cardId) || next.phase !== 'playing' || next.turn !== 'bot' || next.pending) continue;
+    tried.add(action.cardId);
+    const second = rankPlays(next, search).filter(({ next }) => margin(next) > 0)
+      .sort((a, b) => a.cost - b.cost)[0];
+    if (second && (!best || first.cost + second.cost < best.cost)) best = { action, cost: first.cost + second.cost };
   }
   return best;
 }
 
-export function chooseStrategicTurn(match, difficulty, pickTarget, oldAction) {
+export function chooseStrategicTarget(match, pickTarget, difficulty = 'normal') {
+  const fallback = pickTarget(match);
+  if (match.pending.side !== 'bot') return fallback;
+  const state = publicMatch(match);
+  const search = deadline();
+  let best;
+  for (const action of choices(state)) {
+    if (search.expired()) break;
+    const candidate = evaluateAction(state, 'bot', action, search);
+    if (!candidate) continue;
+    const rating = difficulty === 'hard' ? replyRating(candidate, state.round, search) : candidate.rating;
+    if (!best || rating > best.rating) best = { action, rating };
+  }
+  return best?.action ?? fallback;
+}
+
+export function chooseStrategicTurn(match, difficulty, oldAction) {
+  const search = deadline();
   const { bot, human } = match.players;
   const { round } = match;
   const hard = difficulty === 'hard';
@@ -150,13 +220,20 @@ export function chooseStrategicTurn(match, difficulty, pickTarget, oldAction) {
 
   const state = publicMatch(match);
   if (match.playedCard) {
-    return (human.passed && lead > 0 ? null : bestAbility(state, pickTarget, oldAction, true)) ?? END;
+    if (human.passed && lead > 0) return END;
+    const baseline = evaluateAction(state, 'bot', END, search);
+    const [best] = rankAbilities(state, search);
+    return best && best.rating > (baseline?.rating ?? Infinity) + .08 ? best.action : END;
   }
 
-  const ranked = rankPlays(state, pickTarget, round === 1 ? .33 : .12);
+  // Give ordinary plays and ability sequences separate shares of the same time budget.
+  const playSearch = deadline(hard ? 115 : 155);
+  const ranked = rankPlays(state, { expired: () => search.expired() || playSearch.expired() });
+  const abilitySearch = deadline(hard ? 100 : 130);
+  const withAbilities = rankAbilities(state, { expired: () => search.expired() || abilitySearch.expired() });
   const best = ranked[0];
-  const ability = bestAbility(state, pickTarget, oldAction, false);
-  if (!best) return ability ?? oldAction;
+  const ability = withAbilities[0];
+  if (!best) return ability?.action ?? oldAction;
   const bestGain = Math.max(0, ...ranked.map(({ next }) => margin(next) - lead));
   const expectedCards = bestGain > 0 ? Math.max(1, Math.ceil((1 - lead) / bestGain)) : Infinity;
   const affordable = (cards) => Math.min(HAND_LIMIT, bot.hand.length - cards + ROUND_DRAW) + (hard ? 1 : 0)
@@ -169,21 +246,28 @@ export function chooseStrategicTurn(match, difficulty, pickTarget, oldAction) {
     const winning = ranked.filter(({ next }) => margin(next) > 0).sort((a, b) => a.cost - b.cost)[0];
     if (winning && (!canPass || round > 1 || affordable(1))) return winning.action;
 
-    const twoTurnWin = hard ? lookAhead(ranked, pickTarget, true)
-      .filter(({ wins }) => wins).sort((a, b) => a.first.cost + a.second.cost - b.first.cost - b.second.cost)[0] : null;
+    const twoTurnWin = hard ? cheapestTwoTurnWin(ranked, search) : null;
     if (twoTurnWin && (!canPass || !dryPass && (round > 1 || (spent + 2 <= budget && affordable(2))))) {
-      return twoTurnWin.first.action;
+      return twoTurnWin.action;
     }
-    if (canPass && (dryPass || (round === 1 && (expectedCards > budget - spent || !affordable(expectedCards))))) {
-      return PASS;
-    }
-    return ability ?? best.action;
+    if (canPass && (dryPass || (round === 1 && (expectedCards > budget - spent || !affordable(expectedCards))))) return PASS;
+    return ability && ability.rating > best.rating ? ability.action : best.action;
   }
 
-  if (ability) return ability;
-  if (!hard) return best.action;
-  const combo = lookAhead(ranked, pickTarget, false)
-    .sort((a, b) => b.first.rating + .45 * (b.second.rating - value(b.first.next))
-      - a.first.rating - .45 * (a.second.rating - value(a.first.next)))[0];
-  return combo?.first.action ?? best.action;
+  const candidates = [...ranked, ...withAbilities].sort((a, b) => b.rating - a.rating);
+  if (!hard) {
+    const near = candidates.filter(({ rating }) => candidates[0].rating - rating > .001 && candidates[0].rating - rating < .08);
+    return near.length && Math.random() < .12 ? near[0].action : candidates[0].action;
+  }
+  let selected = candidates[0];
+  let rating = -Infinity;
+  for (const candidate of candidates.slice(0, 8)) {
+    if (search.expired()) break;
+    const score = replyRating(candidate, round, search);
+    if (score > rating) {
+      rating = score;
+      selected = candidate;
+    }
+  }
+  return selected.action;
 }
