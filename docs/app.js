@@ -581,14 +581,17 @@ function rowView(side, player, row, readyOrders) {
   return wrapper;
 }
 
-function sideView(side) {
+function readyOrderIds(side) {
+  return new Set(availableOrders(match, side).map(({ card }) => card.id));
+}
+
+function sideView(side, readyOrders) {
   const player = match.players[side];
   const section = element('section', 'side');
   section.dataset.side = side;
   section.dataset.faction = player.factionId ?? '';
   section.setAttribute('aria-label', sideLabel[side]);
   const rows = side === 'bot' ? ROWS : [...ROWS].reverse();
-  const readyOrders = new Set(availableOrders(match, side).map(({ card }) => card.id));
   section.append(...rows.map((row) => rowView(side, player, row, readyOrders)));
   if (side === 'bot' && player.passed) section.append(element('p', 'opponent-passed', 'ПАС'));
   return section;
@@ -720,7 +723,8 @@ function battlefield() {
   const { pending, players, phase } = match;
   field.classList.toggle('is-human-turn', phase === 'playing' && !replaying && match.turn === 'human');
   const center = element('div', 'field-center battlefield');
-  center.append(sideView('bot'), sideView('human'));
+  const humanOrders = readyOrderIds('human');
+  center.append(sideView('bot', readyOrderIds('bot')), sideView('human', humanOrders));
   if (!replaying && pending?.side === 'human') {
     center.append(element('p', 'field-message target-prompt', pending.prompt));
   }
@@ -734,6 +738,11 @@ function battlefield() {
     playHuman({ type: afterPlay ? 'end-turn' : 'pass' }), 'button field-action');
   action.id = 'pass-button';
   action.disabled = !humanCanAct() || !(afterPlay ? canEndTurn(match, 'human') : canPass(match, 'human'));
+  if (afterPlay && !action.disabled && humanOrders.size) {
+    action.classList.add('has-ready-order');
+    action.title = 'Есть готовый Приказ';
+    action.setAttribute('aria-description', action.title);
+  }
   if (humanCanAct() && !afterPlay && players.human.usedAbility) action.title = 'Сыграй карту после применения способности';
   const humanCount = element('span', 'field-hand-count', players.human.hand.length + '/' + HAND_LIMIT);
   humanCount.title = 'Карт в твоей руке';

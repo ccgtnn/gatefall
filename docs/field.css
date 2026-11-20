@@ -175,6 +175,14 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   box-shadow: 0 0 8px #6bcabe54;
 }
 
+.field-action.has-ready-order:not(:disabled) {
+  border-color: #e0bd69;
+  background: #64451c;
+  color: #fff0c4;
+  box-shadow: 0 0 10px #e9b74a78;
+}
+.field-action.has-ready-order:not(:disabled):hover { background: #795826; }
+
 .field-rail {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
