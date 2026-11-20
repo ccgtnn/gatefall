@@ -3,6 +3,8 @@ import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=step-
 import { availableOrders, canUseLeader, effectSwing } from './effects.js?v=step-10';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=step-10';
 
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=step-11';
+
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
 
@@ -132,7 +134,7 @@ function beneficialLeader(match, view, allies) {
   return card.power >= 2 || Boolean(card.definition.deathwish) || view.score === view.opponentScore;
 }
 
-export function chooseBotTurn(match) {
+function chooseEasyTurn(match) {
   if (match.pending) return pickBotTarget(match);
   const view = createBotView(match);
   const enemies = units(match, 'human').filter(({ card }) => isUnit(card));
@@ -150,4 +152,12 @@ export function chooseBotTurn(match) {
   }
   if (match.playedCard) return { type: 'end-turn' };
   return chooseBotAction(view);
+}
+
+export function chooseBotTurn(match, difficulty = 'easy') {
+  if (difficulty !== 'normal' && difficulty !== 'hard') return chooseEasyTurn(match);
+  if (match.pending) {
+    return difficulty === 'hard' ? chooseStrategicTarget(match, pickBotTarget) : pickBotTarget(match);
+  }
+  return chooseStrategicTurn(match, difficulty, pickBotTarget, chooseEasyTurn(match));
 }
