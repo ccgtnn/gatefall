@@ -323,6 +323,15 @@ function cardLabel(card) {
   return details.join(' · ');
 }
 
+function cardName(name) {
+  const label = element('span', 'card-name');
+  for (const word of name.split(' ')) {
+    if (label.firstChild) label.append(' ');
+    label.append(element('span', 'card-name-word', word));
+  }
+  return label;
+}
+
 function cardButton(card, handler, placement = false) {
   const { name } = card.definition;
   const node = button(undefined, handler, 'hand-card');
@@ -333,7 +342,7 @@ function cardButton(card, handler, placement = false) {
   node.append(
     cardStats(card),
     element('span', 'card-type-label', CARD_TYPES[cardType(card)]),
-    element('span', 'card-name', name),
+    cardName(name),
     cardMarks(card),
   );
   addCardCrop(node, card.definition);

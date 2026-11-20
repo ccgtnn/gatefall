@@ -204,7 +204,23 @@ button:not(:disabled) { cursor: pointer; }
 .hand-card:not(:disabled):hover { background: #484848; }
 .hand-card:disabled { background: #2b2b2b; color: #cecece; }
 .hand-card[aria-pressed="true"] { background: #494949; border-color: #fff; box-shadow: inset 0 0 0 1px #fff; }
-.card-name { font-size: .875rem; overflow-wrap: anywhere; }
+.card-name {
+  display: -webkit-box;
+  width: 100%;
+  overflow: hidden;
+  font-size: .8rem;
+  line-height: 1.2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+.card-name-word {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
 .round-result { padding-inline: .2rem; }
 .finish .button { margin-top: .25rem; }
 
