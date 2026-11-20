@@ -1,6 +1,6 @@
 import { button, element, sideLabel } from './dom.js?v=step-11';
-import { ROW_LABELS } from '../game/cards.js?v=step-12';
-import { cardButton, showCard } from './cards.js?v=step-12';
+import { ROW_LABELS } from '../game/cards.js?v=step-13';
+import { cardButton, showCard } from './cards.js?v=step-13';
 
 export function roundText(event) {
   const { scores, winner } = event;
@@ -30,6 +30,13 @@ export function eventText(event) {
     case 'turn-skip': return `${side}: ход завершён без паса. Нет карты для розыгрыша.`;
     case 'draw': return `${side}: добор ${event.count}${event.extraSwaps ? ` · дополнительных замен +${event.extraSwaps}` : ''}.`;
     case 'round-end': return roundText(event);
+    case 'status': {
+      if (event.status === 'infection') return event.tick
+        ? `«${event.name}»: Заражение снимает 1 силу${event.count ? ' · осталось ' + event.count : ' и заканчивается'}.`
+        : `«${event.name}»: Заражение ${event.count}.`;
+      return '';
+    }
+    case 'order-ready': return `Приказ карты «${event.name}» готов.`;
     case 'armor': return `${side}, «${event.name}»: броня ${event.amount > 0 ? '+' : '−'}${Math.abs(event.amount)}.`;
     case 'boost': return `${side}, «${event.name}»: усиление +${event.amount}.`;
     case 'damage': return `${side}, «${event.name}»: урон ${event.amount}, броня поглотила ${event.absorbed}, потеря силы ${event.lost}.`;

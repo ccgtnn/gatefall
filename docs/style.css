@@ -618,3 +618,31 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   background: #e8faff;
   box-shadow: 0 0 .7rem .2rem #69d6ff;
 }
+
+.leader-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: .55rem;
+}
+.leader-choice {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  align-content: end;
+  gap: .42rem;
+  min-height: min(9rem, 40dvh);
+  padding: .7rem;
+  text-align: left;
+  background: var(--faction-face, #22313d);
+  border-color: var(--faction-edge, #a9bbc9);
+}
+.leader-choice.has-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, #101724f5, #10172494 65%, transparent);
+}
+.leader-choice > :is(strong, span) { position: relative; z-index: 1; }
+.leader-description { font-size: .85rem; color: #e2eff7; }
+.motion-infection { background: radial-gradient(ellipse, #abff555c, #4cd32b60); border: 1px solid #a5ff6a; }
+.motion-poison { color: #bcff72; }

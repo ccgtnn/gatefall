@@ -1,4 +1,4 @@
-import { ROWS } from './game/cards.js?v=step-12';
+import { ROWS } from './game/cards.js?v=step-13';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;
@@ -70,6 +70,13 @@ export function applyJournalEvent(state, event) {
     if (type === 'death' || type === 'destroy') line.splice(index, 1);
     if (type === 'boost' || type === 'damage') line[index].power = event.power;
     if (type === 'armor') line[index].armor = event.armor;
+    if (type === 'status') {
+      const card = line[index];
+      card.statuses = { ...card.statuses, [event.status]: event.count };
+      if (event.status === 'infection' && !event.count) delete card.statuses.infection;
+      if (event.tick) card.power = event.power;
+    }
+    if (type === 'order-ready') line[index].readyAt = event.readyAt;
     if (type === 'tick') line[index].timer = event.remaining;
     break;
   }

@@ -1,7 +1,7 @@
 import { burstParticles } from './particles.js?v=step-10';
 
 const VISUAL_EVENTS = new Set([
-  'play', 'damage', 'boost', 'armor', 'death', 'destroy', 'spawn', 'deathwish', 'consume', 'consume-group', 'leader', 'order',
+  'play', 'damage', 'boost', 'armor', 'status', 'death', 'destroy', 'spawn', 'deathwish', 'consume', 'consume-group', 'leader', 'order',
 ]);
 
 function rects(screen) {
@@ -371,6 +371,16 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
       break;
     case 'armor':
       motions.push(...shield(screen, entry, duration));
+      break;
+    case 'status':
+      if (event.status === 'infection') {
+        motions.push(...cardFlash(screen, entry, 'motion-infection', [
+          { opacity: 0, transform: 'translate(-50%, -50%) scale(.85)' },
+          { opacity: .9, transform: 'translate(-50%, -50%) scale(1)', offset: .4 },
+          { opacity: 0, transform: 'translate(-50%, -50%) scale(1.12)' },
+        ], duration));
+        if (event.tick) motions.push(...floatingNumber(screen, entry, '−1', 'poison', duration));
+      }
       break;
     case 'damage':
       motions.push(...hit(screen, entry, event, duration));

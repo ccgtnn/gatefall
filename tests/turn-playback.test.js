@@ -118,3 +118,17 @@ test('deck plays keep the hand intact and grouped victims disappear together bef
   applyJournalEvent(visual, { type: 'death', side: 'human', cardId: 'a' });
   assert.deepEqual([...visual.hiddenDuringPlayback], ['b']);
 });
+
+test('infection playback updates the badge and strength without changing the previous match', () => {
+  const before = confirmMulligan(createMatch({ random: () => 0 }), []);
+  const unit = card('target', 'protectorate', 'assault');
+  unit.statuses = { infection: 1 };
+  before.players.human.board.orbit = [unit];
+  const visible = createPlaybackState(before);
+  applyJournalEvent(visible, { type: 'status', status: 'infection', side: 'human',
+    cardId: 'target', tick: true, count: 0, power: 4 });
+  assert.equal(visible.players.human.board.orbit[0].power, 4);
+  assert.equal(visible.players.human.board.orbit[0].statuses.infection, undefined);
+  assert.equal(unit.statuses.infection, 1);
+  assert.equal(unit.power, 5);
+});

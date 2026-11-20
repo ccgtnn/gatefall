@@ -1,9 +1,9 @@
-import { ROWS } from './cards.js?v=step-12';
-import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=step-12';
-import { availableOrders, canUseLeader, effectSwing, rowArmor } from './effects.js?v=step-12';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=step-12';
+import { ROWS } from './cards.js?v=step-13';
+import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=step-13';
+import { availableOrders, canUseLeader, effectSwing, rowArmor } from './effects.js?v=step-13';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=step-13';
 
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=step-12';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=step-13';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
@@ -142,7 +142,7 @@ function pickBotTarget(match) {
   const priorities = {
     consume: ({ card }) => sacrificePriority(card),
     'spend-armor': ({ card }) => amount ? card.armor : card.armor * 100 + card.power,
-    'ready-order': ({ card }) => card.definition.order && card.readyAt > player.turns ? 20 + card.power : card.power,
+    'ready-order': ({ card }) => card.definition.order && card.readyAt > player.turns ? 20 + (card.power ?? 0) : card.power ?? 0,
     infection: (unit) => [unit, ...neighbors(match, unit)].reduce((sum, { card }) =>
       sum + Math.max(0, Math.min(3, card.power ?? 0) - (card.statuses?.infection ?? 0)), 0),
     marshal: (unit) => neighbors(match, unit).length * 100 + unit.card.power,

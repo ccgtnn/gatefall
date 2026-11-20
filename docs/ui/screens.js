@@ -1,7 +1,7 @@
 import { button, element } from './dom.js?v=step-11';
-import { FACTIONS } from '../game/cards.js?v=step-12';
-import { addCardCrop } from './cards.js?v=step-12';
-import { logView, roundText } from './menu.js?v=step-12';
+import { FACTIONS } from '../game/cards.js?v=step-13';
+import { addCardCrop } from './cards.js?v=step-13';
+import { logView, roundText } from './menu.js?v=step-13';
 
 export function startScreen(phaseLabel, start, stats) {
   phaseLabel.textContent = '';
@@ -16,13 +16,31 @@ export function startScreen(phaseLabel, start, stats) {
     choice.append(
       element('strong', null, faction.name),
       element('span', 'muted', faction.strategy),
-      element('span', null, faction.leader.name),
       element('small', 'deck-record', `Победы ${win} · Поражения ${loss}`),
     );
     addCardCrop(choice, faction.leader);
     choices.append(choice);
   }
   panel.append(heading, choices, element('p', 'muted', 'Бот сыграет второй колодой.'));
+  return panel;
+}
+
+export function leaderScreen(phaseLabel, factionId, start, back) {
+  const faction = FACTIONS[factionId];
+  phaseLabel.textContent = '';
+  const panel = element('section', 'intro');
+  const heading = element('h2', null, 'Выбери лидера · ' + faction.name);
+  heading.tabIndex = -1;
+  const choices = element('div', 'leader-choices');
+  for (const leader of faction.leaders) {
+    const choice = button(undefined, () => start(factionId, leader.id), 'button leader-choice');
+    choice.dataset.faction = factionId;
+    if (leader.art) addCardCrop(choice, leader);
+    else choice.append(element('span', 'leader-placeholder', '♜'));
+    choice.append(element('strong', null, leader.name), element('span', 'leader-description', leader.text));
+    choices.append(choice);
+  }
+  panel.append(heading, choices, button('К выбору колоды', back));
   return panel;
 }
 
@@ -41,7 +59,7 @@ export function finishedScreen(match, phaseLabel, start, leaveMatch) {
   const actions = element('div', 'finish-actions');
   const faction = match.players.human.factionId;
   actions.append(
-    button('Ещё раз той же колодой', () => start(faction), 'button primary'),
+    button('Ещё раз той же колодой', () => start(faction, match.players.human.leader?.id), 'button primary'),
     button('Выбор колоды', leaveMatch),
   );
   panel.append(

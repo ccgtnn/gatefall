@@ -1,7 +1,7 @@
-import { ROWS } from './cards.js?v=step-12';
-import { cardType, units } from './board.js?v=step-12';
-import { availableOrders, canUseLeader } from './effects.js?v=step-12';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=step-12';
+import { ROWS } from './cards.js?v=step-13';
+import { cardType, units } from './board.js?v=step-13';
+import { availableOrders, canUseLeader } from './effects.js?v=step-13';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=step-13';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -79,12 +79,15 @@ function placements(state, side, card, rows = ROWS) {
 }
 
 function plays(state, side) {
-  return playableCards(state, side).flatMap((card) => {
+  const options = playableCards(state, side).map((card) => {
     const action = { type: 'play', cardId: card.id };
     const cost = (card.definition.provision ?? 4) + (card.power ?? 0) * .15;
     if (cardType(card) === 'effect') return [{ action, cost }];
     return placements(state, side, card).map((placement) => ({ action: { ...action, ...placement }, cost }));
   });
+  // Visit a placement for every card before spending the budget on extra positions.
+  return Array.from({ length: Math.max(0, ...options.map((group) => group.length)) }, (_, index) =>
+    options.flatMap((group) => group[index] ? [group[index]] : [])).flat();
 }
 
 function abilities(state, side) {
@@ -138,7 +141,8 @@ function rankPlays(state, search) {
   const ranked = [];
   for (const { action, cost } of plays(state, 'bot')) {
     if (search.expired()) break;
-    const candidate = evaluateAction(state, 'bot', action, search);
+    const local = deadline(22);
+    const candidate = evaluateAction(state, 'bot', action, { expired: () => search.expired() || local.expired() });
     if (candidate) ranked.push({ ...candidate, action, cost });
   }
   return ranked.sort((a, b) => b.rating - a.rating || a.cost - b.cost);

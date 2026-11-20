@@ -1,9 +1,9 @@
-import { emit } from './events.js?v=step-12';
-import { ROWS, ROW_LABELS } from './cards.js?v=step-12';
+import { emit } from './events.js?v=step-13';
+import { ROWS, ROW_LABELS } from './cards.js?v=step-13';
 import {
   announcePlay, applyStatus, availableRows, boost, cardType, consume, damage, findUnit,
   isUnit, neighbors, opponent, placeCards, removeUnit, spawnCards, statusEndTurn, tickInfection, units,
-} from './board.js?v=step-12';
+} from './board.js?v=step-13';
 
 function reference(match, job, key = 'source') {
   return findUnit(match, key === 'source' ? job.sourceId : job.refs?.[key]);
@@ -25,6 +25,7 @@ function targets(match, job, query) {
   return candidates.filter((unit) =>
     (!row || unit.row === row) &&
     (!query.type || cardType(unit.card) === query.type) &&
+    (!query.unitOrOrder || isUnit(unit.card) || unit.card.definition.order) &&
     (!query.token || unit.card.definition.token) &&
     (!query.definitionId || unit.card.definition.id === query.definitionId) &&
     (!query.exclude || unit.card.id !== reference(match, job, query.exclude)?.card.id) &&

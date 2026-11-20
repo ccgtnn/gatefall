@@ -1,5 +1,5 @@
-import { ROWS } from './cards.js?v=step-12';
-import { emit } from './events.js?v=step-12';
+import { ROWS } from './cards.js?v=step-13';
+import { emit } from './events.js?v=step-13';
 
 export const ROW_LIMIT = 9;
 export const opponent = (side) => side === 'human' ? 'bot' : 'human';

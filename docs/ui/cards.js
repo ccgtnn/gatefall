@@ -1,6 +1,6 @@
 import { button, element } from './dom.js?v=step-11';
-import { CARD_TYPES, KEYWORDS, RARITY_LABELS } from '../game/cards.js?v=step-12';
-import { cardType, isUnit } from '../game/board.js?v=step-12';
+import { CARD_TYPES, KEYWORDS, RARITY_LABELS } from '../game/cards.js?v=step-13';
+import { cardType, isUnit, statusCount } from '../game/board.js?v=step-13';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';
@@ -30,6 +30,8 @@ export function showCard(card, { leader = false } = {}) {
   const details = leader ? ['Лидер'] : [CARD_TYPES[cardType(card)], RARITY_LABELS[definition.rarity],
     definition.stratagem ? 'Стратагема' : definition.provision !== undefined ? `Провизия ${definition.provision}` : 'Токен'].filter(Boolean);
   const stats = [];
+  const infection = statusCount(card, 'infection');
+  if (infection) stats.push('Заражение ' + infection);
   if (!leader && isUnit(card)) stats.push(`Сила ${power}`, `Броня ${armor ?? 0}`);
   if (timer !== undefined) stats.push(`Таймер ${timer}`);
   const title = element('h2', null, definition.name);
@@ -41,6 +43,7 @@ export function showCard(card, { leader = false } = {}) {
   if (stats.length) body.append(element('p', 'preview-stats', stats.join(' · ')));
   body.append(element('p', null, definition.text ?? 'Без эффекта.'));
   const glossaryWords = new Set(definition.keywords);
+  if (infection || definition.id === 'carrier') glossaryWords.add('Заражение');
   if (definition.endTurn) glossaryWords.add('Конец хода');
   if (glossaryWords.size) {
     const glossary = element('dl', 'preview-keywords');
@@ -163,12 +166,18 @@ export function decorateCard(node, card, player, { orderOnField = false } = {}) 
     node.append(mark);
   }
   const word = definition.order ? 'Приказ' : definition.deathwish ? 'Завещание'
-    : definition.doomed ? 'Обречённая' : keywordsFor(card).find((keyword) => keyword !== 'Броня');
+    : statusCount(card, 'doomed') ? 'Обречённая' : keywordsFor(card).find((keyword) => keyword !== 'Броня');
   if (!orderOnField && (timer !== undefined || word)) {
     const mark = element('span', 'card-state', timer !== undefined ? timer : keywordIcons[word] ?? '○');
     mark.title = timer !== undefined ? 'Таймер ' + timer : word;
     if (word === 'Приказ' && timer === undefined) mark.classList.add('order-sleep');
     node.append(mark);
+  }
+  const infection = statusCount(card, 'infection');
+  if (infection) {
+    const badge = element('span', 'infection-badge', infection);
+    badge.title = 'Заражение ' + infection;
+    node.append(badge);
   }
   addCardCrop(node, definition);
   if (!definition.art) node.append(element('span', 'card-art-placeholder', definition.name));
@@ -180,7 +189,9 @@ function cardLabel(card) {
   if (isUnit(card)) details.push(`сила ${power}`);
   if (armor) details.push(`броня ${armor}`);
   if (definition.rarity) details.push(RARITY_LABELS[definition.rarity], `провизия ${definition.provision}`);
-  if (definition.doomed) details.push('Обречённая');
+  if (statusCount(card, 'doomed')) details.push('Обречённая');
+  const infection = statusCount(card, 'infection');
+  if (infection) details.push('Заражение ' + infection);
   if (definition.deathwish) details.push('Завещание');
   if (timer !== undefined) details.push(`таймер ${timer}`);
   details.push(...keywordsFor(card).filter((word) => word !== 'Завещание' && (word !== 'Броня' || !armor)));
