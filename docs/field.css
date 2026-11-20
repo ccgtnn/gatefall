@@ -140,7 +140,15 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   text-align: center;
   pointer-events: none;
 }
-#match-notice, #coin-notice { z-index: 4; }
+#match-notice, #coin-notice, #round-notice { z-index: 4; }
+#round-notice {
+  padding: .45em .9em;
+  border-color: #c19c59;
+  box-shadow: 0 0 22px #040910c9;
+  font-size: clamp(.86rem, 4dvh, 1.4rem);
+}
+.finish-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.match-result-score { font-weight: 700; }
 #match-notice { top: 41%; }
 #coin-notice { top: 23%; }
 .settings-actions:not([hidden]) {
@@ -386,7 +394,7 @@ button.unit-order:not(:disabled)::before {
   .field-score .field-total { font-size: clamp(1rem, 5dvh, 1.25rem); }
 }
 @media (orientation: portrait) and (max-width: 739px) {
-  .match-screen > :not(.rotate-notice), #match-notice, #coin-notice { visibility: hidden; }
+  .match-screen > :not(.rotate-notice), #match-notice, #coin-notice, #round-notice { visibility: hidden; }
   .rotate-notice {
     position: absolute;
     inset: 0;

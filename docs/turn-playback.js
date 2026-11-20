@@ -38,6 +38,7 @@ export function applyJournalEvent(state, event) {
     return;
   }
   if (type === 'round-start') {
+    state.phase = 'playing';
     state.round = event.round;
     state.turn = side;
     return;
@@ -75,6 +76,6 @@ export async function playJournal(previous, events, present) {
     await present(event, () => {
       applyJournalEvent(state, event);
       return state;
-    });
+    }, state);
   }
 }

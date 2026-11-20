@@ -64,6 +64,34 @@ test('the next turn remains blocked until even the final animation finishes', as
   assert.deepEqual(marks, ['play', 'deathwish', 'next turn']);
 });
 
+test('round result can show the final board before cleanup and before the next round is presented', async () => {
+  const previous = confirmMulligan(createMatch({ random: () => 0 }), []);
+  previous.players.human.board.orbit = [card('ally', 'protectorate', 'infantry')];
+  const banner = Promise.withResolvers();
+  const seen = [];
+  const events = [
+    { type: 'boost', side: 'human', cardId: 'ally', power: 5 },
+    { type: 'round-end', scores: { human: 5, bot: 0 }, winner: 'human' },
+    { type: 'draw', side: 'human', count: 3 },
+  ];
+  const sequence = playJournal(previous, events, async ({ type }, commit, state) => {
+    seen.push(type);
+    if (type === 'round-end') {
+      assert.equal(state.players.human.board.orbit[0].power, 5);
+      assert.equal(state.log.at(-1).type, 'boost');
+      await banner.promise;
+    }
+    const updated = commit();
+    if (type === 'draw') assert.deepEqual(updated.players.human.board.orbit, []);
+  });
+  await Promise.resolve();
+  assert.deepEqual(seen, ['boost', 'round-end']);
+  banner.resolve();
+  await sequence;
+  assert.deepEqual(seen, ['boost', 'round-end', 'draw']);
+  assert.equal(previous.players.human.board.orbit.length, 1);
+});
+
 test('system animation mode honors reduced motion, with an explicit in-game override', () => {
   assert.equal(motionDuration('system', false), 320);
   assert.equal(motionDuration('system', true), 0);

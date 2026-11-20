@@ -1,6 +1,6 @@
 import { bindCardPlacement } from './card-placement.js?v=field-6';
 import { presentJournalEvent } from './card-motion.js?v=step-7';
-import { motionDuration, playJournal } from './turn-playback.js?v=motion-settings';
+import { motionDuration, playJournal } from './turn-playback.js?v=round-results';
 import { CARD_TYPES, FACTIONS, KEYWORDS, RARITY_LABELS, ROWS, ROW_LABELS } from './game/cards.js?v=growth-art-3';
 import { cardType, isUnit } from './game/board.js';
 import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=instant-mulligan';
@@ -15,6 +15,8 @@ const screen = document.querySelector('#screen');
 const phaseLabel = document.querySelector('#phase');
 const turnNotice = document.querySelector('#match-notice');
 const coinNotice = document.querySelector('#coin-notice');
+const roundNotice = document.querySelector('#round-notice');
+const ROUND_RESULT_MS = 1500;
 const noticeTimers = new Map();
 const announcement = document.querySelector('#announcement');
 const settings = document.querySelector('#settings');
@@ -323,6 +325,8 @@ function showNotice(notice, text, duration) {
 }
 
 function start(faction) {
+  mulliganFieldVisible = false;
+  announcement.textContent = '';
   match = createMatch({ humanFaction: faction });
   render();
   showNotice(coinNotice, 'Монетка: ты ходишь ' + (match.starter === 'human' ? 'первым' : 'вторым'), 1500);
@@ -334,6 +338,7 @@ function leaveMatch() {
   clearTimeout(timer);
   hideNotice(coinNotice);
   hideNotice(turnNotice);
+  hideNotice(roundNotice);
   match = undefined;
   replaying = false;
   mulliganFieldVisible = false;
@@ -771,10 +776,20 @@ function finishedScreen() {
   const heading = element('h2', null, outcomes[match.result]);
   heading.tabIndex = -1;
   const rounds = match.log.filter((event) => event.type === 'round-end');
+  const wins = rounds.filter(({ winner }) => winner === 'human').length;
+  const losses = rounds.filter(({ winner }) => winner === 'bot').length;
+  const ties = rounds.length - wins - losses;
+  const score = element('p', 'match-result-score', `Раунды · Ты ${wins} : ${losses} Противник${ties ? ' · Ничьих: ' + ties : ''}`);
+  const actions = element('div', 'finish-actions');
+  const faction = match.players.human.factionId;
+  actions.append(
+    button('Ещё раз той же колодой', () => start(faction), 'button primary'),
+    button('Выбор колоды', leaveMatch),
+  );
   panel.append(
-    heading,
+    heading, score,
     ...rounds.map((event) => element('p', 'round-result', roundText(event))),
-    button('Ещё раз', leaveMatch, 'button primary'),
+    actions,
   );
   game.append(panel, logView());
   return game;
@@ -807,21 +822,35 @@ function renderPlayback(state) {
   render();
 }
 
+async function showRoundResult(event, state) {
+  const { scores, winner } = event;
+  const result = winner === 'human' ? 'Раунд за тобой' : winner === 'bot' ? 'Раунд за противником' : 'Раунд: ничья';
+  hideNotice(coinNotice);
+  hideNotice(turnNotice);
+  renderPlayback(state);
+  showNotice(roundNotice, `${result} · ${scores.human} : ${scores.bot}`, ROUND_RESULT_MS);
+  await new Promise((resolve) => setTimeout(resolve, ROUND_RESULT_MS));
+}
+
 async function updateMatch(next) {
   if (replaying || next === match) return;
   const session = matchSession;
   clearTimeout(timer);
   const before = match;
   const events = next.log.slice(before.log.length);
-  if (before.phase === 'playing' && events.length && motionDuration(speedSetting.value, reducedMotion.matches)) {
+  const duration = motionDuration(speedSetting.value, reducedMotion.matches);
+  if ((before.phase === 'playing' && events.length && duration) || events.some(({ type }) => type === 'round-end')) {
     replaying = true;
     screen.classList.add('is-replaying');
     try {
-      await playJournal(before, events, (event, commit) => {
-        if (session === matchSession) {
-          return presentJournalEvent(screen, event, commit, renderPlayback,
-            motionDuration(speedSetting.value, reducedMotion.matches));
+      await playJournal(before, events, async (event, commit, state) => {
+        if (session !== matchSession) return;
+        if (event.type === 'round-end') {
+          await showRoundResult(event, state);
+          if (session === matchSession) commit();
+          return;
         }
+        await presentJournalEvent(screen, event, commit, renderPlayback, duration);
       });
     } catch (error) {
       console.warn('Playback stopped early', error);
