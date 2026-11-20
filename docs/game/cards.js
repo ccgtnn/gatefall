@@ -14,6 +14,8 @@ export const KEYWORDS = Object.freeze({
   'Усиление': 'Увеличивает текущую силу отряда.',
   'Порождение': 'Добавляет новую карту в ряд, если есть место.',
   'Поглощение': 'Своя жертва гибнет, её текущая сила переходит поглотившему, если карта не задаёт иное.',
+  'Счётчик': 'В конце каждого хода владельца уменьшается на 1. При достижении нуля эффект срабатывает один раз.',
+  'Уязвимость': 'Эффект срабатывает, когда карта теряет последнюю единицу брони.',
   'Инициатива': 'Бонус, если розыгрыш этой карты — твоё первое действие в раунде. Лидер и Приказы тоже считаются действиями.',
   'Уничтожение': 'Удаляет карту из игры без Завещания.',
   'Завещание': 'Срабатывает при гибели от урона, поглощения, Заражения или таймера.',
@@ -178,13 +180,75 @@ export const ANNIHILATION = Object.freeze({
   keywords: ['Уничтожение', 'Инициатива'],
 });
 
+export const NEUTRAL_CARDS = Object.freeze([
+  ANNIHILATION,
+  ...[
+    ['veteran-mercenary', 'Наёмник-ветеран', 'bronze', 4, 3, 'Нанеси 2 урона своему отряду. Усиль себя на 3.', {
+      deploy: ability([action('damage', chosen('ally'), 2), action('boost', self, 3)],
+        [choice('ally', allies, 'Выбери свой отряд для 2 урона.', { kind: 'friendly-damage', amount: 2 })]),
+      keywords: ['Урон', 'Усиление'],
+    }],
+    ['smuggler', 'Контрабандист', 'bronze', 4, 3, 'Инициатива: усиль себя на 3.', {
+      initiative: ability([action('boost', self, 3)]), keywords: ['Инициатива', 'Усиление'],
+    }],
+    ['recon-drone', 'Разведдрон', 'bronze', 4, 2, 'Посмотри свою колоду и выбери карту. Она становится верхней.', {
+      deploy: ability([{ action: 'choose-deck-top' }]),
+    }],
+    ['emp-grenade', 'ЭМИ-граната', 'bronze', 5, null, 'Сними всю броню с вражеского отряда. Нанеси 2 урона плюс число снятых единиц брони.', {
+      type: 'effect',
+      deploy: ability([
+        { ...action('armor', chosen('enemy'), { stat: 'armor', scale: -1 }), save: 'armor' },
+        action('damage', chosen('enemy'), { result: 'armor', base: 2 }),
+      ], [choice('enemy', enemies, 'Выбери вражеский отряд для ЭМИ-гранаты.', { kind: 'emp' })]),
+      keywords: ['Броня', 'Урон'],
+    }],
+    ['gravity-pulse', 'Гравитационный импульс', 'bronze', 6, null, 'Нанеси 1 урон всем отрядам в выбранном вражеском ряду.', {
+      type: 'effect', deploy: ability([
+        { action: 'select-row', ref: 'row', filter: 'units', prompt: 'Выбери вражеский ряд для Гравитационного импульса.' },
+        action('damage', { ...enemies, rowRef: 'row' }, 1),
+      ]), keywords: ['Урон'],
+    }],
+    ['liaison', 'Связной', 'gold', 9, 4, 'Счётчик 4: возьми карту.', {
+      counter: { amount: 4, effect: ability([{ action: 'draw', amount: 1 }]) },
+      keywords: ['Счётчик'],
+    }],
+    ['field-medic', 'Полевой реаниматор', 'gold', 9, 3, 'Сыграй бронзовый отряд из своего сброса.', {
+      deploy: ability([{ action: 'play-from-discard', filter: { rarity: 'bronze' } }]),
+    }],
+    ['gate-relic', 'Реликт врат', 'gold', 9, null, 'Приказ (перезарядка 2): усиль свой отряд на 3.', {
+      type: 'artifact', order: {
+        ...ability([action('boost', chosen('ally'), 3)],
+          [choice('ally', allies, 'Выбери свой отряд для усиления на 3.', { kind: 'boost' })]),
+        cooldown: 2,
+      }, keywords: ['Приказ', 'Усиление'],
+    }],
+    ['bounty-hunter', 'Охотник за головами', 'gold', 10, 4, 'Нанеси 6 урона вражескому отряду. Если он погиб от этого удара, усиль себя на 2.', {
+      deploy: ability([
+        { ...action('damage', chosen('enemy'), 6), save: 'kill' },
+        action('boost', self, { result: 'kill', scale: 2 }),
+      ], [enemyChoice(6)]), keywords: ['Урон', 'Усиление'],
+    }],
+    ['gate-guardian', 'Хранитель врат', 'gold', 10, 12, 'Броня 5. Уязвимость: отправь эту карту в сброс.', {
+      armor: 5, events: { 'armor-break': ability([action('discard', self)]) },
+      keywords: ['Броня', 'Уязвимость'],
+    }],
+  ].map(([id, name, rarity, provision, power, text, rules]) => Object.freeze({
+    id, name, rarity, faction: NEUTRAL, provision, type: 'unit', ...(power === null ? {} : { power }), text, ...rules,
+  })),
+]);
+
+const testingNeutrals = {
+  protectorate: ['recon-drone', 'emp-grenade', 'gate-relic', 'gate-guardian'],
+  growth: ['veteran-mercenary', 'gravity-pulse', 'liaison', 'field-medic'],
+};
+
 function factionCards(entries, faction) {
   return Object.freeze([...entries.flatMap(([id, name, provision, power, text, rules], index) => {
     const rarity = index < 11 ? 'bronze' : 'gold';
     const stats = power === null ? {} : { power };
     const definition = Object.freeze({ id, name, provision, type: 'unit', text, rarity, faction, ...stats, ...rules });
     return rarity === 'bronze' ? [definition, definition] : [definition];
-  }), ANNIHILATION]);
+  }), ...NEUTRAL_CARDS.filter(({ id }) => id === ANNIHILATION.id || testingNeutrals[faction].includes(id))]);
 }
 
 const protectorateLeaders = Object.freeze([

@@ -1,8 +1,8 @@
 import { emit } from './events.js?v=step-13';
 import { ROWS, ROW_LABELS } from './cards.js?v=step-14';
 import {
-  announcePlay, applyStatus, availableRows, boost, cardType, consume, damage, findUnit,
-  isUnit, neighbors, opponent, placeCards, removeUnit, spawnCards, statusEndTurn, tickInfection, units,
+  announcePlay, applyStatus, availableRows, boost, cardType, consume, createCard, damage, findUnit,
+  isUnit, neighbors, opponent, placeCards, removeUnit, spawnCards, statusEndTurn, takeCards, tickInfection, units,
 } from './board.js?v=step-14';
 
 function reference(match, job, key = 'source') {
@@ -48,12 +48,17 @@ function viableChoices(match, job, index) {
   }, index + 1).length);
 }
 
+export function rowDamage(player, row, amount) {
+  return player.board[row].filter(isUnit).reduce((sum, card) =>
+    sum + Math.min(card.power, Math.max(0, amount - (card.armor ?? 0))), 0);
+}
+
 export function rowArmor(player, row) {
   return player.board[row].reduce((sum, card) => sum + (card.armor ?? 0), 0);
 }
 
-function deckCandidates(player, filter) {
-  return player.deck.filter(({ definition }) => (definition.type ?? 'unit') === 'unit' &&
+function pileCandidates(cards, filter) {
+  return cards.filter(({ definition }) => (definition.type ?? 'unit') === 'unit' &&
     (!filter.rarity || definition.rarity === filter.rarity) &&
     (!filter.faction || definition.faction === filter.faction) &&
     (filter.maxPower === undefined || definition.power <= filter.maxPower));
@@ -65,15 +70,20 @@ function chooseSubset(cards, count, random) {
 }
 
 function eligibleRows(player, filter) {
-  return filter === 'space' ? availableRows(player) : ROWS.filter((row) => rowArmor(player, row));
+  if (filter === 'space') return availableRows(player);
+  if (filter === 'units') return ROWS.filter((row) => player.board[row].some(isUnit));
+  return ROWS.filter((row) => rowArmor(player, row));
 }
+
+const rowSide = (side, step) => step.filter === 'units' ? opponent(side) : side;
+
 
 function canStart(match, job) {
   const { when, select, steps } = job.ability;
   const player = match.players[job.side];
   if (steps.some((step) => step.action === 'play-from-deck' &&
-    (!availableRows(player).length || !deckCandidates(player, step.filter).length))) return false;
-  if (steps.some((step) => step.action === 'select-row' && !eligibleRows(player, step.filter).length)) return false;
+    (!availableRows(player).length || !pileCandidates(player.deck, step.filter).length))) return false;
+  if (steps.some((step) => step.action === 'select-row' && !eligibleRows(match.players[rowSide(job.side, step)], step.filter).length)) return false;
   return (!when || targets(match, job, when.targets).length >= (when.atLeast ?? 1)) &&
     (!select?.length || viableChoices(match, job, 0).length > 0);
 }
@@ -114,7 +124,9 @@ export function enqueueCardEffect(match, side, card, timing, requiredSource = tr
 
 function valueOf(match, job, expression, target) {
   if (typeof expression === 'number') return expression;
-  if (expression?.result) return job.results?.[expression.result] ?? 0;
+  if (expression?.result) {
+    return (expression.base ?? 0) + (job.results?.[expression.result] ?? 0) * (expression.scale ?? 1);
+  }
   if (expression?.row) return target?.row === expression.row ? expression.then : expression.otherwise;
   if (expression?.stat) {
     const unit = expression.ref ? reference(match, job, expression.ref) : target;
@@ -170,30 +182,34 @@ function pause(match, job, kind, key, options, prompt, extra) {
   match.pending = { side: job.side, kind, key, options, prompt, job, ...extra };
 }
 
-function playFromDeck(match, job, step, random) {
+function playFromPile(match, job, step, random) {
+  const pile = step.action === 'play-from-discard' ? 'discard' : 'deck';
   const player = match.players[job.side];
   const rows = availableRows(player);
   if (!rows.length) return true;
   if (!job.refs.deckCard) {
-    const options = chooseSubset(deckCandidates(player, step.filter), step.choose ?? 1, random);
+    const eligible = pileCandidates(player[pile], step.filter);
+    const options = pile === 'discard' ? eligible.map(({ id }) => id) : chooseSubset(eligible, step.choose ?? 1, random);
     if (!options.length) return true;
-    if (step.choose) {
-      pause(match, job, 'deck-card', 'deckCard', options, 'Выбери отряд из колоды.');
+    if (pile === 'discard' || step.choose) {
+      pause(match, job, 'deck-card', 'deckCard', options,
+        pile === 'discard' ? 'Выбери бронзовый отряд из сброса.' : 'Выбери отряд из колоды.', { pile });
       return false;
     }
     [job.refs.deckCard] = options;
   }
   if (!job.refs.deckPlacement) {
     pause(match, job, 'deck-placement', 'deckPlacement', rows, 'Выбери ряд и позицию для отряда.',
-      { cardId: job.refs.deckCard });
+      { cardId: job.refs.deckCard, pile });
     return false;
   }
-  const index = player.deck.findIndex(({ id }) => id === job.refs.deckCard);
+  const index = player[pile].findIndex(({ id }) => id === job.refs.deckCard);
   if (index < 0) return true;
-  const [card] = player.deck.splice(index, 1);
+  const [chosen] = player[pile].splice(index, 1);
+  const card = pile === 'discard' ? createCard(chosen.id, chosen.definition) : chosen;
   const destination = job.refs.deckPlacement;
   placeCards(player, destination.row, destination.position, [card]);
-  announcePlay(match, job.side, card, destination, { from: 'deck' });
+  announcePlay(match, job.side, card, destination, { from: pile });
   if (step.after) match.effects.unshift({ side: job.side, sourceId: card.id, requiredSource: true,
     ability: { steps: [step.after] } });
   const ability = card.definition.deploy;
@@ -210,6 +226,7 @@ export function enqueueEndTurn(match, side) {
     { source: card, journal: false }));
   for (const { card } of field) {
     const steps = statusEndTurn(card);
+    if (card.counter > 0) steps.push({ action: 'counter', target: { scope: 'source' } });
     if (steps.length) match.effects.push({
       ability: { steps },
       side, sourceId: card.id, requiredSource: true,
@@ -218,6 +235,14 @@ export function enqueueEndTurn(match, side) {
 }
 
 const operations = {
+  discard: (match, target) => removeUnit(match, target, 'discard'),
+  counter: (match, { card, side }) => {
+    if (!(card.counter > 0)) return;
+    card.counter -= 1;
+    match.log.push({ type: 'counter', side, cardId: card.id, name: card.definition.name, remaining: card.counter });
+    if (card.counter === 0) match.effects.unshift({ ability: card.definition.counter.effect,
+      side, sourceId: card.id, requiredSource: true });
+  },
   armor: (match, target, amount) => applyStatus(match, target, 'armor', amount),
   'infection-tick': tickInfection,
   'ready-order': (match, { card, side }) => {
@@ -255,10 +280,11 @@ export function runEffect(match, job, random) {
   if (!step) return;
   if (step.action === 'select-row') {
     if (!job.refs[step.ref]) {
-      const player = match.players[job.side];
-      const rows = eligibleRows(player, step.filter);
+      const selectionSide = rowSide(job.side, step);
+      const rows = eligibleRows(match.players[selectionSide], step.filter);
       if (rows.length) {
-        pause(match, job, step.filter === 'space' ? 'spawn-row' : 'armor-row', step.ref, rows, step.prompt);
+        const kind = { space: 'spawn-row', armor: 'armor-row', units: 'enemy-row' }[step.filter];
+        pause(match, job, kind, step.ref, rows, step.prompt, { selectionSide });
         return;
       }
     }
@@ -266,12 +292,32 @@ export function runEffect(match, job, random) {
     match.effects.unshift(job);
     return;
   }
-  if (step.action === 'play-from-deck') {
+  if (step.action === 'play-from-deck' || step.action === 'play-from-discard') {
     const queued = match.effects.length;
-    if (playFromDeck(match, job, step, random)) {
+    if (playFromPile(match, job, step, random)) {
       job.index += 1;
       match.effects.splice(match.effects.length - queued, 0, job);
     }
+    return;
+  }
+  if (step.action === 'choose-deck-top') {
+    const { deck } = match.players[job.side];
+    if (deck.length && !job.refs.topCard) {
+      pause(match, job, 'deck-top', 'topCard', deck.map(({ id }) => id), 'Выбери карту на верх колоды.');
+      return;
+    }
+    const index = deck.findIndex(({ id }) => id === job.refs.topCard);
+    if (index > 0) deck.unshift(...deck.splice(index, 1));
+    if (deck.length) match.log.push({ type: 'deck-top', side: job.side });
+    job.index += 1;
+    match.effects.unshift(job);
+    return;
+  }
+  if (step.action === 'draw') {
+    const cards = takeCards(match.players[job.side], step.amount);
+    if (cards.length) match.log.push({ type: 'draw', side: job.side, count: cards.length, cards });
+    job.index += 1;
+    match.effects.unshift(job);
     return;
   }
   if (step.action === 'scatter') {
@@ -360,7 +406,7 @@ export function effectSwing(match, side, card) {
   for (const step of ability?.steps ?? []) {
     if (step.action === 'consume') swing += step.extra ?? 0;
     if (step.action === 'play-from-deck') {
-      const deck = deckCandidates(player, step.filter);
+      const deck = pileCandidates(player.deck, step.filter);
       swing += deck.reduce((sum, candidate) => sum + candidate.definition.power, 0) / Math.max(1, deck.length)
         + Number(Boolean(step.after));
     }
@@ -369,13 +415,18 @@ export function effectSwing(match, side, card) {
       swing += Math.min(health, Math.max(...ROWS.map((row) => rowArmor(player, row))));
     }
     if (step.action !== 'damage') continue;
+    if (step.target.rowRef) {
+      swing += Math.max(0, ...ROWS.map((row) => rowDamage(match.players[opponent(side)], row, step.amount)));
+      continue;
+    }
     const index = (ability.select ?? []).findIndex(({ ref }) => ref === step.target.ref);
     const options = index < 0 ? targets(match, job, step.target) : targets(match, job, ability.select[index].targets);
-    const amounts = options.map((target) => valueOf(match, job, step.amount, target));
+    const stripArmor = step.amount?.result === 'armor' && step.amount.base !== undefined;
+    const amounts = options.map((target) => valueOf(match, job, step.amount, target) + (stripArmor ? target.card.armor : 0));
     const highest = Math.max(0, ...amounts);
     swing += Math.max(0, ...options.map(({ card }, index) =>
       step.amount?.row && amounts[index] !== highest ? 0
-        : Math.min(card.power, Math.max(0, amounts[index] - (card.armor ?? 0)))));
+        : Math.min(card.power, Math.max(0, amounts[index] - (stripArmor ? 0 : card.armor ?? 0)))));
   }
   return swing;
 }

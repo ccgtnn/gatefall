@@ -1,14 +1,13 @@
 import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=step-14';
-import { announcePlay, availableRows, cardType, createCard, opponent, placeCards, playDestination, statusCount, units } from './board.js?v=step-14';
+import { announcePlay, availableRows, cardType, createCard, HAND_LIMIT, opponent, placeCards, playDestination, statusCount, takeCards, units } from './board.js?v=step-14';
 import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, orderAbility, playTiming, runEffect } from './effects.js?v=step-14';
 
-export { availableRows, ROW_LIMIT } from './board.js?v=step-14';
+export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=step-14';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;
 export const ROUND_DRAW = 3;
 
-export const HAND_LIMIT = 10;
 export const MULLIGAN_LIMIT = 3;
 const LATER_MULLIGAN_LIMIT = 2;
 
@@ -188,8 +187,7 @@ export function confirmMulligan(match, cardIds = [], { random = Math.random } = 
 function drawForRound(match, side) {
   const player = match.players[side];
   const draw = Math.min(ROUND_DRAW, player.deck.length);
-  const count = Math.min(draw, HAND_LIMIT - player.hand.length);
-  player.hand.push(...player.deck.splice(0, count));
+  const count = takeCards(player, draw).length;
   player.extraSwaps = draw - count;
   match.log.push({ type: 'draw', side, count, extraSwaps: player.extraSwaps });
 }

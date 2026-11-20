@@ -2,6 +2,7 @@ import { ROWS } from './cards.js?v=step-14';
 import { emit } from './events.js?v=step-13';
 
 export const ROW_LIMIT = 9;
+export const HAND_LIMIT = 10;
 export const opponent = (side) => side === 'human' ? 'bot' : 'human';
 
 export const cardType = ({ definition }) => definition.type ?? 'unit';
@@ -11,6 +12,7 @@ export function createCard(id, definition) {
   const card = { id, definition, readyAt: 0 };
   if (isUnit(card)) Object.assign(card, { power: definition.power, armor: definition.armor ?? 0 });
   if (definition.timer !== undefined) card.timer = definition.timer;
+  if (definition.counter) card.counter = definition.counter.amount;
   return card;
 }
 
@@ -98,7 +100,12 @@ export function applyStatus(match, unit, status, amount, extra) {
   const event = { type: status === 'armor' ? 'armor' : 'status', status, count,
     side, name: card.definition.name, cardId: card.id, amount: count - before, ...extra };
   if (status === 'armor') event.armor = count;
-  match.effects.unshift(...emit(match, event, { source: card, neighbors: neighbors(match, unit) }));
+  const context = { source: card, neighbors: neighbors(match, unit) };
+  const effects = emit(match, event, context);
+  if (status === 'armor' && before > 0 && count === 0) {
+    effects.push(...emit(match, { type: 'armor-break', side, cardId: card.id }, { ...context, journal: false }));
+  }
+  match.effects.unshift(...effects);
   return before - count;
 }
 
@@ -116,9 +123,9 @@ export function removeUnit(match, unit, reason, consumerId, extra) {
   player.board[row].splice(position, 1);
   const exile = reason === 'destroy' || statusCount(card, 'doomed') > 0;
   (exile ? player.exile : player.discard).push(card);
-  const death = reason === 'destroy' ? undefined : { row, position, refs: { consumer: consumerId } };
+  const death = reason === 'destroy' || reason === 'discard' ? undefined : { row, position, refs: { consumer: consumerId } };
   match.effects.unshift(...emit(match, {
-    type: death ? 'death' : 'destroy', side, name: card.definition.name, cardId: card.id, exile, reason, ...extra,
+    type: death ? 'death' : reason, side, name: card.definition.name, cardId: card.id, exile, reason, ...extra,
   }, { source: card, death }));
 }
 
@@ -129,7 +136,9 @@ export function damage(match, unit, amount, sourceDefinitionId, extra) {
   const lost = Math.min(unit.card.power, amount - absorbed);
   unit.card.power -= lost;
   emit(match, { type: 'damage', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, power: unit.card.power, amount, absorbed, lost, sourceDefinitionId, ...extra });
-  if (unit.card.power === 0) removeUnit(match, unit, 'damage');
+  if (unit.card.power > 0) return 0;
+  removeUnit(match, unit, 'damage');
+  return 1;
 }
 
 export function consume(match, victim, consumer, { multiplier = 1, extra = 0, grouped } = {}) {
@@ -144,6 +153,12 @@ export function consume(match, victim, consumer, { multiplier = 1, extra = 0, gr
   boost(match, consumer, strength * multiplier + extra);
   match.effects.unshift(...reactions);
   return strength;
+}
+
+export function takeCards(player, amount) {
+  const cards = player.deck.splice(0, Math.max(0, Math.min(amount, HAND_LIMIT - player.hand.length)));
+  player.hand.push(...cards);
+  return cards;
 }
 
 export function spawnCards(match, side, row, position, count, definition) {

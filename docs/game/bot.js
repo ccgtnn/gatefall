@@ -1,6 +1,6 @@
 import { ROWS } from './cards.js?v=step-14';
 import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=step-14';
-import { availableOrders, canUseLeader, destructionSwing, effectSwing, rowArmor } from './effects.js?v=step-14';
+import { availableOrders, canUseLeader, destructionSwing, effectSwing, rowArmor, rowDamage } from './effects.js?v=step-14';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=step-14';
 
 import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=step-14';
@@ -125,10 +125,15 @@ function pickBotTarget(match) {
     const row = bestTarget(options, (row) => -player.board[row].length);
     return { type: 'target', cardId: row };
   }
-  if (kind === 'deck-card') {
+  if (kind === 'enemy-row') {
+    const enemy = match.players[match.pending.selectionSide];
+    const row = bestTarget(options, (row) => rowDamage(enemy, row, 1));
+    return { type: 'target', cardId: row };
+  }
+  if (kind === 'deck-card' || kind === 'deck-top') {
     const optionsSet = new Set(options);
-    const card = bestTarget(player.deck.filter(({ id }) => optionsSet.has(id)), ({ definition }) =>
-      definition.power + (definition.armor ?? 0) * .15 + Number(Boolean(definition.deploy)));
+    const card = bestTarget(player[match.pending.pile ?? 'deck'].filter(({ id }) => optionsSet.has(id)), ({ definition }) =>
+      (definition.power ?? definition.provision ?? 0) + (definition.armor ?? 0) * .15 + Number(Boolean(definition.deploy)));
     return { type: 'target', cardId: card.id };
   }
   if (kind === 'deck-placement') {
@@ -140,6 +145,9 @@ function pickBotTarget(match) {
   const candidates = preferHigherAmount ? optionsWithUnits.filter(({ card }) => amounts[card.id] === highest) : optionsWithUnits;
   const lethal = kind === 'damage' ? candidates.filter(({ card }) => lethalDamage(card, amounts?.[card.id] ?? amount)) : [];
   const priorities = {
+    'friendly-damage': ({ card }) => card.definition.id === 'gate-guardian' && card.armor > 0 && card.armor <= 2 ? -card.power
+      : -Math.min(card.power, Math.max(0, 2 - (card.armor ?? 0))),
+    emp: ({ card }) => Math.min(card.power, 2 + (card.armor ?? 0)) + (card.armor ?? 0) * .1,
     consume: ({ card }) => sacrificePriority(card),
     'spend-armor': ({ card }) => amount ? card.armor : card.armor * 100 + card.power,
     'ready-order': ({ card }) => card.definition.order && card.readyAt > player.turns ? 20 + (card.power ?? 0) : card.power ?? 0,

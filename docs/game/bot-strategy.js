@@ -15,8 +15,8 @@ function publicMatch(match) {
     ...match,
     log: [],
     players: {
-      bot: { ...bot, deck: [...bot.deck].sort((a, b) => a.id.localeCompare(b.id)), discard: [], exile: [] },
-      human: { ...human, deck: [], discard: [], exile: [],
+      bot: { ...bot, deck: [...bot.deck].sort((a, b) => a.id.localeCompare(b.id)), exile: [] },
+      human: { ...human, deck: [], exile: [],
         hand: human.hand.length ? [UNKNOWN_PLAY] : [] },
     },
   };
@@ -40,10 +40,11 @@ function boardValue(state, side) {
   if (player.passed) return 0;
   const ready = new Set(availableOrders(state, side).map(({ card }) => card.id));
   return units(state, side).reduce((sum, { card }) => {
-    const { definition, power, armor, timer } = card;
+    const { definition, power, armor, counter, timer } = card;
     return sum + (armor ?? 0) * .12 + (definition.id === 'larva' ? .12 : 0)
       + (ready.has(card.id) ? 1.15 : definition.order ? .35 : 0)
       + (definition.endTurn ? (timer === undefined ? 1.25 : .5 * Math.min(timer, 3)) : 0)
+      + (counter > 0 && player.deck.length ? 1.6 / counter : 0)
       - .72 * Math.min(power ?? 0, card.statuses?.infection ?? 0);
   }, (player.leader?.charges ?? 0) * .9);
 }
@@ -100,12 +101,16 @@ function abilities(state, side) {
 }
 
 function choices(state) {
-  const { kind, options, side, cardId } = state.pending;
+  const { kind, options, side, cardId, pile = 'deck' } = state.pending;
   if (kind === 'deck-placement') {
-    const card = state.players[side].deck.find((item) => item.id === cardId);
+    const card = state.players[side][pile].find((item) => item.id === cardId);
     return placements(state, side, card, options).map((destination) => ({ type: 'place', ...destination }));
   }
-  return options.map((id) => ({ type: 'target', cardId: id }));
+  const ids = kind === 'deck-top'
+    ? state.players[side].deck.filter(({ id }) => options.includes(id))
+      .sort((a, b) => potential(b) - potential(a)).map(({ id }) => id)
+    : options;
+  return ids.map((id) => ({ type: 'target', cardId: id }));
 }
 
 function evaluateAction(state, side, action, search) {
@@ -240,7 +245,7 @@ export function chooseStrategicTurn(match, difficulty, oldAction) {
   if (canPass && dryPass && !human.passed) return PASS;
 
   const roundStart = match.log.findLastIndex(({ type }) => type === 'round-start');
-  const spent = match.log.slice(roundStart + 1).filter(({ type, side, from }) => type === 'play' && side === 'bot' && from !== 'deck').length;
+  const spent = match.log.slice(roundStart + 1).filter(({ type, side, from }) => type === 'play' && side === 'bot' && !from).length;
   const budget = hard ? 4 : 3;
   const average = Math.max(3, bot.hand.reduce((sum, card) => sum + (card.power ?? 4), 0) / Math.max(1, bot.hand.length));
   if (canPass && round === 1 && (spent >= budget || (!human.passed && lead > average))) return PASS;
