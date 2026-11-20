@@ -1,7 +1,8 @@
 import { bindCardPlacement } from './card-placement.js?v=field-6';
-import { presentJournalEvent } from './card-motion.js?v=step-7';
+import { presentJournalEvent } from './card-motion.js?v=step-10-impact';
+import { clearParticles } from './particles.js?v=step-10';
 import { createSoundEffects, DEFAULT_VOLUME } from './sound.js?v=step-10-volume';
-import { motionDuration, playJournal } from './turn-playback.js?v=round-results';
+import { motionDuration, playJournal } from './turn-playback.js?v=step-10-impact';
 import { CARD_TYPES, FACTIONS, KEYWORDS, RARITY_LABELS, ROWS, ROW_LABELS } from './game/cards.js?v=growth-art-3';
 import { cardType, isUnit } from './game/board.js';
 import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=instant-mulligan';
@@ -372,6 +373,7 @@ function start(faction) {
 
 function leaveMatch() {
   matchSession += 1;
+  clearParticles(document);
   clearTimeout(timer);
   hideNotice(coinNotice);
   hideNotice(turnNotice);

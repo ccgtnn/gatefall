@@ -1,3 +1,5 @@
+import { burstParticles } from './particles.js?v=step-10';
+
 const VISUAL_EVENTS = new Set([
   'play', 'damage', 'boost', 'armor', 'death', 'destroy', 'spawn', 'deathwish', 'consume', 'leader', 'order',
 ]);
@@ -77,13 +79,19 @@ function fly(screen, event, current, handOrigin, duration) {
     { transform: 'translate(-50%, -50%) scale(' + (target ? '.36' : '.96') + ')', opacity: target ? .1 : 0 },
   ], duration).finally(() => card.remove());
   if (!target) return [motion];
-  return [motion, animate(target.node, [
-    { opacity: 0 }, { opacity: 0, offset: .61 }, { opacity: 1 },
+  const { rect, node } = target;
+  burstParticles(screen.ownerDocument, 'dust', destination.x, rect.bottom - 2, rect.width,
+    duration * .5, duration * .53);
+  return [motion, animate(node, [
+    { opacity: 0, transform: 'scale(.88)' },
+    { opacity: 0, transform: 'scale(.88)', offset: .55 },
+    { opacity: 1, transform: 'translateY(3px) scale(1.08,.87)', offset: .66 },
+    { opacity: 1, transform: 'translateY(-3px) scale(.98,1.07)', offset: .81 },
+    { opacity: 1, transform: 'scale(1)' },
   ], duration)];
 }
 
-function leave(screen, entry, duration) {
-  if (!entry) return [];
+function ghostCard(screen, entry) {
   const clone = entry.node.cloneNode(true);
   clone.classList.add('motion-overlay', 'motion-departure');
   clone.inert = true;
@@ -93,11 +101,47 @@ function leave(screen, entry, duration) {
     width: entry.rect.width + 'px', height: entry.rect.height + 'px',
   });
   screen.ownerDocument.body.append(clone);
+  return clone;
+}
+
+function leave(screen, entry, faction, duration) {
+  if (!entry) return [];
+  const clone = ghostCard(screen, entry);
+  const growth = faction === 'growth';
+  const at = center(entry.rect);
+  burstParticles(screen.ownerDocument, growth ? 'slime' : 'sparks', at.x, at.y, entry.rect.width,
+    duration * .78, duration * .18);
+  return [animate(clone, growth ? [
+    { opacity: 1, transform: 'scale(1)' },
+    { opacity: .7, transform: 'translateY(3px) scale(.94,.84)', offset: .4 },
+    { opacity: 0, transform: 'translateY(22px) scale(.54,.14)' },
+  ] : [
+    { opacity: 1, transform: 'scale(1)' },
+    { opacity: .78, transform: 'scale(1.03)', offset: .2 },
+    { opacity: 0, transform: 'translateY(5px) scale(.72)' },
+  ], duration).finally(() => clone.remove()), animate(clone.querySelector('.unit-face'), [
+    { opacity: 1 }, { opacity: growth ? .58 : .28, offset: .42 }, { opacity: 0 },
+  ], duration)];
+}
+
+function swallow(screen, victim, eater, duration) {
+  if (!victim || !eater) return [];
+  const clone = ghostCard(screen, victim);
+  victim.node.style.opacity = '0';
+  const from = center(victim.rect);
+  const to = center(eater.rect);
+  const slide = point(to.x - from.x, to.y - from.y);
   return [animate(clone, [
     { opacity: 1, transform: 'scale(1)' },
-    { opacity: .30, transform: 'scale(.96)', offset: .57 },
-    { opacity: 0, transform: 'translateY(8px) scale(.79)' },
-  ], duration).finally(() => clone.remove())];
+    { opacity: .9, transform: slide + ' scale(.27)', offset: .68 },
+    { opacity: 0, transform: slide + ' scale(.06)' },
+  ], duration).finally(() => clone.remove()), animate(eater.node.querySelector('.unit-face'), [
+    { transform: 'scale(1)' },
+    { transform: 'scale(1)', offset: .5 },
+    { transform: 'scale(1.17,1.13)', offset: .69 },
+    { transform: 'scale(.96)', offset: .86 },
+    { transform: 'scale(1)' },
+  ], duration)];
 }
 
 function floatingNumber(screen, entry, value, kind, duration) {
@@ -112,20 +156,62 @@ function floatingNumber(screen, entry, value, kind, duration) {
   ], duration).finally(() => number.remove())];
 }
 
-function shield(screen, entry, duration) {
+function cardFlash(screen, entry, kind, keyframes, duration) {
   if (!entry) return [];
-  const flash = floatNode(screen, 'motion-shield', '⬟', center(entry.rect));
-  return [animate(flash, [
-    { transform: 'translate(-50%, -50%) scale(.70)', opacity: 0 },
-    { transform: 'translate(-50%, -50%) scale(1.18)', opacity: .95, offset: .35 },
-    { transform: 'translate(-50%, -50%) scale(1.45)', opacity: 0 },
-  ], duration).finally(() => flash.remove())];
+  const flash = floatNode(screen, 'motion-card-flash ' + kind, '', center(entry.rect));
+  flash.style.width = entry.rect.width + 'px';
+  flash.style.height = entry.rect.height + 'px';
+  return [animate(flash, keyframes, duration).finally(() => flash.remove())];
+}
+
+function shield(screen, entry, duration) {
+  return cardFlash(screen, entry, 'motion-shield-outline', [
+    { transform: 'translate(-50%, -50%) scale(.92)', opacity: 0 },
+    { transform: 'translate(-50%, -50%) scale(1.02)', opacity: .95, offset: .27 },
+    { transform: 'translate(-50%, -50%) scale(1.12)', opacity: 0 },
+  ], duration);
+}
+
+function hit(screen, entry, event, duration) {
+  if (!entry) return [];
+  const { node, rect } = entry;
+  const motions = [animate(node.querySelector('.unit-face'), [
+    { transform: 'translateX(0)' },
+    { transform: 'translateX(-4px) rotate(-2deg)', offset: .17 },
+    { transform: 'translateX(4px) rotate(2deg)', offset: .34 },
+    { transform: 'translateX(-2px)', offset: .56 },
+    { transform: 'translateX(0)' },
+  ], duration)];
+  motions.push(...cardFlash(screen, entry, 'motion-scratches', [
+    { transform: 'translate(-50%, -50%) scale(.95)', opacity: 0 },
+    { transform: 'translate(-50%, -50%) scale(1.03)', opacity: 1, offset: .23 },
+    { transform: 'translate(-50%, -50%) scale(1)', opacity: 0 },
+  ], duration));
+  if (event.absorbed && !node.querySelector('.armor-stat')) {
+    const { x, y } = center(rect);
+    burstParticles(screen.ownerDocument, 'shards', x, y, rect.width, duration);
+  }
+  motions.push(...floatingNumber(screen, entry, '−' + event.amount, 'damage', duration));
+  return motions;
+}
+
+function hop(screen, entry, duration) {
+  if (!entry) return [];
+  const { rect, node } = entry;
+  burstParticles(screen.ownerDocument, 'drops', center(rect).x, rect.bottom - 3, rect.width,
+    duration * .82, duration * .13);
+  return [animate(node, [
+    { transform: 'translateY(12px) scale(.43,.28)', opacity: 0 },
+    { transform: 'translateY(-9px) scale(.89,1.11)', opacity: 1, offset: .46 },
+    { transform: 'translateY(3px) scale(1.13,.88)', opacity: 1, offset: .72 },
+    { transform: 'translateY(0) scale(1)', opacity: 1 },
+  ], duration)];
 }
 
 function showActivation(screen, event, duration) {
   const field = screen.querySelector('.field-center');
   if (!field) return [];
-  const labels = { deathwish: 'Завещание', consume: 'Поглощение', leader: 'Лидер', order: 'Приказ' };
+  const labels = { deathwish: 'Завещание', leader: 'Лидер', order: 'Приказ' };
   const name = event.eater ?? event.name;
   const banner = floatNode(screen, 'motion-activation', labels[event.type] + ' · ' + name,
     center(field.getBoundingClientRect()));
@@ -155,33 +241,26 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
       motions.push(...fly(screen, event, current, origin, duration));
       break;
     case 'spawn':
-      for (const { id } of event.cards) {
-        motions.push(animate(current.get(id)?.node, [
-          { transform: 'translateY(11px) scale(.45)', opacity: 0 },
-          { transform: 'translateY(-4px) scale(1.12)', opacity: 1, offset: .56 },
-          { transform: 'translateY(0) scale(1)', opacity: 1 },
-        ], duration));
-      }
+      for (const { id } of event.cards) motions.push(...hop(screen, current.get(id), duration));
       break;
     case 'armor':
       motions.push(...shield(screen, entry, duration));
       break;
     case 'damage':
-      motions.push(animate(entry?.node.querySelector('.unit-face'), [
-        { transform: 'translateX(0)' },
-        { transform: 'translateX(-4px)', offset: .18 },
-        { transform: 'translateX(4px)', offset: .36 },
-        { transform: 'translateX(-2px)', offset: .57 },
-        { transform: 'translateX(0)' },
-      ], duration));
-      motions.push(...floatingNumber(screen, entry, '−' + event.amount, 'damage', duration));
+      motions.push(...hit(screen, entry, event, duration));
+      break;
+    case 'consume':
+      motions.push(...swallow(screen, entry, current.get(event.eaterId), duration));
       break;
     case 'boost':
       motions.push(...floatingNumber(screen, entry, '+' + event.amount, 'boost', duration));
       break;
     case 'death':
     case 'destroy':
-      motions.push(...leave(screen, previous.get(event.cardId), duration));
+      if (event.reason !== 'consume') {
+        const faction = screen.querySelector('[data-side="' + event.side + '"]')?.dataset.faction;
+        motions.push(...leave(screen, previous.get(event.cardId), faction, duration));
+      }
       break;
     default:
       motions.push(...showActivation(screen, event, duration));

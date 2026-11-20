@@ -1,7 +1,7 @@
 import { ROWS } from './game/cards.js';
 
 export function motionDuration(speed, reduced) {
-  if (speed === 'system' && reduced) return 0;
+  if (reduced) return 0;
   return speed === 'fast' ? 200 : 320;
 }
 

@@ -592,12 +592,6 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 }
 .motion-damage { color: #ff8282; }
 .motion-boost { color: #9ff6a2; }
-.motion-shield {
-  color: #bbedff;
-  font-size: 2.55rem;
-  line-height: 1;
-  text-shadow: 0 0 8px #8cdeff, 0 0 18px #94e5ff;
-}
 
 @media (max-width: 37rem) {
   .match-meta, .motion-setting { gap: .38rem; }

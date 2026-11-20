@@ -412,3 +412,17 @@ button.unit-order:not(:disabled)::before {
     font-size: 1.3rem;
   }
 }
+
+.motion-particles { inset: 0; width: 100%; height: 100%; }
+.motion-card-flash { box-sizing: border-box; border-radius: 5px; }
+.motion-shield-outline {
+  border: 2px solid #b4f7ff;
+  box-shadow: 0 0 12px #59c7ffc9, inset 0 0 10px #8be8ffe0;
+}
+.motion-scratches {
+  box-shadow: inset 0 0 14px #f24742;
+  background:
+    linear-gradient(143deg, transparent 43%, #ffd2c2 47%, #d93431 51%, transparent 55%) 40% 32% / 82% 37% no-repeat,
+    linear-gradient(153deg, transparent 44%, #ff9982 48%, transparent 54%) 67% 62% / 70% 28% no-repeat,
+    #ff422a38;
+}

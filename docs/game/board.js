@@ -58,7 +58,7 @@ export function removeUnit(match, unit, reason, consumerId) {
   player.board[row].splice(position, 1);
   const exile = reason === 'destroy' || card.definition.doomed;
   (exile ? player.exile : player.discard).push(card);
-  match.log.push({ type: reason === 'destroy' ? 'destroy' : 'death', side, name: card.definition.name, cardId: card.id, exile });
+  match.log.push({ type: reason === 'destroy' ? 'destroy' : 'death', side, name: card.definition.name, cardId: card.id, exile, reason });
   if (reason !== 'destroy' && card.definition.deathwish) {
     match.effects.unshift({
       ability: card.definition.deathwish, side, row, position, refs: { consumer: consumerId }, deathwish: card.definition.name,
