@@ -9,8 +9,8 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icon-192.png">
   <link rel="stylesheet" href="./style.css?v=landscape">
-  <link rel="stylesheet" href="./field.css?v=step-9-sound">
-  <script type="module" src="./app.js?v=step-9-sound"></script>
+  <link rel="stylesheet" href="./field.css?v=step-10-volume">
+  <script type="module" src="./app.js?v=step-10-volume"></script>
 </head>
 <body>
   <div id="app">
@@ -45,6 +45,12 @@
       </select>
     </label>
     <label class="sound-setting"><input id="sound-enabled" type="checkbox" checked> Звуки игры</label>
+    <div class="sound-setting sound-volume">
+      <label for="sound-volume">Громкость</label>
+      <input id="sound-volume" type="range" min="0" max="100" value="30">
+      <output id="sound-level" for="sound-volume"></output>
+      <button id="sound-test" type="button" class="button">Проверить звук</button>
+    </div>
     <button id="fullscreen" type="button" class="button">На весь экран</button>
     <p id="fullscreen-status" class="muted" role="status"></p>
     <div id="match-menu" class="settings-actions" hidden>

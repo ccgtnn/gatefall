@@ -5,15 +5,24 @@ const CUES = {
   win: { wave: 'triangle', notes: [[440, 440, 0, .095], [554, 554, .075, .095], [659, 659, .15, .16]] },
 };
 
-export function createSoundEffects(initiallyEnabled, AudioContext = globalThis.AudioContext ?? globalThis.webkitAudioContext) {
+export const DEFAULT_VOLUME = .3;
+
+export function createSoundEffects(initiallyEnabled, AudioContext = globalThis.AudioContext ?? globalThis.webkitAudioContext,
+  initialVolume = DEFAULT_VOLUME) {
   let enabled = initiallyEnabled;
   let context;
   let volume;
+  let level = initialVolume;
   const lastPlayed = new Map();
 
   function setEnabled(value) {
     enabled = value;
-    if (volume) volume.gain.setValueAtTime(value ? .045 : 0, context.currentTime);
+    if (volume) volume.gain.setValueAtTime(value ? level : 0, context.currentTime);
+  }
+
+  function setVolume(value) {
+    level = value;
+    setEnabled(enabled);
   }
 
   function unlock() {
@@ -22,10 +31,10 @@ export function createSoundEffects(initiallyEnabled, AudioContext = globalThis.A
       if (!context) {
         context = new AudioContext();
         volume = context.createGain();
-        volume.gain.value = .045;
+        volume.gain.value = level;
         volume.connect(context.destination);
       }
-      if (context.state !== 'running') context.resume().catch(() => {});
+      if (context.state !== 'running') return context.resume().catch(() => {});
     } catch {
       // Sound is optional when the browser cannot open an audio output.
     }
@@ -61,5 +70,10 @@ export function createSoundEffects(initiallyEnabled, AudioContext = globalThis.A
     }
   }
 
-  return { setEnabled, unlock, play };
+  async function testSound() {
+    await unlock();
+    play({ type: 'round-end', winner: 'human' });
+  }
+
+  return { setEnabled, setVolume, unlock, play, testSound };
 }

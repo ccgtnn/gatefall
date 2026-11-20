@@ -56,3 +56,18 @@ test('muting silences the output and prevents new cues until enabled again', () 
   sounds.play({ type: 'damage' });
   assert.deepEqual(tones, [440, 165]);
 });
+
+test('volume changes update the live mix and the sound check plays the sample cue', async () => {
+  const { tones, gains, AudioContext } = audioStub();
+  const sounds = createSoundEffects(true, AudioContext);
+  await sounds.testSound();
+  assert.equal(gains[0].value, .3);
+  sounds.setVolume(.72);
+  assert.equal(gains[0].value, .72);
+  sounds.setEnabled(false);
+  sounds.setVolume(.42);
+  assert.equal(gains[0].value, 0);
+  sounds.setEnabled(true);
+  assert.equal(gains[0].value, .42);
+  assert.deepEqual(tones, [440, 554, 659]);
+});

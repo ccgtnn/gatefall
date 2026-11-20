@@ -1,6 +1,6 @@
 import { bindCardPlacement } from './card-placement.js?v=field-6';
 import { presentJournalEvent } from './card-motion.js?v=step-7';
-import { createSoundEffects } from './sound.js?v=step-9';
+import { createSoundEffects, DEFAULT_VOLUME } from './sound.js?v=step-10-volume';
 import { motionDuration, playJournal } from './turn-playback.js?v=round-results';
 import { CARD_TYPES, FACTIONS, KEYWORDS, RARITY_LABELS, ROWS, ROW_LABELS } from './game/cards.js?v=growth-art-3';
 import { cardType, isUnit } from './game/board.js';
@@ -39,14 +39,40 @@ speedSetting.addEventListener('change', () => {
 });
 
 const soundSetting = document.querySelector('#sound-enabled');
+const volumeSetting = document.querySelector('#sound-volume');
+const volumeLabel = document.querySelector('#sound-level');
+const soundTest = document.querySelector('#sound-test');
 const soundKey = 'gatefall.sound-enabled';
-try { soundSetting.checked = localStorage.getItem(soundKey) !== 'off'; } catch {}
-const sounds = createSoundEffects(soundSetting.checked);
+const volumeKey = 'gatefall.sound-volume';
+volumeSetting.value = DEFAULT_VOLUME * 100;
+try {
+  soundSetting.checked = localStorage.getItem(soundKey) !== 'off';
+  const saved = localStorage.getItem(volumeKey);
+  if (saved !== null && Number.isFinite(Number(saved))) volumeSetting.value = saved;
+} catch {}
+
+const sounds = createSoundEffects(soundSetting.checked, undefined, Number(volumeSetting.value) / 100);
+function syncSoundControls() {
+  volumeLabel.value = volumeSetting.value + '%';
+  soundTest.disabled = !soundSetting.checked || Number(volumeSetting.value) === 0;
+}
+syncSoundControls();
+
 soundSetting.addEventListener('change', () => {
   sounds.setEnabled(soundSetting.checked);
   if (soundSetting.checked) sounds.unlock();
+  syncSoundControls();
   try { localStorage.setItem(soundKey, soundSetting.checked ? 'on' : 'off'); } catch {}
 });
+volumeSetting.addEventListener('input', () => {
+  sounds.setVolume(Number(volumeSetting.value) / 100);
+  syncSoundControls();
+  try { localStorage.setItem(volumeKey, volumeSetting.value); } catch {}
+});
+soundTest.addEventListener('click', sounds.testSound);
+for (const type of ['pointerdown', 'pointerup', 'keydown']) {
+  document.addEventListener(type, sounds.unlock, { capture: true, passive: true });
+}
 
 function updateSystemSpeed() {
   systemSpeed.textContent = reducedMotion.matches ? 'По системе (выключены)' : 'По системе (обычная)';
@@ -336,7 +362,6 @@ function showNotice(notice, text, duration) {
 }
 
 function start(faction) {
-  sounds.unlock();
   mulliganFieldVisible = false;
   announcement.textContent = '';
   match = createMatch({ humanFaction: faction });
@@ -898,7 +923,6 @@ async function updateMatch(next) {
 
 async function playHuman(action) {
   if (!match || replaying) return;
-  sounds.unlock();
   const session = matchSession;
   await updateMatch(applyAction(match, 'human', action));
   if (session === matchSession && match && humanCanAct()) screen.querySelector('#pass-button:enabled')?.focus({ preventScroll: true });

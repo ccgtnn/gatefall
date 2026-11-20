@@ -158,6 +158,8 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   margin-top: .75rem;
 }
 .sound-setting { display: block; margin-bottom: .75rem; }
+.sound-volume { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .65rem; }
+.sound-volume input { flex: 1; min-width: 6rem; }
 #leave-description { margin-top: .45rem; }
 .opponent-passed {
   position: absolute;
