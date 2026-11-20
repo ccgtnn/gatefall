@@ -19,10 +19,11 @@ function targets(match, job, query) {
     case 'ref': candidates = [reference(match, job, query.ref)].filter(Boolean); break;
     case 'neighbors': candidates = neighbors(match, origin); break;
     case 'ally': candidates = units(match, job.side); break;
+    case 'field': candidates = [...units(match, job.side), ...units(match, opponent(job.side))]; break;
     case 'enemy': candidates = units(match, opponent(job.side)); break;
     default: throw new Error(`Unknown target scope: ${query.scope}`);
   }
-  return candidates.filter((unit) =>
+  const eligible = candidates.filter((unit) =>
     (!row || unit.row === row) &&
     (!query.type || cardType(unit.card) === query.type) &&
     (!query.unitOrOrder || isUnit(unit.card) || unit.card.definition.order) &&
@@ -31,6 +32,9 @@ function targets(match, job, query) {
     (!query.exclude || unit.card.id !== reference(match, job, query.exclude)?.card.id) &&
     (query.armorAtLeast === undefined || (unit.card.armor ?? 0) >= query.armorAtLeast) &&
     (query.powerAtLeast === undefined || (unit.card.power ?? 0) >= query.powerAtLeast));
+  if (!query.strongest) return eligible;
+  const strongest = Math.max(...eligible.map(({ card }) => card.power));
+  return eligible.filter(({ card }) => card.power === strongest);
 }
 
 function viableChoices(match, job, index) {
@@ -74,8 +78,13 @@ function canStart(match, job) {
     (!select?.length || viableChoices(match, job, 0).length > 0);
 }
 
+export function playTiming(match, side, card) {
+  return card.definition.initiative && !match.players[side].roundActed ? 'initiative' : 'deploy';
+}
+
 export function canCast(match, side, card) {
-  return Boolean(card.definition.deploy && canStart(match, { ability: card.definition.deploy, side }));
+  const ability = card.definition[playTiming(match, side, card)];
+  return Boolean(ability && canStart(match, { ability, side }));
 }
 
 export function canUseLeader(match, side) {
@@ -218,7 +227,6 @@ const operations = {
   },
   boost,
   damage,
-  destroy: (match, target) => removeUnit(match, target, 'destroy'),
   tick: (match, target) => {
     const { card, side } = target;
     if (!(card.timer > 0)) return;
@@ -288,7 +296,9 @@ export function runEffect(match, job, random) {
   }
 
   if (!job.remaining) {
-    job.remaining = targets(match, job, step.target).map(({ card }) => card.id);
+    const eligible = targets(match, job, step.target);
+    const selected = step.mode === 'random' && eligible.length > 1 ? [eligible[Math.floor(random() * eligible.length)]] : eligible;
+    job.remaining = selected.map(({ card }) => card.id);
     if (step.grouped && job.remaining.length) {
       const [receiver] = targets(match, job, step.receiver);
       emit(match, { type: 'consume-group', side: job.side, cardIds: [...job.remaining], eaterId: receiver.card.id });
@@ -307,6 +317,8 @@ export function runEffect(match, job, random) {
   if (step.action === 'consume') {
     const [receiver] = targets(match, job, step.receiver);
     result = consume(match, target, receiver, step);
+  } else if (step.action === 'destroy') {
+    removeUnit(match, target, 'destroy', undefined, step.visual ? { visual: step.visual } : undefined);
   } else if (step.action === 'status') {
     result = applyStatus(match, target, step.status, valueOf(match, job, step.amount, target));
   } else {
@@ -317,12 +329,34 @@ export function runEffect(match, job, random) {
   if (step.save) job.results[step.save] = (job.results[step.save] ?? 0) + (result ?? 0);
 }
 
+function strongestDestruction(match, side, card) {
+  const ability = card.definition[playTiming(match, side, card)];
+  const step = ability?.steps.find(({ action, target }) => action === 'destroy' && target.strongest);
+  if (!step) return;
+  const options = targets(match, { side }, step.target);
+  return { options, random: step.mode === 'random' };
+}
+
+export function destructionSwing(match, side, card) {
+  const destruction = strongestDestruction(match, side, card);
+  if (!destruction) return;
+  const { options, random } = destruction;
+  const swing = options.reduce((sum, target) => sum + (target.side === side ? -1 : 1) * target.card.power, 0);
+  return swing / (random ? Math.max(1, options.length) : 1);
+}
+
+export function destructionRolls(match, side, card) {
+  const destruction = card && strongestDestruction(match, side, card);
+  const count = destruction?.random ? destruction.options.length : 0;
+  return count > 1 ? Array.from({ length: count }, (_, index) => (index + .5) / count) : [.5];
+}
+
 // Estimate immediate score swing from public targets for the bot's existing pass calculation.
 export function effectSwing(match, side, card) {
   const ability = card.definition.deploy;
   const player = match.players[side];
   const job = { ability, side };
-  let swing = 0;
+  let swing = destructionSwing(match, side, card) ?? 0;
   for (const step of ability?.steps ?? []) {
     if (step.action === 'consume') swing += step.extra ?? 0;
     if (step.action === 'play-from-deck') {

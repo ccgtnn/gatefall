@@ -51,14 +51,14 @@ function events(match, type) {
   return match.log.filter((event) => event.type === type);
 }
 
-test('each selectable deck has 26 instances, two of each bronze and one of each gold', () => {
+test('each selectable deck has 27 instances, two of each bronze and one of each gold', () => {
   for (const [key, faction] of Object.entries(FACTIONS)) {
     const match = fixture({ faction: key, charges: 2 });
     const cards = [...match.players.human.hand, ...match.players.human.deck];
-    assert.equal(cards.length, 26);
-    assert.equal(new Set(cards.map(({ id }) => id)).size, 26);
+    assert.equal(cards.length, 27);
+    assert.equal(new Set(cards.map(({ id }) => id)).size, 27);
     assert.equal(cards.filter(({ definition }) => definition.rarity === 'bronze').length, 22);
-    assert.equal(cards.filter(({ definition }) => definition.rarity === 'gold').length, 4);
+    assert.equal(cards.filter(({ definition }) => definition.rarity === 'gold').length, 5);
     for (const { definition } of cards) {
       assert.equal('row' in definition, false);
       assert.ok(definition.provision >= 4);
@@ -304,7 +304,7 @@ test('live faction matches resolve all choices, keep card identities unique, and
         const resolving = match.effects.filter(({ discard }) => discard && match.players[match.turn] === field)
           .map(({ discard }) => discard);
         const cards = [...field.hand, ...field.deck, ...field.discard, ...field.exile, ...Object.values(field.board).flat(), ...resolving];
-        assert.equal(cards.filter(({ definition }) => !definition.token).length, 26);
+        assert.equal(cards.filter(({ definition }) => !definition.token).length, 27);
         assert.equal(new Set(cards.map(({ id }) => id)).size, cards.length);
         assert.ok(field.discard.every(({ definition }) => !definition.doomed));
       }

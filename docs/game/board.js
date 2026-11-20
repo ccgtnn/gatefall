@@ -110,7 +110,7 @@ export function tickInfection(match, unit) {
   if (card.power === 0) removeUnit(match, unit, 'infection');
 }
 
-export function removeUnit(match, unit, reason, consumerId) {
+export function removeUnit(match, unit, reason, consumerId, extra) {
   const { side, row, card, position } = unit;
   const player = match.players[side];
   player.board[row].splice(position, 1);
@@ -118,7 +118,7 @@ export function removeUnit(match, unit, reason, consumerId) {
   (exile ? player.exile : player.discard).push(card);
   const death = reason === 'destroy' ? undefined : { row, position, refs: { consumer: consumerId } };
   match.effects.unshift(...emit(match, {
-    type: death ? 'death' : 'destroy', side, name: card.definition.name, cardId: card.id, exile, reason,
+    type: death ? 'death' : 'destroy', side, name: card.definition.name, cardId: card.id, exile, reason, ...extra,
   }, { source: card, death }));
 }
 

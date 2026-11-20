@@ -1,6 +1,6 @@
 import { ROWS } from './cards.js?v=card-art-13';
 import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=card-art-13';
-import { availableOrders, canUseLeader, effectSwing, rowArmor } from './effects.js?v=card-art-13';
+import { availableOrders, canUseLeader, destructionSwing, effectSwing, rowArmor } from './effects.js?v=card-art-13';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=card-art-13';
 
 import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=card-art-13';
@@ -11,7 +11,7 @@ export const BOT_DELAY_MS = 700;
 export function createBotView(match) {
   const { human, bot } = match.players;
   return {
-    cards: playableCards(match, 'bot').map((card) => {
+    cards: playableCards(match, 'bot').filter((card) => bot.usedAbility || !(destructionSwing(match, 'bot', card) < 0)).map((card) => {
       if (cardType(card) === 'effect') return { ...card, swing: effectSwing(match, 'bot', card) };
       if (card.definition.id !== 'broodlord') return card;
       const rows = ROWS.filter((row) => bot.board[row].length < ROW_LIMIT);

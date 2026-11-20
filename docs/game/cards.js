@@ -6,6 +6,7 @@ export const ROW_LABELS = Object.freeze({
 });
 
 export const CARD_TYPES = Object.freeze({ unit: 'Отряд', effect: 'Эффект', artifact: 'Артефакт' });
+export const NEUTRAL = 'neutral';
 export const RARITY_LABELS = Object.freeze({ bronze: 'Бронза', gold: 'Золото' });
 export const KEYWORDS = Object.freeze({
   'Урон': 'Сначала снимает броню, затем силу. Отряд с нулевой силой гибнет.',
@@ -13,6 +14,7 @@ export const KEYWORDS = Object.freeze({
   'Усиление': 'Увеличивает текущую силу отряда.',
   'Порождение': 'Добавляет новую карту в ряд, если есть место.',
   'Поглощение': 'Своя жертва гибнет, её текущая сила переходит поглотившему, если карта не задаёт иное.',
+  'Инициатива': 'Бонус, если розыгрыш этой карты — твоё первое действие в раунде. Лидер и Приказы тоже считаются действиями.',
   'Уничтожение': 'Удаляет карту из игры без Завещания.',
   'Завещание': 'Срабатывает при гибели от урона, поглощения, Заражения или таймера.',
   'Заражение': 'В конце хода владельца отряд теряет 1 силу в обход брони. Затем счётчик уменьшается на 1.',
@@ -164,13 +166,25 @@ const growth = [
       keywords: ['Поглощение'] }],
 ];
 
+const strongest = { scope: 'field', type: 'unit', strongest: true };
+const strongestPresent = { targets: strongest };
+const annihilate = { action: 'destroy', target: strongest, visual: 'annihilation' };
+
+export const ANNIHILATION = Object.freeze({
+  id: 'annihilation', name: 'Аннигиляция', faction: NEUTRAL, type: 'effect', rarity: 'gold', provision: 12,
+  text: 'Уничтожь сильнейший отряд на поле, свой или чужой. При равенстве выбери случайный из сильнейших. Инициатива: уничтожь все отряды с наибольшей силой.',
+  deploy: { ...ability([{ ...annihilate, mode: 'random' }]), when: strongestPresent },
+  initiative: { ...ability([annihilate]), when: strongestPresent },
+  keywords: ['Уничтожение', 'Инициатива'],
+});
+
 function factionCards(entries, faction) {
-  return Object.freeze(entries.flatMap(([id, name, provision, power, text, rules], index) => {
+  return Object.freeze([...entries.flatMap(([id, name, provision, power, text, rules], index) => {
     const rarity = index < 11 ? 'bronze' : 'gold';
     const stats = power === null ? {} : { power };
     const definition = Object.freeze({ id, name, provision, type: 'unit', text, rarity, faction, ...stats, ...rules });
     return rarity === 'bronze' ? [definition, definition] : [definition];
-  }));
+  }), ANNIHILATION]);
 }
 
 const protectorateLeaders = Object.freeze([

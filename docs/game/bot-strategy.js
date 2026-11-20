@@ -1,6 +1,6 @@
 import { ROWS } from './cards.js?v=card-art-13';
 import { cardType, units } from './board.js?v=card-art-13';
-import { availableOrders, canUseLeader } from './effects.js?v=card-art-13';
+import { availableOrders, canUseLeader, destructionRolls, destructionSwing } from './effects.js?v=card-art-13';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=card-art-13';
 
 const PASS = { type: 'pass' };
@@ -79,12 +79,15 @@ function placements(state, side, card, rows = ROWS) {
 }
 
 function plays(state, side) {
-  const options = playableCards(state, side).map((card) => {
-    const action = { type: 'play', cardId: card.id };
-    const cost = (card.definition.provision ?? 4) + (card.power ?? 0) * .15;
-    if (cardType(card) === 'effect') return [{ action, cost }];
-    return placements(state, side, card).map((placement) => ({ action: { ...action, ...placement }, cost }));
-  });
+  const player = state.players[side];
+  const options = playableCards(state, side)
+    .filter((card) => player.usedAbility || !(destructionSwing(state, side, card) < 0))
+    .map((card) => {
+      const action = { type: 'play', cardId: card.id };
+      const cost = (card.definition.provision ?? 4) + (card.power ?? 0) * .15;
+      if (cardType(card) === 'effect') return [{ action, cost }];
+      return placements(state, side, card).map((placement) => ({ action: { ...action, ...placement }, cost }));
+    });
   // Visit a placement for every card before spending the budget on extra positions.
   return Array.from({ length: Math.max(0, ...options.map((group) => group.length)) }, (_, index) =>
     options.flatMap((group) => group[index] ? [group[index]] : [])).flat();
@@ -121,15 +124,35 @@ function evaluateAction(state, side, action, search) {
     let best;
     for (const continuation of actions) {
       if (search.expired()) break;
-      const following = applyAction(next, actor, continuation, SIMULATION);
-      if (following === next) continue;
-      const result = finish(following, depth + 1);
+      const result = advance(next, actor, continuation, depth + 1);
       if (result && (!best || (actor === 'bot' ? result.rating > best.rating : result.rating < best.rating))) best = result;
     }
     return best;
   }
-  const next = applyAction(state, side, action, SIMULATION);
-  return next === state ? undefined : finish(next, 0);
+  function advance(before, actor, move, depth) {
+    const card = move.type === 'play' && before.players[actor].hand.find(({ id }) => id === move.cardId);
+    const rolls = destructionRolls(before, actor, card);
+    if (rolls.length === 1) {
+      const next = applyAction(before, actor, move, SIMULATION);
+      return next === before ? undefined : finish(next, depth);
+    }
+
+    let worst;
+    let total = 0;
+    for (const roll of rolls) {
+      if (search.expired()) return;
+      const next = applyAction(before, actor, move, { random: () => roll });
+      const result = next !== before && finish(next, depth);
+      if (!result) return;
+      total += result.rating;
+      // Pass calculations require a line that wins even if the tie goes against the actor.
+      if (!worst || (actor === 'bot' ? margin(result.next) < margin(worst) : margin(result.next) > margin(worst))) {
+        worst = result.next;
+      }
+    }
+    return { next: worst, rating: total / rolls.length };
+  }
+  return advance(state, side, action, 0);
 }
 
 function deadline(time = BOT_BUDGET_MS) {

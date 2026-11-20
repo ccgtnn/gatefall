@@ -1,6 +1,6 @@
 import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=card-art-13';
 import { announcePlay, availableRows, cardType, createCard, opponent, placeCards, playDestination, statusCount, units } from './board.js?v=card-art-13';
-import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, orderAbility, runEffect } from './effects.js?v=card-art-13';
+import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, orderAbility, playTiming, runEffect } from './effects.js?v=card-art-13';
 
 export { availableRows, ROW_LIMIT } from './board.js?v=card-art-13';
 
@@ -42,6 +42,7 @@ function createPlayer(side, definitions, random, factionId, leader, charges) {
     exile: [],
     turns: 0,
     usedAbility: false,
+    roundActed: false,
     extraSwaps: 0,
     leader: leader ? { ...leader, charges } : null,
     faction: faction?.name,
@@ -145,6 +146,7 @@ export function replaceMulliganCard(match, cardId) {
 }
 
 function beginRound(match) {
+  for (const player of Object.values(match.players)) player.roundActed = false;
   match.phase = 'playing';
   match.turn = match.starter;
   match.log.push({ type: 'round-start', round: match.round, side: match.starter });
@@ -334,16 +336,20 @@ export function applyAction(match, side, action, { random = Math.random } = {}) 
       placeCards(current, row, position, [card]);
     }
     announcePlay(next, side, card, destination);
-    enqueueCardEffect(next, side, card, 'deploy', Boolean(destination));
+    const timing = playTiming(next, side, card);
+    current.roundActed = true;
+    enqueueCardEffect(next, side, card, timing, Boolean(destination));
     if (!destination) next.effects.push({ discard: card, side });
     next.playedCard = true;
   } else if (type === 'leader') {
     current.usedAbility = true;
+    current.roundActed = true;
     current.leader.charges -= 1;
     next.log.push({ type: 'leader', side, name: current.leader.name });
     next.effects.push({ ability: current.leader.ability, side });
   } else {
     current.usedAbility = true;
+    current.roundActed = true;
     const { card } = availableOrders(next, side).find((unit) => unit.card.id === cardId);
     const order = card.definition.order;
     card.readyAt = current.turns + (order.cooldown ?? 0) + 1;
