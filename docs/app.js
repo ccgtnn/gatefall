@@ -1,5 +1,5 @@
 import { bindCardPlacement } from './card-placement.js?v=field-6';
-import { presentJournalEvent } from './card-motion.js?v=field-6';
+import { presentJournalEvent } from './card-motion.js?v=step-7';
 import { motionDuration, playJournal } from './turn-playback.js?v=motion-settings';
 import { CARD_TYPES, FACTIONS, KEYWORDS, RARITY_LABELS, ROWS, ROW_LABELS } from './game/cards.js?v=growth-art-3';
 import { cardType, isUnit } from './game/board.js';
@@ -13,6 +13,7 @@ import {
 const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
 const phaseLabel = document.querySelector('#phase');
+const notice = document.querySelector('#match-notice');
 const announcement = document.querySelector('#announcement');
 const settings = document.querySelector('#settings');
 const fullscreenButton = document.querySelector('#fullscreen');
@@ -75,6 +76,7 @@ document.querySelector('#start-settings').addEventListener('click', showSettings
 
 let match;
 let timer;
+let noticeTimer;
 let selectedCardId;
 let replaying = false;
 let mulliganFieldVisible = false;
@@ -93,6 +95,12 @@ document.body.append(preview);
 preview.addEventListener('click', (event) => {
   if (event.target === preview) preview.close();
 });
+for (const surface of [screen, drawer, preview]) {
+  surface.addEventListener('contextmenu', (event) => {
+    if (surface !== screen || app.classList.contains('in-match')) event.preventDefault();
+  });
+}
+
 const sideLabel = { human: 'Ты', bot: 'Бот' };
 
 const cancelPlacement = bindCardPlacement(screen, (cardId, row, position) => {
@@ -182,7 +190,7 @@ function showCard(card, { leader = false } = {}) {
   if (!preview.open) preview.showModal();
 }
 
-function cardInspection(node, card, placement = false) {
+function cardInspection(node, card, placement = false, show = () => showCard(card)) {
   let holdTimer;
   let activated;
   let pendingClick;
@@ -191,22 +199,25 @@ function cardInspection(node, card, placement = false) {
     event.preventDefault();
     clearTimeout(holdTimer);
     clearTimeout(pendingClick);
-    showCard(card);
+    if (node.isConnected) show();
   }
   node.addEventListener('dblclick', inspect);
-  node.addEventListener('contextmenu', inspect);
+  node.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+    if (event.pointerType !== 'touch' && !event.sourceCapabilities?.firesTouchEvents) inspect(event);
+  });
   node.addEventListener('keydown', (event) => {
     if (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)) inspect(event);
   });
   if (!placement) {
     node.addEventListener('pointerdown', (event) => {
       activated = false;
-      if (event.pointerType !== 'touch') return;
+      if (!event.isPrimary || event.pointerType !== 'touch') return;
       firstX = event.clientX;
       firstY = event.clientY;
       holdTimer = setTimeout(() => {
         activated = true;
-        showCard(card);
+        if (node.isConnected) show();
       }, 450);
     });
     node.addEventListener('pointermove', (event) => {
@@ -277,12 +288,26 @@ function eventText(event) {
   }
 }
 
+function hideNotice() {
+  clearTimeout(noticeTimer);
+  notice.hidden = true;
+  notice.textContent = '';
+}
+
+function showNotice(text, duration) {
+  clearTimeout(noticeTimer);
+  notice.textContent = text;
+  notice.hidden = false;
+  noticeTimer = setTimeout(hideNotice, duration);
+}
+
 function start(faction) {
   clearTimeout(timer);
   mulliganFieldVisible = false;
   selectedCardId = undefined;
   match = createMatch({ humanFaction: faction });
   render();
+  showNotice('Монетка: ты ходишь ' + (match.starter === 'human' ? 'первым' : 'вторым'), 1500);
   screen.querySelector('h2').focus();
 }
 
@@ -467,7 +492,10 @@ function rowView(side, player, row, readyOrders) {
   const score = element('strong', 'row-score', strength);
   score.title = ROW_LABELS[row] + ' · ' + strength;
   score.setAttribute('aria-label', score.title);
-  label.append(element('span', 'row-name', ROW_LABELS[row]), score);
+  if (side === 'bot') label.title = score.title;
+  const rowIcon = element('span', 'row-icon', row === 'orbit' ? '◎' : '▲');
+  rowIcon.setAttribute('aria-hidden', 'true');
+  label.append(rowIcon, score);
   const slots = element('div', 'row-line');
   slots.dataset.castZone = '';
   const cards = player.board[row];
@@ -528,6 +556,7 @@ function sideView(side) {
   const rows = side === 'bot' ? ROWS : [...ROWS].reverse();
   const readyOrders = new Set(availableOrders(match, side).map(({ card }) => card.id));
   section.append(...rows.map((row) => rowView(side, player, row, readyOrders)));
+  if (side === 'bot' && player.passed) section.append(element('p', 'opponent-passed', 'ПАС'));
   return section;
 }
 
@@ -585,6 +614,7 @@ function leaderView(side) {
   portrait.setAttribute('aria-label', 'Лидер · ' + leader.name);
   portrait.title = leader.name;
   if (leader.art) portrait.append(cardArt(leader, 'leader-image'));
+  cardInspection(portrait, { definition: leader }, false, () => showCard({ definition: leader }, { leader: true }));
   const power = button('ϟ ' + leader.charges, () => playHuman({ type: 'leader' }), 'leader-power');
   power.title = leader.text;
   power.setAttribute('aria-label', leader.name + ' · зарядов ' + leader.charges);
@@ -604,7 +634,7 @@ function scoreView(side) {
   lives.setAttribute('aria-label', 'Жизни ' + player.lives + '/2');
   panel.append(total, lives);
   if (side === 'bot') panel.append(element('span', 'field-round', 'Раунд ' + match.round));
-  if (player.passed) panel.append(element('span', 'field-passed', 'Пас'));
+  if (side === 'human' && player.passed) panel.append(element('span', 'field-passed', 'Пас'));
   return panel;
 }
 
@@ -660,15 +690,12 @@ function battlefield() {
   const game = element('div', 'match-screen');
   const field = element('div', 'match-board');
   const { pending, players, phase } = match;
-  const turn = element('p', 'turn', replaying ? 'Розыгрыш…' : pending
-    ? pending.side === 'human' ? pending.prompt : 'Бот выбирает цель…'
-    : phase === 'mulligan' ? 'Перед раундом'
-    : match.turn === 'human' ? 'Твой ход' : 'Ход бота');
-  if (pending?.side === 'human') turn.classList.add('target-prompt');
-  turn.id = 'turn-label';
-  turn.tabIndex = -1;
+  field.classList.toggle('is-human-turn', phase === 'playing' && !replaying && match.turn === 'human');
   const center = element('div', 'field-center battlefield');
-  center.append(sideView('bot'), turn, sideView('human'));
+  center.append(sideView('bot'), sideView('human'));
+  if (!replaying && pending?.side === 'human') {
+    center.append(element('p', 'field-message target-prompt', pending.prompt));
+  }
   const left = element('div', 'field-rail field-left');
   left.append(settingsButton(), pileView('bot', 'discard'), leaderView('bot'),
     iconButton('▤', 'Журнал ходов', () => showDrawer('journal'), 'field-log'),
@@ -775,13 +802,19 @@ async function updateMatch(next) {
     mulliganFieldVisible = false;
   }
   render();
+  const changedTurn = match.phase === 'playing' && match.turn !== before.turn;
+  if (changedTurn) showNotice(match.turn === 'human' ? 'Твой ход' : 'Ход противника', 1000);
+  else if (match.phase !== 'playing') hideNotice();
   announcement.textContent = events.map(eventText).join(' ');
   if (match.phase === 'finished' || match.phase === 'mulligan') screen.querySelector('h2')?.focus({ preventScroll: true });
   else if (match.pending?.side === 'human') {
     const target = screen.querySelector('.effect-target');
     target?.focus({ preventScroll: true });
   } else if ((match.pending?.side ?? match.turn) === 'bot') {
-    timer = setTimeout(() => updateMatch(applyAction(match, 'bot', chooseBotTurn(match))), BOT_DELAY_MS);
+    const delay = changedTurn ? Math.max(BOT_DELAY_MS, 1000) : BOT_DELAY_MS;
+    timer = setTimeout(() => updateMatch(applyAction(match, 'bot', chooseBotTurn(match))), delay);
+  } else if (before.phase === 'mulligan') {
+    screen.querySelector('#pass-button:enabled')?.focus({ preventScroll: true });
   }
 }
 

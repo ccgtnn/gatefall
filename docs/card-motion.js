@@ -53,9 +53,9 @@ function oldHandPosition(screen, id) {
 
 function fly(screen, event, current, handOrigin, duration) {
   const target = current.get(event.cardId);
-  const centerline = screen.querySelector('#turn-label');
-  if (!target && !centerline) return [];
-  const destination = center(target?.rect ?? centerline.getBoundingClientRect());
+  const field = screen.querySelector('.field-center');
+  if (!target && !field) return [];
+  const destination = center(target?.rect ?? field.getBoundingClientRect());
   const view = screen.ownerDocument.defaultView;
   const from = handOrigin ?? { x: destination.x, y: -30 };
   const startY = Math.max(-40, Math.min(view.innerHeight + 40, from.y));
@@ -123,12 +123,12 @@ function shield(screen, entry, duration) {
 }
 
 function showActivation(screen, event, duration) {
-  const turn = screen.querySelector('#turn-label');
-  if (!turn) return [];
+  const field = screen.querySelector('.field-center');
+  if (!field) return [];
   const labels = { deathwish: 'Завещание', consume: 'Поглощение', leader: 'Лидер', order: 'Приказ' };
   const name = event.eater ?? event.name;
   const banner = floatNode(screen, 'motion-activation', labels[event.type] + ' · ' + name,
-    center(turn.getBoundingClientRect()));
+    center(field.getBoundingClientRect()));
   return [animate(banner, [
     { opacity: 0, transform: 'translate(-50%, -40%)' },
     { opacity: 1, transform: 'translate(-50%, -50%)', offset: .36 },

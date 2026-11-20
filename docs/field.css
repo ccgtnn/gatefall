@@ -1,15 +1,22 @@
 body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
+.match-screen, .field-drawer, .card-preview, .drag-ghost {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.match-screen :is(.hand-card, .unit-face, .leader-portrait) { touch-action: none; }
 
 #app.in-match {
-  --field-gap: clamp(2px, .7dvh, 8px);
+  --field-gap: clamp(1px, .35dvh, 4px);
+  position: relative;
   --field-paper: #c5d5df;
   --field-edge: #324652;
   display: grid;
   grid-template-rows: minmax(0, 1fr);
   width: min(100%, 100rem);
   height: 100dvh;
-  padding: max(3px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right))
-    max(3px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+  padding: max(1px, env(safe-area-inset-top)) max(2px, env(safe-area-inset-right))
+    max(1px, env(safe-area-inset-bottom)) max(2px, env(safe-area-inset-left));
   color: var(--field-paper);
   background: #0e151d;
 }
@@ -32,8 +39,8 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   --hand-width: clamp(30px, min(12dvh, 10vw), 105px);
   display: grid;
   grid-template:
-    "left bot right" minmax(0, .42fr)
-    "left center right" minmax(0, 5fr)
+    "left bot right" minmax(0, .38fr)
+    "left center right" minmax(0, 5.25fr)
     "left hand right" minmax(0, 1.18fr) /
     var(--rail-width) minmax(0, 1fr) var(--rail-width);
   gap: var(--field-gap);
@@ -42,11 +49,13 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
 
 .field-center {
   grid-area: center;
+  position: relative;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: var(--field-gap);
 }
 .field-center .side {
+  position: relative;
   display: grid;
   grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: var(--field-gap);
@@ -57,11 +66,11 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   position: relative;
   display: grid;
   container-type: size;
-  grid-template-columns: minmax(0, 1fr) clamp(55px, 8dvh, 76px);
+  grid-template-columns: clamp(25px, 5.6dvh, 52px) minmax(0, 1fr);
   gap: 0;
   align-items: stretch;
   min-height: 0;
-  padding: 2px;
+  padding: 0;
   border: 1px solid #597d902f;
   border-radius: 5px;
   background: radial-gradient(ellipse at center, #3d5a7030, transparent 75%),
@@ -69,52 +78,95 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
 }
 
 .field-center .row-line {
-  grid-column: 1;
+  --row-card-gap: clamp(1px, .4dvh, 4px);
+  --slot-width: min(calc((100% - 8 * var(--row-card-gap)) / 9), calc(100cqh * 2 / 3));
+  grid-column: 2;
   grid-row: 1;
-  --slot-width: min(calc((100% - 1.65rem) / 9), calc(100cqh * 2 / 3));
+  gap: var(--row-card-gap);
+  padding: 0;
   min-height: 0;
 }
 
 .field-center .row-label {
-  grid-column: 2;
+  grid-column: 1;
   grid-row: 1;
-  flex-flow: column;
   justify-content: center;
   align-items: center;
-  gap: 0;
+  gap: 1px;
   min-width: 0;
-  padding: 0 2px;
+  padding: 0;
   border: 0;
   border-radius: 4px;
   background: transparent;
-  font-size: clamp(.55rem, 1.6dvh, .72rem);
 }
-.field-center .row-score { font-size: 1.25em; }
 .field-center .row-label:enabled { background: #263c40; }
+.row-icon { font-size: clamp(7px, 2dvh, 13px); color: #97b8cb; }
+.field-center .row-score {
+  display: grid;
+  place-items: center;
+  min-width: clamp(15px, 4.5dvh, 28px);
+  height: clamp(15px, 4.5dvh, 28px);
+  border: 1px solid #527080;
+  border-radius: 50%;
+  background: #0b1822;
+  font-size: clamp(8px, 2.6dvh, 15px);
+  line-height: 1;
+}
 
 .field-center .slot, .field-center .slot.filled {
   height: 100%;
   min-height: 0;
   aspect-ratio: auto;
 }
-.field-center .slot:not(.filled) { border-color: #a7daed2c; }
+.field-center .slot:not(.filled) { visibility: hidden; border-color: #a7daed84; }
+.field-center .is-available > .slot:not(.filled) { visibility: visible; }
 .field-center .slot.filled { background: transparent; }
 .field-center .unit-face { height: 100%; min-height: 0; padding: 0; }
 .field-center .drop-marker.is-center { height: calc(100% - 4px); aspect-ratio: auto; }
 
-.field-center .turn {
-  display: grid;
-  place-items: center;
-  min-height: 0;
-  height: clamp(16px, 4.1dvh, 28px);
-  max-width: 100%;
-  padding: 0 3px;
-  overflow: hidden;
-  border-block: 1px solid #597d9042;
-  background: #0b1722;
-  font-size: clamp(.64rem, 2dvh, .88rem);
-  line-height: 1;
+.field-message {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: max-content;
+  max-width: 90%;
+  padding: .25em .8em;
+  border: 1px solid #6392a6;
+  border-radius: 5px;
+  background: #091822f2;
+  color: #eaf7ff;
+  font-size: clamp(.68rem, 3dvh, 1.05rem);
+  font-weight: 700;
+  line-height: 1.2;
   text-align: center;
+  pointer-events: none;
+}
+#match-notice { z-index: 4; }
+.opponent-passed {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  right: .35em;
+  transform: translateY(-50%);
+  padding: .05em .3em;
+  border: 1px solid #696055;
+  border-radius: 4px;
+  background: #211b16ed;
+  color: #ffdbab;
+  font-size: clamp(.95rem, 5dvh, 2rem);
+  font-weight: 800;
+  line-height: 1.1;
+  pointer-events: none;
+}
+.is-human-turn .hand-fan {
+  background: radial-gradient(ellipse at center bottom, #48979740, transparent 75%);
+  box-shadow: inset 0 -2px #7bc9c94d;
+}
+.is-human-turn .field-action {
+  border-color: #85c9c9;
+  box-shadow: 0 0 8px #6bcabe54;
 }
 
 .field-rail {
@@ -334,12 +386,11 @@ button.unit-order:not(:disabled)::before {
 
 .rotate-notice { display: none; }
 @media (max-height: 340px) {
-  .field-center .row-name { font-size: .55rem; }
   .field-right .field-corner { gap: 0; }
   .field-score .field-total { font-size: clamp(1rem, 5dvh, 1.25rem); }
 }
 @media (orientation: portrait) and (max-width: 739px) {
-  .match-screen > :not(.rotate-notice) { visibility: hidden; }
+  .match-screen > :not(.rotate-notice), #match-notice { visibility: hidden; }
   .rotate-notice {
     position: absolute;
     inset: 0;
