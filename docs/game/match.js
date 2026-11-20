@@ -1,6 +1,6 @@
 import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=step-12';
-import { announcePlay, availableRows, cardType, createCard, opponent, placeCards, playDestination, units } from './board.js?v=step-12';
-import { availableOrders, canCast, canUseLeader, enqueueCardEffect, orderAbility, runEffect } from './effects.js?v=step-12';
+import { announcePlay, availableRows, cardType, createCard, opponent, placeCards, playDestination, statusCount, units } from './board.js?v=step-12';
+import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, orderAbility, runEffect } from './effects.js?v=step-12';
 
 export { availableRows, ROW_LIMIT } from './board.js?v=step-12';
 
@@ -198,7 +198,7 @@ function resolveRound(match) {
     const player = match.players[side];
     if (side !== winner) player.lives -= 1;
     for (const { card } of units(match, side)) {
-      (card.definition.doomed ? player.exile : player.discard).push(card);
+      (statusCount(card, 'doomed') ? player.exile : player.discard).push(card);
     }
     player.board = emptyBoard();
     player.passed = false;
@@ -244,7 +244,7 @@ function progress(match, random) {
     const otherSide = opponent(side);
     if (match.ending === 'effects') {
       match.ending = 'advance';
-      for (const { card } of units(match, side)) enqueueCardEffect(match, side, card, 'endTurn');
+      enqueueEndTurn(match, side);
       continue;
     }
     if (match.ending === 'advance') {

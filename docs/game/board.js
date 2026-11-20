@@ -64,19 +64,57 @@ export function boost(match, unit, amount) {
   match.log.push({ type: 'boost', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, power: unit.card.power, amount });
 }
 
-export function changeArmor(match, unit, amount, extra) {
-  if (!unit || !isUnit(unit.card) || amount === 0) return 0;
-  const change = Math.max(amount, -(unit.card.armor ?? 0));
-  unit.card.armor = (unit.card.armor ?? 0) + change;
-  if (change) emit(match, { type: 'armor', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, armor: unit.card.armor, amount: change, ...extra });
-  return -change;
+const STATUS_RULES = Object.freeze({
+  armor: { read: (card) => card.armor ?? 0, next: (current, amount) => Math.max(0, current + amount), unit: true },
+  doomed: { read: (card) => Number(card.statuses?.doomed ?? card.definition.doomed ?? false),
+    next: (_current, amount) => Number(amount > 0) },
+  infection: { read: (card) => card.statuses?.infection ?? 0,
+    next: (current, amount) => amount < 0 ? Math.max(0, current + amount) : Math.max(current, amount),
+    unit: true, turnEnd: 'infection-tick' },
+});
+
+export function statusEndTurn(card) {
+  return Object.values(STATUS_RULES).filter((rule) => rule.turnEnd && rule.read(card))
+    .map((rule) => ({ action: rule.turnEnd, target: { scope: 'source' } }));
+}
+
+export function statusCount(card, status) {
+  return STATUS_RULES[status]?.read(card) ?? 0;
+}
+
+export function applyStatus(match, unit, status, amount, extra) {
+  const rule = STATUS_RULES[status];
+  if (!unit || !rule || (rule.unit && !isUnit(unit.card)) || !Number.isInteger(amount)) return 0;
+  const { card, side } = unit;
+  const before = rule.read(card);
+  const count = rule.next(before, amount);
+  if (count === before) return 0;
+
+  if (status === 'armor') card.armor = count;
+  else {
+    card.statuses = { ...card.statuses, [status]: count };
+    if (status === 'infection' && count === 0) delete card.statuses.infection;
+  }
+  const event = { type: status === 'armor' ? 'armor' : 'status', status, count,
+    side, name: card.definition.name, cardId: card.id, amount: count - before, ...extra };
+  if (status === 'armor') event.armor = count;
+  match.effects.unshift(...emit(match, event, { source: card, neighbors: neighbors(match, unit) }));
+  return before - count;
+}
+
+export function tickInfection(match, unit) {
+  if (!statusCount(unit.card, 'infection')) return;
+  const { card } = unit;
+  card.power -= 1;
+  applyStatus(match, unit, 'infection', -1, { tick: true, power: card.power });
+  if (card.power === 0) removeUnit(match, unit, 'infection');
 }
 
 export function removeUnit(match, unit, reason, consumerId) {
   const { side, row, card, position } = unit;
   const player = match.players[side];
   player.board[row].splice(position, 1);
-  const exile = reason === 'destroy' || card.definition.doomed;
+  const exile = reason === 'destroy' || statusCount(card, 'doomed') > 0;
   (exile ? player.exile : player.discard).push(card);
   const death = reason === 'destroy' ? undefined : { row, position, refs: { consumer: consumerId } };
   match.effects.unshift(...emit(match, {
@@ -87,7 +125,7 @@ export function removeUnit(match, unit, reason, consumerId) {
 export function damage(match, unit, amount, sourceDefinitionId, extra) {
   if (!unit || !isUnit(unit.card) || amount <= 0) return;
   const absorbed = Math.min(amount, unit.card.armor ?? 0);
-  changeArmor(match, unit, -absorbed, extra);
+  applyStatus(match, unit, 'armor', -absorbed, extra);
   const lost = Math.min(unit.card.power, amount - absorbed);
   unit.card.power -= lost;
   emit(match, { type: 'damage', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, power: unit.card.power, amount, absorbed, lost, sourceDefinitionId, ...extra });

@@ -1,8 +1,8 @@
 import { emit } from './events.js?v=step-12';
 import { ROWS, ROW_LABELS } from './cards.js?v=step-12';
 import {
-  announcePlay, availableRows, boost, cardType, changeArmor, consume, damage, findUnit,
-  isUnit, neighbors, opponent, placeCards, removeUnit, spawnCards, units,
+  announcePlay, applyStatus, availableRows, boost, cardType, consume, damage, findUnit,
+  isUnit, neighbors, opponent, placeCards, removeUnit, spawnCards, statusEndTurn, tickInfection, units,
 } from './board.js?v=step-12';
 
 function reference(match, job, key = 'source') {
@@ -191,8 +191,22 @@ function playFromDeck(match, job, step, random) {
   return true;
 }
 
+export function enqueueEndTurn(match, side) {
+  const field = units(match, side);
+  for (const { card } of field) match.effects.push(...emit(match, { type: 'turn-end', side },
+    { source: card, journal: false }));
+  for (const { card } of field) {
+    const steps = statusEndTurn(card);
+    if (steps.length) match.effects.push({
+      ability: { steps },
+      side, sourceId: card.id, requiredSource: true,
+    });
+  }
+}
+
 const operations = {
-  armor: (match, target, amount) => changeArmor(match, target, amount),
+  armor: (match, target, amount) => applyStatus(match, target, 'armor', amount),
+  'infection-tick': tickInfection,
   boost,
   damage,
   destroy: (match, target) => removeUnit(match, target, 'destroy'),
