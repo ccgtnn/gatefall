@@ -475,3 +475,16 @@ body:has(#app[data-animation-speed="fast"]) .field-drawer[open] { animation-dura
   color: #fff1b0;
   box-shadow: 0 0 9px #ffd17e75, inset 0 0 0 2px #79491c;
 }
+
+.rules-dialog {
+  width: min(94vw, 37rem);
+  max-height: calc(100dvh - 22px);
+  color: inherit;
+  padding: clamp(.65rem, 3vw, 1.25rem);
+}
+.rules-dialog::backdrop { background: #070e16af; }
+.rules-dialog ul { padding-inline-start: 1.25rem; }
+.rules-dialog li + li { margin-top: .45rem; }
+.rules-dialog dt { margin-top: .55rem; font-weight: 700; color: #c7e8fa; }
+.rules-dialog dd { margin: .15rem 0 0; }
+.deck-choice .deck-record { font-size: .76rem; color: #e2eff7; font-variant-numeric: tabular-nums; }

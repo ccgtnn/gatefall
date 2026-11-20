@@ -3,14 +3,17 @@ import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion
 import { clearParticles } from './particles.js?v=step-10';
 import { playJournal } from './turn-playback.js?v=step-11-motion';
 import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=step-11-strategy';
+import { FACTIONS } from './game/cards.js?v=growth-art-3';
 import { applyAction, createMatch } from './game/match.js?v=step-10';
 import { element, iconButton } from './ui/dom.js?v=step-11';
 import { preview, showCard } from './ui/cards.js?v=step-11';
 import { createBattlefield } from './ui/field.js?v=step-11';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=step-11';
 import { createMatchMenu, eventText } from './ui/menu.js?v=step-11';
-import { finishedScreen, startScreen } from './ui/screens.js?v=step-11';
-import { createSettings } from './ui/settings.js?v=step-11';
+import { finishedScreen, startScreen } from './ui/screens.js?v=step-11-complete';
+import { createSettings } from './ui/settings.js?v=step-11-complete';
+
+import { createFactionStats } from './ui/stats.js?v=step-11';
 
 const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
@@ -27,6 +30,9 @@ let timer;
 let selectedCardId;
 let replaying = false;
 let mulliganFieldVisible = false;
+let storage;
+try { storage = window.localStorage; } catch {}
+const stats = createFactionStats(Object.keys(FACTIONS), storage);
 const settings = createSettings(app, leaveMatch);
 const menu = createMatchMenu(() => match);
 const { drawer } = menu;
@@ -99,7 +105,10 @@ function start(faction) {
   screen.querySelector('h2').focus({ preventScroll: true });
 }
 
-function leaveMatch() {
+function leaveMatch(surrender = false) {
+  if (surrender === true && (match?.phase === 'playing' || match?.phase === 'mulligan')) {
+    stats.record(match.players.human.factionId, 'loss');
+  }
   matchSession += 1;
   clearParticles(document);
   for (const overlay of document.querySelectorAll('.motion-overlay')) overlay.remove();
@@ -140,7 +149,7 @@ function render() {
     case 'mulligan':
     case 'playing': content = battlefield(); break;
     case 'finished': content = finishedScreen(match, phaseLabel, start, leaveMatch); break;
-    default: content = startScreen(phaseLabel, start);
+    default: content = startScreen(phaseLabel, start, stats);
   }
   screen.replaceChildren(content);
   menu.refresh(match, replaying);
@@ -194,6 +203,9 @@ async function updateMatch(next) {
 
   if (session !== matchSession) return;
   match = next;
+  if (match.phase === 'finished' && before.phase !== 'finished') {
+    stats.record(match.players.human.factionId, match.result);
+  }
   if (match.phase === 'mulligan') {
     mulliganFieldVisible = false;
   }
@@ -208,7 +220,7 @@ async function updateMatch(next) {
     target?.focus({ preventScroll: true });
   } else if ((match.pending?.side ?? match.turn) === 'bot') {
     const delay = changedTurn ? Math.max(BOT_DELAY_MS, 1000) : BOT_DELAY_MS;
-    timer = setTimeout(() => updateMatch(applyAction(match, 'bot', chooseBotTurn(match))), delay);
+    timer = setTimeout(() => updateMatch(applyAction(match, 'bot', chooseBotTurn(match, settings.difficulty()))), delay);
   } else if (before.phase === 'mulligan') {
     screen.querySelector('#pass-button:enabled')?.focus({ preventScroll: true });
   }

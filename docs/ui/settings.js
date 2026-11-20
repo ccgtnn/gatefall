@@ -1,3 +1,4 @@
+import { bindRulesMenu } from './rules.js?v=step-11';
 import { createSoundEffects, DEFAULT_VOLUME } from '../sound.js?v=step-10-volume';
 import { motionDuration } from '../turn-playback.js?v=step-11-motion';
 
@@ -8,6 +9,16 @@ export function createSettings(app, onLeave) {
   const fullscreenButton = document.querySelector('#fullscreen');
   const fullscreenStatus = document.querySelector('#fullscreen-status');
   const fullscreenMode = matchMedia('(display-mode: fullscreen)');
+  const difficultySetting = document.querySelector('#bot-difficulty');
+  const difficultyKey = 'gatefall.bot-difficulty';
+  try {
+    const saved = localStorage.getItem(difficultyKey);
+    if (['easy', 'normal', 'hard'].includes(saved)) difficultySetting.value = saved;
+  } catch {}
+  difficultySetting.addEventListener('change', () => {
+    try { localStorage.setItem(difficultyKey, difficultySetting.value); } catch {}
+  });
+  bindRulesMenu();
   const speedSetting = document.querySelector('#animation-speed');
   const systemSpeed = speedSetting.querySelector('[value="system"]');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -108,13 +119,17 @@ export function createSettings(app, onLeave) {
   ]) {
     document.getElementById(id).addEventListener('click', () => {
       leaveDialog.querySelector('#leave-title').textContent = title;
-      leaveDialog.querySelector('#leave-confirm').textContent = label;
+      const confirm = leaveDialog.querySelector('#leave-confirm');
+      confirm.textContent = label;
+      confirm.value = id === 'surrender' ? 'surrender' : 'leave';
       leaveDialog.returnValue = '';
       leaveDialog.showModal();
     });
   }
   leaveDialog.addEventListener('close', () => {
-    if (leaveDialog.returnValue === 'leave') onLeave();
+    if (leaveDialog.returnValue === 'leave' || leaveDialog.returnValue === 'surrender') {
+      onLeave(leaveDialog.returnValue === 'surrender');
+    }
   });
 
   return {
@@ -122,5 +137,6 @@ export function createSettings(app, onLeave) {
     close: () => settings.close(),
     motion: () => motionDuration(speedSetting.value, reducedMotion.matches),
     playSound: sounds.play,
+    difficulty: () => difficultySetting.value,
   };
 }

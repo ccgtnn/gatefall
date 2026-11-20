@@ -3,7 +3,7 @@ import { FACTIONS } from '../game/cards.js?v=growth-art-3';
 import { addCardCrop } from './cards.js?v=step-11';
 import { logView, roundText } from './menu.js?v=step-11';
 
-export function startScreen(phaseLabel, start) {
+export function startScreen(phaseLabel, start, stats) {
   phaseLabel.textContent = '';
   const panel = element('section', 'intro');
   const heading = element('h2', null, 'Выбери колоду');
@@ -12,10 +12,12 @@ export function startScreen(phaseLabel, start) {
   for (const [id, faction] of Object.entries(FACTIONS)) {
     const choice = button(undefined, () => start(id), 'button deck-choice');
     choice.dataset.faction = id;
+    const { win, loss } = stats.get(id);
     choice.append(
       element('strong', null, faction.name),
       element('span', 'muted', faction.strategy),
       element('span', null, faction.leader.name),
+      element('small', 'deck-record', `Победы ${win} · Поражения ${loss}`),
     );
     addCardCrop(choice, faction.leader);
     choices.append(choice);

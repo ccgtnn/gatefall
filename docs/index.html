@@ -9,8 +9,8 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icon-192.png">
   <link rel="stylesheet" href="./style.css?v=step-10-effects">
-  <link rel="stylesheet" href="./field.css?v=step-11-motion">
-  <script type="module" src="./app.js?v=step-11-strategy"></script>
+  <link rel="stylesheet" href="./field.css?v=step-11-complete">
+  <script type="module" src="./app.js?v=step-11-complete"></script>
 </head>
 <body>
   <div id="app">
@@ -44,6 +44,14 @@
         <option value="fast">Быстрая скорость</option>
       </select>
     </label>
+    <label class="motion-setting">
+      <span>Сложность бота</span>
+      <select id="bot-difficulty">
+        <option value="easy">Лёгкий</option>
+        <option value="normal" selected>Обычный</option>
+        <option value="hard">Сложный</option>
+      </select>
+    </label>
     <label class="sound-setting"><input id="sound-enabled" type="checkbox" checked> Звуки игры</label>
     <div class="sound-setting sound-volume">
       <label for="sound-volume">Громкость</label>
@@ -51,6 +59,7 @@
       <output id="sound-level" for="sound-volume"></output>
       <button id="sound-test" type="button" class="button">Проверить звук</button>
     </div>
+    <button id="open-rules" type="button" class="button">Правила</button>
     <button id="fullscreen" type="button" class="button">На весь экран</button>
     <p id="fullscreen-status" class="muted" role="status"></p>
     <div id="match-menu" class="settings-actions" hidden>
@@ -65,6 +74,20 @@
       <button value="cancel" class="button" autofocus>Отмена</button>
       <button id="leave-confirm" value="leave" class="button primary"></button>
     </form>
+  </dialog>
+  <dialog id="rules-dialog" class="panel rules-dialog" aria-labelledby="rules-title">
+    <header class="drawer-header">
+      <h2 id="rules-title">Правила</h2>
+      <form method="dialog"><button type="submit" class="icon-button" aria-label="Закрыть" title="Закрыть">×</button></form>
+    </header>
+    <ul>
+      <li>У каждого игрока две жизни и до 10 карт в руке. На Орбите и Поверхности помещается до 9 карт на ряд.</li>
+      <li>Перед первым раундом можно заменить до трёх карт. Перед следующими игроки добирают до трёх карт и получают две замены плюс по одной за каждую карту, для которой не хватило места в руке.</li>
+      <li>За ход сыграй одну карту или пасуй. Лидер доступен до розыгрыша карты, готовые Приказы можно использовать и после. После применения способности в этом ходу пас недоступен.</li>
+      <li>Когда оба пасуют, сравнивается сила на поле. Проигравший теряет жизнь. При ничьей жизнь теряют оба. Матч длится до трёх раундов и заканчивается, когда у кого-то больше нет жизней.</li>
+    </ul>
+    <h3>Ключевые слова</h3>
+    <dl></dl>
   </dialog>
 </body>
 </html>
