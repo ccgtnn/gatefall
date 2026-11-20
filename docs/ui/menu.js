@@ -54,17 +54,56 @@ export function eventText(event) {
   }
 }
 
-export function logView(match) {
+export function describeBotAction(match, action) {
+  const { type, row, position } = action;
+  const cardId = type === 'place' ? match.pending?.cardId : action.cardId;
+  const { bot, human } = match.players;
+  const card = [...bot.hand, ...bot.deck, ...bot.discard, ...Object.values(bot.board).flat(),
+    ...Object.values(human.board).flat()].find(({ id }) => id === cardId);
+  const name = card?.definition.name ?? ROW_LABELS[cardId] ?? cardId;
+  switch (type) {
+    case 'pass': return 'Пас';
+    case 'end-turn': return 'Конец хода';
+    case 'leader': return 'Лидер · ' + bot.leader?.name;
+    case 'order': return 'Приказ · ' + name;
+    case 'target': return 'Цель · ' + name;
+    case 'play':
+    case 'place': return [name, ROW_LABELS[row], position === undefined ? '' : 'позиция ' + (position + 1)]
+      .filter(Boolean).join(' · ');
+  }
+}
+
+function botThought(event) {
+  const entry = element('li', 'bot-thought');
+  entry.append(element('strong', null, 'Бот выбрал «' + event.chosen + '»'), element('p', null, event.reason));
+  if (event.candidates.length) {
+    const options = element('ol', 'bot-thought-options');
+    for (const { label, score, samples } of event.candidates) {
+      const estimate = Number.isFinite(score) ? score.toLocaleString('ru', { maximumFractionDigits: 1 }) : '—';
+      options.append(element('li', null, label + ' · ' + estimate +
+        (samples ? ' из 100 (' + samples + ' сим.)' : '')));
+    }
+    entry.append(options);
+  }
+  return entry;
+}
+
+export function logView(match, showThoughts = false) {
   const log = element('section', 'panel journal');
   const list = element('ol', 'log-list');
   for (const event of [...match.log].reverse()) {
-    list.append(element('li', null, eventText(event)));
+    if (event.type === 'bot-thought') {
+      if (showThoughts) list.append(botThought(event));
+    } else {
+      const text = eventText(event);
+      if (text) list.append(element('li', null, text));
+    }
   }
   log.append(element('h2', null, 'Журнал ходов'), list);
   return log;
 }
 
-export function createMatchMenu(getMatch) {
+export function createMatchMenu(getMatch, showThoughts) {
   let openPile;
   const drawer = element('dialog', 'field-drawer');
   drawer.setAttribute('aria-labelledby', 'drawer-title');
@@ -84,7 +123,7 @@ export function createMatchMenu(getMatch) {
     const header = element('header', 'drawer-header');
     header.append(title, button('Закрыть', () => drawer.close()));
     if (journal) {
-      drawer.replaceChildren(header, logView(match).querySelector('ol'));
+      drawer.replaceChildren(header, logView(match, showThoughts()).querySelector('ol'));
       return;
     }
 
@@ -107,7 +146,7 @@ export function createMatchMenu(getMatch) {
   function refresh(match, replaying) {
     if (!drawer.open || !match) return;
     if (openPile === 'journal') {
-      drawer.querySelector('ol').replaceChildren(...logView(match).querySelector('ol').children);
+      drawer.querySelector('ol').replaceChildren(...logView(match, showThoughts()).querySelector('ol').children);
     } else if (!replaying) {
       fillDrawer();
     }

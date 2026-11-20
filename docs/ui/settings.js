@@ -18,6 +18,12 @@ export function createSettings(app, onLeave) {
   difficultySetting.addEventListener('change', () => {
     try { localStorage.setItem(difficultyKey, difficultySetting.value); } catch {}
   });
+  const thoughts = document.querySelector('#bot-thoughts');
+  const thoughtsKey = 'gatefall.bot-thoughts';
+  try { thoughts.checked = localStorage.getItem(thoughtsKey) === 'on'; } catch {}
+  thoughts.addEventListener('change', () => {
+    try { localStorage.setItem(thoughtsKey, thoughts.checked ? 'on' : 'off'); } catch {}
+  });
   bindRulesMenu();
   const speedSetting = document.querySelector('#animation-speed');
   const systemSpeed = speedSetting.querySelector('[value="system"]');
@@ -138,5 +144,6 @@ export function createSettings(app, onLeave) {
     motion: () => motionDuration(speedSetting.value, reducedMotion.matches),
     playSound: sounds.play,
     difficulty: () => difficultySetting.value,
+    showBotThoughts: () => thoughts.checked,
   };
 }

@@ -2,7 +2,7 @@ import { button, element } from './dom.js?v=step-11';
 import { createCard } from '../game/board.js?v=step-16';
 import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from '../game/cards.js?v=step-16';
 import { addCardCrop, cardButton, showCard } from './cards.js?v=step-16';
-import { logView, roundText } from './menu.js?v=step-16';
+import { logView, roundText } from './menu.js?v=step-17';
 
 export function catalogScreen(phaseLabel, back) {
   phaseLabel.textContent = '';
@@ -55,7 +55,7 @@ export function leaderScreen(phaseLabel, factionId, start, back) {
   return panel;
 }
 
-export function finishedScreen(match, phaseLabel, start, leaveMatch) {
+export function finishedScreen(match, phaseLabel, start, leaveMatch, showThoughts) {
   phaseLabel.textContent = `Матч завершён · раундов ${match.round}`;
   const game = element('div', 'game');
   const panel = element('section', 'panel finish');
@@ -77,6 +77,6 @@ export function finishedScreen(match, phaseLabel, start, leaveMatch) {
     ...rounds.map((event) => element('p', 'round-result', roundText(event))),
     actions,
   );
-  game.append(panel, logView(match));
+  game.append(panel, logView(match, showThoughts));
   return game;
 }

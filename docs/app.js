@@ -4,16 +4,16 @@ import { bindCardPlacement } from './card-placement.js?v=field-6';
 import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=step-16';
 import { clearParticles } from './particles.js?v=step-14';
 import { playJournal } from './turn-playback.js?v=step-16';
-import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=step-16';
+import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=step-17';
 import { FACTIONS } from './game/cards.js?v=step-16';
-import { applyAction, createDeckMatch } from './game/match.js?v=step-16';
+import { applyAction, createDeckMatch } from './game/match.js?v=step-17';
 import { element, iconButton } from './ui/dom.js?v=step-11';
 import { preview, showCard } from './ui/cards.js?v=step-16';
-import { createBattlefield } from './ui/field.js?v=step-16';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=step-16';
-import { createMatchMenu, eventText } from './ui/menu.js?v=step-16';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=step-16';
-import { createSettings } from './ui/settings.js?v=step-16';
+import { createBattlefield } from './ui/field.js?v=step-17';
+import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=step-17';
+import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=step-17';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=step-17';
+import { createSettings } from './ui/settings.js?v=step-17';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
 
@@ -41,7 +41,7 @@ try { storage = window.localStorage; } catch {}
 const deckStore = createDeckStorage(storage);
 const stats = createFactionStats(Object.keys(FACTIONS), storage);
 const settings = createSettings(app, leaveMatch);
-const menu = createMatchMenu(() => match);
+const menu = createMatchMenu(() => match, () => settings.showBotThoughts());
 const { drawer } = menu;
 const hand = {
   getMatch: () => match,
@@ -180,7 +180,7 @@ function render() {
   app.classList.toggle('in-match', match?.phase === 'mulligan' || match?.phase === 'playing');
   let content;
   if (match?.phase === 'mulligan' || match?.phase === 'playing') content = battlefield();
-  else if (match?.phase === 'finished') content = finishedScreen(match, phaseLabel, () => start(matchDeck), leaveMatch);
+  else if (match?.phase === 'finished') content = finishedScreen(match, phaseLabel, () => start(matchDeck), leaveMatch, settings.showBotThoughts());
   else {
     const back = () => goTo('decks');
     switch (menuView) {
@@ -222,12 +222,29 @@ async function showRoundResult(event, state, duration) {
   await new Promise((resolve) => setTimeout(resolve, ROUND_RESULT_MS));
 }
 
+function playBotTurn() {
+  let trace;
+  const options = settings.showBotThoughts() ? { onDecision: (decision) => { trace = decision; } } : {};
+  const action = chooseBotTurn(match, settings.difficulty(), options);
+  const next = applyAction(match, 'bot', action);
+  if (trace && next !== match) {
+    next.log.push({
+      type: 'bot-thought', side: 'bot',
+      chosen: describeBotAction(match, action), reason: trace.reason,
+      candidates: trace.candidates.map(({ action, score, samples }) => ({
+        label: describeBotAction(match, action), score, samples,
+      })),
+    });
+  }
+  return updateMatch(next);
+}
+
 async function updateMatch(next) {
   if (replaying || next === match) return;
   const session = matchSession;
   clearTimeout(timer);
   const before = match;
-  const events = next.log.slice(before.log.length);
+  const events = next.log.slice(before.log.length).filter(({ type }) => type !== 'bot-thought');
   const duration = settings.motion();
   if ((before.phase === 'playing' && events.length && duration) || events.some(({ type }) => type === 'round-end')) {
     replaying = true;
@@ -273,7 +290,7 @@ async function updateMatch(next) {
     target?.focus({ preventScroll: true });
   } else if ((match.pending?.side ?? match.turn) === 'bot') {
     const delay = changedTurn ? Math.max(BOT_DELAY_MS, 1000) : BOT_DELAY_MS;
-    timer = setTimeout(() => updateMatch(applyAction(match, 'bot', chooseBotTurn(match, settings.difficulty()))), delay);
+    timer = setTimeout(playBotTurn, delay);
   } else if (before.phase === 'mulligan') {
     screen.querySelector('#pass-button:enabled')?.focus({ preventScroll: true });
   }
