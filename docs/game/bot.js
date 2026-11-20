@@ -1,7 +1,7 @@
 import { ROWS } from './cards.js';
 import { cardType, findUnit, isUnit, neighbors, units } from './board.js';
 import { availableOrders, canUseLeader, effectSwing } from './effects.js';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=growth-art-3';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=instant-mulligan';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;

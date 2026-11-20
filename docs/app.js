@@ -3,12 +3,12 @@ import { presentJournalEvent } from './card-motion.js?v=field-6';
 import { motionDuration, playJournal } from './turn-playback.js?v=motion-settings';
 import { CARD_TYPES, FACTIONS, KEYWORDS, RARITY_LABELS, ROWS, ROW_LABELS } from './game/cards.js?v=growth-art-3';
 import { cardType, isUnit } from './game/board.js';
-import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=growth-art-3';
+import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=instant-mulligan';
 import { availableOrders, canUseLeader } from './game/effects.js';
 import {
   HAND_LIMIT, ROW_LIMIT, applyAction, canEndTurn, canPass, canPlayCard,
-  confirmMulligan, createMatch, mulliganLimit, rowScore, totalScore,
-} from './game/match.js?v=growth-art-3';
+  confirmMulligan, createMatch, mulliganRemaining, replaceMulliganCard, rowScore, totalScore,
+} from './game/match.js?v=instant-mulligan';
 
 const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
@@ -74,7 +74,6 @@ fullscreenMode.addEventListener('change', syncFullscreen);
 document.querySelector('#start-settings').addEventListener('click', showSettings);
 
 let match;
-let selected = new Set();
 let timer;
 let selectedCardId;
 let replaying = false;
@@ -280,7 +279,6 @@ function eventText(event) {
 
 function start(faction) {
   clearTimeout(timer);
-  selected = new Set();
   mulliganFieldVisible = false;
   selectedCardId = undefined;
   match = createMatch({ humanFaction: faction });
@@ -411,7 +409,6 @@ function setMulliganField(visible) {
 }
 
 function mulliganScreen() {
-  const limit = mulliganLimit(match, 'human');
   const panel = element('section', 'mulligan mulligan-overlay');
   panel.setAttribute('role', 'dialog');
   panel.setAttribute('aria-modal', 'true');
@@ -422,32 +419,38 @@ function mulliganScreen() {
   const counter = element('p', 'selection-count');
   counter.setAttribute('aria-live', 'polite');
   const cards = element('div', 'hand-grid');
-  const choices = match.players.human.hand.map((card) => cardButton(card, () => {
-    if (selected.has(card.id)) selected.delete(card.id);
-    else if (selected.size < limit) selected.add(card.id);
-    updateSelection();
-  }));
-  const confirm = button('Подтвердить', async () => {
-    await updateMatch(confirmMulligan(match, [...selected]));
-    document.querySelector('#turn-label')?.focus({ preventScroll: true });
-  }, 'button primary');
-
-  function updateSelection() {
-    counter.textContent = 'Осталось замен: ' + (limit - selected.size);
-    for (const choice of choices) {
-      const pressed = selected.has(choice.dataset.cardId);
-      choice.setAttribute('aria-pressed', String(pressed));
-      choice.classList.toggle('is-unavailable', !pressed && selected.size === limit);
-    }
+  function updateCounter() {
+    const remaining = mulliganRemaining(match);
+    counter.textContent = 'Осталось замен: ' + remaining;
+    for (const choice of cards.children) choice.classList.toggle('is-unavailable', remaining === 0);
   }
 
+  function choice(card, index) {
+    return cardButton(card, (event) => {
+      if (!mulliganRemaining(match)) return;
+      const next = replaceMulliganCard(match, card.id);
+      if (next === match) {
+        counter.textContent = 'Нет подходящей карты для замены · осталось: ' + mulliganRemaining(match);
+        return;
+      }
+      match = next;
+      const previous = event.currentTarget;
+      const focused = document.activeElement === previous;
+      const replacement = choice(match.players.human.hand[index], index);
+      previous.replaceWith(replacement);
+      updateCounter();
+      if (focused) replacement.focus({ preventScroll: true });
+    });
+  }
+
+  const confirm = button('Готово', () => updateMatch(confirmMulligan(match)), 'button primary');
   const header = element('header', 'mulligan-header');
   header.append(heading, counter);
   const actions = element('div', 'mulligan-actions');
   actions.append(button('Посмотреть поле', () => setMulliganField(true)), confirm);
-  cards.append(...choices);
+  cards.append(...match.players.human.hand.map(choice));
   panel.append(header, cards, actions, settingsButton());
-  updateSelection();
+  updateCounter();
   return panel;
 }
 
@@ -769,7 +772,6 @@ async function updateMatch(next) {
 
   match = next;
   if (match.phase === 'mulligan') {
-    selected.clear();
     mulliganFieldVisible = false;
   }
   render();

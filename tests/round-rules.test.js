@@ -4,7 +4,7 @@ import { createCard, placeCards } from '../docs/game/board.js';
 import { chooseBotTurn } from '../docs/game/bot.js';
 import { FACTIONS, FIRST_SIGNAL } from '../docs/game/cards.js';
 import { availableOrders } from '../docs/game/effects.js';
-import { applyAction, canEndTurn, canPass, confirmMulligan, createMatch, mulliganLimit } from '../docs/game/match.js';
+import { applyAction, canEndTurn, canPass, confirmMulligan, createMatch, mulliganLimit, mulliganRemaining, replaceMulliganCard } from '../docs/game/match.js';
 
 const pass = { type: 'pass' };
 const definitions = new Map(Object.values(FACTIONS).flatMap(({ deck }) => deck.map((card) => [card.id, card])));
@@ -94,6 +94,49 @@ test('the bot uses the same blacklist and an impossible replacement keeps the or
   assert.deepEqual(next.players.human.hand, match.players.human.hand);
   assert.deepEqual(next.players.bot.hand, match.players.bot.hand);
   assert.deepEqual(next.log.filter(({ type }) => type === 'mulligan').map(({ count }) => count), [0, 0]);
+});
+
+test('instant mulligan replaces the same slot repeatedly and keeps excluded copies out until the next round', () => {
+  const setupMatch = setup();
+  const { human } = setupMatch.players;
+  human.hand = [unit('left'), unit('original', 'assault'), unit('right')];
+  human.deck = [
+    unit('original-copy', 'assault'), unit('replacement', 'bastion'), unit('replacement-copy', 'bastion'),
+    unit('second', 'cocoon'), unit('last', 'mutant'),
+  ];
+  assert.strictEqual(replaceMulliganCard(setupMatch, 'missing'), setupMatch);
+  let match = replaceMulliganCard(setupMatch, 'original');
+  assert.deepEqual(match.players.human.hand.map(({ id }) => id), ['left', 'replacement', 'right']);
+  assert.equal(human.hand[1].id, 'original');
+  assert.equal(mulliganRemaining(match), 2);
+
+  match = replaceMulliganCard(match, 'replacement');
+  assert.equal(match.players.human.hand[1].id, 'second');
+  assert.equal(mulliganRemaining(match), 1);
+  assert.strictEqual(confirmMulligan(match, ['left', 'right']), match);
+  match = replaceMulliganCard(match, 'second');
+  assert.equal(match.players.human.hand[1].id, 'last');
+  assert.equal(mulliganRemaining(match), 0);
+  assert.strictEqual(replaceMulliganCard(match, 'last'), match);
+  assert.deepEqual(match.players.human.deck.map(({ id }) => id),
+    ['original-copy', 'replacement-copy', 'original', 'replacement', 'second']);
+
+  match = confirmMulligan(match);
+  assert.equal(match.log.find(({ type, side }) => type === 'mulligan' && side === 'human').count, 3);
+  match.players.human.hand.push(...Array.from({ length: 7 }, (_, i) => unit('fill-' + i)));
+  match = applyAction(applyAction(match, 'human', pass), 'bot', pass);
+  assert.equal(mulliganRemaining(match), 5);
+  match = replaceMulliganCard(match, 'last');
+  assert.equal(match.players.human.hand[1].id, 'original-copy');
+});
+
+test('instant mulligan does not spend an attempt if every replacement is a copy', () => {
+  const match = setup();
+  match.players.human.hand = [unit('original')];
+  match.players.human.deck = [unit('copy')];
+  assert.strictEqual(replaceMulliganCard(match, 'original'), match);
+  assert.equal(mulliganRemaining(match), 3);
+  assert.equal(confirmMulligan(match).players.human.hand[0].id, 'original');
 });
 
 test('later mulligans allow two swaps without blocked draws, including when the deck is short', () => {

@@ -63,6 +63,7 @@ export function createMatch({ decks, humanFaction = decks ? undefined : 'protect
       bot: createPlayer('bot', selectedDecks.bot, random, botFaction, settings.leaderCharges),
     },
     phase: 'mulligan',
+    mulligan: { used: 0, excluded: [] },
     round: 1,
     starter: random() < 0.5 ? 'human' : 'bot',
     turn: null,
@@ -119,8 +120,15 @@ export function mulliganLimit(match, side) {
   return (match.round === 1 ? MULLIGAN_LIMIT : LATER_MULLIGAN_LIMIT) + match.players[side].extraSwaps;
 }
 
-function swapCards(player, selectedIds) {
-  const blacklist = new Set(player.hand.filter(({ id }) => selectedIds.has(id)).map(({ definition }) => definition.id));
+export function mulliganRemaining(match) {
+  return match.phase === 'mulligan' ? mulliganLimit(match, 'human') - match.mulligan.used : 0;
+}
+
+function swapCards(player, selectedIds, excluded = []) {
+  const blacklist = new Set(excluded);
+  for (const card of player.hand) {
+    if (selectedIds.has(card.id)) blacklist.add(card.definition.id);
+  }
   const returned = [];
   player.hand = player.hand.map((card) => {
     if (!selectedIds.has(card.id)) return card;
@@ -131,6 +139,19 @@ function swapCards(player, selectedIds) {
   });
   player.deck.push(...returned);
   return returned.length;
+}
+
+export function replaceMulliganCard(match, cardId) {
+  if (!mulliganRemaining(match)) return match;
+  const card = match.players.human.hand.find(({ id }) => id === cardId);
+  if (!card) return match;
+
+  const next = structuredClone(match);
+  const { mulligan } = next;
+  if (!swapCards(next.players.human, new Set([cardId]), mulligan.excluded)) return match;
+  mulligan.used += 1;
+  if (!mulligan.excluded.includes(card.definition.id)) mulligan.excluded.push(card.definition.id);
+  return next;
 }
 
 function beginRound(match) {
@@ -146,11 +167,11 @@ function beginRound(match) {
 
 const mulliganValue = ({ definition }) => definition.power ?? definition.provision ?? 0;
 
-export function confirmMulligan(match, cardIds, { random = Math.random } = {}) {
+export function confirmMulligan(match, cardIds = [], { random = Math.random } = {}) {
   if (match.phase !== 'mulligan') return match;
 
   const selectedIds = new Set(cardIds);
-  if (selectedIds.size > mulliganLimit(match, 'human')) return match;
+  if (selectedIds.size > mulliganRemaining(match)) return match;
   if (cardIds.some((id) => !match.players.human.hand.some((card) => card.id === id))) {
     return match;
   }
@@ -159,7 +180,10 @@ export function confirmMulligan(match, cardIds, { random = Math.random } = {}) {
   const { human, bot } = next.players;
   const botChoices = [...bot.hand].sort((left, right) => mulliganValue(left) - mulliganValue(right))
     .slice(0, mulliganLimit(next, 'bot')).map(({ id }) => id);
-  const counts = { human: swapCards(human, selectedIds), bot: swapCards(bot, new Set(botChoices)) };
+  const counts = {
+    human: next.mulligan.used + swapCards(human, selectedIds, next.mulligan.excluded),
+    bot: swapCards(bot, new Set(botChoices)),
+  };
   for (const side of SIDES) {
     next.players[side].extraSwaps = 0;
     next.log.push({ type: 'mulligan', side, count: counts[side], round: next.round });
@@ -211,6 +235,7 @@ function resolveRound(match) {
   match.round += 1;
   for (const side of SIDES) drawForRound(match, side);
   match.phase = 'mulligan';
+  match.mulligan = { used: 0, excluded: [] };
   match.turn = null;
 }
 
