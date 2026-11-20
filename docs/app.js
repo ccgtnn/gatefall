@@ -1,17 +1,17 @@
 import { bindCardPlacement } from './card-placement.js?v=field-6';
 import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=step-13';
 import { clearParticles } from './particles.js?v=step-10';
-import { playJournal } from './turn-playback.js?v=step-13';
-import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=step-13';
-import { FACTIONS } from './game/cards.js?v=step-13';
-import { applyAction, createMatch } from './game/match.js?v=step-13';
+import { playJournal } from './turn-playback.js?v=card-art-13';
+import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=card-art-13';
+import { FACTIONS } from './game/cards.js?v=card-art-13';
+import { applyAction, createMatch } from './game/match.js?v=card-art-13';
 import { element, iconButton } from './ui/dom.js?v=step-11';
-import { preview, showCard } from './ui/cards.js?v=step-13';
-import { createBattlefield } from './ui/field.js?v=step-13';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=step-13';
-import { createMatchMenu, eventText } from './ui/menu.js?v=step-13';
-import { finishedScreen, leaderScreen, startScreen } from './ui/screens.js?v=step-13';
-import { createSettings } from './ui/settings.js?v=step-13';
+import { preview, showCard } from './ui/cards.js?v=card-art-13';
+import { createBattlefield } from './ui/field.js?v=card-art-13';
+import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=card-art-13';
+import { createMatchMenu, eventText } from './ui/menu.js?v=card-art-13';
+import { finishedScreen, leaderScreen, startScreen } from './ui/screens.js?v=card-art-13';
+import { createSettings } from './ui/settings.js?v=card-art-13';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
 

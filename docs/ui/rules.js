@@ -1,4 +1,4 @@
-import { KEYWORDS } from '../game/cards.js?v=step-13';
+import { KEYWORDS } from '../game/cards.js?v=card-art-13';
 import { element } from './dom.js?v=step-11';
 
 export function bindRulesMenu() {

@@ -1,8 +1,8 @@
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=step-13';
-import { announcePlay, availableRows, cardType, createCard, opponent, placeCards, playDestination, statusCount, units } from './board.js?v=step-13';
-import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, orderAbility, runEffect } from './effects.js?v=step-13';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=card-art-13';
+import { announcePlay, availableRows, cardType, createCard, opponent, placeCards, playDestination, statusCount, units } from './board.js?v=card-art-13';
+import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, orderAbility, runEffect } from './effects.js?v=card-art-13';
 
-export { availableRows, ROW_LIMIT } from './board.js?v=step-13';
+export { availableRows, ROW_LIMIT } from './board.js?v=card-art-13';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;

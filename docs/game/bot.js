@@ -1,9 +1,9 @@
-import { ROWS } from './cards.js?v=step-13';
-import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=step-13';
-import { availableOrders, canUseLeader, effectSwing, rowArmor } from './effects.js?v=step-13';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=step-13';
+import { ROWS } from './cards.js?v=card-art-13';
+import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=card-art-13';
+import { availableOrders, canUseLeader, effectSwing, rowArmor } from './effects.js?v=card-art-13';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=card-art-13';
 
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=step-13';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=card-art-13';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
