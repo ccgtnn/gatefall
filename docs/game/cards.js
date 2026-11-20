@@ -110,7 +110,7 @@ const protectorate = [
 
 const growth = [
   ['cocoon', 'Кокон', 4, 1, 'При розыгрыше: породить по личинке с каждой стороны. Завещание: усилить поглотившего на 2.',
-    { art: 'cocoon.webp', deploy: ability([spawn('left'), spawn('right')]),
+    { art: 'cocoon.webp?v=3', deploy: ability([spawn('left'), spawn('right')]),
       deathwish: ability([action('boost', chosen('consumer'), 2)]), keywords: ['Порождение', 'Завещание', 'Поглощение'] }],
   ['feast', 'Пиршество', 4, null, 'Выбранный свой отряд поглощает одну другую свою личинку и получает ещё +2 силы.',
     { art: 'feast.webp', type: 'effect', deploy: ability([
@@ -123,24 +123,24 @@ const growth = [
     { art: 'vine.webp?v=2', deploy: ability([spawn('right', 'orbit')]),
       deathwish: ability([action('damage', chosen('enemy'), 2)], [randomEnemy]), keywords: ['Порождение', 'Завещание', 'Урон'] }],
   ['spore-sac', 'Споровый мешок', 5, 2, 'Завещание: породить 3 личинки на месте погибшей карты.',
-    { art: 'spore-sac.webp?v=2', deathwish: ability([spawn('death', 'death', 3)]), keywords: ['Завещание', 'Порождение'] }],
+    { art: 'spore-sac.webp?v=3', deathwish: ability([spawn('death', 'death', 3)]), keywords: ['Завещание', 'Порождение'] }],
   ['incubator', 'Инкубатор', 6, null, 'В конце хода: породить личинку справа. На третьем своём конце хода после порождения погибает.',
     { type: 'artifact', art: 'incubator.webp', timer: 3, endTurn: ability([spawn('right'), action('tick', self)]), keywords: ['Порождение', 'Таймер'] }],
   ['acid-gland', 'Кислотная железа', 4, 3, 'Завещание: нанести 4 урона выбранному вражескому отряду.',
     { art: 'acid-gland.webp?v=2', deathwish: ability([action('damage', chosen('enemy'), 4)], [enemyChoice(4)]), keywords: ['Завещание', 'Урон'] }],
   ['scavenger', 'Трупоед', 5, 2, 'При розыгрыше: поглотить своего соседа.',
-    { art: 'scavenger.webp?v=2', deploy: ability([absorb(chosen('victim'))],
+    { art: 'scavenger.webp?v=3', deploy: ability([absorb(chosen('victim'))],
       [choice('victim', adjacent, 'Выбери соседа для поглощения.', { kind: 'consume' })]), keywords: ['Соседи', 'Поглощение'] }],
   ['gulper', 'Глотатель', 6, 3, 'При розыгрыше: поглотить все личинки в своём ряду.',
-    { art: 'gulper.webp?v=2', deploy: ability([absorb({ ...larvae, row: 'source' })]), keywords: ['Поглощение'] }],
+    { art: 'gulper.webp?v=3', deploy: ability([absorb({ ...larvae, row: 'source' })]), keywords: ['Поглощение'] }],
   ['spitter', 'Кислотный плевун', 5, 3, 'При розыгрыше: поглотить свою личинку и нанести 4 урона вражескому отряду.',
-    { art: 'spitter.webp?v=2', deploy: ability([absorb(chosen('victim')), action('damage', chosen('enemy'), 4)], [
+    { art: 'spitter.webp?v=3', deploy: ability([absorb(chosen('victim')), action('damage', chosen('enemy'), 4)], [
       choice('victim', larvae, 'Выбери личинку для поглощения.', { kind: 'consume' }), enemyChoice(4),
     ]), keywords: ['Поглощение', 'Урон'] }],
   ['predator', 'Хищный побег', 5, 4, 'Когда рядом кого-то поглощают: усилить себя на 2.',
     { art: 'predator.webp', neighborConsumed: ability([action('boost', self, 2)]), keywords: ['Соседи', 'Поглощение', 'Усиление'] }],
   ['mutant', 'Мутант', 4, 2, 'При розыгрыше: поглотить личинку-соседа и получить дополнительно 3 силы.',
-    { art: 'mutant.webp?v=2', deploy: ability([absorb(chosen('victim'), { extra: 3 })],
+    { art: 'mutant.webp?v=3', deploy: ability([absorb(chosen('victim'), { extra: 3 })],
       [choice('victim', { ...adjacent, token: true }, 'Выбери личинку-соседа.', { kind: 'consume' })]), keywords: ['Соседи', 'Поглощение'] }],
   ['nest', 'Гнездо-мать', 9, 3, 'В конце хода: породить по личинке в каждом своём ряду.',
     { art: 'nest.webp', endTurn: ability([spawn('right', 'all')]), keywords: ['Порождение'] }],

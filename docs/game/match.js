@@ -1,4 +1,4 @@
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=silhouettes-2';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=growth-art-3';
 import { cardType, createCard, opponent, placeCards, ROW_LIMIT, units } from './board.js?v=round-rules';
 import { availableOrders, canCast, canUseLeader, enqueueCardEffect, orderAbility, runEffect } from './effects.js';
 
