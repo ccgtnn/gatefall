@@ -597,10 +597,10 @@ function sideView(side) {
 function playerHand() {
   const { human } = match.players;
   const active = humanCanAct() && !match.playedCard;
-  const cards = element('section', 'hand hand-fan');
-  cards.setAttribute('aria-label', 'Твоя рука · ' + human.hand.length);
-  cards.style.setProperty('--hand-count', Math.max(1, human.hand.length));
-  for (const [index, card] of human.hand.entries()) {
+  const hand = element('section', 'hand battle-hand');
+  hand.setAttribute('aria-label', 'Твоя рука · ' + human.hand.length);
+  const cards = element('div', 'battle-hand-cards');
+  for (const card of human.hand) {
     const available = active && canPlayCard(match, 'human', card);
     const node = cardButton(card, () => {
       if (!available) {
@@ -612,29 +612,9 @@ function playerHand() {
     }, available);
     if (available) node.dataset.playCard = '';
     if (active && !available) node.classList.add('is-unavailable');
-    fanCard(node, index, human.hand.length, 1);
     cards.append(node);
   }
-  return cards;
-}
-
-function fanCard(node, index, count, angle = 2) {
-  const distance = index - (count - 1) / 2;
-  node.style.setProperty('--fan-angle', (distance * angle) + 'deg');
-  node.style.setProperty('--fan-drop', (distance ** 2 / 3) + 'px');
-}
-
-function botHand() {
-  const { bot } = match.players;
-  const hand = element('section', 'bot-hand');
-  hand.setAttribute('aria-label', 'Рука бота · ' + bot.hand.length);
-  for (let index = 0; index < bot.hand.length; index += 1) {
-    const back = element('span', 'card-back');
-    back.dataset.faction = bot.factionId;
-    back.setAttribute('aria-hidden', 'true');
-    fanCard(back, index, bot.hand.length);
-    hand.append(back);
-  }
+  hand.append(cards);
   return hand;
 }
 
@@ -667,7 +647,14 @@ function scoreView(side) {
   const lives = element('span', 'field-lives', '◆'.repeat(player.lives) + '◇'.repeat(2 - player.lives));
   lives.setAttribute('aria-label', 'Жизни ' + player.lives + '/2');
   panel.append(total, lives);
-  if (side === 'bot') panel.append(element('span', 'field-round', 'Раунд ' + match.round));
+  if (side === 'bot') {
+    const count = element('span', 'field-hand-count bot-hand-count');
+    count.title = 'Карт в руке у бота';
+    count.setAttribute('role', 'img');
+    count.setAttribute('aria-label', 'Карт в руке у бота: ' + player.hand.length);
+    count.append(element('span', null, '▯'), element('strong', null, player.hand.length));
+    panel.append(count, element('span', 'field-round', 'Раунд ' + match.round));
+  }
   if (side === 'human' && player.passed) panel.append(element('span', 'field-passed', 'Пас'));
   return panel;
 }
@@ -741,16 +728,12 @@ function battlefield() {
   action.id = 'pass-button';
   action.disabled = !humanCanAct() || !(afterPlay ? canEndTurn(match, 'human') : canPass(match, 'human'));
   if (humanCanAct() && !afterPlay && players.human.usedAbility) action.title = 'Сыграй карту после применения способности';
-  const botCount = element('span', 'field-hand-count', players.bot.hand.length + '/' + HAND_LIMIT);
-  botCount.title = 'Карт в руке у бота';
   const humanCount = element('span', 'field-hand-count', players.human.hand.length + '/' + HAND_LIMIT);
   humanCount.title = 'Карт в твоей руке';
-  const botCorner = element('div', 'field-corner');
-  botCorner.append(botCount, pileView('bot', 'deck'));
   const humanCorner = element('div', 'field-corner');
   humanCorner.append(humanCount, pileView('human', 'deck'));
-  right.append(botCorner, scoreView('bot'), action, scoreView('human'), humanCorner);
-  field.append(left, botHand(), center, playerHand(), right);
+  right.append(pileView('bot', 'deck'), scoreView('bot'), action, scoreView('human'), humanCorner);
+  field.append(left, center, playerHand(), right);
   game.append(field);
   if (phase === 'mulligan') {
     field.inert = !mulliganFieldVisible;
