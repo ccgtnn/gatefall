@@ -172,6 +172,17 @@ function shield(screen, entry, duration) {
   ], duration);
 }
 
+function orbitalBeam(screen, rect, duration) {
+  const { x, y } = center(rect);
+  const beam = floatNode(screen, 'motion-orbital-beam', '', { x, y: 0 });
+  beam.style.height = Math.max(1, y) + 'px';
+  return animate(beam, [
+    { transform: 'translateX(-50%) scale(.3,0)', opacity: 0 },
+    { transform: 'translateX(-50%) scale(1,1)', opacity: 1, offset: .27 },
+    { transform: 'translateX(-50%) scale(.2,1)', opacity: 0 },
+  ], duration).finally(() => beam.remove());
+}
+
 function hit(screen, entry, event, duration) {
   if (!entry) return [];
   const { node, rect } = entry;
@@ -191,6 +202,7 @@ function hit(screen, entry, event, duration) {
     const { x, y } = center(rect);
     burstParticles(screen.ownerDocument, 'shards', x, y, rect.width, duration);
   }
+  if (event.sourceDefinitionId === 'orbital-salvo') motions.push(orbitalBeam(screen, rect, duration));
   motions.push(...floatingNumber(screen, entry, '−' + event.amount, 'damage', duration));
   return motions;
 }
@@ -223,6 +235,85 @@ function showActivation(screen, event, duration) {
   ], duration).finally(() => banner.remove())];
 }
 
+function updateScores(screen, previous, duration) {
+  const changing = [];
+  for (const node of screen.querySelectorAll('[data-score]')) {
+    const from = previous.get(node.dataset.score);
+    const to = Number(node.textContent);
+    if (from === undefined || from === to) continue;
+    node.textContent = from;
+    changing.push({ node, from, to });
+  }
+  if (!changing.length) return Promise.resolve();
+
+  const view = screen.ownerDocument.defaultView;
+  const start = view.performance.now();
+  return new Promise((resolve) => {
+    let frame;
+    const finish = () => {
+      view.cancelAnimationFrame(frame);
+      view.clearTimeout(timeout);
+      for (const { node, to } of changing) node.textContent = to;
+      resolve();
+    };
+    const update = (now) => {
+      const fraction = Math.min(1, (now - start) / duration);
+      if (fraction >= 1 || !changing.some(({ node }) => node.isConnected)) {
+        finish();
+        return;
+      }
+      const progress = 1 - (1 - fraction) ** 2;
+      for (const { node, from, to } of changing) node.textContent = Math.round(from + (to - from) * progress);
+      frame = view.requestAnimationFrame(update);
+    };
+    const timeout = view.setTimeout(finish, duration + 50);
+    frame = view.requestAnimationFrame(update);
+  });
+}
+
+export function animateLifeLoss(screen, winner, duration) {
+  for (const lives of screen.querySelectorAll('[data-life-side]')) {
+    if (lives.dataset.lifeSide === winner) continue;
+    const live = lives.querySelectorAll('.is-live');
+    const stone = live[live.length - 1];
+    if (!stone) continue;
+    lives.setAttribute('aria-label', 'Жизни ' + (live.length - 1) + '/2');
+    if (!duration) {
+      stone.textContent = '◇';
+      continue;
+    }
+    stone.classList.add('life-lost');
+    const crack = stone.ownerDocument.createElement('span');
+    crack.className = 'life-crack';
+    stone.append(crack);
+    animate(stone, [
+      { transform: 'scale(1)', opacity: 1 },
+      { transform: 'scale(1.18) rotate(-7deg)', opacity: 1, offset: .35 },
+      { transform: 'scale(.87) rotate(6deg)', opacity: .44, offset: .66 },
+      { transform: 'scale(1)', opacity: .38 },
+    ], duration);
+    animate(crack, [
+      { transform: 'scale(.35)', opacity: 0 },
+      { transform: 'scale(1)', opacity: 1, offset: .36 },
+      { transform: 'scale(1)', opacity: .85 },
+    ], duration);
+  }
+}
+
+export function animateCoin(coin, label, duration) {
+  animate(coin, [
+    { transform: 'translateY(9px) rotateY(0deg) scale(.45)', opacity: 0 },
+    { transform: 'translateY(-24px) rotateY(435deg) scale(1.12)', opacity: 1, offset: .42 },
+    { transform: 'translateY(2px) rotateY(720deg) scale(1.02,.92)', opacity: 1, offset: .81 },
+    { transform: 'translateY(0) rotateY(720deg) scale(1)', opacity: 1 },
+  ], duration);
+  animate(label, [
+    { opacity: 0, transform: 'translateY(4px)' },
+    { opacity: 0, transform: 'translateY(4px)', offset: .58 },
+    { opacity: 1, transform: 'translateY(0)' },
+  ], duration);
+}
+
 export async function presentJournalEvent(screen, event, commit, render, duration) {
   if (duration === 0 || !VISUAL_EVENTS.has(event.type)) {
     commit();
@@ -230,11 +321,14 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
   }
 
   const previous = rects(screen);
+  const previousScores = new Map(Array.from(screen.querySelectorAll('[data-score]'),
+    (node) => [node.dataset.score, Number(node.textContent)]));
   const origin = event.type === 'play' && event.side === 'human' ? oldHandPosition(screen, event.cardId) : null;
   render(commit());
   const current = rects(screen);
   const entry = current.get(event.cardId);
   const motions = moveNeighbors(previous, current, duration);
+  motions.push(updateScores(screen, previousScores, duration * .88));
 
   switch (event.type) {
     case 'play':

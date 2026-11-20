@@ -1,8 +1,8 @@
 import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=growth-art-3';
-import { cardType, createCard, opponent, placeCards, ROW_LIMIT, units } from './board.js?v=round-rules';
-import { availableOrders, canCast, canUseLeader, enqueueCardEffect, orderAbility, runEffect } from './effects.js';
+import { cardType, createCard, opponent, placeCards, ROW_LIMIT, units } from './board.js?v=step-10';
+import { availableOrders, canCast, canUseLeader, enqueueCardEffect, orderAbility, runEffect } from './effects.js?v=step-10';
 
-export { ROW_LIMIT } from './board.js';
+export { ROW_LIMIT } from './board.js?v=step-10';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;

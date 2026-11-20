@@ -1,16 +1,16 @@
 import { bindCardPlacement } from './card-placement.js?v=field-6';
-import { presentJournalEvent } from './card-motion.js?v=step-10-impact';
+import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=step-10-effects';
 import { clearParticles } from './particles.js?v=step-10';
 import { createSoundEffects, DEFAULT_VOLUME } from './sound.js?v=step-10-volume';
 import { motionDuration, playJournal } from './turn-playback.js?v=step-10-impact';
 import { CARD_TYPES, FACTIONS, KEYWORDS, RARITY_LABELS, ROWS, ROW_LABELS } from './game/cards.js?v=growth-art-3';
-import { cardType, isUnit } from './game/board.js';
-import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=instant-mulligan';
-import { availableOrders, canUseLeader } from './game/effects.js';
+import { cardType, isUnit } from './game/board.js?v=step-10';
+import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=step-10';
+import { availableOrders, canUseLeader } from './game/effects.js?v=step-10';
 import {
   HAND_LIMIT, ROW_LIMIT, applyAction, canEndTurn, canPass, canPlayCard,
   confirmMulligan, createMatch, mulliganRemaining, replaceMulliganCard, rowScore, totalScore,
-} from './game/match.js?v=instant-mulligan';
+} from './game/match.js?v=step-10';
 
 const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
@@ -35,7 +35,9 @@ try {
   const saved = localStorage.getItem(speedKey);
   if (saved === 'normal' || saved === 'fast') speedSetting.value = saved;
 } catch {}
+app.dataset.animationSpeed = speedSetting.value;
 speedSetting.addEventListener('change', () => {
+  app.dataset.animationSpeed = speedSetting.value;
   try { localStorage.setItem(speedKey, speedSetting.value); } catch {}
 });
 
@@ -367,13 +369,20 @@ function start(faction) {
   announcement.textContent = '';
   match = createMatch({ humanFaction: faction });
   render();
-  showNotice(coinNotice, 'Монетка: ты ходишь ' + (match.starter === 'human' ? 'первым' : 'вторым'), 1500);
+  const first = match.starter === 'human';
+  const label = element('span', 'coin-result', 'Монетка: ты ходишь ' + (first ? 'первым' : 'вторым'));
+  const coin = element('span', 'tossed-coin', first ? '✦' : '◈');
+  coin.setAttribute('aria-hidden', 'true');
+  showNotice(coinNotice, '', 1500);
+  coinNotice.append(coin, label);
+  animateCoin(coin, label, motionDuration(speedSetting.value, reducedMotion.matches) * 1.9);
   screen.querySelector('h2').focus({ preventScroll: true });
 }
 
 function leaveMatch() {
   matchSession += 1;
   clearParticles(document);
+  for (const overlay of document.querySelectorAll('.motion-overlay')) overlay.remove();
   clearTimeout(timer);
   hideNotice(coinNotice);
   hideNotice(turnNotice);
@@ -568,6 +577,7 @@ function rowView(side, player, row, readyOrders) {
     label.setAttribute('aria-label', `Сыграть карту в ряд «${ROW_LABELS[row]}» · сила ${strength}`);
   }
   const score = element('strong', 'row-score', strength);
+  score.dataset.score = side + '-' + row;
   score.title = ROW_LABELS[row] + ' · ' + strength;
   score.setAttribute('aria-label', score.title);
   if (side === 'bot') label.title = score.title;
@@ -690,9 +700,16 @@ function scoreView(side) {
   panel.dataset.faction = player.factionId ?? '';
   const points = totalScore(player);
   const total = element('strong', 'field-total', points);
+  total.dataset.score = side;
   total.setAttribute('aria-label', sideLabel[side] + ' · сила ' + points);
-  const lives = element('span', 'field-lives', '◆'.repeat(player.lives) + '◇'.repeat(2 - player.lives));
+  const lives = element('span', 'field-lives');
+  lives.dataset.lifeSide = side;
+  lives.setAttribute('role', 'img');
   lives.setAttribute('aria-label', 'Жизни ' + player.lives + '/2');
+  for (let index = 0; index < 2; index += 1) {
+    const live = index < player.lives;
+    lives.append(element('span', live ? 'life-stone is-live' : 'life-stone', live ? '◆' : '◇'));
+  }
   panel.append(total, lives);
   if (side === 'bot') {
     const count = element('span', 'field-hand-count bot-hand-count');
@@ -861,12 +878,13 @@ function renderPlayback(state) {
   render();
 }
 
-async function showRoundResult(event, state) {
+async function showRoundResult(event, state, duration) {
   const { scores, winner } = event;
   const result = winner === 'human' ? 'Раунд за тобой' : winner === 'bot' ? 'Раунд за противником' : 'Раунд: ничья';
   hideNotice(coinNotice);
   hideNotice(turnNotice);
   renderPlayback(state);
+  animateLifeLoss(screen, winner, duration * 1.5);
   showNotice(roundNotice, `${result} · ${scores.human} : ${scores.bot}`, ROUND_RESULT_MS);
   await new Promise((resolve) => setTimeout(resolve, ROUND_RESULT_MS));
 }
@@ -886,7 +904,7 @@ async function updateMatch(next) {
         if (session !== matchSession) return;
         sounds.play(event);
         if (event.type === 'round-end') {
-          await showRoundResult(event, state);
+          await showRoundResult(event, state, duration);
           if (session === matchSession) commit();
           return;
         }

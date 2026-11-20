@@ -66,13 +66,13 @@ export function removeUnit(match, unit, reason, consumerId) {
   }
 }
 
-export function damage(match, unit, amount) {
+export function damage(match, unit, amount, sourceDefinitionId) {
   if (!unit || !isUnit(unit.card) || amount <= 0) return;
   const absorbed = Math.min(amount, unit.card.armor ?? 0);
   changeArmor(match, unit, -absorbed);
   const lost = Math.min(unit.card.power, amount - absorbed);
   unit.card.power -= lost;
-  match.log.push({ type: 'damage', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, power: unit.card.power, amount, absorbed, lost });
+  match.log.push({ type: 'damage', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, power: unit.card.power, amount, absorbed, lost, sourceDefinitionId });
   if (unit.card.power === 0) removeUnit(match, unit, 'damage');
 }
 

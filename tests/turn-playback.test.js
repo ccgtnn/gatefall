@@ -36,6 +36,7 @@ test('damage and death are separate frames and damage resolves against the exact
   const visual = createPlaybackState(match);
   const events = next.log.slice(match.log.length);
   assert.equal(events[0].type, 'damage');
+  assert.equal(events[0].sourceDefinitionId, 'orbital-salvo');
   applyJournalEvent(visual, events[0]);
   assert.deepEqual(visual.players.bot.board.surface.map(({ power }) => power), [2, 0]);
   applyJournalEvent(visual, events[1]);

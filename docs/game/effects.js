@@ -1,7 +1,7 @@
 import { ROWS, ROW_LABELS } from './cards.js';
 import {
   boost, cardType, changeArmor, consume, damage, findUnit, neighbors, opponent, removeUnit, spawnCards, units,
-} from './board.js';
+} from './board.js?v=step-10';
 
 function reference(match, job, key = 'source') {
   return findUnit(match, key === 'source' ? job.sourceId : job.refs?.[key]);
@@ -72,7 +72,7 @@ export function availableOrders(match, side) {
 
 export function enqueueCardEffect(match, side, card, timing, requiredSource = true) {
   const ability = card.definition[timing];
-  if (ability) match.effects.push({ ability, side, sourceId: card.id, requiredSource });
+  if (ability) match.effects.push({ ability, side, sourceId: card.id, sourceDefinitionId: card.definition.id, requiredSource });
 }
 
 function valueOf(match, job, expression, target) {
@@ -184,7 +184,7 @@ export function runEffect(match, job, random) {
   } else {
     const operation = operations[step.action];
     if (!operation) throw new Error(`Unknown action: ${step.action}`);
-    result = operation(match, target, valueOf(match, job, step.amount, target));
+    result = operation(match, target, valueOf(match, job, step.amount, target), job.sourceDefinitionId);
   }
   if (step.save) job.results[step.save] = (job.results[step.save] ?? 0) + (result ?? 0);
 }
