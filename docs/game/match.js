@@ -1,3 +1,4 @@
+import { emit } from './events.js?v=step-12';
 import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=growth-art-3';
 import { cardType, createCard, opponent, placeCards, ROW_LIMIT, units } from './board.js?v=step-10';
 import { availableOrders, canCast, canUseLeader, enqueueCardEffect, orderAbility, runEffect } from './effects.js?v=step-10';
@@ -338,10 +339,10 @@ export function applyAction(match, side, action, { random = Math.random } = {}) 
       const { row, position } = destination;
       placeCards(current, row, position, [card]);
     }
-    next.log.push({ type: 'play', side, row: destination?.row, name: card.definition.name,
+    emit(next, { type: 'play', side, row: destination?.row, name: card.definition.name,
       power: card.power, cardType: cardType(card), cardId: card.id,
       card: { ...card }, position: destination?.position });
-    if (card.armor) next.log.push({ type: 'armor', side, name: card.definition.name, cardId: card.id, armor: card.armor, amount: card.armor });
+    if (card.armor) emit(next, { type: 'armor', side, name: card.definition.name, cardId: card.id, armor: card.armor, amount: card.armor });
     enqueueCardEffect(next, side, card, 'deploy', Boolean(destination));
     if (!destination) next.effects.push({ discard: card, side });
     next.playedCard = true;

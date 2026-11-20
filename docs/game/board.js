@@ -1,4 +1,5 @@
 import { ROWS } from './cards.js';
+import { emit } from './events.js?v=step-12';
 
 export const ROW_LIMIT = 9;
 export const opponent = (side) => side === 'human' ? 'bot' : 'human';
@@ -48,7 +49,7 @@ export function changeArmor(match, unit, amount) {
   if (!unit || !isUnit(unit.card) || amount === 0) return 0;
   const change = Math.max(amount, -(unit.card.armor ?? 0));
   unit.card.armor = (unit.card.armor ?? 0) + change;
-  if (change) match.log.push({ type: 'armor', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, armor: unit.card.armor, amount: change });
+  if (change) emit(match, { type: 'armor', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, armor: unit.card.armor, amount: change });
   return -change;
 }
 
@@ -58,12 +59,10 @@ export function removeUnit(match, unit, reason, consumerId) {
   player.board[row].splice(position, 1);
   const exile = reason === 'destroy' || card.definition.doomed;
   (exile ? player.exile : player.discard).push(card);
-  match.log.push({ type: reason === 'destroy' ? 'destroy' : 'death', side, name: card.definition.name, cardId: card.id, exile, reason });
-  if (reason !== 'destroy' && card.definition.deathwish) {
-    match.effects.unshift({
-      ability: card.definition.deathwish, side, row, position, refs: { consumer: consumerId }, deathwish: card.definition.name,
-    });
-  }
+  const death = reason === 'destroy' ? undefined : { row, position, refs: { consumer: consumerId } };
+  match.effects.unshift(...emit(match, {
+    type: death ? 'death' : 'destroy', side, name: card.definition.name, cardId: card.id, exile, reason,
+  }, { source: card, death }));
 }
 
 export function damage(match, unit, amount, sourceDefinitionId) {
@@ -72,7 +71,7 @@ export function damage(match, unit, amount, sourceDefinitionId) {
   changeArmor(match, unit, -absorbed);
   const lost = Math.min(unit.card.power, amount - absorbed);
   unit.card.power -= lost;
-  match.log.push({ type: 'damage', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, power: unit.card.power, amount, absorbed, lost, sourceDefinitionId });
+  emit(match, { type: 'damage', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, power: unit.card.power, amount, absorbed, lost, sourceDefinitionId });
   if (unit.card.power === 0) removeUnit(match, unit, 'damage');
 }
 
@@ -81,16 +80,12 @@ export function consume(match, victim, consumer, { multiplier = 1, extra = 0 } =
       victim.side !== consumer.side || victim.card.id === consumer.card.id) return 0;
   const nearby = neighbors(match, victim);
   const strength = victim.card.power;
-  match.log.push({
+  const reactions = emit(match, {
     type: 'consume', side: victim.side, name: victim.card.definition.name, cardId: victim.card.id, eaterId: consumer.card.id, eater: consumer.card.definition.name, amount: strength,
-  });
+  }, { neighbors: nearby });
   removeUnit(match, victim, 'consume', consumer.card.id);
   boost(match, consumer, strength * multiplier + extra);
-  match.effects.unshift(...nearby.filter(({ card }) => card.definition.neighborConsumed)
-    .map((unit) => {
-      const { card, side } = unit;
-      return { ability: card.definition.neighborConsumed, sourceId: card.id, side, requiredSource: true };
-    }));
+  match.effects.unshift(...reactions);
   return strength;
 }
 
@@ -100,5 +95,5 @@ export function spawnCards(match, side, row, position, count, definition) {
   if (added <= 0) return;
   const tokens = Array.from({ length: added }, () => createCard(`token-${++match.tokenCount}`, definition));
   placeCards(match.players[side], row, position, tokens);
-  match.log.push({ type: 'spawn', side, row, count: added, name: definition.name, position, cards: tokens.map((card) => ({ ...card })) });
+  emit(match, { type: 'spawn', side, row, count: added, name: definition.name, position, cards: tokens.map((card) => ({ ...card })) });
 }

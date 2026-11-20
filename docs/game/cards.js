@@ -138,7 +138,7 @@ const growth = [
       choice('victim', larvae, 'Выбери личинку для поглощения.', { kind: 'consume' }), enemyChoice(4),
     ]), keywords: ['Поглощение', 'Урон'] }],
   ['predator', 'Хищный побег', 5, 4, 'Когда рядом кого-то поглощают: усилить себя на 2.',
-    { art: 'predator.webp', neighborConsumed: ability([action('boost', self, 2)]), keywords: ['Соседи', 'Поглощение', 'Усиление'] }],
+    { art: 'predator.webp', neighborEvents: { consume: ability([action('boost', self, 2)]) }, keywords: ['Соседи', 'Поглощение', 'Усиление'] }],
   ['mutant', 'Мутант', 4, 2, 'При розыгрыше: поглотить личинку-соседа и получить дополнительно 3 силы.',
     { art: 'mutant.webp?v=3', deploy: ability([absorb(chosen('victim'), { extra: 3 })],
       [choice('victim', { ...adjacent, token: true }, 'Выбери личинку-соседа.', { kind: 'consume' })]), keywords: ['Соседи', 'Поглощение'] }],
