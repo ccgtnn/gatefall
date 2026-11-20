@@ -10,6 +10,7 @@ import {
   confirmMulligan, createMatch, mulliganLimit, rowScore, totalScore,
 } from './game/match.js?v=silhouettes-2';
 
+const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
 const phaseLabel = document.querySelector('#phase');
 const announcement = document.querySelector('#announcement');
@@ -37,6 +38,15 @@ let selected = new Set();
 let timer;
 let selectedCardId;
 let replaying = false;
+let mulliganFieldVisible = false;
+let openPile;
+const drawer = element('dialog', 'field-drawer');
+drawer.setAttribute('aria-labelledby', 'drawer-title');
+drawer.addEventListener('close', () => { openPile = undefined; });
+drawer.addEventListener('click', (event) => {
+  if (event.target === drawer) drawer.close();
+});
+document.body.append(drawer);
 const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';
 preview.setAttribute('aria-labelledby', 'preview-title');
@@ -220,6 +230,7 @@ function eventText(event) {
 function start(faction) {
   clearTimeout(timer);
   selected = new Set();
+  mulliganFieldVisible = false;
   selectedCardId = undefined;
   match = createMatch({ humanFaction: faction });
   render();
@@ -277,38 +288,31 @@ function cardStats(card) {
     armor.title = 'Броня ' + card.armor;
     stats.append(armor);
   }
-  if (!isUnit(card)) {
-    const icon = element('span', 'type-shape', cardType(card) === 'artifact' ? '◆' : '✧');
-    icon.title = CARD_TYPES[cardType(card)];
-    stats.append(icon);
-  }
   return stats;
 }
 
-function cardMarks(card) {
-  const decorations = document.createDocumentFragment();
-  const marks = element('span', 'card-marks');
+function decorateCard(node, card, player, { orderOnField = false } = {}) {
   const { definition, timer } = card;
-  if (definition.provision !== undefined) {
-    const provision = element('strong', 'provision-mark ' + definition.rarity, definition.provision);
-    provision.title = RARITY_LABELS[definition.rarity] + ' · Провизия ' + definition.provision;
-    decorations.append(provision);
+  const type = cardType(card);
+  node.dataset.type = type;
+  node.dataset.faction = player.factionId ?? '';
+  node.dataset.rarity = definition.rarity ?? '';
+  node.setAttribute('aria-label', cardLabel(card));
+  node.append(cardStats(card));
+  if (type !== 'unit') {
+    const mark = element('span', 'card-kind', type === 'artifact' ? '◇' : '✦');
+    mark.title = CARD_TYPES[type];
+    node.append(mark);
   }
-  for (const word of keywordsFor(card)) {
-    if (word === 'Броня' && card.armor) continue;
-    const icon = element('span', 'keyword-mark', keywordIcons[word]);
-    icon.title = word;
-    marks.append(icon);
+  const word = definition.order ? 'Приказ' : definition.deathwish ? 'Завещание'
+    : definition.doomed ? 'Обречённая' : keywordsFor(card).find((keyword) => keyword !== 'Броня');
+  if (timer !== undefined || (word && !orderOnField)) {
+    const mark = element('span', 'card-state', timer !== undefined ? timer : keywordIcons[word] ?? '○');
+    mark.title = timer !== undefined ? 'Таймер ' + timer : word;
+    if (word === 'Приказ' && timer === undefined) mark.classList.add('order-sleep');
+    node.append(mark);
   }
-  if (definition.doomed) {
-    const doomed = element('span', 'doomed-mark', 'О');
-    doomed.title = 'Обречённая';
-    marks.append(doomed);
-  }
-  if (timer !== undefined) marks.append(element('span', 'timer-mark', '⌛' + timer));
-  marks.setAttribute('aria-hidden', 'true');
-  decorations.append(marks);
-  return decorations;
+  addCardCrop(node, definition);
 }
 
 function cardLabel(card) {
@@ -324,29 +328,10 @@ function cardLabel(card) {
   return details.join(' · ');
 }
 
-function cardName(name) {
-  const label = element('span', 'card-name');
-  for (const word of name.split(' ')) {
-    if (label.firstChild) label.append(' ');
-    label.append(element('span', 'card-name-word', word));
-  }
-  return label;
-}
-
-function cardButton(card, handler, placement = false) {
-  const { name } = card.definition;
+function cardButton(card, handler, placement = false, player = match.players.human) {
   const node = button(undefined, handler, 'hand-card');
   node.dataset.cardId = card.id;
-  node.dataset.type = cardType(card);
-  node.dataset.faction = match.players.human.factionId ?? '';
-  node.setAttribute('aria-label', cardLabel(card));
-  node.append(
-    cardStats(card),
-    element('span', 'card-type-label', CARD_TYPES[cardType(card)]),
-    cardName(name),
-    cardMarks(card),
-  );
-  addCardCrop(node, card.definition);
+  decorateCard(node, card, player);
   cardInspection(node, card, placement);
   return node;
 }
@@ -368,27 +353,36 @@ function placeSelected(row) {
   playHuman({ type: 'play', cardId: selectedCardId, row, position: match.players.human.board[row].length });
 }
 
+function setMulliganField(visible) {
+  mulliganFieldVisible = visible;
+  render();
+  screen.querySelector(visible ? '.mulligan-return' : '#mulligan-title')?.focus({ preventScroll: true });
+}
+
 function mulliganScreen() {
   const limit = mulliganLimit(match, 'human');
-  const { extraSwaps } = match.players.human;
-  phaseLabel.textContent = `Перед раундом ${match.round}`;
-  const panel = element('section', 'panel mulligan');
-  const heading = element('h2', null, 'Муллиган');
+  const panel = element('section', 'mulligan mulligan-overlay');
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-modal', 'true');
+  panel.setAttribute('aria-labelledby', 'mulligan-title');
+  const heading = element('h2', null, 'Раунд ' + match.round);
+  heading.id = 'mulligan-title';
   heading.tabIndex = -1;
-  const counter = element('p', 'muted selection-count');
+  const counter = element('p', 'selection-count');
+  counter.setAttribute('aria-live', 'polite');
   const cards = element('div', 'hand-grid');
   const choices = match.players.human.hand.map((card) => cardButton(card, () => {
     if (selected.has(card.id)) selected.delete(card.id);
     else if (selected.size < limit) selected.add(card.id);
     updateSelection();
   }));
-  const confirm = button('Начать раунд', async () => {
+  const confirm = button('Подтвердить', async () => {
     await updateMatch(confirmMulligan(match, [...selected]));
-    document.querySelector('#turn-label')?.focus();
+    document.querySelector('#turn-label')?.focus({ preventScroll: true });
   }, 'button primary');
 
   function updateSelection() {
-    counter.textContent = `Выбрано ${selected.size} из ${limit}${extraSwaps ? ` · от лишнего добора +${extraSwaps}` : ''}`;
+    counter.textContent = 'Осталось замен: ' + (limit - selected.size);
     for (const choice of choices) {
       const pressed = selected.has(choice.dataset.cardId);
       choice.setAttribute('aria-pressed', String(pressed));
@@ -396,14 +390,12 @@ function mulliganScreen() {
     }
   }
 
+  const header = element('header', 'mulligan-header');
+  header.append(heading, counter);
+  const actions = element('div', 'mulligan-actions');
+  actions.append(button('Посмотреть поле', () => setMulliganField(true)), confirm);
   cards.append(...choices);
-  panel.append(
-    heading,
-    element('p', 'muted', 'Выбери карты для замены или сразу начни раунд.'),
-    counter,
-    cards,
-    confirm,
-  );
+  panel.append(header, cards, actions);
   updateSelection();
   return panel;
 }
@@ -412,7 +404,10 @@ function rowView(side, player, row, readyOrders) {
   const wrapper = element('div', 'board-row');
   const strength = rowScore(player, row);
   const label = element('div', 'row-label');
-  label.append(element('span', null, ROW_LABELS[row]), element('strong', 'row-score', strength));
+  const score = element('strong', 'row-score', strength);
+  score.title = ROW_LABELS[row] + ' · ' + strength;
+  score.setAttribute('aria-label', score.title);
+  label.append(element('span', 'row-name', ROW_LABELS[row]), score);
   const slots = element('div', 'row-line');
   slots.dataset.castZone = '';
   const cards = player.board[row];
@@ -435,23 +430,23 @@ function rowView(side, player, row, readyOrders) {
       if (target) playHuman({ type: 'target', cardId: card.id });
       else if (!replaying && selectedCardId === undefined) showCard(card);
     }, 'unit-face');
-    face.setAttribute('aria-label', cardLabel(card));
-    face.dataset.faction = player.factionId ?? '';
-    face.dataset.type = cardType(card);
-    face.append(cardStats(card), cardMarks(card));
-    addCardCrop(face, card.definition);
-    if (cardType(card) === 'artifact') face.classList.add('is-artifact');
+    decorateCard(face, card, player, { orderOnField: Boolean(card.definition.order) });
     if (target) face.classList.add('effect-target');
     if (card.definition.doomed) face.classList.add('is-doomed');
     cardInspection(face, card);
     slot.append(face);
     if (card.definition.order) {
-      const cooldown = Math.min(Math.max(1, card.definition.order.cooldown ?? 0), Math.max(0, card.readyAt - player.turns));
-      const order = button(cooldown ? `↻${cooldown}` : '⚑', () =>
-        playHuman({ type: 'order', cardId: card.id }), 'unit-order');
-      order.disabled = side !== 'human' || !humanCanAct() || !readyOrders.has(card.id);
-      const label = `Приказ: ${card.definition.name}${cooldown ? ` · осталось ходов: ${cooldown}` : ''}`;
-      order.setAttribute('aria-label', label);
+      const cooldown = Math.max(0, card.readyAt - player.turns);
+      const ready = readyOrders.has(card.id);
+      const label = 'Приказ · ' + (ready ? 'готов' : cooldown ? 'осталось ходов: ' + cooldown : 'нет цели');
+      const mark = ready ? '⚑' : cooldown > 0 ? cooldown : '◷';
+      const order = side === 'human'
+        ? button(mark, () => playHuman({ type: 'order', cardId: card.id }), 'card-state unit-order')
+        : element('span', 'card-state unit-order', mark);
+      if (side === 'human') order.disabled = !humanCanAct() || !ready;
+      order.classList.toggle('order-ready', ready);
+      order.classList.toggle('order-sleep', !ready);
+      order.setAttribute('aria-label', label + ' · ' + card.definition.name);
       order.title = label;
       slot.append(order);
     }
@@ -471,74 +466,124 @@ function sideView(side) {
   const section = element('section', 'side');
   section.dataset.side = side;
   section.dataset.faction = player.factionId ?? '';
-  const summary = element('div', 'side-summary');
-  const status = element('div', 'side-status');
-  status.append(
-    element('span', 'faction-label', player.faction),
-    element('span', null, `Жизни ${player.lives}/2`),
-    element('span', null, `Рука ${player.hand.length}`),
-  );
-  if (player.passed) status.append(element('span', 'passed', 'Пас'));
-
-  const score = element('strong', 'total', totalScore(player));
-  score.setAttribute('aria-label', `Общая сила ${totalScore(player)}`);
-  const identity = element('div', 'side-identity');
-  identity.append(element('h2', null, sideLabel[side]));
-  if (player.leader?.art) {
-    const portrait = button(undefined, () => showCard({ definition: player.leader }, { leader: true }), 'leader-portrait');
-    portrait.setAttribute('aria-label', `Лидер · ${player.leader.name}`);
-    portrait.title = player.leader.name;
-    portrait.append(cardArt(player.leader, 'leader-image'));
-    identity.prepend(portrait);
-  }
-  summary.append(identity, status, score);
+  section.setAttribute('aria-label', sideLabel[side]);
   const rows = side === 'bot' ? ROWS : [...ROWS].reverse();
-  const lines = element('div', 'board-rows');
   const readyOrders = new Set(availableOrders(match, side).map(({ card }) => card.id));
-  lines.append(...rows.map((row) => rowView(side, player, row, readyOrders)));
-  if (side === 'bot') section.append(summary, lines);
-  else section.append(lines, summary);
+  section.append(...rows.map((row) => rowView(side, player, row, readyOrders)));
   return section;
 }
 
 function playerHand() {
   const { human } = match.players;
-  const active = humanCanAct();
-  const panel = element('section', 'panel hand');
-  const header = element('div', 'hand-header');
-  const pass = button('Пас', () => playHuman({ type: 'pass' }));
-  pass.id = 'pass-button';
-  pass.disabled = !active || !canPass(match, 'human');
-  const controls = element('div', 'hand-controls');
-  const leader = button(`${human.leader.name} · ${human.leader.charges}`, () => playHuman({ type: 'leader' }));
-  leader.title = human.leader.text;
-  leader.disabled = !active || !canUseLeader(match, 'human');
-  controls.append(leader, pass);
-  header.append(element('h2', null, `Твоя рука · ${human.hand.length}/${HAND_LIMIT}`), controls);
-  panel.append(header);
-  if (active && human.usedAbility) panel.append(element('p', 'muted', 'Способность применена. Сыграй карту, чтобы завершить ход.'));
-
-  if (human.hand.length === 0) {
-    panel.append(element('p', 'muted', 'В руке нет карт.'));
-    return panel;
-  }
-
-  const cards = element('div', 'hand-grid');
-  panel.append(element('p', 'muted placement-hint',
-    'Перетащи карту или выбери её и нажми на ряд. Двойной клик, правый клик или удержание открывают описание.'));
-  for (const card of human.hand) {
+  const active = humanCanAct() && !match.playedCard;
+  const cards = element('section', 'hand hand-fan');
+  cards.setAttribute('aria-label', 'Твоя рука · ' + human.hand.length);
+  for (const [index, card] of human.hand.entries()) {
     const available = active && canPlayCard(match, 'human', card);
     const node = cardButton(card, () => {
-      if (!available) return;
+      if (!available) {
+        if (!replaying) showCard(card);
+        return;
+      }
       selectedCardId = card.id;
       updatePlacementSelection();
     }, available);
     if (available) node.dataset.playCard = '';
-    else node.classList.add('is-unavailable');
+    if (active && !available) node.classList.add('is-unavailable');
+    fanCard(node, index, human.hand.length);
     cards.append(node);
   }
-  panel.append(cards);
+  return cards;
+}
+
+function fanCard(node, index, count) {
+  const distance = index - (count - 1) / 2;
+  node.style.setProperty('--fan-angle', (distance * 2) + 'deg');
+  node.style.setProperty('--fan-drop', (distance ** 2 / 3) + 'px');
+}
+
+function botHand() {
+  const { bot } = match.players;
+  const hand = element('section', 'bot-hand');
+  hand.setAttribute('aria-label', 'Рука бота · ' + bot.hand.length);
+  for (let index = 0; index < bot.hand.length; index += 1) {
+    const back = element('span', 'card-back');
+    back.dataset.faction = bot.factionId;
+    back.setAttribute('aria-hidden', 'true');
+    fanCard(back, index, bot.hand.length);
+    hand.append(back);
+  }
+  return hand;
+}
+
+function leaderView(side) {
+  const player = match.players[side];
+  const { leader } = player;
+  const panel = element('div', 'field-leader');
+  panel.dataset.faction = player.factionId ?? '';
+  if (!leader) return panel;
+  const portrait = button(undefined, () => showCard({ definition: leader }, { leader: true }), 'leader-portrait');
+  portrait.setAttribute('aria-label', 'Лидер · ' + leader.name);
+  portrait.title = leader.name;
+  if (leader.art) portrait.append(cardArt(leader, 'leader-image'));
+  const power = button('ϟ ' + leader.charges, () => playHuman({ type: 'leader' }), 'leader-power');
+  power.title = leader.text;
+  power.setAttribute('aria-label', leader.name + ' · зарядов ' + leader.charges);
+  power.disabled = side !== 'human' || !humanCanAct() || match.playedCard || !canUseLeader(match, side);
+  panel.append(portrait, power);
   return panel;
+}
+
+function scoreView(side) {
+  const player = match.players[side];
+  const panel = element('div', 'field-score');
+  panel.dataset.faction = player.factionId ?? '';
+  const points = totalScore(player);
+  const total = element('strong', 'field-total', points);
+  total.setAttribute('aria-label', sideLabel[side] + ' · сила ' + points);
+  const lives = element('span', 'field-lives', '◆'.repeat(player.lives) + '◇'.repeat(2 - player.lives));
+  lives.setAttribute('aria-label', 'Жизни ' + player.lives + '/2');
+  panel.append(total, lives);
+  if (player.passed) panel.append(element('span', 'field-passed', 'Пас'));
+  return panel;
+}
+
+function pileView(side, pile) {
+  const player = match.players[side];
+  const count = player[pile].length;
+  const name = pile === 'deck' ? 'Колода' : 'Сброс';
+  const label = sideLabel[side] + ' · ' + name + ' · ' + count;
+  const node = pile === 'discard' ? button(undefined, () => showDrawer(side), 'field-pile')
+    : element('div', 'field-pile');
+  node.dataset.faction = player.factionId ?? '';
+  node.title = label;
+  node.setAttribute('aria-label', label);
+  node.append(element('span', 'pile-icon', pile === 'deck' ? '▤' : '▱'), element('strong', null, count));
+  return node;
+}
+
+function fillDrawer() {
+  const journal = openPile === 'journal';
+  const player = match.players[openPile];
+  const title = element('h2', null, journal ? 'Журнал ходов' : 'Сброс · ' + player.faction);
+  title.id = 'drawer-title';
+  const header = element('header', 'drawer-header');
+  header.append(title, button('Закрыть', () => drawer.close()));
+  if (!journal) {
+    const cards = element('div', 'discard-grid');
+    cards.append(...player.discard.map((card) => cardButton(card, () => showCard(card), false, player)));
+    if (!player.discard.length) cards.append(element('p', 'muted', 'Сброс пуст.'));
+    drawer.replaceChildren(header, cards);
+    return;
+  }
+  const list = logView().querySelector('ol');
+  drawer.replaceChildren(header, list);
+}
+
+function showDrawer(pile) {
+  openPile = pile;
+  fillDrawer();
+  drawer.showModal();
 }
 
 function logView() {
@@ -552,21 +597,44 @@ function logView() {
 }
 
 function battlefield() {
-  phaseLabel.textContent = `Раунд ${match.round}`;
-  const game = element('div', 'game');
-  const field = element('div', 'panel battlefield');
-  const { pending } = match;
+  phaseLabel.textContent = 'Раунд ' + match.round;
+  const game = element('div', 'match-screen');
+  const field = element('div', 'match-board');
+  const { pending, players, phase } = match;
   const turn = element('p', 'turn', replaying ? 'Розыгрыш…' : pending
     ? pending.side === 'human' ? pending.prompt : 'Бот выбирает цель…'
+    : phase === 'mulligan' ? 'Перед раундом'
     : match.turn === 'human' ? 'Твой ход' : 'Ход бота');
   if (pending?.side === 'human') turn.classList.add('target-prompt');
   turn.id = 'turn-label';
   turn.tabIndex = -1;
-  field.append(sideView('bot'), turn, sideView('human'));
-  game.append(field, playerHand());
-  const lastRound = match.log.findLast((event) => event.type === 'round-end');
-  if (lastRound) game.append(element('p', 'round-result', roundText(lastRound)));
-  game.append(logView());
+  const center = element('div', 'field-center battlefield');
+  center.append(sideView('bot'), turn, sideView('human'));
+  const left = element('div', 'field-rail field-left');
+  left.append(pileView('bot', 'discard'), leaderView('bot'),
+    button('Журнал', () => showDrawer('journal'), 'button field-log'), leaderView('human'), pileView('human', 'discard'));
+  const right = element('div', 'field-rail field-right');
+  const pass = button('Пас', () => playHuman({ type: 'pass' }), 'button field-action');
+  pass.id = 'pass-button';
+  pass.disabled = !humanCanAct() || !canPass(match, 'human');
+  const botCount = element('span', 'field-hand-count', players.bot.hand.length + '/' + HAND_LIMIT);
+  botCount.title = 'Карт в руке у бота';
+  const humanCount = element('span', 'field-hand-count', players.human.hand.length + '/' + HAND_LIMIT);
+  humanCount.title = 'Карт в твоей руке';
+  const botCorner = element('div', 'field-corner');
+  botCorner.append(botCount, pileView('bot', 'deck'));
+  const humanCorner = element('div', 'field-corner');
+  humanCorner.append(humanCount, pileView('human', 'deck'));
+  right.append(botCorner, scoreView('bot'), pass, scoreView('human'), humanCorner);
+  field.append(left, botHand(), center, playerHand(), right);
+  game.append(field);
+  if (phase === 'mulligan') {
+    field.inert = !mulliganFieldVisible;
+    game.append(mulliganFieldVisible
+      ? button('К муллигану', () => setMulliganField(false), 'button mulligan-return')
+      : mulliganScreen());
+  }
+  game.append(element('div', 'rotate-notice', 'Поверни телефон'));
   return game;
 }
 
@@ -595,14 +663,22 @@ function render() {
   cancelPlacement();
   screen.classList.toggle('is-replaying', replaying);
   selectedCardId = undefined;
+  app.classList.toggle('in-match', match?.phase === 'mulligan' || match?.phase === 'playing');
   let content;
   switch (match?.phase) {
-    case 'mulligan': content = mulliganScreen(); break;
+    case 'mulligan':
     case 'playing': content = battlefield(); break;
     case 'finished': content = finishedScreen(); break;
     default: content = startScreen();
   }
   screen.replaceChildren(content);
+  if (drawer.open && match) {
+    if (openPile === 'journal') {
+      const list = drawer.querySelector('ol');
+      list.replaceChildren(...logView().querySelector('ol').children);
+    }
+    if (openPile !== 'journal' && !replaying) fillDrawer();
+  }
 }
 
 function renderPlayback(state) {
@@ -630,14 +706,16 @@ async function updateMatch(next) {
   }
 
   match = next;
-  if (match.phase === 'mulligan') selected.clear();
+  if (match.phase === 'mulligan') {
+    selected.clear();
+    mulliganFieldVisible = false;
+  }
   render();
   announcement.textContent = events.map(eventText).join(' ');
-  if (match.phase === 'finished' || match.phase === 'mulligan') screen.querySelector('h2').focus();
+  if (match.phase === 'finished' || match.phase === 'mulligan') screen.querySelector('h2')?.focus({ preventScroll: true });
   else if (match.pending?.side === 'human') {
     const target = screen.querySelector('.effect-target');
     target?.focus({ preventScroll: true });
-    target?.scrollIntoView({ block: 'nearest' });
   } else if ((match.pending?.side ?? match.turn) === 'bot') {
     timer = setTimeout(() => updateMatch(applyAction(match, 'bot', chooseBotTurn(match))), BOT_DELAY_MS);
   }
