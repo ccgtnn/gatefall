@@ -1,17 +1,19 @@
+import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=step-16';
+import { createDeckStorage } from './ui/deck-storage.js?v=step-16';
 import { bindCardPlacement } from './card-placement.js?v=field-6';
-import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=neutral-art-complete';
+import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=step-16';
 import { clearParticles } from './particles.js?v=step-14';
-import { playJournal } from './turn-playback.js?v=neutral-art-complete';
-import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=neutral-art-complete';
-import { FACTIONS } from './game/cards.js?v=neutral-art-complete';
-import { applyAction, createMatch } from './game/match.js?v=neutral-art-complete';
+import { playJournal } from './turn-playback.js?v=step-16';
+import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=step-16';
+import { FACTIONS } from './game/cards.js?v=step-16';
+import { applyAction, createDeckMatch } from './game/match.js?v=step-16';
 import { element, iconButton } from './ui/dom.js?v=step-11';
-import { preview, showCard } from './ui/cards.js?v=neutral-art-complete';
-import { createBattlefield } from './ui/field.js?v=neutral-art-complete';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=neutral-art-complete';
-import { createMatchMenu, eventText } from './ui/menu.js?v=neutral-art-complete';
-import { catalogScreen, finishedScreen, leaderScreen, startScreen } from './ui/screens.js?v=neutral-art-complete';
-import { createSettings } from './ui/settings.js?v=neutral-art-complete';
+import { preview, showCard } from './ui/cards.js?v=step-16';
+import { createBattlefield } from './ui/field.js?v=step-16';
+import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=step-16';
+import { createMatchMenu, eventText } from './ui/menu.js?v=step-16';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=step-16';
+import { createSettings } from './ui/settings.js?v=step-16';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
 
@@ -25,8 +27,10 @@ const ROUND_RESULT_MS = 1500;
 const noticeTimers = new Map();
 const announcement = document.querySelector('#announcement');
 let match;
+let menuView = 'decks';
 let selectedFaction;
-let browsingCatalog = false;
+let editedDeck;
+let matchDeck;
 let matchSession = 0;
 let timer;
 let selectedCardId;
@@ -34,6 +38,7 @@ let replaying = false;
 let mulliganFieldVisible = false;
 let storage;
 try { storage = window.localStorage; } catch {}
+const deckStore = createDeckStorage(storage);
 const stats = createFactionStats(Object.keys(FACTIONS), storage);
 const settings = createSettings(app, leaveMatch);
 const menu = createMatchMenu(() => match);
@@ -92,23 +97,35 @@ function showNotice(notice, text, duration) {
   noticeTimers.set(notice, setTimeout(() => hideNotice(notice), duration));
 }
 
-function selectFaction(faction) {
-  selectedFaction = faction;
+function goTo(view) {
+  menuView = view;
   render();
-  screen.querySelector('h2').focus({ preventScroll: true });
+  screen.querySelector('h2')?.focus({ preventScroll: true });
 }
 
-function showCatalog(visible) {
-  browsingCatalog = visible;
-  render();
-  screen.querySelector('h2').focus({ preventScroll: true });
+function editDeck(deck) {
+  editedDeck = structuredClone(deck);
+  goTo('edit');
 }
 
-function start(faction, leader) {
+function makeDeck(factionId, leaderId, source) {
+  const id = globalThis.crypto?.randomUUID?.() ?? 'deck-' + Date.now() + '-' + Math.random();
+  editDeck({
+    id, name: source ? source.name + ' (копия)' : FACTIONS[factionId].name,
+    factionId, leaderId, cardIds: source ? [...source.cardIds] : [],
+  });
+}
+
+function start(deck) {
+  const next = createDeckMatch(deck);
+  if (!next) return;
+  matchDeck = structuredClone(deck);
+  match = next;
   selectedFaction = undefined;
+  editedDeck = undefined;
+  menuView = 'decks';
   mulliganFieldVisible = false;
   announcement.textContent = '';
-  match = createMatch({ humanFaction: faction, humanLeader: leader });
   render();
   const first = match.starter === 'human';
   const label = element('span', 'coin-result', 'Монетка: ты ходишь ' + (first ? 'первым' : 'вторым'));
@@ -132,7 +149,8 @@ function leaveMatch(surrender = false) {
   hideNotice(turnNotice);
   hideNotice(roundNotice);
   match = undefined;
-  selectedFaction = undefined;
+  matchDeck = undefined;
+  menuView = 'decks';
   replaying = false;
   mulliganFieldVisible = false;
   announcement.textContent = '';
@@ -161,15 +179,28 @@ function render() {
   selectedCardId = undefined;
   app.classList.toggle('in-match', match?.phase === 'mulligan' || match?.phase === 'playing');
   let content;
-  switch (match?.phase) {
-    case 'mulligan':
-    case 'playing': content = battlefield(); break;
-    case 'finished': content = finishedScreen(match, phaseLabel, start, leaveMatch); break;
-    default:
-      if (browsingCatalog) content = catalogScreen(phaseLabel, () => showCatalog(false));
-      else if (selectedFaction) content = leaderScreen(phaseLabel, selectedFaction, start, () => selectFaction(undefined));
-      else content = startScreen(phaseLabel, selectFaction, stats, () => showCatalog(true));
-
+  if (match?.phase === 'mulligan' || match?.phase === 'playing') content = battlefield();
+  else if (match?.phase === 'finished') content = finishedScreen(match, phaseLabel, () => start(matchDeck), leaveMatch);
+  else {
+    const back = () => goTo('decks');
+    switch (menuView) {
+      case 'catalog': content = catalogScreen(phaseLabel, back); break;
+      case 'faction': content = factionPicker(phaseLabel, (id) => {
+        selectedFaction = id;
+        goTo('leader');
+      }, back); break;
+      case 'leader': content = leaderScreen(phaseLabel, selectedFaction, makeDeck, () => goTo('faction')); break;
+      case 'edit': content = deckEditor(phaseLabel, editedDeck, {
+        back, save: (deck) => deckStore.save(deck), play: (deck) => {
+          deckStore.save(deck);
+          start(deck);
+        },
+      }); break;
+      default: content = deckListScreen(phaseLabel, deckStore.list(), stats, {
+        create: () => goTo('faction'), catalog: () => goTo('catalog'), play: start, edit: editDeck,
+        copy: (deck) => makeDeck(deck.factionId, deck.leaderId, deck),
+      });
+    }
   }
   screen.replaceChildren(content);
   menu.refresh(match, replaying);

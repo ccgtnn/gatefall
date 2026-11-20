@@ -1,30 +1,8 @@
 import { button, element } from './dom.js?v=step-11';
-import { createCard } from '../game/board.js?v=neutral-art-complete';
-import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from '../game/cards.js?v=neutral-art-complete';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=neutral-art-complete';
-import { logView, roundText } from './menu.js?v=neutral-art-complete';
-
-export function startScreen(phaseLabel, start, stats, openCatalog) {
-  phaseLabel.textContent = '';
-  const panel = element('section', 'intro');
-  const heading = element('h2', null, 'Выбери колоду');
-  heading.tabIndex = -1;
-  const choices = element('div', 'deck-choices');
-  for (const [id, faction] of Object.entries(FACTIONS)) {
-    const choice = button(undefined, () => start(id), 'button deck-choice');
-    choice.dataset.faction = id;
-    const { win, loss } = stats.get(id);
-    choice.append(
-      element('strong', null, faction.name),
-      element('span', 'muted', faction.strategy),
-      element('small', 'deck-record', `Победы ${win} · Поражения ${loss}`),
-    );
-    addCardCrop(choice, faction.leader);
-    choices.append(choice);
-  }
-  panel.append(heading, choices, element('p', 'muted', 'Бот сыграет второй колодой.'), button('Все карты', openCatalog));
-  return panel;
-}
+import { createCard } from '../game/board.js?v=step-16';
+import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from '../game/cards.js?v=step-16';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=step-16';
+import { logView, roundText } from './menu.js?v=step-16';
 
 export function catalogScreen(phaseLabel, back) {
   phaseLabel.textContent = '';
@@ -34,7 +12,7 @@ export function catalogScreen(phaseLabel, back) {
   const toolbar = element('div', 'catalog-filters');
   const grid = element('div', 'catalog-grid');
   const groups = [[NEUTRAL, 'Нейтральные', NEUTRAL_CARDS], ...Object.entries(FACTIONS)
-    .map(([id, faction]) => [id, faction.name, faction.deck.filter(({ faction }) => faction === id)])];
+    .map(([id, faction]) => [id, faction.name, faction.pool])];
   const filters = new Map();
 
   function select(factionId, definitions) {
@@ -54,7 +32,7 @@ export function catalogScreen(phaseLabel, back) {
     toolbar.append(filter);
   }
   select(NEUTRAL, NEUTRAL_CARDS);
-  panel.append(heading, toolbar, grid, button('К выбору колоды', back));
+  panel.append(heading, toolbar, grid, button('Назад', back));
   return panel;
 }
 
@@ -70,10 +48,10 @@ export function leaderScreen(phaseLabel, factionId, start, back) {
     choice.dataset.faction = factionId;
     if (leader.art) addCardCrop(choice, leader);
     else choice.append(element('span', 'leader-placeholder', '♜'));
-    choice.append(element('strong', null, leader.name), element('span', 'leader-description', leader.text));
+    choice.append(element('strong', null, leader.name + ' (+' + leader.provisionBonus + ')'), element('span', 'leader-description', leader.text));
     choices.append(choice);
   }
-  panel.append(heading, choices, button('К выбору колоды', back));
+  panel.append(heading, choices, button('Назад', back));
   return panel;
 }
 
@@ -90,9 +68,8 @@ export function finishedScreen(match, phaseLabel, start, leaveMatch) {
   const ties = rounds.length - wins - losses;
   const score = element('p', 'match-result-score', `Раунды · Ты ${wins} : ${losses} Противник${ties ? ' · Ничьих: ' + ties : ''}`);
   const actions = element('div', 'finish-actions');
-  const faction = match.players.human.factionId;
   actions.append(
-    button('Ещё раз той же колодой', () => start(faction, match.players.human.leader?.id), 'button primary'),
+    button('Ещё раз той же колодой', start, 'button primary'),
     button('Выбор колоды', leaveMatch),
   );
   panel.append(

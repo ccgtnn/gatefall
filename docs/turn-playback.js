@@ -1,4 +1,4 @@
-import { ROWS } from './game/cards.js?v=neutral-art-complete';
+import { ROWS } from './game/cards.js?v=step-16';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;
