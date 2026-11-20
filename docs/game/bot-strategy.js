@@ -45,7 +45,7 @@ function boardValue(state, side) {
       + (ready.has(card.id) ? 1.15 : definition.order ? .35 : 0)
       + (definition.endTurn ? (timer === undefined ? 1.25 : .5 * Math.min(timer, 3)) : 0)
       - .72 * Math.min(power ?? 0, card.statuses?.infection ?? 0);
-  }, (player.leader?.charges ?? 0) * 1.45);
+  }, (player.leader?.charges ?? 0) * .9);
 }
 
 function value(state, round) {
@@ -222,8 +222,17 @@ export function chooseStrategicTurn(match, difficulty, oldAction) {
   if (match.playedCard) {
     if (human.passed && lead > 0) return END;
     const baseline = evaluateAction(state, 'bot', END, search);
-    const [best] = rankAbilities(state, search);
-    return best && best.rating > (baseline?.rating ?? Infinity) + .08 ? best.action : END;
+    const evaluate = (candidate) => hard ? replyRating(candidate, round, search) : candidate.rating;
+    let rating = baseline ? evaluate(baseline) + .08 : Infinity;
+    let action = END;
+    for (const candidate of rankAbilities(state, search)) {
+      const score = evaluate(candidate);
+      if (score > rating) {
+        rating = score;
+        action = candidate.action;
+      }
+    }
+    return action;
   }
 
   // Give ordinary plays and ability sequences separate shares of the same time budget.

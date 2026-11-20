@@ -159,3 +159,12 @@ test('both strategic bots explore multiple targets in one chain', () => {
     assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'spores' });
   }
 });
+
+test('hard anticipates a visible Surface-only reply without reading the enemy hand', () => {
+  const match = position(3);
+  match.players.bot.hand = [plain('ship', 6)];
+  match.players.bot.board.surface = [member('generator', 'protectorate', 'shield-generator')];
+  match.players.human.leader = { ...FACTIONS.protectorate.leaders.find(({ id }) => id === 'fleet-admiral'), charges: 1 };
+  assert.equal(chooseBotTurn(match, 'normal').row, 'surface');
+  assert.equal(chooseBotTurn(match, 'hard').row, 'orbit');
+});

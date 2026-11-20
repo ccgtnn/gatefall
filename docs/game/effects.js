@@ -59,13 +59,16 @@ function chooseSubset(cards, count, random) {
     cards.splice(Math.floor(random() * cards.length), 1)[0].id);
 }
 
+function eligibleRows(player, filter) {
+  return filter === 'space' ? availableRows(player) : ROWS.filter((row) => rowArmor(player, row));
+}
+
 function canStart(match, job) {
   const { when, select, steps } = job.ability;
   const player = match.players[job.side];
   if (steps.some((step) => step.action === 'play-from-deck' &&
     (!availableRows(player).length || !deckCandidates(player, step.filter).length))) return false;
-  if (steps.some((step) => step.action === 'select-armored-row') &&
-      !ROWS.some((row) => rowArmor(player, row))) return false;
+  if (steps.some((step) => step.action === 'select-row' && !eligibleRows(player, step.filter).length)) return false;
   return (!when || targets(match, job, when.targets).length >= (when.atLeast ?? 1)) &&
     (!select?.length || viableChoices(match, job, 0).length > 0);
 }
@@ -144,7 +147,7 @@ function selectTargets(match, job, random) {
 function spawn(match, job, step) {
   const origin = reference(match, job);
   const { position, row } = step;
-  const rows = row === 'all' ? ROWS : [row === 'source' ? origin?.row : row === 'death' ? job.row : row];
+  const rows = row === 'all' ? ROWS : [step.rowRef ? job.refs[step.rowRef] : row === 'source' ? origin?.row : row === 'death' ? job.row : row];
   for (const row of rows.filter(Boolean)) {
     const index = position === 'death' ? job.position
       : origin?.row === row ? origin.position + (position === 'right' ? 1 : 0)
@@ -207,6 +210,11 @@ export function enqueueEndTurn(match, side) {
 const operations = {
   armor: (match, target, amount) => applyStatus(match, target, 'armor', amount),
   'infection-tick': tickInfection,
+  'ready-order': (match, { card, side }) => {
+    if (!card.definition.order || card.readyAt <= match.players[side].turns) return;
+    card.readyAt = match.players[side].turns;
+    match.log.push({ type: 'order-ready', side, cardId: card.id, name: card.definition.name, readyAt: card.readyAt });
+  },
   boost,
   damage,
   destroy: (match, target) => removeUnit(match, target, 'destroy'),
@@ -236,12 +244,14 @@ export function runEffect(match, job, random) {
 
   const step = job.ability.steps[job.index];
   if (!step) return;
-  if (step.action === 'select-armored-row') {
+  if (step.action === 'select-row') {
     if (!job.refs[step.ref]) {
       const player = match.players[job.side];
-      pause(match, job, 'armor-row', step.ref, ROWS.filter((row) => rowArmor(player, row)),
-        'Выбери свой ряд, с которого снять броню.');
-      return;
+      const rows = eligibleRows(player, step.filter);
+      if (rows.length) {
+        pause(match, job, step.filter === 'space' ? 'spawn-row' : 'armor-row', step.ref, rows, step.prompt);
+        return;
+      }
     }
     job.index += 1;
     match.effects.unshift(job);
@@ -296,6 +306,8 @@ export function runEffect(match, job, random) {
   if (step.action === 'consume') {
     const [receiver] = targets(match, job, step.receiver);
     result = consume(match, target, receiver, step);
+  } else if (step.action === 'status') {
+    result = applyStatus(match, target, step.status, valueOf(match, job, step.amount, target));
   } else {
     const operation = operations[step.action];
     if (!operation) throw new Error(`Unknown action: ${step.action}`);

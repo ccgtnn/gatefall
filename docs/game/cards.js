@@ -108,7 +108,7 @@ const protectorate = [
     }, keywords: ['Приказ', 'Броня', 'Урон'] }],
   ['shield-overload', 'Перегрузка щитов', 11, null, 'Выбери свой ряд. Сними всю броню со своих карт в нём. За каждую снятую единицу брони нанеси 1 урон случайному вражескому отряду.',
     { type: 'effect', deploy: ability([
-      { action: 'select-armored-row', ref: 'row' },
+      { action: 'select-row', ref: 'row', filter: 'armor', prompt: 'Выбери свой ряд, с которого снять броню.' },
       { action: 'armor', target: { ...allies, rowRef: 'row' }, amount: { stat: 'armor', scale: -1 }, save: 'armor' },
       { action: 'scatter', amount: armorRemoved },
     ]), keywords: ['Броня', 'Урон'] }],
@@ -173,27 +173,60 @@ function factionCards(entries, faction) {
   }));
 }
 
+const protectorateLeaders = Object.freeze([
+  {
+    id: 'marshal', name: 'Маршал Строя', art: 'marshal.webp', text: 'Дать 3 брони выбранному своему отряду и его соседям.',
+    ability: ability([
+      action('armor', chosen('ally'), 3), action('armor', { ...adjacent, of: 'ally' }, 3),
+    ], [choice('ally', allies, 'Выбери отряд для брони Маршала и его соседей.', { kind: 'marshal' })]),
+  },
+  {
+    id: 'supreme-commander', name: 'Верховный командор', text: 'Усилить свой отряд на 2. Если у него есть Приказ, сделать его готовым.',
+    ability: ability([
+      action('boost', chosen('ally'), 2), action('ready-order', chosen('ally')),
+    ], [choice('ally', allies, 'Выбери свой отряд для усиления и подготовки Приказа.', { kind: 'ready-order' })]),
+  },
+  {
+    id: 'fleet-admiral', name: 'Адмирал флота', text: 'Нанести 4 урона вражескому отряду на Поверхности.',
+    ability: ability([action('damage', chosen('enemy'), 4)], [
+      choice('enemy', { ...enemies, row: 'surface' }, 'Выбери врага на Поверхности для 4 урона.', { kind: 'damage', amount: 4 }),
+    ]),
+  },
+]);
+
+const growthLeaders = Object.freeze([
+  {
+    id: 'devourer', name: 'Пожиратель', art: 'devourer.webp', text: 'Поглотить свой отряд и передать удвоенную силу одному из его соседей.',
+    ability: ability([
+      absorb(chosen('victim'), { receiver: chosen('ally'), multiplier: 2 }),
+    ], [
+      choice('victim', allies, 'Выбери жертву для Пожирателя.', { kind: 'consume' }),
+      choice('ally', { ...adjacent, of: 'victim' }, 'Выбери соседа, который получит удвоенную силу.', { kind: 'boost' }),
+    ]),
+  },
+  {
+    id: 'brood-mother', name: 'Матка', text: 'Породить 3 личинки в выбранном своём ряду.',
+    ability: ability([
+      { action: 'select-row', ref: 'row', filter: 'space', prompt: 'Выбери свой ряд для трёх личинок.' },
+      { ...spawn('right', 'source', 3), rowRef: 'row' },
+    ]),
+  },
+  {
+    id: 'carrier', name: 'Носитель', text: 'Наложить Заражение 3 на вражеский отряд и его соседей.',
+    ability: ability([
+      { ...action('status', chosen('enemy'), 3), status: 'infection' },
+      { ...action('status', { ...adjacent, of: 'enemy' }, 3), status: 'infection' },
+    ], [choice('enemy', enemies, 'Выбери вражеский отряд для Заражения 3 у него и его соседей.', { kind: 'infection' })]),
+  },
+]);
+
 export const FACTIONS = Object.freeze({
   protectorate: {
     name: 'Протекторат', strategy: 'Строй', deck: factionCards(protectorate, 'protectorate'),
-    leader: {
-      name: 'Маршал Строя', art: 'marshal.webp', text: 'Дать 3 брони выбранному своему отряду и его соседям.',
-      ability: ability([
-        action('armor', chosen('ally'), 3),
-        action('armor', { ...adjacent, of: 'ally' }, 3),
-      ], [choice('ally', allies, 'Выбери отряд для брони Маршала и его соседей.', { kind: 'marshal' })]),
-    },
+    leader: protectorateLeaders[0], leaders: protectorateLeaders,
   },
   growth: {
     name: 'Поросль', strategy: 'Пожирание', deck: factionCards(growth, 'growth'),
-    leader: {
-      name: 'Пожиратель', art: 'devourer.webp', text: 'Поглотить свой отряд и передать удвоенную силу одному из его соседей.',
-      ability: ability([
-        absorb(chosen('victim'), { receiver: chosen('ally'), multiplier: 2 }),
-      ], [
-        choice('victim', allies, 'Выбери жертву для Пожирателя.', { kind: 'consume' }),
-        choice('ally', { ...adjacent, of: 'victim' }, 'Выбери соседа, который получит удвоенную силу.', { kind: 'boost' }),
-      ]),
-    },
+    leader: growthLeaders[0], leaders: growthLeaders,
   },
 });

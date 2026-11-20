@@ -121,6 +121,10 @@ function pickBotTarget(match) {
     const row = bestTarget(options, (row) => rowArmor(player, row));
     return { type: 'target', cardId: row };
   }
+  if (kind === 'spawn-row') {
+    const row = bestTarget(options, (row) => -player.board[row].length);
+    return { type: 'target', cardId: row };
+  }
   if (kind === 'deck-card') {
     const optionsSet = new Set(options);
     const card = bestTarget(player.deck.filter(({ id }) => optionsSet.has(id)), ({ definition }) =>
@@ -138,6 +142,9 @@ function pickBotTarget(match) {
   const priorities = {
     consume: ({ card }) => sacrificePriority(card),
     'spend-armor': ({ card }) => amount ? card.armor : card.armor * 100 + card.power,
+    'ready-order': ({ card }) => card.definition.order && card.readyAt > player.turns ? 20 + card.power : card.power,
+    infection: (unit) => [unit, ...neighbors(match, unit)].reduce((sum, { card }) =>
+      sum + Math.max(0, Math.min(3, card.power ?? 0) - (card.statuses?.infection ?? 0)), 0),
     marshal: (unit) => neighbors(match, unit).length * 100 + unit.card.power,
   };
   const target = bestTarget(lethal.length ? lethal : candidates, priorities[kind] ?? (({ card }) => card.power));
@@ -147,10 +154,11 @@ function pickBotTarget(match) {
 function beneficialLeader(match, view, allies) {
   const player = match.players.bot;
   if (!canUseLeader(match, 'bot')) return false;
-  if (player.leader.ability.select[0]?.kind === 'marshal') {
+  if (player.leader.ability.select?.[0]?.kind === 'marshal') {
     return !view.opponentPassed && allies.some((unit) => neighbors(match, unit).some(({ card }) => isUnit(card)));
   }
 
+  if (player.leader.id !== 'devourer' && player.leader.ability.select?.[0]?.kind !== 'consume') return !view.opponentPassed;
   const sacrifices = allies.filter((unit) => isUnit(unit.card) && neighbors(match, unit).some(({ card }) => isUnit(card)));
   const { card } = bestTarget(sacrifices, ({ card }) => sacrificePriority(card));
   return card.power >= 2 || Boolean(card.definition.deathwish) || view.score === view.opponentScore;

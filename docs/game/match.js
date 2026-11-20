@@ -29,7 +29,7 @@ function shuffle(cards, random) {
   return cards;
 }
 
-function createPlayer(side, definitions, random, factionId, charges) {
+function createPlayer(side, definitions, random, factionId, leader, charges) {
   const faction = FACTIONS[factionId];
   const cards = definitions.map((definition, index) => createCard(`${side}-${index + 1}`, definition));
   const deck = shuffle(cards, random);
@@ -43,29 +43,33 @@ function createPlayer(side, definitions, random, factionId, charges) {
     turns: 0,
     usedAbility: false,
     extraSwaps: 0,
-    leader: faction ? { ...faction.leader, charges } : null,
+    leader: leader ? { ...leader, charges } : null,
     faction: faction?.name,
     factionId,
     passed: false,
   };
 }
 
-export function createMatch({ decks, humanFaction = decks ? undefined : 'protectorate', random = Math.random, rules = MATCH_RULES } = {}) {
+export function createMatch({ decks, humanFaction = decks ? undefined : 'protectorate', humanLeader, random = Math.random, rules = MATCH_RULES } = {}) {
   const settings = { ...MATCH_RULES, ...rules };
   const human = FACTIONS[humanFaction];
   const botFaction = human ? (humanFaction === 'growth' ? 'protectorate' : 'growth') : undefined;
   const bot = FACTIONS[botFaction];
   const selectedDecks = decks ?? { human: human.deck, bot: bot.deck };
+  const leader = human?.leaders.find(({ id }) => id === humanLeader) ?? human?.leader;
+  const players = {
+    human: createPlayer('human', selectedDecks.human, random, humanFaction, leader, settings.leaderCharges),
+    bot: createPlayer('bot', selectedDecks.bot, random, botFaction, undefined, settings.leaderCharges),
+  };
+  const starter = random() < 0.5 ? 'human' : 'bot';
+  if (bot) players.bot.leader = { ...bot.leaders[Math.floor(random() * bot.leaders.length)], charges: settings.leaderCharges };
   return {
     rules: settings,
-    players: {
-      human: createPlayer('human', selectedDecks.human, random, humanFaction, settings.leaderCharges),
-      bot: createPlayer('bot', selectedDecks.bot, random, botFaction, settings.leaderCharges),
-    },
+    players,
     phase: 'mulligan',
     mulligan: { used: 0, excluded: [] },
     round: 1,
-    starter: random() < 0.5 ? 'human' : 'bot',
+    starter,
     turn: null,
     result: null,
     log: [],
