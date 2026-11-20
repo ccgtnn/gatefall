@@ -173,7 +173,7 @@ const strongestPresent = { targets: strongest };
 const annihilate = { action: 'destroy', target: strongest, visual: 'annihilation' };
 
 export const ANNIHILATION = Object.freeze({
-  id: 'annihilation', name: 'Аннигиляция', faction: NEUTRAL, type: 'effect', rarity: 'gold', provision: 12,
+  id: 'annihilation', name: 'Аннигиляция', art: 'annihilation.webp', faction: NEUTRAL, type: 'effect', rarity: 'gold', provision: 12,
   text: 'Уничтожь сильнейший отряд на поле, свой или чужой. При равенстве выбери случайный из сильнейших. Инициатива: уничтожь все отряды с наибольшей силой.',
   deploy: { ...ability([{ ...annihilate, mode: 'random' }]), when: strongestPresent },
   initiative: { ...ability([annihilate]), when: strongestPresent },
@@ -195,6 +195,7 @@ export const NEUTRAL_CARDS = Object.freeze([
       deploy: ability([{ action: 'choose-deck-top' }]),
     }],
     ['emp-grenade', 'ЭМИ-граната', 'bronze', 5, null, 'Сними всю броню с вражеского отряда. Нанеси 2 урона плюс число снятых единиц брони.', {
+      art: 'emp-grenade.webp',
       type: 'effect',
       deploy: ability([
         { ...action('armor', chosen('enemy'), { stat: 'armor', scale: -1 }), save: 'armor' },
@@ -223,12 +224,14 @@ export const NEUTRAL_CARDS = Object.freeze([
       }, keywords: ['Приказ', 'Усиление'],
     }],
     ['bounty-hunter', 'Охотник за головами', 'gold', 10, 4, 'Нанеси 6 урона вражескому отряду. Если он погиб от этого удара, усиль себя на 2.', {
+      art: 'bounty-hunter.webp',
       deploy: ability([
         { ...action('damage', chosen('enemy'), 6), save: 'kill' },
         action('boost', self, { result: 'kill', scale: 2 }),
       ], [enemyChoice(6)]), keywords: ['Урон', 'Усиление'],
     }],
     ['gate-guardian', 'Хранитель врат', 'gold', 10, 12, 'Броня 5. Уязвимость: отправь эту карту в сброс.', {
+      art: 'gate-guardian.webp',
       armor: 5, events: { 'armor-break': ability([action('discard', self)]) },
       keywords: ['Броня', 'Уязвимость'],
     }],
