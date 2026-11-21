@@ -1,20 +1,20 @@
-import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=plague-art-1';
+import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=plague-art-2';
 import { createDeckStorage } from './ui/deck-storage.js?v=step-16';
-import { bindCardPlacement } from './card-placement.js?v=plague-art-1';
-import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=plague-art-1';
+import { bindCardPlacement } from './card-placement.js?v=plague-art-2';
+import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=plague-art-2';
 import { clearParticles } from './particles.js?v=step-14';
-import { playJournal } from './turn-playback.js?v=plague-art-1';
-import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=plague-art-1';
-import { placementSide } from './game/board.js?v=plague-art-1';
-import { FACTIONS } from './game/cards.js?v=plague-art-1';
-import { applyAction, createDeckMatch } from './game/match.js?v=plague-art-1';
+import { playJournal } from './turn-playback.js?v=plague-art-2';
+import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=plague-art-2';
+import { placementSide } from './game/board.js?v=plague-art-2';
+import { FACTIONS } from './game/cards.js?v=plague-art-2';
+import { applyAction, createDeckMatch } from './game/match.js?v=plague-art-2';
 import { element, iconButton } from './ui/dom.js?v=step-11';
-import { preview, showCard } from './ui/cards.js?v=plague-art-1';
-import { createBattlefield } from './ui/field.js?v=plague-art-1';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=plague-art-1';
-import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=plague-art-1';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=plague-art-1';
-import { createSettings } from './ui/settings.js?v=plague-art-1';
+import { preview, showCard } from './ui/cards.js?v=plague-art-2';
+import { createBattlefield } from './ui/field.js?v=plague-art-2';
+import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=plague-art-2';
+import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=plague-art-2';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=plague-art-2';
+import { createSettings } from './ui/settings.js?v=plague-art-2';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
 

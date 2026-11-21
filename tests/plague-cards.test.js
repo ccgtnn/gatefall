@@ -4,7 +4,8 @@ import { applyStatus, basePower, createCard, damage, findUnit, statusCount } fro
 import { chooseBotTurn, pickBotTarget } from '../docs/game/bot.js';
 import { FACTIONS, NEUTRAL_CARDS } from '../docs/game/cards.js';
 import { inspectDeck, PRESETS } from '../docs/game/decks.js';
-import { applyAction, createDeckMatch, createMatch } from '../docs/game/match.js';
+import { applyAction, confirmMulligan, createDeckMatch, createMatch } from '../docs/game/match.js';
+import { applyJournalEvent, createPlaybackState } from '../docs/turn-playback.js';
 
 const random = () => 0;
 const definitions = new Map(FACTIONS.growth.pool.map((def) => [def.id, def]));
@@ -155,6 +156,42 @@ test('Spore Season opens each chapter from actual Rot plays, chooses the stronge
   assert.equal(match.players.human.exile.at(-1).chapter, 3);
 });
 
+for (const destination of ['discard', 'exile']) {
+  test(`Spore Season carries its chapter once, then enters ${destination} at the end of round two`, () => {
+    let match = fixture('spore-season', 'boil');
+    match = act(match, 'play', 'spore-season');
+    match = act(match, 'play', 'boil', 1);
+    const scenario = findUnit(match, 'spore-season');
+    assert.equal(scenario.card.chapter, 1);
+    assert.equal(scenario.card.resilient, true);
+    if (destination === 'exile') applyStatus(match, scenario, 'doomed', 1);
+
+    const playback = createPlaybackState(match);
+    const roundTwo = act(match, 'pass');
+    for (const event of roundTwo.log.slice(match.log.length)) applyJournalEvent(playback, event);
+
+    assert.equal(roundTwo.round, 2);
+    assert.equal(scenario.card.resilient, true);
+    const retained = findUnit(roundTwo, 'spore-season').card;
+    assert.equal(retained.chapter, 1);
+    assert.equal(retained.resilient, false);
+    assert.deepEqual(findUnit(playback, 'spore-season').card, retained);
+    assert.equal(statusCount(retained, 'doomed'), Number(destination === 'exile'));
+
+    match = confirmMulligan(roundTwo, [], { random });
+    assert.equal(match.phase, 'playing');
+    match = act(match, 'pass');
+    const roundThree = act(match, 'play', 'bot-spare', 0, 'bot');
+    const secondPlayback = createPlaybackState(match);
+    for (const event of roundThree.log.slice(match.log.length)) applyJournalEvent(secondPlayback, event);
+
+    assert.equal(roundThree.round, 3);
+    assert.equal(findUnit(roundThree, 'spore-season'), undefined);
+    assert.equal(findUnit(secondPlayback, 'spore-season'), undefined);
+    assert.deepEqual(roundThree.players.human[destination].find(({ id }) => id === 'spore-season'), retained);
+  });
+}
+
 test('Swarm Call can place an enemy-side bronze from the deck and spawns next to it on that side', () => {
   let match = fixture('swarm-call');
   match.players.human.deck.push(card('plague-carrier'));
@@ -168,12 +205,12 @@ test('Swarm Call can place an enemy-side bronze from the deck and spawns next to
   assert.equal(match.players.human.board.orbit.length, 0);
 });
 
-test('reviving a strengthened unit resets damage to its modified base', () => {
+test('reviving a strengthened unit restores modified base power and preserves spent Resilience', () => {
   let match = fixture();
   const medic = NEUTRAL_CARDS.find(({ id }) => id === 'field-medic');
   match.players.human.hand.push(createCard('medic', medic));
-  const modified = unit('modified', 3, 0);
-  modified.definition = { ...modified.definition, rarity: 'bronze' };
+  const modified = createCard('modified', { id: 'modified', name: 'modified', power: 3, rarity: 'bronze', resilience: true });
+  modified.resilient = false;
   modified.basePower = 7;
   modified.power = 0;
   match.players.human.discard.push(modified);
@@ -182,4 +219,5 @@ test('reviving a strengthened unit resets damage to its modified base', () => {
   match = act(match, 'place', undefined, 1);
   assert.equal(basePower(findUnit(match, 'modified').card), 7);
   assert.equal(findUnit(match, 'modified').card.power, 7);
+  assert.equal(findUnit(match, 'modified').card.resilient, false);
 });

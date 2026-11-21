@@ -1,9 +1,9 @@
-import { inspectDeck } from './decks.js?v=plague-art-1';
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=plague-art-1';
-import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, statusCount, takeCards } from './board.js?v=plague-art-1';
-import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=plague-art-1';
+import { inspectDeck } from './decks.js?v=plague-art-2';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=plague-art-2';
+import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, spendResilience, statusCount, takeCards } from './board.js?v=plague-art-2';
+import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=plague-art-2';
 
-export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=plague-art-1';
+export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=plague-art-2';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;
@@ -218,10 +218,11 @@ function resolveRound(match) {
     const player = match.players[side];
     if (side !== winner) player.lives -= 1;
     for (const row of ROWS) {
-      for (const card of player.board[row]) {
-        if (!card.definition.resilience) discardCard(match, side, card, Boolean(statusCount(card, 'doomed')));
-      }
-      player.board[row] = player.board[row].filter((card) => card.definition.resilience);
+      player.board[row] = player.board[row].filter((card) => {
+        if (spendResilience(card)) return true;
+        discardCard(match, side, card, Boolean(statusCount(card, 'doomed')));
+        return false;
+      });
     }
     player.rowEffects = {};
     player.passed = false;

@@ -1,10 +1,10 @@
-import { emit } from './events.js?v=plague-art-1';
-import { ROWS, ROW_LABELS } from './cards.js?v=plague-art-1';
+import { emit } from './events.js?v=plague-art-2';
+import { ROWS, ROW_LABELS } from './cards.js?v=plague-art-2';
 import {
   announcePlay, applyStatus, availableRows, basePower, boost, cardType, consume, createCard, damage, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, removeUnit,
   setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, units,
-} from './board.js?v=plague-art-1';
+} from './board.js?v=plague-art-2';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);
@@ -232,9 +232,12 @@ function playFromPile(match, job, step, random) {
   }
   const [chosen] = player[pile].splice(index, 1);
   const card = pile === 'discard' ? createCard(chosen.id, chosen.definition) : chosen;
-  if (pile === 'discard' && basePower(chosen) !== chosen.definition.power) {
-    card.basePower = basePower(chosen);
-    card.power = card.basePower;
+  if (pile === 'discard') {
+    if (chosen.resilient === false) card.resilient = false;
+    if (basePower(chosen) !== chosen.definition.power) {
+      card.basePower = basePower(chosen);
+      card.power = card.basePower;
+    }
   }
   const destination = job.refs.deckPlacement;
   if (destinationSide !== job.side) card.owner = job.side;

@@ -1,4 +1,4 @@
-import { NEUTRAL } from './game/cards.js?v=plague-art-1';
+import { NEUTRAL } from './game/cards.js?v=plague-art-2';
 import { burstParticles } from './particles.js?v=step-14';
 
 const VISUAL_EVENTS = new Set([

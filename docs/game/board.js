@@ -1,5 +1,5 @@
-import { ROWS } from './cards.js?v=plague-art-1';
-import { emit } from './events.js?v=plague-art-1';
+import { ROWS } from './cards.js?v=plague-art-2';
+import { emit } from './events.js?v=plague-art-2';
 
 export const ROW_LIMIT = 9;
 export const HAND_LIMIT = 10;
@@ -15,8 +15,15 @@ export function createCard(id, definition) {
   if (isUnit(card)) Object.assign(card, { power: definition.power, basePower: definition.power, armor: definition.armor ?? 0 });
   if (definition.timer !== undefined) card.timer = definition.timer;
   if (definition.scenario) card.chapter = 0;
+  if (definition.resilience) card.resilient = true;
   if (definition.counter) card.counter = definition.counter.amount;
   return card;
+}
+
+export function spendResilience(card) {
+  if (!card.resilient) return false;
+  card.resilient = false;
+  return true;
 }
 
 export function placeCards(player, row, position, cards) {

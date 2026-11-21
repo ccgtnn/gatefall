@@ -1,8 +1,8 @@
-import { compareRollouts } from './bot-rollouts.js?v=plague-art-1';
-import { ROWS } from './cards.js?v=plague-art-1';
-import { cardType, opponent, placementSide, units } from './board.js?v=plague-art-1';
-import { availableOrders, canUseLeader, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=plague-art-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=plague-art-1';
+import { compareRollouts } from './bot-rollouts.js?v=plague-art-2';
+import { ROWS } from './cards.js?v=plague-art-2';
+import { cardType, opponent, placementSide, units } from './board.js?v=plague-art-2';
+import { availableOrders, canUseLeader, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=plague-art-2';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=plague-art-2';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -51,7 +51,7 @@ function boardValue(state, side) {
       + (ready.has(card.id) ? 1.15 : definition.order ? .35 : 0)
       + (definition.endTurn ? (timer === undefined ? 1.25 : .5 * Math.min(timer, 3)) : 0)
       + (counter > 0 && player.deck.length ? 1.6 / counter : 0)
-      + (definition.resilience && state.round < 3 ? (power ?? 0) * .4 : 0)
+      + (card.resilient && state.round < 3 ? (power ?? 0) * .4 : 0)
       + (definition.scenario ? Math.min(definition.scenario.chapters.length - (card.chapter ?? 0),
         player.hand.filter((entry) => entry.definition.categories?.includes(definition.scenario.category)).length) * 2.5 : 0)
       + (definition.fieldEvents?.death && ROWS.some((row) =>

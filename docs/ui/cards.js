@@ -1,6 +1,6 @@
 import { button, element } from './dom.js?v=step-11';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=plague-art-1';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=plague-art-1';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=plague-art-2';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=plague-art-2';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';
@@ -125,6 +125,7 @@ export function cardInspection(node, card, placement = false, show = () => showC
 
 const keywordIcons = {
   'Броня': '⬟',
+  'Стойкость': '⛨',
   'Урон': '✷',
   'Порождение': '✦',
   'Поглощение': '◉',
@@ -137,6 +138,8 @@ const keywordIcons = {
 function keywordsFor(card) {
   const { definition } = card;
   const words = new Set(definition.keywords);
+  words.delete('Стойкость');
+  if (card.resilient) words.add('Стойкость');
   if (definition.endTurn) words.add('Конец хода');
   return [...words].filter((word) => keywordIcons[word]);
 }
@@ -174,7 +177,7 @@ export function decorateCard(node, card, player, { orderOnField = false } = {}) 
     mark.title = scenario ? 'Главы сценария' : CARD_TYPES[type];
     node.append(mark);
   }
-  const word = definition.order ? 'Приказ' : definition.deathwish ? 'Завещание'
+  const word = card.resilient ? 'Стойкость' : definition.order ? 'Приказ' : definition.deathwish ? 'Завещание'
     : statusCount(card, 'doomed') ? 'Обречённая' : keywordsFor(card).find((keyword) => keyword !== 'Броня');
   if (!orderOnField && (counter > 0 || timer !== undefined || word)) {
     const mark = element('span', 'card-state', counter > 0 ? counter : timer ?? keywordIcons[word] ?? '○');

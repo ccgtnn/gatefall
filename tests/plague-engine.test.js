@@ -91,7 +91,8 @@ test('resilient cards carry state through round cleanup while row effects disapp
   setRowEffect(match, 'bot', 'surface', rot);
   match = step(step(match, 'human', pass), 'bot', pass);
   assert.equal(match.phase, 'mulligan');
-  assert.deepEqual(match.players.human.board.orbit, [sturdy]);
+  assert.deepEqual(match.players.human.board.orbit, [{ ...sturdy, resilient: false }]);
+  assert.equal(sturdy.resilient, true);
   assert.deepEqual(match.players.human.rowEffects, {});
   assert.deepEqual(match.players.bot.rowEffects, {});
   assert.equal(match.players.human.discard[0].id, 'ordinary');

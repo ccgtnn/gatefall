@@ -1,4 +1,5 @@
-import { ROWS } from './game/cards.js?v=plague-art-1';
+import { spendResilience } from './game/board.js?v=plague-art-2';
+import { ROWS } from './game/cards.js?v=plague-art-2';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;
@@ -34,7 +35,7 @@ export function applyJournalEvent(state, event) {
 
   if (type === 'round-end') {
     for (const player of Object.values(state.players)) {
-      for (const row of ROWS) player.board[row] = player.board[row].filter(({ definition }) => definition.resilience);
+      for (const row of ROWS) player.board[row] = player.board[row].filter(spendResilience);
       player.rowEffects = {};
       player.passed = false;
     }
