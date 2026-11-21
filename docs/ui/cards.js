@@ -11,7 +11,8 @@ preview.addEventListener('click', (event) => {
 });
 export function cardArt(definition, className) {
   const image = element('img', className);
-  image.src = './art/' + definition.art;
+  const art = className === 'card-art-crop' ? definition.artCrop ?? definition.art : definition.art;
+  image.src = './art/' + art;
   image.alt = '';
   image.width = 480;
   image.height = 720;

@@ -73,7 +73,7 @@ const protectorate = [
   ['infantry', 'Пехотинец линии', 4, 2, 'При розыгрыше: соседи получают 2 брони.',
     { art: 'infantry.webp?v=2', deploy: armorNeighbors(2), keywords: ['Броня', 'Соседи'] }],
   ['engineer', 'Инженер укреплений', 5, 3, 'При розыгрыше: дать 3 брони своей карте.',
-    { art: 'engineer.webp', deploy: ability([action('armor', chosen('ally'), 3)],
+    { art: 'engineer.webp?v=art-24', deploy: ability([action('armor', chosen('ally'), 3)],
       [choice('ally', allies, 'Выбери свой отряд для 3 брони.', { kind: 'armor' })]), keywords: ['Броня'] }],
   ['assault', 'Тяжёлый штурмовик', 5, 5, 'Броня 3.', { art: 'assault.webp', armor: 3, keywords: ['Броня'] }],
   ['orbital-shield', 'Орбитальный щит', 6, 4, 'В конце хода: дать 1 броню соседям.',
@@ -82,7 +82,7 @@ const protectorate = [
     { art: 'standard.webp', deploy: ability([action('boost', { ...adjacent, armorAtLeast: 1 }, 2)]), keywords: ['Усиление', 'Броня', 'Соседи'] }],
   ['warden', 'Страж врат', 6, 6, 'Броня 3. Нельзя сдвинуть.', { art: 'warden.webp?v=art-24', armor: 3, immovable: true, keywords: ['Броня'] }],
   ['anvil', 'Таран «Наковальня»', 8, 4, 'При розыгрыше: снять всю броню со своей карты и нанести столько же урона вражеской.',
-    { rarity: 'gold', art: 'anvil.webp', deploy: ability([
+    { rarity: 'gold', art: 'anvil.webp?v=art-24', artCrop: 'anvil-crop.webp?v=art-24', deploy: ability([
       { action: 'armor', target: chosen('payer'), amount: { stat: 'armor', scale: -1 }, save: 'armor' },
       action('damage', chosen('enemy'), armorRemoved),
     ], [
@@ -90,7 +90,7 @@ const protectorate = [
       enemyChoice({ stat: 'armor', ref: 'payer' }),
     ]), keywords: ['Броня', 'Урон'] }],
   ['smelter', 'Переплавщик', 5, 2, 'При розыгрыше: снять броню с соседей и усилить себя на столько же.',
-    { art: 'smelter.webp?v=2', deploy: ability([
+    { art: 'smelter.webp?v=art-24', deploy: ability([
       { action: 'armor', target: adjacent, amount: { stat: 'armor', scale: -1 }, save: 'armor' },
       action('boost', self, armorRemoved),
     ]), keywords: ['Броня', 'Усиление', 'Соседи'] }],
@@ -100,11 +100,11 @@ const protectorate = [
     { removalReserve: 4, type: 'effect', art: 'orbital-salvo.webp', deploy: ability([action('damage', chosen('enemy'), salvoDamage)],
       [enemyChoice(salvoDamage)]), keywords: ['Урон'] }],
   ['colonel', 'Октавиан Рейн', 10, 5, 'При розыгрыше: удвоить броню своих отрядов в этом ряду.',
-    { art: 'colonel.webp?v=2', deploy: ability([action('armor', allyRow, { stat: 'armor' })]), keywords: ['Броня'] }],
+    { art: 'colonel.webp?v=art-24', deploy: ability([action('armor', allyRow, { stat: 'armor' })]), keywords: ['Броня'] }],
   ['bastion', 'Бастион «Рубеж»', 11, 7, 'Броня 6. При розыгрыше: дать 3 брони соседям.',
-    { art: 'bastion.webp', armor: 6, deploy: armorNeighbors(3), keywords: ['Броня', 'Соседи'] }],
+    { art: 'bastion.webp?v=art-24', armor: 6, deploy: armorNeighbors(3), keywords: ['Броня', 'Соседи'] }],
   ['commander', 'Кассия Фульмина', 8, 5, 'Приказ: снять 2 брони со своей карты и нанести 3 урона вражеской. Перезарядка: 2 хода.',
-    { art: 'commander.webp?v=2', order: {
+    { art: 'commander.webp?v=art-24', order: {
       cooldown: 2,
       cost: ability([action('armor', chosen('payer'), -2)], [
         choice('payer', { ...allies, armorAtLeast: 2 },

@@ -62,7 +62,8 @@ function fly(screen, event, current, handOrigin, duration) {
   const view = screen.ownerDocument.defaultView;
   const from = handOrigin ?? { x: destination.x, y: -30 };
   const startY = Math.max(-40, Math.min(view.innerHeight + 40, from.y));
-  const art = event.card?.definition.art;
+  const definition = event.card?.definition;
+  const art = definition?.artCrop ?? definition?.art;
   const card = floatNode(screen, 'motion-flight', art ? '' : event.name, destination);
   if (art) {
     const image = screen.ownerDocument.createElement('img');
