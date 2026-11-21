@@ -1,7 +1,7 @@
 import { button, element } from './dom.js?v=step-11';
-import { cardType } from '../game/board.js?v=art-25';
-import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=art-25';
-import { cardButton, showCard } from './cards.js?v=art-25';
+import { cardType } from '../game/board.js?v=art-26';
+import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=art-26';
+import { cardButton, showCard } from './cards.js?v=art-26';
 
 export function updatePlacementSelection(screen, match, selectedCardId) {
   const card = match.players.human.hand.find(({ id }) => id === selectedCardId);

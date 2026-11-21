@@ -1,4 +1,4 @@
-import { ROWS } from './game/cards.js?v=art-25';
+import { ROWS } from './game/cards.js?v=art-26';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;

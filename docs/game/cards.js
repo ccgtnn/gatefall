@@ -154,7 +154,7 @@ const growth = [
     ]), order: { cooldown: 2, ...ability([infect(chosen('enemy'), 3)], [infectionChoice(3)]) },
       keywords: ['Поглощение', 'Заражение', 'Приказ'] }],
   ['predator', 'Хищный побег', 5, 4, 'Когда рядом кого-то поглощают: усилить себя на 2.',
-    { art: 'predator.webp', neighborEvents: { consume: ability([action('boost', self, 2)]) }, keywords: ['Соседи', 'Поглощение', 'Усиление'] }],
+    { art: 'predator.webp?v=art-26', neighborEvents: { consume: ability([action('boost', self, 2)]) }, keywords: ['Соседи', 'Поглощение', 'Усиление'] }],
   ['swarm-call', 'Зов роя', 5, null, 'Сыграй из колоды случайный бронзовый отряд Поросли и породи личинку рядом с ним.',
     { art: 'swarm-call.webp', type: 'effect', deploy: ability([{ action: 'play-from-deck',
       filter: { rarity: 'bronze', faction: 'growth' }, after: spawn('right') }]), keywords: ['Порождение'] }],
