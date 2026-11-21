@@ -1,9 +1,9 @@
-import { inspectDeck } from './decks.js?v=step-21';
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=step-21';
-import { announcePlay, availableRows, cardType, createCard, HAND_LIMIT, opponent, placeCards, playDestination, statusCount, takeCards, units } from './board.js?v=step-21';
-import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, orderAbility, playTiming, runEffect } from './effects.js?v=step-21';
+import { inspectDeck } from './decks.js?v=art-24';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=art-24';
+import { announcePlay, availableRows, cardType, createCard, HAND_LIMIT, opponent, placeCards, playDestination, statusCount, takeCards, units } from './board.js?v=art-24';
+import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, orderAbility, playTiming, runEffect } from './effects.js?v=art-24';
 
-export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=step-21';
+export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=art-24';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;

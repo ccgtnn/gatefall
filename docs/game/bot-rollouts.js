@@ -1,8 +1,8 @@
-import { FACTIONS, ROWS } from './cards.js?v=step-21';
-import { createCard, isUnit, opponent, ROW_LIMIT } from './board.js?v=step-21';
-import { collection, copyLimit } from './decks.js?v=step-21';
-import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=step-21';
-import { availableOrders, canUseLeader, effectSwing, rowArmor } from './effects.js?v=step-21';
+import { FACTIONS, ROWS } from './cards.js?v=art-24';
+import { createCard, isUnit, opponent, ROW_LIMIT } from './board.js?v=art-24';
+import { collection, copyLimit } from './decks.js?v=art-24';
+import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=art-24';
+import { availableOrders, canUseLeader, effectSwing, rowArmor } from './effects.js?v=art-24';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };

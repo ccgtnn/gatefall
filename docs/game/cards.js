@@ -58,7 +58,7 @@ const salvoDamage = { row: 'surface', then: 5, otherwise: 3 };
 
 export const FIRST_SIGNAL = Object.freeze({
   id: 'first-signal', name: 'Первый сигнал', type: 'artifact', stratagem: true, token: true,
-  art: 'first-signal.webp', zeal: true, doomed: true,
+  art: 'first-signal.webp?v=art-24', zeal: true, doomed: true,
   text: 'Рвение. Обречённый. Приказ: усилить свой отряд на 5. После применения или в конце первого раунда уходит из игры.',
   keywords: ['Приказ', 'Рвение', 'Усиление', 'Обречённость'],
   order: {
@@ -80,7 +80,7 @@ const protectorate = [
     { art: 'orbital-shield.webp', endTurn: armorNeighbors(1), keywords: ['Броня', 'Соседи'] }],
   ['standard', 'Знаменосец', 6, 4, 'При розыгрыше: усилить бронированных соседей на 2.',
     { art: 'standard.webp', deploy: ability([action('boost', { ...adjacent, armorAtLeast: 1 }, 2)]), keywords: ['Усиление', 'Броня', 'Соседи'] }],
-  ['warden', 'Страж врат', 6, 6, 'Броня 3. Нельзя сдвинуть.', { art: 'warden.webp?v=2', armor: 3, immovable: true, keywords: ['Броня'] }],
+  ['warden', 'Страж врат', 6, 6, 'Броня 3. Нельзя сдвинуть.', { art: 'warden.webp?v=art-24', armor: 3, immovable: true, keywords: ['Броня'] }],
   ['anvil', 'Таран «Наковальня»', 8, 4, 'При розыгрыше: снять всю броню со своей карты и нанести столько же урона вражеской.',
     { rarity: 'gold', art: 'anvil.webp', deploy: ability([
       { action: 'armor', target: chosen('payer'), amount: { stat: 'armor', scale: -1 }, save: 'armor' },
@@ -288,19 +288,19 @@ function presetCards(pool, faction) {
 
 const protectorateLeaders = Object.freeze([
   {
-    id: 'marshal', provisionBonus: 15, name: 'Маршал Строя', art: 'marshal.webp', text: 'Дать 3 брони выбранному своему отряду и его соседям.',
+    id: 'marshal', provisionBonus: 15, name: 'Маршал Строя', art: 'marshal.webp?v=art-24', text: 'Дать 3 брони выбранному своему отряду и его соседям.',
     ability: ability([
       action('armor', chosen('ally'), 3), action('armor', { ...adjacent, of: 'ally' }, 3),
     ], [choice('ally', allies, 'Выбери отряд для брони Маршала и его соседей.', { kind: 'marshal' })]),
   },
   {
-    id: 'supreme-commander', provisionBonus: 15, name: 'Верховный командор', text: 'Усилить свою карту на 2. Если у неё есть Приказ, сделать его готовым.',
+    id: 'supreme-commander', provisionBonus: 15, name: 'Верховный командор', art: 'supreme-commander.webp?v=art-24', text: 'Усилить свою карту на 2. Если у неё есть Приказ, сделать его готовым.',
     ability: ability([
       action('boost', chosen('ally'), 2), action('ready-order', chosen('ally')),
     ], [choice('ally', { scope: 'ally', unitOrOrder: true }, 'Выбери свою карту для усиления и подготовки Приказа.', { kind: 'ready-order' })]),
   },
   {
-    id: 'fleet-admiral', provisionBonus: 15, name: 'Адмирал флота', text: 'Нанести 4 урона вражескому отряду на Поверхности.',
+    id: 'fleet-admiral', provisionBonus: 15, name: 'Адмирал флота', art: 'fleet-admiral.webp?v=art-24', text: 'Нанести 4 урона вражескому отряду на Поверхности.',
     ability: ability([action('damage', chosen('enemy'), 4)], [
       choice('enemy', { ...enemies, row: 'surface' }, 'Выбери врага на Поверхности для 4 урона.', { kind: 'damage', amount: 4 }),
     ]),

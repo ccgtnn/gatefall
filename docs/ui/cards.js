@@ -1,6 +1,6 @@
 import { button, element } from './dom.js?v=step-11';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=step-21';
-import { cardType, isUnit, statusCount } from '../game/board.js?v=step-21';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=art-24';
+import { cardType, isUnit, statusCount } from '../game/board.js?v=art-24';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';
