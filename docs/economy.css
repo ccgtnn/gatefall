@@ -187,7 +187,6 @@ body:has(.reward-book[open]) { overflow: hidden; }
   animation: pack-deal calc(.55s * var(--pack-pace)) cubic-bezier(.2, .7, .25, 1) both;
   animation-delay: calc((.4s + .07s * var(--card-index)) * var(--pack-pace));
 }
-.booster-card-slot:focus-within { animation: none; }
 .booster-card-slot > :is(.hand-card, .booster-reveal-card) {
   grid-area: 1 / 1;
   width: 100%;
