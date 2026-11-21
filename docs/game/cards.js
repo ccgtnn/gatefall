@@ -161,9 +161,9 @@ const growth = [
   ['nest', 'Гнездо-мать', 9, 3, 'В конце хода: породить по личинке в каждом своём ряду.',
     { art: 'nest.webp?v=art-25', endTurn: ability([spawn('right', 'all')]), keywords: ['Порождение'] }],
   ['colossus', 'Колосс', 11, 5, 'При розыгрыше: поглотить всех своих соседей.',
-    { art: 'colossus.webp?v=2', deploy: ability([absorb(adjacent)]), keywords: ['Соседи', 'Поглощение'] }],
+    { art: 'colossus.webp?v=art-25', deploy: ability([absorb(adjacent)]), keywords: ['Соседи', 'Поглощение'] }],
   ['ravager', 'Выводок-разоритель', 9, 4, 'При розыгрыше: поглотить свой отряд и нанести урон врагу в размере силы жертвы.',
-    { art: 'ravager.webp', deploy: ability([
+    { art: 'ravager.webp?v=art-25', deploy: ability([
       absorb(chosen('victim'), { multiplier: 0, save: 'strength' }),
       action('damage', chosen('enemy'), { result: 'strength' }),
     ], [
@@ -309,7 +309,7 @@ const protectorateLeaders = Object.freeze([
 
 const growthLeaders = Object.freeze([
   {
-    id: 'devourer', provisionBonus: 15, name: 'Пожиратель', art: 'devourer.webp', text: 'Поглотить свой отряд и передать удвоенную силу одному из его соседей.',
+    id: 'devourer', provisionBonus: 15, name: 'Пожиратель', art: 'devourer.webp?v=art-25', text: 'Поглотить свой отряд и передать удвоенную силу одному из его соседей.',
     ability: ability([
       absorb(chosen('victim'), { receiver: chosen('ally'), multiplier: 2 }),
     ], [
@@ -318,14 +318,14 @@ const growthLeaders = Object.freeze([
     ]),
   },
   {
-    id: 'brood-mother', provisionBonus: 15, name: 'Матка', text: 'Породить 3 личинки в выбранном своём ряду.',
+    id: 'brood-mother', provisionBonus: 15, name: 'Матка', art: 'brood-mother.webp?v=art-25', text: 'Породить 3 личинки в выбранном своём ряду.',
     ability: ability([
       { action: 'select-row', ref: 'row', filter: 'space', prompt: 'Выбери свой ряд для трёх личинок.' },
       { ...spawn('right', 'source', 3), rowRef: 'row' },
     ]),
   },
   {
-    id: 'carrier', provisionBonus: 15, name: 'Носитель', text: 'Наложить Заражение 3 на вражеский отряд и его соседей.',
+    id: 'carrier', provisionBonus: 15, name: 'Носитель', art: 'carrier.webp?v=art-25', text: 'Наложить Заражение 3 на вражеский отряд и его соседей.',
     ability: ability([
       { ...action('status', chosen('enemy'), 3), status: 'infection' },
       { ...action('status', { ...adjacent, of: 'enemy' }, 3), status: 'infection' },
