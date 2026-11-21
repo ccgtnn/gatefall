@@ -1,9 +1,9 @@
 import { emit } from './events.js?v=step-16';
-import { ROWS, ROW_LABELS } from './cards.js?v=step-16';
+import { ROWS, ROW_LABELS } from './cards.js?v=step-19';
 import {
   announcePlay, applyStatus, availableRows, boost, cardType, consume, createCard, damage, findUnit,
   isUnit, neighbors, opponent, placeCards, removeUnit, spawnCards, statusEndTurn, takeCards, tickInfection, units,
-} from './board.js?v=step-16';
+} from './board.js?v=step-19';
 
 function reference(match, job, key = 'source') {
   return findUnit(match, key === 'source' ? job.sourceId : job.refs?.[key]);
@@ -48,9 +48,18 @@ function viableChoices(match, job, index) {
   }, index + 1).length);
 }
 
-export function rowDamage(player, row, amount) {
-  return player.board[row].filter(isUnit).reduce((sum, card) =>
-    sum + Math.min(card.power, Math.max(0, amount - (card.armor ?? 0))), 0);
+export function rowDamage(player, row, amount, armorStrip = 0) {
+  return player.board[row].filter(isUnit).reduce((sum, card) => {
+    const armor = Math.max(0, (card.armor ?? 0) - armorStrip);
+    const breaks = card.armor > 0 && armor <= amount &&
+      card.definition.events?.['armor-break']?.steps.some((step) => step.action === 'discard' && step.target.scope === 'source');
+    return sum + (breaks ? card.power : Math.min(card.power, Math.max(0, amount - armor)));
+  }, 0);
+}
+
+export function infectionGain(card, amount, turns = amount) {
+  return Math.max(0, Math.min(card.power, amount, turns) -
+    Math.min(card.power, card.statuses?.infection ?? 0, turns));
 }
 
 export function rowArmor(player, row) {
@@ -284,7 +293,11 @@ export function runEffect(match, job, random) {
       const rows = eligibleRows(match.players[selectionSide], step.filter);
       if (rows.length) {
         const kind = { space: 'spawn-row', armor: 'armor-row', units: 'enemy-row' }[step.filter];
-        pause(match, job, kind, step.ref, rows, step.prompt, { selectionSide });
+        const damage = job.ability.steps.find((part) => part.action === 'damage' && part.target.rowRef === step.ref);
+        const armor = job.ability.steps.find((part) => part.action === 'armor' && part.target.rowRef === step.ref);
+        pause(match, job, kind, step.ref, rows, step.prompt, {
+          selectionSide, ...(damage && { amount: damage.amount, armorStrip: -(armor?.amount ?? 0) }),
+        });
         return;
       }
     }
@@ -343,8 +356,10 @@ export function runEffect(match, job, random) {
 
   if (!job.remaining) {
     const eligible = targets(match, job, step.target);
-    const selected = step.mode === 'random' && eligible.length > 1 ? [eligible[Math.floor(random() * eligible.length)]] : eligible;
-    job.remaining = selected.map(({ card }) => card.id);
+    const count = step.count ?? 1;
+    job.remaining = step.mode === 'random' && eligible.length > count
+      ? chooseSubset(eligible.map(({ card }) => card), count, random)
+      : eligible.map(({ card }) => card.id);
     if (step.grouped && job.remaining.length) {
       const [receiver] = targets(match, job, step.receiver);
       emit(match, { type: 'consume-group', side: job.side, cardIds: [...job.remaining], eaterId: receiver.card.id });
@@ -371,7 +386,7 @@ export function runEffect(match, job, random) {
   } else if (step.action === 'discard') {
     removeUnit(match, target, 'discard', undefined, { sourceDefinitionId: job.causeDefinitionId });
   } else if (step.action === 'status') {
-    result = applyStatus(match, target, step.status, valueOf(match, job, step.amount, target));
+    result = applyStatus(match, target, step.status, valueOf(match, job, step.amount, target), { sourceDefinitionId: job.sourceDefinitionId });
   } else {
     const operation = operations[step.action];
     if (!operation) throw new Error(`Unknown action: ${step.action}`);
@@ -408,6 +423,7 @@ export function effectSwing(match, side, card) {
   const player = match.players[side];
   const job = { ability, side };
   let swing = destructionSwing(match, side, card) ?? 0;
+  const applyInfection = ability?.steps.some((step) => step.status === 'infection') && canStart(match, job);
   for (const step of ability?.steps ?? []) {
     if (step.action === 'consume') swing += step.extra ?? 0;
     if (step.action === 'play-from-deck') {
@@ -419,9 +435,18 @@ export function effectSwing(match, side, card) {
       const health = units(match, opponent(side)).reduce((sum, { card }) => sum + (card.power ?? 0), 0);
       swing += Math.min(health, Math.max(...ROWS.map((row) => rowArmor(player, row))));
     }
+    if (step.action === 'status' && step.status === 'infection' && applyInfection) {
+      const enemy = match.players[opponent(side)];
+      if (enemy.passed) continue;
+      const selection = ability.select?.find(({ ref }) => ref === step.target.ref);
+      const candidates = targets(match, job, selection?.targets ?? step.target);
+      const turns = Math.max(1, enemy.hand.length);
+      swing += Math.max(0, ...candidates.map(({ card }) => infectionGain(card, step.amount, turns))) * .75;
+    }
     if (step.action !== 'damage') continue;
     if (step.target.rowRef) {
-      swing += Math.max(0, ...ROWS.map((row) => rowDamage(match.players[opponent(side)], row, step.amount)));
+      const strip = ability.steps.find((part) => part.action === 'armor' && part.target.rowRef === step.target.rowRef);
+      swing += Math.max(0, ...ROWS.map((row) => rowDamage(match.players[opponent(side)], row, step.amount, -(strip?.amount ?? 0))));
       continue;
     }
     const index = (ability.select ?? []).findIndex(({ ref }) => ref === step.target.ref);

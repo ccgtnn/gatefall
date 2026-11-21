@@ -49,7 +49,9 @@ const enemyChoice = (amount) => choice('enemy', enemies,
 const spawn = (position, row = 'source', amount = 1) => ({ action: 'spawn', card: LARVA, position, row, amount });
 const absorb = (target, options = {}) => ({ action: 'consume', target, receiver: self, ...options });
 const armorNeighbors = (amount) => ability([action('armor', adjacent, amount)]);
-const randomEnemy = choice('enemy', enemies, '', { mode: 'random' });
+const infect = (target, amount) => ({ ...action('status', target, amount), status: 'infection' });
+const infectionChoice = (amount) => choice('enemy', enemies,
+  `Выбери врага для Заражения ${amount}.`, { kind: 'infection-target', amount });
 const armorRemoved = { result: 'armor' };
 const victimPower = { stat: 'power', ref: 'victim' };
 const salvoDamage = { row: 'surface', then: 5, otherwise: 3 };
@@ -68,8 +70,8 @@ export const FIRST_SIGNAL = Object.freeze({
 const protectorate = [
   ['shield-generator', 'Генератор щита', 6, null, 'В конце хода: дать 1 броню соседям.',
     { type: 'artifact', art: 'shield-generator.webp', endTurn: armorNeighbors(1), keywords: ['Броня', 'Соседи'] }],
-  ['infantry', 'Пехотинец линии', 4, 2, 'При розыгрыше: соседи получают 1 броню.',
-    { art: 'infantry.webp?v=2', deploy: armorNeighbors(1), keywords: ['Броня', 'Соседи'] }],
+  ['infantry', 'Пехотинец линии', 4, 2, 'При розыгрыше: соседи получают 2 брони.',
+    { art: 'infantry.webp?v=2', deploy: armorNeighbors(2), keywords: ['Броня', 'Соседи'] }],
   ['engineer', 'Инженер укреплений', 5, 3, 'При розыгрыше: дать 3 брони своей карте.',
     { art: 'engineer.webp', deploy: ability([action('armor', chosen('ally'), 3)],
       [choice('ally', allies, 'Выбери свой отряд для 3 брони.', { kind: 'armor' })]), keywords: ['Броня'] }],
@@ -78,16 +80,16 @@ const protectorate = [
     { art: 'orbital-shield.webp', endTurn: armorNeighbors(1), keywords: ['Броня', 'Соседи'] }],
   ['standard', 'Знаменосец', 6, 4, 'При розыгрыше: усилить бронированных соседей на 2.',
     { art: 'standard.webp', deploy: ability([action('boost', { ...adjacent, armorAtLeast: 1 }, 2)]), keywords: ['Усиление', 'Броня', 'Соседи'] }],
-  ['warden', 'Страж врат', 6, 6, 'Броня 4. Нельзя сдвинуть.', { art: 'warden.webp?v=2', armor: 4, immovable: true, keywords: ['Броня'] }],
-  ['anvil', 'Таран «Наковальня»', 6, 4, 'При розыгрыше: снять всю броню со своей карты и нанести столько же урона вражеской.',
-    { art: 'anvil.webp', deploy: ability([
+  ['warden', 'Страж врат', 6, 6, 'Броня 3. Нельзя сдвинуть.', { art: 'warden.webp?v=2', armor: 3, immovable: true, keywords: ['Броня'] }],
+  ['anvil', 'Таран «Наковальня»', 8, 4, 'При розыгрыше: снять всю броню со своей карты и нанести столько же урона вражеской.',
+    { rarity: 'gold', art: 'anvil.webp', deploy: ability([
       { action: 'armor', target: chosen('payer'), amount: { stat: 'armor', scale: -1 }, save: 'armor' },
       action('damage', chosen('enemy'), armorRemoved),
     ], [
       choice('payer', { ...allies, armorAtLeast: 1 }, 'Выбери свою карту, с которой снять всю броню.', { kind: 'spend-armor' }),
       enemyChoice({ stat: 'armor', ref: 'payer' }),
     ]), keywords: ['Броня', 'Урон'] }],
-  ['smelter', 'Переплавщик', 5, 3, 'При розыгрыше: снять броню с соседей и усилить себя на столько же.',
+  ['smelter', 'Переплавщик', 5, 2, 'При розыгрыше: снять броню с соседей и усилить себя на столько же.',
     { art: 'smelter.webp?v=2', deploy: ability([
       { action: 'armor', target: adjacent, amount: { stat: 'armor', scale: -1 }, save: 'armor' },
       action('boost', self, armorRemoved),
@@ -97,11 +99,11 @@ const protectorate = [
   ['orbital-salvo', 'Орбитальный залп', 5, null, 'Нанести 3 урона вражескому отряду. Если цель на Поверхности, нанести 5 урона.',
     { removalReserve: 4, type: 'effect', art: 'orbital-salvo.webp', deploy: ability([action('damage', chosen('enemy'), salvoDamage)],
       [enemyChoice(salvoDamage)]), keywords: ['Урон'] }],
-  ['colonel', 'Полковник Стены', 9, 5, 'При розыгрыше: удвоить броню своих отрядов в этом ряду.',
+  ['colonel', 'Октавиан Рейн', 10, 5, 'При розыгрыше: удвоить броню своих отрядов в этом ряду.',
     { art: 'colonel.webp?v=2', deploy: ability([action('armor', allyRow, { stat: 'armor' })]), keywords: ['Броня'] }],
   ['bastion', 'Бастион «Рубеж»', 11, 7, 'Броня 6. При розыгрыше: дать 3 брони соседям.',
     { art: 'bastion.webp', armor: 6, deploy: armorNeighbors(3), keywords: ['Броня', 'Соседи'] }],
-  ['commander', 'Командор щитов', 10, 5, 'Приказ: снять 2 брони со своей карты и нанести 3 урона вражеской. Перезарядка: 2 хода.',
+  ['commander', 'Кассия Фульмина', 8, 5, 'Приказ: снять 2 брони со своей карты и нанести 3 урона вражеской. Перезарядка: 2 хода.',
     { art: 'commander.webp?v=2', order: {
       cooldown: 2,
       cost: ability([action('armor', chosen('payer'), -2)], [
@@ -110,7 +112,7 @@ const protectorate = [
       ]),
       ...ability([action('damage', chosen('enemy'), 3)], [enemyChoice(3)]),
     }, keywords: ['Приказ', 'Броня', 'Урон'] }],
-  ['shield-overload', 'Перегрузка щитов', 11, null, 'Выбери свой ряд. Сними всю броню со своих карт в нём. За каждую снятую единицу брони нанеси 1 урон случайному вражескому отряду.',
+  ['shield-overload', 'Перегрузка щитов', 12, null, 'Выбери свой ряд. Сними всю броню со своих карт в нём. За каждую снятую единицу брони нанеси 1 урон случайному вражескому отряду.',
     { removalReserve: 5, art: 'shield-overload.webp', type: 'effect', deploy: ability([
       { action: 'select-row', ref: 'row', filter: 'armor', prompt: 'Выбери свой ряд, с которого снять броню.' },
       { action: 'armor', target: { ...allies, rowRef: 'row' }, amount: { stat: 'armor', scale: -1 }, save: 'armor' },
@@ -119,44 +121,48 @@ const protectorate = [
 ];
 
 const growth = [
-  ['cocoon', 'Кокон', 4, 1, 'При розыгрыше: породить по личинке с каждой стороны. Завещание: усилить поглотившего на 2.',
+  ['cocoon', 'Кокон', 4, 3, 'При розыгрыше: породить по личинке с каждой стороны. Завещание: усилить поглотившего на 2.',
     { art: 'cocoon.webp?v=3', deploy: ability([spawn('left'), spawn('right')]),
       deathwish: ability([action('boost', chosen('consumer'), 2)]), keywords: ['Порождение', 'Завещание', 'Поглощение'] }],
-  ['feast', 'Пиршество', 4, null, 'Выбранный свой отряд поглощает одну другую свою личинку и получает ещё +2 силы.',
+  ['feast', 'Пиршество', 4, null, 'Выбранный свой отряд поглощает одну другую свою личинку и получает ещё +5 силы.',
     { art: 'feast.webp', type: 'effect', deploy: ability([
-      absorb(chosen('victim'), { receiver: chosen('ally'), extra: 2 }),
+      absorb(chosen('victim'), { receiver: chosen('ally'), extra: 5 }),
     ], [
       choice('ally', allies, 'Выбери свой отряд для Пиршества.', { kind: 'boost' }),
       choice('victim', { ...larvae, exclude: 'ally' }, 'Выбери личинку для поглощения.', { kind: 'consume' }),
     ]), keywords: ['Поглощение', 'Усиление'] }],
-  ['vine', 'Ползучая лоза', 4, 2, 'При розыгрыше: породить личинку на Орбите. Завещание: 2 урона случайному вражескому отряду.',
+  ['vine', 'Ползучая лоза', 4, 2, 'При розыгрыше: породить личинку на Орбите. Завещание: наложить Заражение 1 на три случайных вражеских отряда.',
     { art: 'vine.webp?v=2', deploy: ability([spawn('right', 'orbit')]),
-      deathwish: ability([action('damage', chosen('enemy'), 2)], [randomEnemy]), keywords: ['Порождение', 'Завещание', 'Урон'] }],
-  ['spore-sac', 'Споровый мешок', 5, 2, 'Завещание: породить 3 личинки на месте погибшей карты.',
+      deathwish: ability([{ ...infect(enemies, 1), mode: 'random', count: 3 }]), keywords: ['Порождение', 'Завещание', 'Заражение'] }],
+  ['spore-sac', 'Споровый мешок', 4, 4, 'Завещание: породить 3 личинки на месте погибшей карты.',
     { art: 'spore-sac.webp?v=3', deathwish: ability([spawn('death', 'death', 3)]), keywords: ['Завещание', 'Порождение'] }],
-  ['incubator', 'Инкубатор', 6, null, 'В конце хода: породить личинку справа. На третьем своём конце хода после порождения погибает.',
-    { type: 'artifact', art: 'incubator.webp', timer: 3, endTurn: ability([spawn('right'), action('tick', self)]), keywords: ['Порождение', 'Таймер'] }],
-  ['acid-gland', 'Кислотная железа', 4, 3, 'Завещание: нанести 4 урона выбранному вражескому отряду.',
-    { art: 'acid-gland.webp?v=2', deathwish: ability([action('damage', chosen('enemy'), 4)], [enemyChoice(4)]), keywords: ['Завещание', 'Урон'] }],
-  ['scavenger', 'Трупоед', 5, 2, 'При розыгрыше: поглотить своего соседа.',
-    { art: 'scavenger.webp?v=3', deploy: ability([absorb(chosen('victim'))],
-      [choice('victim', adjacent, 'Выбери соседа для поглощения.', { kind: 'consume' })]), keywords: ['Соседи', 'Поглощение'] }],
-  ['gulper', 'Глотатель', 6, 3, 'При розыгрыше: поглотить все личинки в своём ряду.',
+  ['incubator', 'Инкубатор', 6, null, 'В конце хода: породить личинку справа.',
+    { type: 'artifact', art: 'incubator.webp', endTurn: ability([spawn('right')]), keywords: ['Порождение', 'Конец хода'] }],
+  ['acid-gland', 'Кислотная железа', 4, 3, 'Завещание: наложить Заражение 4 на сильнейший вражеский отряд.',
+    { art: 'acid-gland.webp?v=2', deathwish: ability([{ ...infect({ ...enemies, strongest: true }, 4), mode: 'random' }]), keywords: ['Завещание', 'Заражение'] }],
+  ['scavenger', 'Трупоед', 5, 3, 'Рвение. Приказ: поглотить другой свой отряд. Перезарядка: 2 хода.',
+    { art: 'scavenger.webp?v=3', zeal: true, order: {
+      cooldown: 2,
+      ...ability([absorb(chosen('victim'))],
+        [choice('victim', otherAlly, 'Выбери другой свой отряд для поглощения.', { kind: 'consume' })]),
+    }, keywords: ['Рвение', 'Приказ', 'Поглощение'] }],
+  ['gulper', 'Глотатель', 6, 4, 'При розыгрыше: поглотить все личинки в своём ряду.',
     { art: 'gulper.webp?v=3', deploy: ability([absorb({ ...larvae, row: 'source' })]), keywords: ['Поглощение'] }],
-  ['spitter', 'Кислотный плевун', 5, 3, 'При розыгрыше: поглотить свою личинку и нанести 4 урона вражескому отряду.',
-    { art: 'spitter.webp?v=3', deploy: ability([absorb(chosen('victim')), action('damage', chosen('enemy'), 4)], [
-      choice('victim', larvae, 'Выбери личинку для поглощения.', { kind: 'consume' }), enemyChoice(4),
-    ]), keywords: ['Поглощение', 'Урон'] }],
+  ['spitter', 'Кислотный плевун', 5, 3, 'При розыгрыше: поглотить свою личинку и наложить Заражение 3 на выбранный вражеский отряд. Приказ: наложить Заражение 3 на выбранный вражеский отряд. Перезарядка: 2 хода.',
+    { art: 'spitter.webp?v=3', deploy: ability([absorb(chosen('victim')), infect(chosen('enemy'), 3)], [
+      choice('victim', larvae, 'Выбери личинку для поглощения.', { kind: 'consume' }), infectionChoice(3),
+    ]), order: { cooldown: 2, ...ability([infect(chosen('enemy'), 3)], [infectionChoice(3)]) },
+      keywords: ['Поглощение', 'Заражение', 'Приказ'] }],
   ['predator', 'Хищный побег', 5, 4, 'Когда рядом кого-то поглощают: усилить себя на 2.',
     { art: 'predator.webp', neighborEvents: { consume: ability([action('boost', self, 2)]) }, keywords: ['Соседи', 'Поглощение', 'Усиление'] }],
-  ['swarm-call', 'Зов роя', 5, null, 'Сыграй из колоды случайный бронзовый отряд Поросли с напечатанной силой до 3. Породи личинку рядом с ним.',
+  ['swarm-call', 'Зов роя', 5, null, 'Сыграй из колоды случайный бронзовый отряд Поросли и породи личинку рядом с ним.',
     { art: 'swarm-call.webp', type: 'effect', deploy: ability([{ action: 'play-from-deck',
-      filter: { rarity: 'bronze', faction: 'growth', maxPower: 3 }, after: spawn('right') }]), keywords: ['Порождение'] }],
+      filter: { rarity: 'bronze', faction: 'growth' }, after: spawn('right') }]), keywords: ['Порождение'] }],
   ['nest', 'Гнездо-мать', 9, 3, 'В конце хода: породить по личинке в каждом своём ряду.',
     { art: 'nest.webp', endTurn: ability([spawn('right', 'all')]), keywords: ['Порождение'] }],
-  ['colossus', 'Колосс', 11, 5, 'При розыгрыше: поглотить всех своих соседей.',
+  ['colossus', 'Колосс', 11, 8, 'При розыгрыше: поглотить всех своих соседей.',
     { art: 'colossus.webp?v=2', deploy: ability([absorb(adjacent)]), keywords: ['Соседи', 'Поглощение'] }],
-  ['ravager', 'Выводок-разоритель', 10, 4, 'При розыгрыше: поглотить свой отряд и нанести урон врагу в размере силы жертвы.',
+  ['ravager', 'Выводок-разоритель', 9, 4, 'При розыгрыше: поглотить свой отряд и нанести урон врагу в размере силы жертвы.',
     { art: 'ravager.webp', deploy: ability([
       absorb(chosen('victim'), { multiplier: 0, save: 'strength' }),
       action('damage', chosen('enemy'), { result: 'strength' }),
@@ -193,7 +199,7 @@ export const NEUTRAL_CARDS = Object.freeze([
       art: 'smuggler.webp',
       initiative: ability([action('boost', self, 3)]), keywords: ['Инициатива', 'Усиление'],
     }],
-    ['recon-drone', 'Разведдрон', 'bronze', 4, 2, 'Посмотри свою колоду и выбери карту. Она становится верхней.', {
+    ['recon-drone', 'Разведдрон', 'bronze', 4, 4, 'Посмотри свою колоду и выбери карту. Она становится верхней.', {
       art: 'recon-drone.webp',
       deploy: ability([{ action: 'choose-deck-top' }]),
     }],
@@ -207,13 +213,14 @@ export const NEUTRAL_CARDS = Object.freeze([
       ], [choice('enemy', enemies, 'Выбери вражеский отряд для ЭМИ-гранаты.', { kind: 'emp' })]),
       keywords: ['Броня', 'Урон'],
     }],
-    ['gravity-pulse', 'Гравитационный импульс', 'bronze', 6, null, 'Нанеси 1 урон всем отрядам в выбранном вражеском ряду.', {
+    ['gravity-pulse', 'Гравитационный импульс', 'bronze', 7, null, 'Выбери вражеский ряд: сними 2 брони и нанеси 2 урона всем отрядам в нём.', {
       removalReserve: 4,
       art: 'gravity-pulse.webp',
       type: 'effect', deploy: ability([
         { action: 'select-row', ref: 'row', filter: 'units', prompt: 'Выбери вражеский ряд для Гравитационного импульса.' },
-        action('damage', { ...enemies, rowRef: 'row' }, 1),
-      ]), keywords: ['Урон'],
+        action('armor', { ...enemies, rowRef: 'row' }, -2),
+        action('damage', { ...enemies, rowRef: 'row' }, 2),
+      ]), keywords: ['Броня', 'Урон'],
     }],
     ['liaison', 'Связной', 'gold', 9, 4, 'Счётчик 4: возьми карту.', {
       art: 'liaison.webp',
@@ -240,9 +247,9 @@ export const NEUTRAL_CARDS = Object.freeze([
         action('boost', self, { result: 'kill', scale: 2 }),
       ], [enemyChoice(6)]), keywords: ['Урон', 'Усиление'],
     }],
-    ['gate-guardian', 'Хранитель врат', 'gold', 10, 12, 'Броня 5. Уязвимость: отправь эту карту в сброс.', {
+    ['gate-guardian', 'Хранитель врат', 'gold', 10, 12, 'Броня 4. Уязвимость: отправь эту карту в сброс.', {
       art: 'gate-guardian.webp',
-      armor: 5, events: { 'armor-break': ability([action('discard', self)]) },
+      armor: 4, events: { 'armor-break': ability([action('discard', self)]) },
       keywords: ['Броня', 'Уязвимость'],
     }],
   ].map(([id, name, rarity, provision, power, text, rules]) => Object.freeze({
@@ -256,7 +263,7 @@ const presetNeutrals = {
 };
 
 const singleBronzes = {
-  protectorate: ['shield-generator', 'orbital-shield', 'standard', 'warden', 'anvil', 'reinforcements'],
+  protectorate: ['shield-generator', 'orbital-shield', 'standard', 'warden', 'reinforcements'],
   growth: ['spore-sac', 'incubator', 'gulper', 'swarm-call'],
 };
 
@@ -270,9 +277,12 @@ function factionCards(entries, faction) {
 
 function presetCards(pool, faction) {
   return Object.freeze([
-    ...pool.flatMap((definition) => definition.rarity === 'bronze' && !singleBronzes[faction].includes(definition.id)
-      ? [definition, definition] : [definition]),
-    ...NEUTRAL_CARDS.filter(({ id }) => id === ANNIHILATION.id || presetNeutrals[faction].includes(id)),
+    ...pool.filter(({ id }) => faction !== 'protectorate' || id !== 'orbital-shield')
+      .flatMap((definition) => definition.rarity === 'bronze' && !singleBronzes[faction].includes(definition.id)
+        ? [definition, definition] : [definition]),
+    ...NEUTRAL_CARDS.filter(({ id }) => id === ANNIHILATION.id || presetNeutrals[faction].includes(id))
+      .flatMap((definition) => faction === 'protectorate' && definition.id === 'recon-drone'
+        ? [definition, definition] : [definition]),
   ]);
 }
 

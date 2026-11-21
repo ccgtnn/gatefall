@@ -1,8 +1,8 @@
-import { FACTIONS, ROWS } from './cards.js?v=step-16';
-import { createCard, isUnit, opponent, ROW_LIMIT } from './board.js?v=step-16';
-import { collection, copyLimit } from './decks.js?v=step-16';
-import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=step-17';
-import { availableOrders, canUseLeader, effectSwing, rowArmor } from './effects.js?v=step-16';
+import { FACTIONS, ROWS } from './cards.js?v=step-19';
+import { createCard, isUnit, opponent, ROW_LIMIT } from './board.js?v=step-19';
+import { collection, copyLimit } from './decks.js?v=step-19';
+import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=step-19';
+import { availableOrders, canUseLeader, effectSwing, rowArmor } from './effects.js?v=step-19';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -75,8 +75,8 @@ function rowValue(player, card, row, position) {
     return -rowArmor(player, row) * .25;
   }
   if (id === 'colonel' || id === 'standard') return nearby.reduce((total, unit) => total + (unit.armor > 0 ? 1 : 0), 0);
-  if (id === 'broodlord' || id === 'colossus' || id === 'gulper' || id === 'scavenger' || id === 'spitter') {
-    const victims = id === 'colossus' || id === 'scavenger' ? nearby : line;
+  if (id === 'broodlord' || id === 'colossus' || id === 'gulper' || id === 'spitter') {
+    const victims = id === 'colossus' ? nearby : line;
     return victims.reduce((sum, unit) => sum + (unit.definition.id === 'larva' || unit.definition.deathwish ? .8 : 0), 0);
   }
   return nearby.reduce((sum, unit) => sum + (unit.definition.endTurn ? .25 : 0), 0);
@@ -110,7 +110,8 @@ function fastPlays(match, side) {
         if (!choice || value > choice.value) choice = { row, position, value };
       }
     }
-    const removal = def.removalReserve ? effectSwing(match, side, card) : 0;
+    const infection = def.deploy?.steps.some((step) => step.status === 'infection');
+    const removal = (def.removalReserve || infection) ? effectSwing(match, side, card) : 0;
     return {
       action: { ...action, row: choice.row, position: choice.position },
       points: (card.power ?? 0) + (def.deploy || def.endTurn || def.order ? 1 : 0) + choice.value + removal,
@@ -139,7 +140,11 @@ function quickAction(match, side, pickTarget) {
   if (legalPass && lead > 0 && (enemy.passed || !enemy.hand.length)) return PASS;
 
   const plays = fastPlays(match, side);
-  if (!plays.length) return canUseLeader(match, side) ? { type: 'leader' } : PASS;
+  if (!plays.length) {
+    if (canUseLeader(match, side)) return { type: 'leader' };
+    const [order] = availableOrders(match, side);
+    return order ? { type: 'order', cardId: order.card.id } : PASS;
+  }
   if (legalPass && match.round === 1 && !enemy.passed && player.turns >= 4 && lead > 9) return PASS;
   if (legalPass && match.round === 1 && !enemy.passed && lead > 13 && player.turns > 1) return PASS;
   if (legalPass && match.round === 2 && enemy.lives < player.lives && !enemy.passed &&

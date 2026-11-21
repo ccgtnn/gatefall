@@ -233,11 +233,11 @@ test('manual end runs end-of-turn effects once and keeps unused orders for the n
   match.players.human.board.orbit = [unit('unit')];
   match.players.human.hand = [unit('incubator', 'incubator'), unit('spare')];
   match = action(match, 'play', 'incubator');
-  assert.equal(match.players.human.board.orbit[1].timer, 3);
+  assert.equal(match.players.human.board.orbit[1].timer, undefined);
   assert.ok(!match.log.some(({ type }) => type === 'spawn'));
   match = action(match, 'end-turn');
   assert.equal(match.turn, 'bot');
-  assert.equal(match.players.human.board.orbit[1].timer, 2);
+  assert.equal(match.players.human.board.orbit[1].timer, undefined);
   assert.equal(match.log.filter(({ type }) => type === 'spawn').length, 1);
   match = action(match, 'pass');
   assert.equal(canPass(match, 'human'), true);

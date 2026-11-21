@@ -93,19 +93,17 @@ test('the strategic bot inserts between two armored allies for the double boost'
   }
 });
 
-test('Growth places a scavenger next to a larva and can trigger a valuable deathwish', () => {
+test('strategic bot uses a zealous Scavenger order to trigger a deathwish across rows', () => {
   const match = position(3);
   match.players.bot.hand = [member('eater', 'growth', 'scavenger')];
-  match.players.bot.board.surface = [member('predator', 'growth', 'predator'), standard('larva', LARVA)];
-  const action = chooseBotTurn(match, 'normal');
-  assert.equal(action.row, 'surface');
-  const pending = applyAction(match, 'bot', action);
-  assert.deepEqual(chooseBotTurn(pending, 'normal'), { type: 'target', cardId: 'larva' });
-
-  match.players.bot.hand = [member('eater', 'growth', 'scavenger')];
   match.players.bot.board.surface = [member('cocoon', 'growth', 'cocoon'), standard('larva', LARVA)];
-  const eating = applyAction(match, 'bot', { type: 'play', cardId: 'eater', row: 'surface', position: 1 });
-  assert.deepEqual(chooseBotTurn(eating, 'hard'), { type: 'target', cardId: 'cocoon' });
+  const played = applyAction(match, 'bot', { type: 'play', cardId: 'eater', row: 'orbit', position: 0 });
+  for (const difficulty of ['normal', 'hard']) {
+    const order = chooseBotTurn(played, difficulty);
+    assert.deepEqual(order, { type: 'order', cardId: 'eater' });
+    const pending = applyAction(played, 'bot', order);
+    assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'cocoon' });
+  }
 });
 
 test('changing the opponent’s hidden cards or either deck order cannot change a decision', () => {
@@ -176,7 +174,7 @@ test('hard anticipates a visible Surface-only reply without reading the enemy ha
   match.players.bot.board.surface = [member('generator', 'protectorate', 'shield-generator')];
   match.players.human.leader = { ...FACTIONS.protectorate.leaders.find(({ id }) => id === 'fleet-admiral'), charges: 1 };
   assert.equal(chooseBotTurn(match, 'normal').row, 'surface');
-  assert.equal(chooseBotTurn(match, 'hard').row, 'orbit');
+  assert.equal(chooseBotTurn(match, 'hard', { rolloutSamples: 0 }).row, 'orbit');
 });
 
 test('the deciding round refuses to pass with legal cards when behind or the opponent can still reply', () => {
@@ -225,4 +223,20 @@ test('hard reports ranked public decisions and scores from completed rollouts wi
   assert.deepEqual(trace.candidates[0].action, action);
   assert.ok(trace.candidates.every(({ score, samples }) => Number.isFinite(score) && samples === 2));
   assert.ok(trace.candidates[0].score >= trace.candidates[1].score);
+});
+
+
+test('the bot prioritizes new infection over refreshing an already infected enemy', () => {
+  const match = position(3);
+  match.players.bot.board.orbit = [member('spitter', 'growth', 'spitter')];
+  const already = plain('infected', 8);
+  already.armor = 10;
+  already.statuses = { infection: 3 };
+  const fresh = plain('fresh', 3);
+  fresh.armor = 10;
+  match.players.human.board.orbit = [already, fresh];
+  const pending = applyAction(match, 'bot', { type: 'order', cardId: 'spitter' });
+  for (const difficulty of ['easy', 'normal', 'hard']) {
+    assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'fresh' });
+  }
 });

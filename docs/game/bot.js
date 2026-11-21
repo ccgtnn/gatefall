@@ -1,9 +1,9 @@
-import { ROWS } from './cards.js?v=step-16';
-import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=step-16';
-import { availableOrders, canUseLeader, destructionSwing, effectSwing, rowArmor, rowDamage } from './effects.js?v=step-16';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=step-17';
+import { ROWS } from './cards.js?v=step-19';
+import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=step-19';
+import { availableOrders, canUseLeader, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage } from './effects.js?v=step-19';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=step-19';
 
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=step-18';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=step-19';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
@@ -13,6 +13,9 @@ export function createBotView(match) {
   return {
     cards: playableCards(match, 'bot').filter((card) => bot.usedAbility || !(destructionSwing(match, 'bot', card) < 0)).map((card) => {
       if (cardType(card) === 'effect') return { ...card, swing: effectSwing(match, 'bot', card) };
+      if (card.definition.deploy?.steps.some((step) => step.status === 'infection')) {
+        return { ...card, swing: (card.power ?? 0) + effectSwing(match, 'bot', card) };
+      }
       if (card.definition.id !== 'broodlord') return card;
       const rows = ROWS.filter((row) => bot.board[row].length < ROW_LIMIT);
       const larvae = (row) => bot.board[row].filter(({ definition }) => definition.id === 'larva')
@@ -115,7 +118,7 @@ function bestTarget(candidates, priority) {
 }
 
 export function pickBotTarget(match) {
-  const { kind, amount, amounts, options, preferHigherAmount } = match.pending;
+  const { kind, amount, amounts, armorStrip, options, preferHigherAmount } = match.pending;
   const player = match.players[match.pending.side];
   if (kind === 'armor-row') {
     const row = bestTarget(options, (row) => rowArmor(player, row));
@@ -127,7 +130,7 @@ export function pickBotTarget(match) {
   }
   if (kind === 'enemy-row') {
     const enemy = match.players[match.pending.selectionSide];
-    const row = bestTarget(options, (row) => rowDamage(enemy, row, 1));
+    const row = bestTarget(options, (row) => rowDamage(enemy, row, amount, armorStrip));
     return { type: 'target', cardId: row };
   }
   if (kind === 'deck-card' || kind === 'deck-top') {
@@ -151,6 +154,7 @@ export function pickBotTarget(match) {
     consume: ({ card }) => sacrificePriority(card),
     'spend-armor': ({ card }) => amount ? card.armor : card.armor * 100 + card.power,
     'ready-order': ({ card }) => card.definition.order && card.readyAt > player.turns ? 20 + (card.power ?? 0) : card.power ?? 0,
+    'infection-target': ({ card }) => infectionGain(card, amount, Math.max(1, match.players[match.pending.side === 'human' ? 'bot' : 'human'].hand.length)),
     infection: (unit) => [unit, ...neighbors(match, unit)].reduce((sum, { card }) =>
       sum + Math.max(0, Math.min(3, card.power ?? 0) - (card.statuses?.infection ?? 0)), 0),
     marshal: (unit) => neighbors(match, unit).length * 100 + unit.card.power,

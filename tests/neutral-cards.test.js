@@ -22,12 +22,12 @@ function scenario(id) {
   return match;
 }
 
-test('all eleven neutrals are in the catalog and the temporary playtest additions are distinct', () => {
+test('all eleven neutrals are in the catalog and the both preset neutral packages are legal', () => {
   assert.equal(NEUTRAL_CARDS.length, 11);
   assert.equal(new Set(NEUTRAL_CARDS.map(({ id }) => id)).size, 11);
   const ids = ({ deck }) => deck.filter(({ faction }) => faction === 'neutral').map(({ id }) => id).sort();
   assert.deepEqual(ids(FACTIONS.protectorate),
-    ['annihilation', 'emp-grenade', 'gate-guardian', 'gate-relic', 'recon-drone']);
+    ['annihilation', 'emp-grenade', 'gate-guardian', 'gate-relic', 'recon-drone', 'recon-drone']);
   assert.deepEqual(ids(FACTIONS.growth),
     ['annihilation', 'field-medic', 'gravity-pulse', 'liaison', 'veteran-mercenary']);
 });
@@ -77,17 +77,17 @@ test('EMP removes armor before dealing base damage plus all the armor removed', 
   }
 });
 
-test('Gravity Pulse damages every unit in the selected opposing row only', () => {
+test('Gravity Pulse strips two armor before dealing two damage in the selected enemy row', () => {
   const match = scenario('gravity-pulse');
   match.players.human.board.surface = [unit('ally')];
-  match.players.bot.board.surface = [unit('plain'), unit('shielded', 3, { armor: 1 }),
+  match.players.bot.board.surface = [unit('plain'), unit('shielded', 3, { armor: 1 }), unit('heavy', 3, { armor: 5 }),
     createCard('artifact', FIRST_SIGNAL)];
   match.players.bot.board.orbit = [unit('elsewhere')];
   const pending = play(match, 'gravity-pulse');
   assert.equal(pending.pending.selectionSide, 'bot');
   const next = pick(pending, 'surface');
   assert.deepEqual(next.players.bot.board.surface.map(({ power, armor }) => [power, armor]),
-    [[2, 0], [3, 0], [undefined, undefined]]);
+    [[1, 0], [1, 0], [3, 1], [undefined, undefined]]);
   assert.equal(next.players.bot.board.orbit[0].power, 3);
   assert.equal(next.players.human.board.surface[0].power, 3);
 });
@@ -178,16 +178,12 @@ test('Bounty Hunter is rewarded only when its hit kills', () => {
   }
 });
 
-test('Gate Guardian enters with five armor, stays after a partial loss and is discarded when it breaks', () => {
+test('Gate Guardian enters with four armor and Gravity Pulse triggers vulnerability through its armor', () => {
   let match = scenario('gate-guardian');
-  match.players.bot.hand = [card('gravity-pulse'), card('emp-grenade'), unit('reserve')];
+  match.players.bot.hand = [card('gravity-pulse'), unit('reserve')];
   match = play(match, 'gate-guardian');
-  assert.equal(match.players.human.board.orbit[0].armor, 5);
-  match = pick(play(match, 'gravity-pulse'), 'orbit');
   assert.equal(match.players.human.board.orbit[0].armor, 4);
-  assert.equal(match.players.human.board.orbit[0].power, 12);
-  match = play(match, 'spare', 'surface');
-  match = pick(play(match, 'emp-grenade'), 'gate-guardian');
+  match = pick(play(match, 'gravity-pulse'), 'orbit');
   assert.equal(match.players.human.board.orbit.length, 0);
   assert.equal(match.players.human.discard[0].id, 'gate-guardian');
   assert.equal(count(match, 'discard'), 1);

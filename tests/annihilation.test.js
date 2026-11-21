@@ -26,7 +26,6 @@ test('Annihilation is a neutral gold Effect, with one copy in each faction deck'
   for (const { deck } of Object.values(FACTIONS)) {
     assert.ok(deck.length >= 25);
     assert.deepEqual(deck.filter(({ id }) => id === ANNIHILATION.id), [ANNIHILATION]);
-    assert.equal(deck.filter(({ faction }) => faction === NEUTRAL).length, 5);
   }
 });
 
