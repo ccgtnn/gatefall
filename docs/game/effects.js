@@ -1,10 +1,10 @@
-import { emit } from './events.js?v=plague-b';
-import { ROWS, ROW_LABELS } from './cards.js?v=plague-b';
+import { emit } from './events.js?v=plague-art-1';
+import { ROWS, ROW_LABELS } from './cards.js?v=plague-art-1';
 import {
   announcePlay, applyStatus, availableRows, basePower, boost, cardType, consume, createCard, damage, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, removeUnit,
   setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, units,
-} from './board.js?v=plague-b';
+} from './board.js?v=plague-art-1';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);

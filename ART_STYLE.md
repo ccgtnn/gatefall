@@ -11,10 +11,13 @@
 
 ## Единый шаблон
 
+Образец рисованного стиля для всех новых карт — Гнилой исполин.
+
 Основной блок остаётся одинаковым. В `[CARD]` добавьте объект, одно действие или позу, окружение, материалы, палитру фракции и положение светового акцента. По возможности используйте утверждённую вертикальную иллюстрацию той же фракции как референс.
 
 ```text
-Gatefall original science-fiction card illustration, single full-bleed portrait 2:3 image. Cinematic atmospheric realism, tactile materials, subtle volumetric haze, crisp silhouette, a readable light focal patch at the geometric center and cool rim light. A large single subject fills the frame, all essential recognition features in the central 55% to survive a center crop. Dark slate, blue mist or aubergine shadows with visible details, not black void. Rich but controlled contrast. No text, frame, card markings, watermark, collage, gore or recognizably existing game/franchise designs. The supplied reference is for the approved Gatefall artwork; output a single illustration.
+Painterly digital illustration in the style of high-end card game art: visible confident brushwork, simplified clean shapes, less micro-detail and noise, strong readable silhouette, hand-painted feel, not photorealistic, not comic or cartoon.
+Gatefall original science-fiction card illustration, single full-bleed portrait 2:3 image. Atmospheric lighting, tactile materials, subtle volumetric haze, crisp silhouette, a readable light focal patch at the geometric center and cool rim light. A large single subject fills the frame, all essential recognition features in the central 55% to survive a center crop. Dark slate, blue mist or aubergine shadows with visible details, not black void. Rich but controlled contrast. No text, frame, card markings, watermark, collage, gore or recognizably existing game/franchise designs. The supplied reference is for the approved Gatefall artwork; output a single illustration.
 
 [CARD]
 ```

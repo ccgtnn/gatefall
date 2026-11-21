@@ -1,8 +1,8 @@
 import { button, element } from './dom.js?v=step-11';
-import { createCard } from '../game/board.js?v=plague-b';
-import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from '../game/cards.js?v=plague-b';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=plague-b';
-import { logView, roundText } from './menu.js?v=plague-b';
+import { createCard } from '../game/board.js?v=plague-art-1';
+import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from '../game/cards.js?v=plague-art-1';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=plague-art-1';
+import { logView, roundText } from './menu.js?v=plague-art-1';
 
 export function catalogScreen(phaseLabel, back) {
   phaseLabel.textContent = '';

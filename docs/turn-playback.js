@@ -1,4 +1,4 @@
-import { ROWS } from './game/cards.js?v=plague-b';
+import { ROWS } from './game/cards.js?v=plague-art-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;

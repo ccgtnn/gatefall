@@ -1,6 +1,6 @@
 import { button, element } from './dom.js?v=step-11';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=plague-b';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=plague-b';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=plague-art-1';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=plague-art-1';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';

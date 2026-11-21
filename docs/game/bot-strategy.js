@@ -1,8 +1,8 @@
-import { compareRollouts } from './bot-rollouts.js?v=plague-b';
-import { ROWS } from './cards.js?v=plague-b';
-import { cardType, opponent, placementSide, units } from './board.js?v=plague-b';
-import { availableOrders, canUseLeader, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=plague-b';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=plague-b';
+import { compareRollouts } from './bot-rollouts.js?v=plague-art-1';
+import { ROWS } from './cards.js?v=plague-art-1';
+import { cardType, opponent, placementSide, units } from './board.js?v=plague-art-1';
+import { availableOrders, canUseLeader, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=plague-art-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=plague-art-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };

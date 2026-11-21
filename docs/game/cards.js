@@ -269,6 +269,7 @@ const infectedEnemies = { ...enemies, infected: true };
 const rot = (row, amount, rowRef) => ({ action: 'row-effect', effect: 'rot', side: 'enemy', row, rowRef, amount });
 const plague = [
   ['rot-midge', 'Гнилостная мошка', 4, 3, 'Рвение. Приказ: наложить Заражение 1 на выбранный вражеский отряд. Перезарядка: 2 хода.', {
+    art: 'rot-midge.webp?v=plague-art-1',
     zeal: true,
     order: { cooldown: 2, ...ability([infect(chosen('enemy'), 1)], [infectionChoice(1)]) },
     keywords: ['Рвение', 'Приказ', 'Заражение'],
@@ -277,24 +278,29 @@ const plague = [
     enemySide: true, deploy: ability([infect(adjacent, 3)]), keywords: ['Соседи', 'Заражение'],
   }],
   ['rot-scavenger', 'Падальщик гнили', 6, 3, 'При розыгрыше: усилить себя на 1 за каждый заражённый вражеский отряд.', {
+    art: 'rot-scavenger.webp?v=plague-art-1',
     deploy: ability([action('boost', self, { count: infectedEnemies })]), keywords: ['Усиление', 'Заражение'],
   }],
   ['boil', 'Нарывник', 4, 3, 'Когда гибнет заражённый вражеский отряд, усилить себя на 2.', {
+    art: 'boil.webp?v=plague-art-1',
     fieldEvents: { death: { enemy: true, infected: true, ability: ability([action('boost', self, 2)]) } },
     keywords: ['Усиление', 'Заражение'],
   }],
   ['rot', 'Гниение', 5, null, 'Наложить Гниение на выбранный вражеский ряд на 3 хода.', {
+    art: 'rot.webp?v=plague-art-1',
     type: 'effect', deploy: ability([
       { action: 'select-row', ref: 'rotRow', filter: 'any', side: 'enemy', prompt: 'Выбери вражеский ряд для Гниения.' },
       rot(undefined, 3, 'rotRow'),
     ]), keywords: ['Гниение'],
   }],
   ['rot-giant', 'Гнилой исполин', 11, 3, 'Пока в колоде или руке: +1 к базовой силе за каждое первое Заражение вражеского отряда. При розыгрыше: 1 урон каждому заражённому вражескому отряду.', {
+    art: 'rot-giant.webp?v=plague-art-1',
     rarity: 'gold',
     pileEvents: { 'first-infection': { enemy: true, ability: ability([action('base-power', self, 1)]) } },
     deploy: ability([action('damage', infectedEnemies, 1)]), keywords: ['Заражение', 'Урон'],
   }],
   ['pestilence', 'Мор', 11, null, 'Наложить Гниение на оба вражеских ряда на 3 хода.', {
+    art: 'pestilence.webp?v=plague-art-1',
     rarity: 'gold', type: 'effect', deploy: ability([rot('all', 3)]), keywords: ['Гниение'],
   }],
   ['plague-burst', 'Чумной всплеск', 9, null, 'Нанести каждому заражённому вражескому отряду урон по его счётчику Заражения, затем снять с них Заражение.', {

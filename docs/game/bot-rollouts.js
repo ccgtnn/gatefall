@@ -1,8 +1,8 @@
-import { FACTIONS, ROWS } from './cards.js?v=plague-b';
-import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=plague-b';
-import { collection, copyLimit } from './decks.js?v=plague-b';
-import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=plague-b';
-import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=plague-b';
+import { FACTIONS, ROWS } from './cards.js?v=plague-art-1';
+import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=plague-art-1';
+import { collection, copyLimit } from './decks.js?v=plague-art-1';
+import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=plague-art-1';
+import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=plague-art-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };

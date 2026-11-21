@@ -1,4 +1,4 @@
-import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=plague-b';
+import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=plague-art-1';
 
 export const MIN_CARDS = 25;
 export const MIN_UNITS = 13;

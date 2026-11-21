@@ -1,9 +1,9 @@
-import { ROWS } from './cards.js?v=plague-b';
-import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=plague-b';
-import { availableOrders, canUseLeader, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue } from './effects.js?v=plague-b';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=plague-b';
+import { ROWS } from './cards.js?v=plague-art-1';
+import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=plague-art-1';
+import { availableOrders, canUseLeader, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue } from './effects.js?v=plague-art-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=plague-art-1';
 
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=plague-b';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=plague-art-1';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
