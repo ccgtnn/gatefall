@@ -25,19 +25,29 @@ function position(round = 1, winner = null) {
   return match;
 }
 
-test('round one passes with a lead greater than average or on reaching its difficulty budget', () => {
+test('strategic bots do not bank a one-card lead and can pass with a large lead', () => {
   const match = position();
   match.players.bot.board.orbit = [plain('lead', 7)];
-  assert.deepEqual(chooseBotTurn(match, 'normal'), pass);
-  assert.deepEqual(chooseBotTurn(match, 'hard'), pass);
+  match.log.push({ type: 'play', side: 'bot' });
+  assert.equal(chooseBotTurn(match, 'normal').type, 'play');
+  assert.equal(chooseBotTurn(match, 'hard').type, 'play');
   assert.equal(chooseBotTurn(match, 'easy').type, 'play');
 
-  match.players.bot.board.orbit = [];
-  for (let i = 0; i < 3; i++) match.log.push({ type: 'play', side: 'bot', name: 'Earlier' });
-  assert.deepEqual(chooseBotTurn(match, 'normal'), pass);
-  assert.equal(chooseBotTurn(match, 'hard').type, 'play');
   match.log.push({ type: 'play', side: 'bot' });
+  match.players.bot.board.orbit[0].power = 20;
+  assert.deepEqual(chooseBotTurn(match, 'normal'), pass);
   assert.deepEqual(chooseBotTurn(match, 'hard'), pass);
+});
+
+test('normal spends its last removal in round two when a life is at stake', () => {
+  const match = position(2, 'human');
+  match.players.bot.lives = 1;
+  match.players.human.board.orbit = [plain('small-enemy', 2)];
+  match.players.bot.hand = [member('salvo', 'protectorate', 'orbital-salvo')];
+  assert.deepEqual(chooseBotTurn(match, 'normal'), { type: 'play', cardId: 'salvo' });
+
+  match.players.bot.lives = 2;
+  assert.deepEqual(chooseBotTurn(match, 'normal'), pass);
 });
 
 test('round one gives up expensive chases and respects the no-pass rule after an ability', () => {

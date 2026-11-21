@@ -3,7 +3,7 @@ import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=step-
 import { availableOrders, canUseLeader, destructionSwing, effectSwing, rowArmor, rowDamage } from './effects.js?v=step-16';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=step-17';
 
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=step-17';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=step-18';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;

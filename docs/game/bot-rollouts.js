@@ -1,12 +1,12 @@
 import { FACTIONS, ROWS } from './cards.js?v=step-16';
 import { createCard, isUnit, opponent, ROW_LIMIT } from './board.js?v=step-16';
 import { collection, copyLimit } from './decks.js?v=step-16';
-import { applyAction, canPass, playableCards, totalScore } from './match.js?v=step-17';
+import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=step-17';
 import { availableOrders, canUseLeader, effectSwing, rowArmor } from './effects.js?v=step-16';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
-export const ROLLOUT_SAMPLES = 12;
+export const ROLLOUT_SAMPLES = 9;
 
 function seeded(seed) {
   return () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32);
@@ -140,9 +140,11 @@ function quickAction(match, side, pickTarget) {
 
   const plays = fastPlays(match, side);
   if (!plays.length) return canUseLeader(match, side) ? { type: 'leader' } : PASS;
-  if (legalPass && match.round === 1 && !enemy.passed && player.turns >= 3) return PASS;
-  if (legalPass && match.round === 1 && !enemy.passed && lead > 4 && player.turns > 0) return PASS;
-  if (legalPass && match.round === 2 && enemy.lives < player.lives && !enemy.passed) return PASS;
+  if (legalPass && match.round === 1 && !enemy.passed && player.turns >= 4 && lead > 9) return PASS;
+  if (legalPass && match.round === 1 && !enemy.passed && lead > 13 && player.turns > 1) return PASS;
+  if (legalPass && match.round === 2 && enemy.lives < player.lives && !enemy.passed &&
+      (player.hand.length + 1 < enemy.hand.length || player.hand.length <= 5 ||
+        (player.turns >= 3 && lead < 8))) return PASS;
   if (enemy.passed) {
     const winning = plays.filter(({ points }) => points + lead >= 1).sort((a, b) => a.cost - b.cost);
     if (winning.length) return winning[0].action;
@@ -150,11 +152,11 @@ function quickAction(match, side, pickTarget) {
         (match.round === 2 || plays.toSorted((a, b) => b.points - a.points).slice(0, 2)
           .reduce((sum, play) => sum + play.points, lead) < 1)) return PASS;
   }
-  if (!enemy.passed && match.round > 1 && canUseLeader(match, side) &&
+  if (!enemy.passed && (match.round === 3 || (match.round === 2 && player.lives === 1)) && canUseLeader(match, side) &&
       (player.leader.id !== 'marshal' || ROWS.some((row) => player.board[row].length > 1))) {
     return { type: 'leader' };
   }
-  const weight = match.round === 3 ? .12 : .55;
+  const weight = match.round === 3 ? .12 : .45;
   function rank(play) {
     return play.points - weight * play.cost - Math.max(0, play.reserve - play.points) * 1.5;
   }
@@ -169,14 +171,14 @@ function assessment(match, round) {
     const lead = last.scores.bot - last.scores.human;
     const outcome = match.result === 'loss' ? 1 : match.result === 'win' ? -1
       : match.result === 'draw' ? 0 : Math.sign(lead);
-    return .83 * outcome + .17 * Math.tanh(lead / 20);
+    return .90 * outcome + .10 * Math.tanh(lead / 20);
   }
   if (!last) return Math.tanh((totalScore(bot) - totalScore(human)) / 18) * .5;
   const worth = (player) => player.hand.reduce((sum, card) => sum + 3.5 + printedValue(card) * .6, 0)
-    + (player.leader?.charges ?? 0) * 2.2;
+    + (player.leader?.charges ?? 0) * 4.5;
   const cards = worth(bot) - worth(human);
   // A life lead means the opponent needs both remaining rounds. Extra cards carry over.
-  const lives = (bot.lives - human.lives) * (round === 1 ? 8 : 4);
+  const lives = (bot.lives - human.lives) * (round === 1 ? 12 : 4);
   const opening = match.starter === 'bot' ? -.6 : .6;
   return Math.tanh((cards + lives + opening) / (round === 1 ? 14 : 11));
 }
@@ -187,13 +189,25 @@ function rollout(sample, action, pickTarget, random, expired) {
   const round = match.round;
   const options = { random, copy: (state) => ({ ...state }) };
   let move = action;
-  for (let step = 0; step < 96; step++) {
+  let firstRoundValue;
+  for (let step = 0; step < 150; step++) {
     if (expired()) return;
     const side = match.pending?.side ?? match.turn;
     const next = applyAction(match, side, move, options);
     if (next === match) return;
     match = next;
-    if (match.phase !== 'playing' || match.round !== round) return assessment(match, round);
+    if (match.phase === 'finished') {
+      const outcome = assessment(match, match.round);
+      return firstRoundValue === undefined ? outcome : .75 * outcome + .25 * firstRoundValue;
+    }
+    if (match.phase === 'mulligan') {
+      if (round === 3) return assessment(match, round);
+      firstRoundValue ??= assessment(match, round);
+      const swaps = match.players.human.hand.toSorted((a, b) => printedValue(a) - printedValue(b))
+        .slice(0, mulliganLimit(match, 'human')).map(({ id }) => id);
+      match = confirmMulligan(match, swaps, options);
+      if (match.phase !== 'playing') return firstRoundValue;
+    }
     move = quickAction(match, match.pending?.side ?? match.turn, pickTarget);
   }
 }
