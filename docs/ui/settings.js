@@ -1,6 +1,6 @@
-import { bindRulesMenu } from './rules.js?v=art-24';
+import { bindRulesMenu } from './rules.js?v=art-25';
 import { createSoundEffects, DEFAULT_VOLUME } from '../sound.js?v=step-10-volume';
-import { motionDuration } from '../turn-playback.js?v=art-24';
+import { motionDuration } from '../turn-playback.js?v=art-25';
 
 export function createSettings(app, onLeave) {
   const settings = document.querySelector('#settings');

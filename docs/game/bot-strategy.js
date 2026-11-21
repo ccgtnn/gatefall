@@ -1,8 +1,8 @@
-import { compareRollouts } from './bot-rollouts.js?v=art-24';
-import { ROWS } from './cards.js?v=art-24';
-import { cardType, units } from './board.js?v=art-24';
-import { availableOrders, canUseLeader, destructionRolls, destructionSwing, rowArmor } from './effects.js?v=art-24';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=art-24';
+import { compareRollouts } from './bot-rollouts.js?v=art-25';
+import { ROWS } from './cards.js?v=art-25';
+import { cardType, units } from './board.js?v=art-25';
+import { availableOrders, canUseLeader, destructionRolls, destructionSwing, rowArmor } from './effects.js?v=art-25';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=art-25';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
