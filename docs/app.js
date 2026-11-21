@@ -17,6 +17,7 @@ import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=s
 import { createSettings } from './ui/settings.js?v=storm-eye-1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
+import { createRewardBook } from './ui/reward-book.js?v=1';
 
 const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
@@ -39,6 +40,7 @@ let replaying = false;
 let mulliganFieldVisible = false;
 let storage;
 try { storage = window.localStorage; } catch {}
+document.querySelector('#start-settings').after(createRewardBook(storage, navigator.locks));
 const deckStore = createDeckStorage(storage);
 const stats = createFactionStats(Object.keys(FACTIONS), storage);
 const settings = createSettings(app, leaveMatch);

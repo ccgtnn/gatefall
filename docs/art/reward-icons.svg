@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <symbol id="key" viewBox="0 0 32 32">
+    <path d="M4 11.5 8 7h8l4.5 4.5v5L16 21H8l-4-4.5zM20.5 13.5H28v5h-3v3h-4v-4M8 13h7v3H8zM11.5 7V4M11.5 21v4M4 14H2"/>
+    <path stroke-width="2.5" d="M27.5 14v3M11.5 12.9v3.2"/>
+  </symbol>
+  <symbol id="gold" viewBox="0 0 32 32">
+    <path fill="currentColor" fill-opacity=".19" d="m6 8 19-2 4 6-5 12-19 2-3-7Z"/><path d="m6 8 4 6 19-2M10 14 5 26m8-8 8-1m-9 4 5-.6"/>
+  </symbol>
+  <symbol id="gold-stack" viewBox="0 0 32 32">
+    <path d="m7 6 15-2 4 5-3 5-17 2-3-4Zm-4 6 7 1m0 0 16-4m-4 8 5-1 3 5-4 6-19 1-4-5 3-4m-2 4 6 1 20-3M10 24l-3 4"/><path d="m9 9 8-1m-5 11 9-1"/>
+  </symbol>
+  <symbol id="essence" viewBox="0 0 32 32">
+    <path fill="currentColor" fill-opacity=".20" d="M16 2 25 10l-2 13-7 7-7-7-2-13Z"/><path d="m16 2-5 10 5 18 5-18-5-10M7 10l4 2h10l4-2M5 18H2m28 0h-3"/>
+  </symbol>
+  <symbol id="booster" viewBox="0 0 32 32">
+    <path fill="currentColor" fill-opacity=".16" d="m9 4 16 3 2 4-3 15-4 3-16-4-1-5L6 7z"/><path d="M9 4l1 5 16 4M5 21l16 4-1 4m-5-17 5 6-7 3-4-5 6-4Z"/>
+  </symbol>
+  <symbol id="card-back" viewBox="0 0 32 32">
+    <path d="m18 4 9 2-4 23-7-1M5 5h16v22H5z"/><path fill="currentColor" fill-opacity=".25" d="m13 9 5 7-5 7-5-7Z"/><path d="M10 16h6m-3-3v6"/>
+  </symbol>
+  <symbol id="battlefield" viewBox="0 0 32 32">
+    <path d="M3 6h26v20H3zM3 21h26m-25-2 7-7 5 5 5-8 8 10M10 23h12m-9-6v-5l3-2 3 2v5"/>
+  </symbol>
+  <symbol id="check" viewBox="0 0 32 32"><path stroke-width="3" d="m7 16 6 6L26 9"/></symbol>
+</svg>
