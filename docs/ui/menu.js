@@ -1,6 +1,6 @@
 import { button, element, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROW_LABELS } from '../game/cards.js?v=opponent-reveal-1';
-import { cardButton, showCard } from './cards.js?v=match-cues-1';
+import { ROW_LABELS } from '../game/cards.js?v=neutral-gates-1';
+import { cardButton, showCard } from './cards.js?v=neutral-gates-1';
 
 export function roundText(event) {
   const { scores, winner } = event;
@@ -15,8 +15,9 @@ export function eventText(event) {
     case 'round-start': return `Раунд ${event.round}. Первый ход: ${side.toLowerCase()}.`;
     case 'stratagem': return `${side}: на Поверхности появляется стратагема «${event.name}».`;
     case 'play': {
-      if (!event.row) return `${side}: «${event.name}» · Эффект${event.from === 'deck' ? ' из колоды' : ''}${event.initiative ? ' · Инициатива' : ''}.`;
-      return `${side}: «${event.name}» (${event.power ?? 'артефакт'})${event.from === 'deck' ? ' из колоды' : event.from === 'discard' ? ' из сброса' : ''} → ${ROW_LABELS[event.row]}${event.boardSide ? ' противника' : ''}.`;
+      const origin = event.from === 'deck' ? ' из колоды' : event.from === 'discard' ? ' из сброса' : '';
+      if (!event.row) return `${side}: «${event.name}» · Эффект${origin}${event.initiative ? ' · Инициатива' : ''}.`;
+      return `${side}: «${event.name}» (${event.power ?? 'артефакт'})${origin} → ${ROW_LABELS[event.row]}${event.boardSide ? ' противника' : ''}.`;
     }
     case 'pass': {
       const reasons = {
@@ -51,7 +52,8 @@ export function eventText(event) {
     case 'destroy': return `Карта «${event.name}» уничтожена и уходит из игры.`;
     case 'consume': return `«${event.eater}» поглощает «${event.name}» (${event.amount} силы).`;
     case 'deathwish': return `Завещание: «${event.name}».`;
-    case 'spawn': return `${side}: ${ROW_LABELS[event.row]}, порождение «${event.name}» ×${event.count}.`;
+    case 'spawn': return event.from === 'deck' ? `${side}: ${ROW_LABELS[event.row]}, призыв «${event.name}» из колоды.`
+      : `${side}: ${ROW_LABELS[event.row]}, порождение «${event.name}» ×${event.count}.`;
     case 'leader': return `${side}: ${event.lastUsedTurn === undefined ? 'способность' : 'Приказ'} лидера «${event.name}».`;
     case 'counter': return `Счётчик «${event.name}»: ${event.remaining}.`;
     case 'tick': return 'Таймер «' + event.name + '»: ' + event.remaining + '.';
@@ -136,7 +138,7 @@ export function createMatchMenu(getMatch, showThoughts) {
     const ordered = player[pile].toSorted((left, right) =>
       (right.power ?? 0) - (left.power ?? 0) ||
       left.definition.name.localeCompare(right.definition.name, 'ru'));
-    cards.append(...ordered.map((card) => cardButton(card, () => showCard(card, { showProvision: false }), player)));
+    cards.append(...ordered.map((card) => cardButton(card, () => showCard(card), player)));
     if (!ordered.length) cards.append(element('p', 'muted', pile === 'deck' ? 'Колода пуста.' : 'Сброс пуст.'));
     drawer.replaceChildren(header, cards);
   }

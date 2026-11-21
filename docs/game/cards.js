@@ -13,6 +13,7 @@ export const KEYWORDS = Object.freeze({
   'Броня': 'Каждая единица поглощает 1 урон.',
   'Усиление': 'Увеличивает текущую силу отряда.',
   'Порождение': 'Добавляет новую карту в ряд, если есть место.',
+  'Призыв': 'Перемещает существующую карту из указанной стопки на поле. Способности «При розыгрыше» не срабатывают.',
   'Поглощение': 'Своя жертва гибнет, её текущая сила переходит поглотившему, если карта не задаёт иное.',
   'Счётчик': 'В конце каждого хода владельца уменьшается на 1. При достижении нуля эффект срабатывает один раз.',
   'Уязвимость': 'Эффект срабатывает, когда карта теряет последнюю единицу брони.',
@@ -50,6 +51,7 @@ const choice = (ref, targets, prompt, hint) => ({ ref, targets, prompt, ...hint 
 const enemyChoice = (amount) => choice('enemy', enemies,
   'Выбери врага для урона.', { kind: 'damage', amount });
 const spawn = (position, row = 'source', amount = 1) => ({ action: 'spawn', card: LARVA, position, row, amount });
+const summonFromDeck = (position, provision) => ({ action: 'summon-from-deck', position, filter: { provision } });
 const absorb = (target, options = {}) => ({ action: 'consume', target, receiver: self, ...options });
 const armorNeighbors = (amount) => ability([action('armor', adjacent, amount)]);
 const infect = (target, amount) => ({ ...action('status', target, amount), status: 'infection' });
@@ -279,6 +281,17 @@ export const NEUTRAL_CARDS = Object.freeze([
       armor: 4, events: { 'armor-break': ability([action('discard', self)]) },
       keywords: ['Броня', 'Уязвимость'],
     }],
+    ['resurrection', 'Воскрешение', 'gold', 9, null, 'Выбери и сыграй карту из своего сброса с провизией 10 или меньше.', {
+      type: 'effect', art: 'resurrection.webp',
+      deploy: ability([{ action: 'play-from-discard', filter: { anyType: true, maxProvision: 10 },
+        prompt: 'Выбери карту из своего сброса за 10 провизии или меньше.' }]),
+    }],
+    ['forgotten-gates', 'Забытые врата', 'gold', 10, null,
+      'При розыгрыше: призови слева случайный отряд за 4 провизии из своей колоды. В начале твоего второго хода после розыгрыша призови справа ещё один такой отряд.', {
+        type: 'artifact', art: 'forgotten-gates.webp', timer: 2, keywords: ['Призыв', 'Соседи'],
+        deploy: ability([summonFromDeck('left', 4)]),
+        startTurn: ability([summonFromDeck('right', 4)]),
+      }],
   ].map(([id, name, rarity, provision, power, text, rules]) => Object.freeze({
     id, name, rarity, faction: NEUTRAL, provision, type: 'unit', ...(power === null ? {} : { power }), text, ...rules,
   })),

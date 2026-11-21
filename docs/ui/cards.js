@@ -1,6 +1,6 @@
 import { button, element, setCardRarity } from './dom.js?v=opponent-reveal-1';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=opponent-reveal-1';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=opponent-reveal-1';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=neutral-gates-1';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=neutral-gates-1';
 
 import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=opponent-reveal-1';
 
@@ -29,13 +29,13 @@ export function addCardCrop(node, definition, { fullArt = false } = {}) {
   node.prepend(cardArt(fullArt ? { ...definition, artCrop: undefined } : definition, 'card-art-crop'));
 }
 
-export function showCard(card, { leader = false, legacy = false, showProvision = true,
+export function showCard(card, { leader = false, legacy = false,
   orderReady = false, orderCooldown = 0 } = {}) {
   const { definition, power, armor, timer, counter } = card;
   setCardRarity(preview, definition.rarity);
   const details = leader ? ['Лидер'] : [CARD_TYPES[cardType(card)], definition.faction === NEUTRAL && 'Нейтральная', RARITY_LABELS[definition.rarity],
     definition.stratagem ? 'Стратагема' : definition.provision === undefined ? 'Токен'
-      : showProvision && `Провизия ${definition.provision}`].filter(Boolean);
+      : `Провизия ${definition.provision}`].filter(Boolean);
   details.push(...(definition.categories ?? []));
   const stats = [];
   if (definition.scenario) stats.push(`Главы ${card.chapter ?? 0}/${definition.scenario.chapters.length}`);
@@ -73,7 +73,7 @@ export function showCard(card, { leader = false, legacy = false, showProvision =
     let art;
     if (!leader && !legacy) {
       const face = element('div', 'preview-card-face');
-      decorateCard(face, card, { factionId: definition.faction }, { showProvision, fullArt: true, orderReady, orderCooldown });
+      decorateCard(face, card, { factionId: definition.faction }, { showProvision: true, fullArt: true, orderReady, orderCooldown });
       art = face;
     } else art = cardArt(definition, 'preview-art');
     layout.append(art, body);
@@ -287,6 +287,6 @@ export function cardButton(card, handler, player, placement = false, { showProvi
   const node = button(undefined, handler, 'hand-card');
   node.dataset.cardId = card.id;
   decorateCard(node, card, player, { showProvision });
-  cardInspection(node, card, placement, () => showCard(card, { showProvision }));
+  cardInspection(node, card, placement);
   return node;
 }

@@ -1,11 +1,11 @@
-import { createCard, statusCount } from '../game/board.js?v=opponent-reveal-1';
+import { createCard, statusCount } from '../game/board.js?v=neutral-gates-1';
 import { insertionPoint } from '../card-placement.js?v=opponent-reveal-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=opponent-reveal-1';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=match-cues-1';
-import { playerHand } from './hand.js?v=match-cues-1';
-import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=opponent-reveal-1';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=opponent-reveal-1';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=neutral-gates-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=neutral-gates-1';
+import { playerHand } from './hand.js?v=neutral-gates-1';
+import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=neutral-gates-1';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=neutral-gates-1';
 
 import { orderBadge } from './stat-badges.js?v=opponent-reveal-1';
 
@@ -72,7 +72,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       if (match.hiddenDuringPlayback?.has(card.id)) slot.style.opacity = '0';
       const cooldown = Math.max(0, card.readyAt - player.turns);
       const ready = readyOrders.has(card.id);
-      const inspect = () => showCard(card, { showProvision: false, orderReady: ready, orderCooldown: cooldown });
+      const inspect = () => showCard(card, { orderReady: ready, orderCooldown: cooldown });
       const face = button(undefined, () => {
         if (target) playHuman({ type: 'target', cardId: card.id });
         else if (!rowTarget && !deckPlacement && !isReplaying() && getSelectedCardId() === undefined) inspect();

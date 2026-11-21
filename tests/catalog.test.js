@@ -14,12 +14,14 @@ test('catalog searches both name and card text, ignoring case and ё spelling', 
   assert.deepEqual(ids({ query: 'неттакойкарты' }), []);
 });
 
-test('all 21 gold cards are included and catalog filters combine across factions', () => {
-  assert.equal(ids({ rarity: 'gold' }).length, 21);
+test('all 23 gold cards are included and catalog filters combine across factions', () => {
+  assert.equal(ids({ rarity: 'gold' }).length, 23);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'artifact', category: 'Пустота', provision: '19' }),
     ['falura']);
   assert.deepEqual(ids({ faction: 'growth', rarity: 'gold', type: 'artifact', category: 'Пустота', provision: '19' }), []);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'effect', provision: '11' }), ['world-gates']);
+  assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'effect', provision: '9' }), ['resurrection']);
+  assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'artifact', provision: '10' }), ['forgotten-gates']);
 });
 
 test('catalog sorts by increasing provision, alphabetically, or by decreasing printed power', () => {

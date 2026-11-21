@@ -1,5 +1,5 @@
-import { spendResilience } from './game/board.js?v=opponent-reveal-1';
-import { ROWS } from './game/cards.js?v=opponent-reveal-1';
+import { spendResilience } from './game/board.js?v=neutral-gates-1';
+import { ROWS } from './game/cards.js?v=neutral-gates-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;
@@ -72,6 +72,10 @@ export function applyJournalEvent(state, event) {
     return;
   }
   if (type === 'spawn') {
+    if (event.from === 'deck') {
+      const summoned = new Set(event.cards.map(({ id }) => id));
+      player.deck = player.deck.filter(({ id }) => !summoned.has(id));
+    }
     player.board[row].splice(event.position, 0, ...event.cards.map((card) => ({ ...card })));
     return;
   }

@@ -1,4 +1,4 @@
-import { ROWS } from './cards.js?v=opponent-reveal-1';
+import { ROWS } from './cards.js?v=neutral-gates-1';
 import { emit } from './events.js?v=opponent-reveal-1';
 
 export const ROW_LIMIT = 9;

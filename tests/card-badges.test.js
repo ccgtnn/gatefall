@@ -53,8 +53,7 @@ test('live battlefield and hand faces hide provision, while catalog and preview 
   assert.equal(catalog.dataset.rarity, 'gold');
   showCard(makeCard('bastion'));
   assert.ok(byClass(preview, 'stat-badge-provision'));
-  showCard(makeCard('bastion'), { showProvision: false });
-  assert.equal(byClass(preview, 'stat-badge-provision'), undefined);
+  assert.match(byClass(preview, 'muted').textContent, /Провизия 11/);
 });
 
 test('card details start at the top and focus the title without scrolling the page', () => {

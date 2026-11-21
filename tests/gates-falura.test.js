@@ -26,6 +26,86 @@ function setup(id, side = 'human') {
   return match;
 }
 
+test('Resurrection offers playable cards of any type up to 10 provisions and casts a chosen effect', () => {
+  let match = setup('resurrection');
+  match.players.bot.discard = [card('gate-guardian')];
+  assert.equal(move(match, 'play', 'resurrection'), match);
+  match.players.human.discard = [card('world-gates')];
+  assert.equal(move(match, 'play', 'resurrection'), match);
+  match.players.human.discard.push(card('gate-guardian'), card('forgotten-gates'), card('gravity-pulse'));
+  match = move(match, 'play', 'resurrection');
+  assert.equal(match.pending.pile, 'discard');
+  assert.deepEqual(match.pending.options, ['gate-guardian', 'forgotten-gates', 'gravity-pulse']);
+  assert.equal(move(match, 'target', 'world-gates'), match);
+  match = move(match, 'target', 'gravity-pulse');
+  assert.equal(match.pending.kind, 'enemy-row');
+  match = move(match, 'target', 'orbit');
+  assert.equal(findUnit(match, 'enemy').card.power, 11);
+  assert.equal(match.log.find(({ cardId }) => cardId === 'gravity-pulse').from, 'discard');
+});
+
+test('Resurrection supports the bot and is legal on a full board only with a castable discard effect', () => {
+  let match = setup('resurrection', 'bot');
+  const player = match.players.bot;
+  player.discard = [card('gate-guardian')];
+  for (const row of ['orbit', 'surface']) player.board[row] = Array.from({ length: 9 }, (_, i) => unit(row + i));
+  assert.equal(move(match, 'play', 'resurrection'), match);
+  player.discard.push(card('gravity-pulse'));
+  match = move(match, 'play', 'resurrection');
+  assert.deepEqual(match.pending.options, ['gravity-pulse']);
+  const choice = chooseBotTurn(match, 'normal', { random });
+  assert.deepEqual(choice, { type: 'target', cardId: 'gravity-pulse' });
+  assert.equal(applyAction(match, 'bot', choice, { random }).pending.kind, 'enemy-row');
+});
+
+test('Forgotten Gates summons left at placement and right at the second owner turn', () => {
+  let match = setup('forgotten-gates');
+  const { human, bot } = match.players;
+  bot.passed = false;
+  bot.hand = [unit('turn-one'), unit('turn-two'), unit('turn-three')];
+  human.deck = [card('recon-drone'), card('smuggler'), card('gate-relic'),
+    createCard('expensive', { id: 'expensive', name: 'Expensive', power: 8, provision: 5 })];
+  const replay = createPlaybackState(match);
+  const firstEvent = match.log.length;
+  const order = () => match.players.human.board.orbit.map(({ id }) => id);
+  match = move(match, 'play', 'forgotten-gates');
+  assert.deepEqual(order(), ['recon-drone', 'forgotten-gates']);
+  assert.equal(findUnit(match, 'forgotten-gates').card.timer, 2);
+  assert.equal(match.pending, null);
+  match = move(match, 'play', 'turn-one', 'surface');
+  assert.equal(findUnit(match, 'forgotten-gates').card.timer, 1);
+  assert.deepEqual(order(), ['recon-drone', 'forgotten-gates']);
+  match = move(match, 'play', 'extra', 'surface');
+  match = move(match, 'play', 'turn-two', 'surface');
+  assert.deepEqual(order(), ['recon-drone', 'forgotten-gates', 'smuggler']);
+  assert.equal(findUnit(match, 'forgotten-gates').card.timer, 0);
+  assert.equal(findUnit(match, 'smuggler').card.power, 3);
+  assert.deepEqual(match.players.human.deck.map(({ id }) => id), ['gate-relic', 'expensive']);
+  match = move(match, 'play', 'spare', 'surface');
+  match = move(match, 'play', 'turn-three', 'surface');
+  assert.equal(match.log.filter(({ from, type }) => type === 'spawn' && from === 'deck').length, 2);
+  assert.equal(match.log.some(({ cardId }) => cardId === 'recon-drone' || cardId === 'smuggler'), false);
+  for (const event of match.log.slice(firstEvent)) applyJournalEvent(replay, event);
+  assert.deepEqual(replay.players.human.deck.map(({ id }) => id), ['gate-relic', 'expensive']);
+  assert.deepEqual(replay.players.human.board.orbit.map(({ id }) => id), order());
+});
+
+test('Forgotten Gates skips each summon when the row is full or the deck has no eligible unit', () => {
+  let match = setup('forgotten-gates');
+  match.players.human.deck = [card('recon-drone')];
+  match.players.human.board.orbit = Array.from({ length: 8 }, (_, i) => unit('slot-' + i));
+  match = move(match, 'play', 'forgotten-gates');
+  match = move(match, 'play', 'extra', 'surface');
+  assert.equal(findUnit(match, 'forgotten-gates').card.timer, 0);
+  assert.deepEqual(match.players.human.deck.map(({ id }) => id), ['recon-drone']);
+
+  match = setup('forgotten-gates');
+  match.players.human.deck = [card('gate-guardian')];
+  match = move(match, 'play', 'forgotten-gates');
+  match = move(match, 'play', 'extra', 'surface');
+  assert.deepEqual(match.players.human.board.orbit.map(({ id }) => id), ['forgotten-gates']);
+});
+
 test('World Gates offers playable units, artifacts and effects and resolves a chosen effect without placement', () => {
   let match = setup('world-gates');
   match.players.human.deck = [unit('reserve-unit'), card('falura'), card('emp-grenade')];

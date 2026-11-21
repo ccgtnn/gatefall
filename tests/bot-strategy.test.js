@@ -123,6 +123,9 @@ test('the bot cashes in its armored row for Shield Overload', () => {
   match.players.bot.board.orbit = [member('small-shield', 'protectorate', 'assault')];
   match.players.bot.board.surface = [member('big-shield', 'protectorate', 'bastion')];
   match.players.human.board.orbit = [plain('enemy', 15)];
+  // Isolate the armor payoff from the hidden cards sampled by hard mode.
+  match.players.human.hand = [];
+  match.players.human.deck = [];
   for (const difficulty of ['normal', 'hard']) {
     const action = chooseBotTurn(match, difficulty);
     assert.deepEqual(action, { type: 'play', cardId: 'overload' });
