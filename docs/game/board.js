@@ -1,5 +1,5 @@
-import { ROWS } from './cards.js?v=world-gates-1';
-import { emit } from './events.js?v=world-gates-1';
+import { ROWS } from './cards.js?v=catalog-rarity-1';
+import { emit } from './events.js?v=catalog-rarity-1';
 
 export const ROW_LIMIT = 9;
 export const HAND_LIMIT = 10;

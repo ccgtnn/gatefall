@@ -1,4 +1,4 @@
-import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=world-gates-1';
+import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=catalog-rarity-1';
 
 export const MIN_CARDS = 25;
 export const MIN_UNITS = 13;

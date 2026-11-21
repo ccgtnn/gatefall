@@ -1,6 +1,6 @@
-import { button, element } from './dom.js?v=step-11';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=world-gates-1';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=world-gates-1';
+import { button, element, setCardRarity } from './dom.js?v=catalog-rarity-1';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=catalog-rarity-1';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=catalog-rarity-1';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';
@@ -21,6 +21,7 @@ export function cardArt(definition, className) {
 }
 
 export function addCardCrop(node, definition) {
+  setCardRarity(node, definition.rarity);
   if (!definition.art) return;
   node.classList.add('has-art');
   node.prepend(cardArt(definition, 'card-art-crop'));
@@ -28,6 +29,7 @@ export function addCardCrop(node, definition) {
 
 export function showCard(card, { leader = false } = {}) {
   const { definition, power, armor, timer, counter } = card;
+  setCardRarity(preview, definition.rarity);
   const details = leader ? ['Лидер'] : [CARD_TYPES[cardType(card)], definition.faction === NEUTRAL && 'Нейтральная', RARITY_LABELS[definition.rarity],
     definition.stratagem ? 'Стратагема' : definition.provision !== undefined ? `Провизия ${definition.provision}` : 'Токен'].filter(Boolean);
   details.push(...(definition.categories ?? []));
@@ -172,7 +174,6 @@ export function decorateCard(node, card, player, { orderOnField = false } = {}) 
   if (definition.accent) node.dataset.accent = definition.accent;
   if (definition.enemySide) node.dataset.enemySide = 'true';
   node.dataset.faction = definition.faction === NEUTRAL ? NEUTRAL : player.factionId ?? '';
-  node.dataset.rarity = definition.rarity ?? '';
   node.setAttribute('aria-label', cardLabel(card));
   node.append(cardStats(card));
   if (type !== 'unit') {

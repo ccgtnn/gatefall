@@ -297,9 +297,6 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   --stat-font: clamp(.59rem, 2.28dvh, .92rem);
   --stat-inset: 2px;
 }
-.hand-card[data-rarity], .unit-face[data-rarity] { border: 1px solid #96aab6; }
-.hand-card[data-rarity="gold"], .unit-face[data-rarity="gold"] { border: 2px solid #efc366; }
-:is(.hand-card, .unit-face)[data-faction="neutral"] { border-color: var(--faction-edge); }
 :is(.hand-card, .unit-face).has-art[data-type]::after {
   background: linear-gradient(#080e171a, transparent 45%, transparent 74%, #080e1770);
 }

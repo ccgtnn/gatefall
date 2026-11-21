@@ -1,39 +1,78 @@
-import { button, element } from './dom.js?v=step-11';
-import { createCard } from '../game/board.js?v=world-gates-1';
-import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from '../game/cards.js?v=world-gates-1';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=world-gates-1';
-import { logView, roundText } from './menu.js?v=world-gates-1';
+import { button, element, selectField } from './dom.js?v=catalog-rarity-1';
+import { createCard } from '../game/board.js?v=catalog-rarity-1';
+import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=catalog-rarity-1';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=catalog-rarity-1';
+import { logView, roundText } from './menu.js?v=catalog-rarity-1';
+import { filterCatalog } from './catalog-cards.js?v=catalog-rarity-1';
+
+const catalogCards = [...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool)];
+const catalogFactions = [['', 'Все фракции'], [NEUTRAL, 'Нейтральные'],
+  ...Object.entries(FACTIONS).map(([id, faction]) => [id, faction.name])];
+const categoryOptions = [...new Set(catalogCards.flatMap(({ categories }) => categories ?? []))]
+  .sort((a, b) => a.localeCompare(b, 'ru')).map((category) => [category, category]);
+const provisionOptions = [...new Set(catalogCards.map(({ provision }) => provision))]
+  .sort((a, b) => a - b).map((cost) => [String(cost), String(cost)]);
 
 export function catalogScreen(phaseLabel, back) {
   phaseLabel.textContent = '';
-  const panel = element('section', 'intro card-catalog');
+  const panel = element('section', 'card-catalog');
   const heading = element('h2', null, 'Все карты');
   heading.tabIndex = -1;
-  const toolbar = element('div', 'catalog-filters');
-  const grid = element('div', 'catalog-grid');
-  const groups = [[NEUTRAL, 'Нейтральные', NEUTRAL_CARDS], ...Object.entries(FACTIONS)
-    .map(([id, faction]) => [id, faction.name, faction.pool])];
-  const filters = new Map();
+  const header = element('div', 'catalog-heading');
+  header.append(button('Назад', back), heading);
+  const factions = element('div', 'catalog-factions');
+  factions.setAttribute('role', 'group');
+  factions.setAttribute('aria-label', 'Фракция');
+  let faction = '';
+  const tabs = catalogFactions.map(([id, label]) => {
+    const tab = button(label, () => {
+      faction = id;
+      update();
+    });
+    factions.append(tab);
+    return [id, tab];
+  });
 
-  function select(factionId, definitions) {
-    for (const [id, filter] of filters) filter.setAttribute('aria-pressed', String(id === factionId));
-    const unique = [...new Map(definitions.map((definition) => [definition.id, definition])).values()];
-    grid.replaceChildren(...unique.map((definition) => {
+  const toolbar = element('div', 'catalog-filters');
+  const search = element('input');
+  search.type = 'search';
+  const searchField = element('label', 'catalog-field catalog-search');
+  searchField.append(element('span', null, 'Поиск по названию и тексту'), search);
+  const select = (label, options) => selectField(label, options, 'catalog-field');
+  const type = select('Тип', [['', 'Все типы'], ...Object.entries(CARD_TYPES)]);
+  const rarity = select('Редкость', [['', 'Вся редкость'], ...Object.entries(RARITY_LABELS)]);
+  const category = select('Категория', [['', 'Все категории'], ...categoryOptions]);
+  const provision = select('Провизия', [['', 'Любая'], ...provisionOptions]);
+  const sort = select('Сортировка', [['provision', 'По провизии'], ['name', 'По имени'], ['power', 'По силе']]);
+  const fields = [type, rarity, category, provision, sort];
+  toolbar.append(searchField, ...fields.map(({ field }) => field));
+
+  const count = element('p', 'muted');
+  count.setAttribute('role', 'status');
+  const grid = element('div', 'catalog-grid');
+
+  function update() {
+    for (const [id, tab] of tabs) tab.setAttribute('aria-pressed', String(id === faction));
+    const shown = filterCatalog(catalogCards, {
+      faction, query: search.value, type: type.input.value, rarity: rarity.input.value,
+      category: category.input.value, provision: provision.input.value, sort: sort.input.value,
+    });
+    count.textContent = `Показано ${shown.length} из ${catalogCards.length}`;
+    grid.replaceChildren(...shown.map((definition) => {
       const card = createCard(definition.id, definition);
       const item = element('div', 'catalog-entry');
-      item.append(cardButton(card, () => showCard(card), { factionId }), element('span', null, definition.name));
+      item.append(cardButton(card, () => showCard(card), { factionId: definition.faction }),
+        element('span', null, definition.name));
       if (definition.categories?.length) item.append(element('span', 'catalog-category', definition.categories.join(' · ')));
       return item;
     }));
+    if (!shown.length) grid.append(element('p', 'catalog-empty muted', 'Карты не найдены.'));
   }
 
-  for (const [id, name, definitions] of groups) {
-    const filter = button(name, () => select(id, definitions));
-    filters.set(id, filter);
-    toolbar.append(filter);
-  }
-  select(NEUTRAL, NEUTRAL_CARDS);
-  panel.append(heading, toolbar, grid, button('Назад', back));
+  search.addEventListener('input', update);
+  for (const { input } of fields) input.addEventListener('change', update);
+  update();
+  panel.append(header, factions, toolbar, count, grid);
   return panel;
 }
 

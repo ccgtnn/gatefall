@@ -1,8 +1,8 @@
-import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=world-gates-1';
-import { createCard } from '../game/board.js?v=world-gates-1';
-import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=world-gates-1';
-import { addCardCrop, cardButton } from './cards.js?v=world-gates-1';
-import { button, element } from './dom.js?v=step-11';
+import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=catalog-rarity-1';
+import { createCard } from '../game/board.js?v=catalog-rarity-1';
+import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=catalog-rarity-1';
+import { addCardCrop, cardButton } from './cards.js?v=catalog-rarity-1';
+import { button, element, selectField } from './dom.js?v=catalog-rarity-1';
 
 const byProvision = (a, b) => b.provision - a.provision || a.name.localeCompare(b.name, 'ru');
 
@@ -85,18 +85,6 @@ export function factionPicker(phaseLabel, select, back) {
   }
   screen.append(options, button('К колодам', back));
   return screen;
-}
-
-function selectField(label, options) {
-  const field = element('label', 'deck-field');
-  const input = element('select');
-  for (const [value, name] of options) {
-    const option = element('option', null, name);
-    option.value = value;
-    input.append(option);
-  }
-  field.append(element('span', null, label), input);
-  return { field, input };
 }
 
 export function deckEditor(phaseLabel, deck, { save, play, back }) {

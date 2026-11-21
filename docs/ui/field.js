@@ -1,11 +1,11 @@
-import { createCard, statusCount } from '../game/board.js?v=world-gates-1';
-import { insertionPoint } from '../card-placement.js?v=world-gates-1';
-import { button, element, iconButton, sideLabel } from './dom.js?v=step-11';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=world-gates-1';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=world-gates-1';
-import { playerHand } from './hand.js?v=world-gates-1';
-import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=world-gates-1';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=world-gates-1';
+import { createCard, statusCount } from '../game/board.js?v=catalog-rarity-1';
+import { insertionPoint } from '../card-placement.js?v=catalog-rarity-1';
+import { button, element, iconButton, sideLabel } from './dom.js?v=catalog-rarity-1';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=catalog-rarity-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=catalog-rarity-1';
+import { playerHand } from './hand.js?v=catalog-rarity-1';
+import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=catalog-rarity-1';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=catalog-rarity-1';
 
 export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, isMulliganFieldVisible, setMulliganField,
   playHuman, humanCanAct, placeSelected, settingsButton, showDrawer, selectCard, mulliganScreen }) {

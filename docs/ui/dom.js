@@ -20,3 +20,20 @@ export function iconButton(icon, label, handler, className = '') {
   node.title = label;
   return node;
 }
+
+export function setCardRarity(node, rarity) {
+  if (rarity) node.dataset.rarity = rarity;
+  else delete node.dataset.rarity;
+}
+
+export function selectField(label, options, className = 'deck-field') {
+  const field = element('label', className);
+  const input = element('select');
+  for (const [value, name] of options) {
+    const option = element('option', null, name);
+    option.value = value;
+    input.append(option);
+  }
+  field.append(element('span', null, label), input);
+  return { field, input };
+}

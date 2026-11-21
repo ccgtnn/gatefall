@@ -1,4 +1,5 @@
-import { NEUTRAL } from './game/cards.js?v=world-gates-1';
+import { setCardRarity } from './ui/dom.js?v=catalog-rarity-1';
+import { NEUTRAL } from './game/cards.js?v=catalog-rarity-1';
 import { burstParticles } from './particles.js?v=step-14';
 
 const VISUAL_EVENTS = new Set([
@@ -65,6 +66,7 @@ function fly(screen, event, current, handOrigin, duration) {
   const definition = event.card?.definition;
   const art = definition?.artCrop ?? definition?.art;
   const card = floatNode(screen, 'motion-flight', art ? '' : event.name, destination);
+  setCardRarity(card, definition?.rarity);
   if (art) {
     const image = screen.ownerDocument.createElement('img');
     image.className = 'card-art-crop';
