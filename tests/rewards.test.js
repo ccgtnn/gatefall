@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { BOOSTER_FACTIONS, craftPrice, createRewardProgress, REWARD_SECTIONS, REWARD_STORAGE_KEY, rewardState } from '../docs/game/rewards.js';
-import { NEUTRAL_CARDS } from '../docs/game/cards.js';
+import { BOOSTER_FACTIONS, craftPrice, dismantleValue, createRewardProgress, REWARD_SECTIONS, REWARD_STORAGE_KEY, rewardState } from '../docs/game/rewards.js';
+import { copyLimit } from '../docs/game/decks.js';
+import { NEUTRAL_CARDS, RARITY_LABELS } from '../docs/game/cards.js';
 
 function localStorage() {
   const values = new Map();
@@ -226,4 +227,13 @@ test('booster rewards in two chapters share the same faction inventory', async (
   const copy = createRewardProgress(storage);
   assert.deepEqual(copy.inventory().boosters, { neutral: 1, protectorate: 0, growth: 0 });
   assert.equal(copy.inventory().pendingPack.faction, 'neutral');
+});
+
+test('all three rarities have their own names, essence prices and copy limits', () => {
+  assert.deepEqual(Object.entries(RARITY_LABELS).map(([rarity, label]) =>
+    [label, craftPrice({ rarity }), dismantleValue({ rarity }), copyLimit({ rarity })]), [
+    ['Обычная', 100, 20, 2],
+    ['Эпическая', 400, 100, 1],
+    ['Легендарная', 800, 200, 1],
+  ]);
 });

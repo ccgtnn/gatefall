@@ -594,7 +594,6 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   overflow: hidden;
   transform: translate(-100%, -50%);
 }
-.motion-opponent-reveal[data-rarity="gold"] { border: 2px solid var(--rarity-border-color); }
 .motion-lightning {
   width: clamp(14px, 4dvh, 34px);
   height: clamp(36px, 16dvh, 136px);
@@ -958,5 +957,28 @@ ul.deck-invalid { padding-inline-start: 1.1rem; margin: 0; font-size: .8rem; }
 }
 .catalog-category { color: #b4c8cb; font-size: .72rem; }
 
-[data-rarity] { border: var(--rarity-border-width, 1px) solid var(--rarity-border-color, #96aab6); }
-[data-rarity="gold"] { --rarity-border-width: 2px; --rarity-border-color: #efc366; }
+[data-rarity] { border: 1px solid var(--rarity-border-color, #96aab6); }
+[data-rarity="bronze"] {
+  --rarity-border-color: #a76747;
+  --rarity-frame: url('./art/rarity-frame-bronze.png');
+}
+[data-rarity="epic"] {
+  --rarity-border-color: #9055ca;
+  --rarity-frame: url('./art/rarity-frame-epic.png');
+}
+[data-rarity="gold"] {
+  --rarity-border-color: #cc9b46;
+  --rarity-frame: url('./art/rarity-frame-gold.png');
+}
+[data-rarity]:not(.card-preview)::before {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  border: 1px solid transparent;
+  border-image: var(--rarity-frame) 56 / clamp(7px, 2.1dvh, 19px) stretch;
+  pointer-events: none;
+  content: '';
+}
+.preview-card-face[data-rarity]::before {
+  border-image-width: clamp(12px, 2.8dvh, 24px);
+}

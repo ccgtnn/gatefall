@@ -1,9 +1,9 @@
-import { ROWS } from './cards.js?v=golem-trio-1';
-import { cardType, findUnit, isUnit, neighbors, statusCount, units } from './board.js?v=golem-trio-1';
-import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue } from './effects.js?v=golem-trio-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=golem-trio-1';
+import { ROWS } from './cards.js?v=rarity-frames-1';
+import { cardType, findUnit, isUnit, neighbors, statusCount, units } from './board.js?v=rarity-frames-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue } from './effects.js?v=rarity-frames-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=rarity-frames-1';
 
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=golem-trio-1';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=rarity-frames-1';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;

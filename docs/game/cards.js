@@ -7,7 +7,7 @@ export const ROW_LABELS = Object.freeze({
 
 export const CARD_TYPES = Object.freeze({ unit: 'Отряд', effect: 'Эффект', artifact: 'Артефакт' });
 export const NEUTRAL = 'neutral';
-export const RARITY_LABELS = Object.freeze({ bronze: 'Бронза', gold: 'Золото' });
+export const RARITY_LABELS = Object.freeze({ bronze: 'Обычная', epic: 'Эпическая', gold: 'Легендарная' });
 export const KEYWORDS = Object.freeze({
   'Урон': 'Если есть Силовой щит, первый удар сбивает его. Иначе урон снимает сначала броню, затем силу. Отряд с нулевой силой гибнет.',
   'Броня': 'Каждая единица поглощает 1 урон.',
@@ -103,7 +103,7 @@ const protectorate = [
       { action: 'armor', target: adjacent, amount: { stat: 'armor', scale: -1 }, save: 'armor' },
       action('boost', self, armorRemoved),
     ]), keywords: ['Броня', 'Усиление', 'Соседи'] }],
-  ['reinforcements', 'Подкрепление', 6, null, 'Покажи 3 случайных бронзовых отряда из своей колоды. Выбери один и сыграй его.',
+  ['reinforcements', 'Подкрепление', 6, null, 'Покажи 3 случайных обычных отряда из своей колоды. Выбери один и сыграй его.',
     { art: 'reinforcements.webp', type: 'effect', deploy: ability([{ action: 'play-from-deck', filter: { rarity: 'bronze' }, choose: 3 }]) }],
   ['orbital-salvo', 'Орбитальный залп', 5, null, 'Нанести 3 урона вражескому отряду. Если цель на Поверхности, нанести 5 урона.',
     { removalReserve: 4, type: 'effect', art: 'orbital-salvo.webp', deploy: ability([action('damage', chosen('enemy'), salvoDamage)],
@@ -164,7 +164,7 @@ const growth = [
       keywords: ['Поглощение', 'Заражение', 'Приказ'] }],
   ['predator', 'Хищный побег', 5, 4, 'Когда рядом кого-то поглощают: усилить себя на 2.',
     { art: 'predator.webp?v=art-26', categories: ['Росток'], neighborEvents: { consume: ability([action('boost', self, 2)]) }, keywords: ['Соседи', 'Поглощение', 'Усиление'] }],
-  ['swarm-call', 'Зов роя', 5, null, 'Сыграй из колоды случайный бронзовый отряд Поросли и породи личинку рядом с ним.',
+  ['swarm-call', 'Зов роя', 5, null, 'Сыграй из колоды случайный обычный отряд Поросли и породи личинку рядом с ним.',
     { art: 'swarm-call.webp', categories: ['Выводок'], type: 'effect', deploy: ability([{ action: 'play-from-deck',
       filter: { rarity: 'bronze', faction: 'growth' }, after: spawn('right') }]), keywords: ['Порождение'] }],
   ['nest', 'Гнездо-мать', 9, 3, 'В конце хода: породить по личинке в каждом своём ряду.',
@@ -250,7 +250,7 @@ export const NEUTRAL_CARDS = Object.freeze([
       counter: { amount: 4, effect: ability([{ action: 'draw', amount: 1 }]) },
       keywords: ['Счётчик'],
     }],
-    ['field-medic', 'Полевой реаниматор', 'gold', 9, 3, 'Сыграй бронзовый отряд из своего сброса.', {
+    ['field-medic', 'Полевой реаниматор', 'gold', 9, 3, 'Сыграй обычный отряд из своего сброса.', {
       art: 'field-medic.webp?v=neutral-palette-1',
       deploy: ability([{ action: 'play-from-discard', filter: { rarity: 'bronze' } }]),
     }],

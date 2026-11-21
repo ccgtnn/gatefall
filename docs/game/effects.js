@@ -1,10 +1,10 @@
 import { emit } from './events.js?v=golem-trio-1';
-import { ROWS, ROW_LABELS } from './cards.js?v=golem-trio-1';
+import { ROWS, ROW_LABELS } from './cards.js?v=rarity-frames-1';
 import {
   announcePlay, applyStatus, availableRows, basePower, boost, cardType, consume, createCard, damage, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, ROW_LIMIT,
   setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, units,
-} from './board.js?v=golem-trio-1';
+} from './board.js?v=rarity-frames-1';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);
@@ -244,7 +244,7 @@ function playFromPile(match, job, step, random) {
     if (!options.length) return true;
     if (pile === 'discard' || step.choose || step.fullDeck) {
       pause(match, job, 'deck-card', 'deckCard', options,
-        step.prompt ?? (pile === 'discard' ? 'Выбери бронзовый отряд из сброса.'
+        step.prompt ?? (pile === 'discard' ? 'Выбери обычный отряд из сброса.'
           : step.fullDeck ? 'Выбери карту, которую хочешь сыграть из колоды.' : 'Выбери отряд из колоды.'),
         { pile, ...(step.fullDeck && { fullDeck: true }) });
       return false;

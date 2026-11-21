@@ -1,13 +1,13 @@
-import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=golem-trio-1';
-import { basePower, createCard, isUnit, statusCount } from '../game/board.js?v=golem-trio-1';
-import { cardArt, decorateCard, showCard } from '../ui/cards.js?v=golem-trio-1';
+import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=rarity-frames-1';
+import { basePower, createCard, isUnit, statusCount } from '../game/board.js?v=rarity-frames-1';
+import { cardArt, decorateCard, showCard } from '../ui/cards.js?v=rarity-frames-1';
 import { button, element, setCardRarity } from '../ui/dom.js?v=opponent-reveal-1';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const definitions = [...Object.values(FACTIONS).flatMap(({ pool }) => pool), ...NEUTRAL_CARDS];
 const examples = [
-  { id: 'infantry', state: 'Бронзовый отряд' },
-  { id: 'bastion', state: 'Золотой отряд с бронёй и усилением', power: 10 },
+  { id: 'infantry', state: 'Обычный отряд' },
+  { id: 'bastion', state: 'Легендарный отряд с бронёй и усилением', power: 10 },
   { id: 'liaison', state: 'Повреждение, заражение и счётчик', power: 2, infection: 3, counter: 4 },
   { id: 'commander', state: 'Приказ на перезарядке', cooldown: 2 },
   { id: 'spore-season', state: 'Открыты две главы из трёх', chapter: 2 },

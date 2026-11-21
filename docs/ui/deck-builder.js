@@ -1,7 +1,7 @@
-import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=golem-trio-1';
-import { createCard } from '../game/board.js?v=golem-trio-1';
-import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=golem-trio-1';
-import { addCardCrop, cardButton } from './cards.js?v=golem-trio-1';
+import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=rarity-frames-1';
+import { createCard } from '../game/board.js?v=rarity-frames-1';
+import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=rarity-frames-1';
+import { addCardCrop, cardButton } from './cards.js?v=rarity-frames-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { factionFilters } from './faction-filters.js?v=1';
 import { availabilityOptions, matchesAvailability } from './catalog-cards.js?v=collection-2';
@@ -20,7 +20,7 @@ function violations(result) {
     cards: 'Нужно минимум ' + MIN_CARDS + ' карт.',
     units: 'Нужно минимум ' + MIN_UNITS + ' отрядов.',
     provisions: 'Лимит провизии ' + result.budget + ' превышен.',
-    copies: 'Лимит копий: бронза ×2, золото ×1.',
+    copies: 'Лимит копий: обычные ×2, эпические и легендарные ×1.',
     ownership: 'В коллекции отсутствуют копии · ' + [...result.missing.values()].reduce((sum, copies) => sum + copies, 0) + '.',
     foreign: 'Убери карты, недоступные этой фракции.',
     leader: 'Выбери лидера своей фракции.',

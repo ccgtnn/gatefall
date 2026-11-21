@@ -1,16 +1,22 @@
-import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=golem-trio-1';
-import { copyLimit, PRESETS } from './decks.js?v=golem-trio-1';
+import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=rarity-frames-1';
+import { copyLimit, PRESETS } from './decks.js?v=rarity-frames-1';
 
 export const STARTING_KEYS = 25;
 export const STARTING_ESSENCE = 800;
 export const BOOSTER_PRICE = 100;
 export const BOOSTER_SIZE = 5;
 
+const ESSENCE_COSTS = {
+  bronze: { craft: 100, dismantle: 20 },
+  epic: { craft: 400, dismantle: 100 },
+  gold: { craft: 800, dismantle: 200 },
+};
+
 export function craftPrice(card) {
-  return card.rarity === 'gold' ? 800 : 100;
+  return ESSENCE_COSTS[card.rarity]?.craft ?? ESSENCE_COSTS.bronze.craft;
 }
 export function dismantleValue(card) {
-  return card.rarity === 'gold' ? 200 : 20;
+  return ESSENCE_COSTS[card.rarity]?.dismantle ?? ESSENCE_COSTS.bronze.dismantle;
 }
 
 export const REWARD_STORAGE_KEY = 'gatefall.reward-book';
