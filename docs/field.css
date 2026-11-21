@@ -29,7 +29,8 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   height: 100%;
   overflow: hidden;
   isolation: isolate;
-  background: radial-gradient(ellipse at center, #193241, #0c151f 72%);
+  background: linear-gradient(#0b111533, #0b111533),
+    url('./art/commander-table.webp') center / cover no-repeat, #21140f;
   border: 1px solid var(--field-edge);
   border-radius: 8px;
 }
@@ -71,7 +72,7 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   border: 1px solid #597d902f;
   border-radius: 5px;
   background: radial-gradient(ellipse at center, #3d5a7030, transparent 75%),
-    repeating-linear-gradient(110deg, #7babca0b 0 1px, transparent 1px 24px), #101e29c9;
+    #101e2973;
 }
 
 .field-center .row-line {
@@ -215,7 +216,7 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   align-items: center;
   min-height: 0;
   padding: 2px;
-  background: #0a121bcc;
+  background: #0a121ba6;
 }
 .field-left { grid-area: left; grid-template-rows: auto auto minmax(0, 1fr) auto minmax(0, 1fr) auto; }
 .field-right { grid-area: right; }
@@ -269,7 +270,7 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   padding: clamp(3px, .85dvh, 9px);
   border: 1px solid var(--field-edge);
   border-radius: 5px;
-  background: #0a121b;
+  background: #0a121bc9;
 }
 
 .battle-hand-cards {
