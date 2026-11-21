@@ -31,7 +31,9 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     if (side === 'bot') label.title = score.title;
     const rowIcon = element('span', 'row-icon', row === 'orbit' ? '◎' : '▲');
     rowIcon.setAttribute('aria-hidden', 'true');
-    label.append(rowIcon, score);
+    const rowName = element('span', 'field-row-name', ROW_LABELS[row]);
+    rowName.setAttribute('aria-hidden', 'true');
+    label.append(rowIcon, rowName, score);
     const effect = player.rowEffects?.[row];
     if (effect) {
       wrapper.dataset.rowEffect = effect.type;
@@ -174,7 +176,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       const live = index < player.lives;
       lives.append(element('span', live ? 'life-stone is-live' : 'life-stone', live ? '◆' : '◇'));
     }
-    panel.append(total, lives);
+    panel.append(element('span', 'field-score-side', sideLabel[side]), total, lives);
     if (side === 'bot') {
       const count = element('span', 'field-hand-count bot-hand-count');
       count.classList.toggle('is-passed', player.passed);
@@ -237,7 +239,9 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     const game = element('div', 'match-screen');
     const field = element('div', 'match-board');
     const { pending, players, phase } = match;
-    field.classList.toggle('is-human-turn', phase === 'playing' && !isReplaying() && match.turn === 'human');
+    const replaying = isReplaying();
+    const humanTurn = phase === 'playing' && !replaying && match.turn === 'human';
+    field.classList.toggle('is-human-turn', humanTurn);
     const center = element('div', 'field-center battlefield');
     const humanOrders = readyOrderIds(match, 'human');
     center.append(sideView(match, 'bot', readyOrderIds(match, 'bot')), sideView(match, 'human', humanOrders));
@@ -269,7 +273,13 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     humanCount.title = 'Карт в твоей руке';
     const humanCorner = element('div', 'field-corner');
     humanCorner.append(humanCount, pileView(match, 'human', 'deck'));
-    right.append(pileView(match, 'bot', 'deck'), scoreView(match, 'bot'), action, scoreView(match, 'human'), humanCorner);
+    const turnControls = element('div', 'field-turn-controls');
+    if (phase === 'playing') {
+      const turn = replaying ? 'Розыгрыш' : humanTurn ? 'Твой ход' : 'Ход бота';
+      turnControls.append(element('p', 'field-turn-label', turn));
+    }
+    turnControls.append(action);
+    right.append(pileView(match, 'bot', 'deck'), scoreView(match, 'bot'), turnControls, scoreView(match, 'human'), humanCorner);
     field.append(left, center, playerHand(match, humanCanAct() && !match.playedCard, selectCard, isReplaying), right);
     game.append(field);
     if (phase === 'mulligan') {
