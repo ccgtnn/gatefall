@@ -1,8 +1,8 @@
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { createCard } from '../game/board.js?v=storm-eye-1';
 import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=storm-eye-1';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=storm-eye-1';
-import { logView, roundText } from './menu.js?v=storm-eye-1';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=details-3';
+import { logView, roundText } from './menu.js?v=details-3';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=collection-2';
 import { factionFilters } from './faction-filters.js?v=1';
 import { copyLimit } from '../game/decks.js?v=collection-2';
@@ -43,28 +43,53 @@ export function catalogScreen(progress) {
   const count = element('p', 'muted');
   count.setAttribute('role', 'status');
   const grid = element('div', 'catalog-grid');
-  const message = element('p', 'economy-status');
-  message.setAttribute('role', 'status');
   const empty = element('p', 'catalog-empty muted', 'Карты не найдены.');
   let busy = false;
   let visible = [];
+  let tradeView;
   const items = new Map(catalogCards.map((definition) => [definition.id, createEntry(definition)]));
 
   function createEntry(definition) {
     const card = createCard(definition.id, definition);
     const item = element('div', 'catalog-entry');
-    const face = cardButton(card, () => showCard(card), { factionId: definition.faction }, false, { showProvision: true });
+    const inspect = () => openDetails(card);
+    const face = cardButton(card, inspect, { factionId: definition.faction }, false, { showProvision: true, inspect });
+    face.title = 'Подробнее';
+    face.setAttribute('aria-haspopup', 'dialog');
     item.append(face, element('span', null, definition.name));
     if (definition.categories?.length) item.append(element('span', 'catalog-category', definition.categories.join(' · ')));
-
     const quantity = element('span', 'catalog-quantity');
-    const actions = element('div', 'catalog-trade-actions');
+    item.append(quantity);
+    return { item, quantity };
+  }
+
+  function openDetails(card) {
+    const { definition } = card;
+    const panel = element('section', 'card-trade');
+    panel.setAttribute('aria-label', 'Коллекция');
+    const quantity = element('p', 'catalog-quantity');
+    const message = element('p', 'economy-status');
+    message.setAttribute('role', 'status');
+    const buttons = element('div', 'card-trade-actions');
     const price = craftPrice(definition);
     const payout = dismantleValue(definition);
     const craft = tradeButton('Создать', '−' + price, `Создать «${definition.name}» за ${price} эссенции`, () => trade('craft'));
     const dismantle = tradeButton('Распылить', '+' + payout, `Распылить «${definition.name}» за ${payout} эссенции`, () => trade('dismantle'));
-    actions.append(craft, dismantle);
-    item.append(quantity, actions);
+    buttons.append(craft, dismantle);
+    panel.append(quantity, buttons, message);
+    showCard(card, { actions: panel });
+    tradeView = {
+      panel,
+      update({ essence, owned }) {
+        const copies = owned[definition.id];
+        quantity.textContent = `В коллекции · ${copies} · Эссенция · ${essence}`;
+        craft.disabled = busy || copies >= copyLimit(definition) || essence < price;
+        craft.title = copies >= copyLimit(definition) ? 'Для колоды уже хватает копий'
+          : essence < price ? 'Нужно больше эссенции' : craft.getAttribute('aria-label');
+        dismantle.disabled = busy || !copies;
+      },
+    };
+    tradeView.update(progress.inventory());
 
     async function trade(action) {
       if (busy) return;
@@ -80,18 +105,16 @@ export function catalogScreen(progress) {
         unaffordable: 'Нужно больше эссенции.',
       };
       message.textContent = messages[result] ?? 'Не удалось сохранить изменение коллекции.';
-      if (panel.closest('dialog')?.open && panel.contains(document.activeElement) === false) {
-        const control = action === 'craft' ? craft : dismantle;
-        const next = !item.isConnected ? availability.input : control.disabled ? face : control;
-        next.focus({ preventScroll: true });
+      if (panel.closest('dialog')?.open && !panel.contains(document.activeElement)) {
+        const next = [action === 'craft' ? craft : dismantle, craft, dismantle].find((control) => !control.disabled);
+        (next ?? panel.closest('dialog').querySelector('#preview-title')).focus({ preventScroll: true });
       }
     }
-    return { item, quantity, craft, dismantle, price };
   }
 
   function tradeButton(label, amount, description, onClick) {
     const control = button(label, onClick, 'button craft-button');
-    const value = element('span', 'catalog-trade-value');
+    const value = element('span', 'card-trade-value');
     value.append(resourceIcon('essence'), element('span', null, amount));
     control.append(value);
     control.setAttribute('aria-label', description);
@@ -100,7 +123,9 @@ export function catalogScreen(progress) {
   }
 
   function update() {
-    const { essence, owned } = progress.inventory();
+    const inventory = progress.inventory();
+    const { owned } = inventory;
+    if (tradeView?.panel.isConnected) tradeView.update(inventory);
     const shown = filterCatalog(catalogCards, {
       faction, query: search.value, type: type.input.value, rarity: rarity.input.value,
       category: category.input.value, provision: provision.input.value, sort: sort.input.value,
@@ -108,14 +133,10 @@ export function catalogScreen(progress) {
     });
     count.textContent = `Показано ${shown.length} из ${catalogCards.length}`;
     const next = shown.map((definition) => {
-      const { item, quantity, craft, dismantle, price } = items.get(definition.id);
+      const { item, quantity } = items.get(definition.id);
       const copies = owned[definition.id];
       item.classList.toggle('card-unavailable', !copies);
       quantity.textContent = `В коллекции · ${copies}`;
-      craft.disabled = busy || copies >= copyLimit(definition) || essence < price;
-      craft.title = copies >= copyLimit(definition) ? 'Для колоды уже хватает копий'
-        : essence < price ? 'Нужно больше эссенции' : craft.getAttribute('aria-label');
-      dismantle.disabled = busy || !copies;
       return item;
     });
     if (!next.length) next.push(empty);
@@ -129,7 +150,7 @@ export function catalogScreen(progress) {
   for (const { input } of fields) input.addEventListener('change', update);
   update();
   progress.subscribe(update);
-  panel.append(factions, toolbar, count, message, grid);
+  panel.append(factions, toolbar, count, grid);
   return panel;
 }
 

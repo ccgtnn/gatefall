@@ -1,4 +1,4 @@
-import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=collection-2';
+import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=details-3';
 import { createDeckStorage } from './ui/deck-storage.js?v=step-16';
 import { bindCardPlacement } from './card-placement.js?v=opponent-reveal-1';
 import { animateCoin, animateHandTurn, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=storm-eye-1';
@@ -10,17 +10,17 @@ import { FACTIONS } from './game/cards.js?v=storm-eye-1';
 import { inspectDeck } from './game/decks.js?v=collection-2';
 import { applyAction, createDeckMatch } from './game/match.js?v=storm-eye-1';
 import { element, iconButton } from './ui/dom.js?v=opponent-reveal-1';
-import { preview, showCard } from './ui/cards.js?v=storm-eye-1';
-import { createBattlefield } from './ui/field.js?v=storm-eye-1';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=storm-eye-1';
-import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=storm-eye-1';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=collection-2';
+import { preview, showCard } from './ui/cards.js?v=details-3';
+import { createBattlefield } from './ui/field.js?v=details-3';
+import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=details-3';
+import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=details-3';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=details-3';
 import { createSettings } from './ui/settings.js?v=storm-eye-1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
 import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=collection-2';
 import { createRewardBook } from './ui/reward-book.js?v=collection-2';
-import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=collection-2';
+import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=details-3';
 import { createResourceBar } from './ui/resources.js?v=1';
 
 const app = document.querySelector('#app');

@@ -30,7 +30,7 @@ export function addCardCrop(node, definition, { fullArt = false } = {}) {
 }
 
 export function showCard(card, { leader = false, legacy = false,
-  orderReady = false, orderCooldown = 0 } = {}) {
+  orderReady = false, orderCooldown = 0, actions } = {}) {
   const { definition, power, armor, timer, counter } = card;
   setCardRarity(preview, definition.rarity);
   const details = leader ? ['Лидер'] : [CARD_TYPES[cardType(card)], definition.faction === NEUTRAL && 'Нейтральная', RARITY_LABELS[definition.rarity],
@@ -67,6 +67,7 @@ export function showCard(card, { leader = false, legacy = false,
     }
     body.append(glossary);
   }
+  if (actions) body.append(actions);
   body.append(close);
   if (definition.art || (!leader && !legacy)) {
     const layout = element('div', 'preview-layout');
@@ -283,10 +284,10 @@ function cardLabel(card, showProvision) {
   return details.join(' · ');
 }
 
-export function cardButton(card, handler, player, placement = false, { showProvision = false } = {}) {
+export function cardButton(card, handler, player, placement = false, { showProvision = false, inspect } = {}) {
   const node = button(undefined, handler, 'hand-card');
   node.dataset.cardId = card.id;
   decorateCard(node, card, player, { showProvision });
-  cardInspection(node, card, placement);
+  cardInspection(node, card, placement, inspect);
   return node;
 }
