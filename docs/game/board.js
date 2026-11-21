@@ -1,5 +1,5 @@
-import { ROWS } from './cards.js?v=golem-1';
-import { emit } from './events.js?v=opponent-reveal-1';
+import { ROWS } from './cards.js?v=golem-trio-1';
+import { emit } from './events.js?v=golem-trio-1';
 
 export const ROW_LIMIT = 9;
 export const HAND_LIMIT = 10;
@@ -44,7 +44,16 @@ export function availableRows(player) {
   return ROWS.filter((row) => player.board[row].length < ROW_LIMIT);
 }
 
+export function recordCategoryPlay(player, card) {
+  const categories = card?.definition.categories;
+  if (!categories?.length) return;
+  const counts = { ...player.categoryPlays };
+  for (const category of new Set(categories)) counts[category] = (counts[category] ?? 0) + 1;
+  player.categoryPlays = counts;
+}
+
 export function announcePlay(match, side, card, destination, extra) {
+  recordCategoryPlay(match.players[side], card);
   const boardSide = destination && placementSide(side, card);
   const reactions = emit(match, { type: 'play', side, ...(boardSide && boardSide !== side && { boardSide }), row: destination?.row, name: card.definition.name,
     power: card.power, cardType: cardType(card), cardId: card.id,

@@ -8,7 +8,9 @@ function watches(match, event, played) {
     for (const line of Object.values(player.board)) {
       for (const card of line) {
         const rule = card.definition.fieldEvents?.[event.type];
-        if (rule && (!rule.enemy || event.side !== side) && (!rule.infected || event.infection > 0)) {
+        if (rule && (!rule.enemy || event.side !== side) && (!rule.friendly || event.side === side) &&
+            (!rule.category || played?.definition.categories?.includes(rule.category)) &&
+            (!rule.infected || event.infection > 0)) {
           jobs.push({ ability: rule.ability, side, sourceId: card.id,
             sourceDefinitionId: card.definition.id, requiredSource: true });
         }

@@ -1,9 +1,9 @@
-import { ROWS } from './cards.js?v=golem-1';
-import { cardType, findUnit, isUnit, neighbors, statusCount, units } from './board.js?v=golem-1';
-import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue } from './effects.js?v=golem-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=golem-1';
+import { ROWS } from './cards.js?v=golem-trio-1';
+import { cardType, findUnit, isUnit, neighbors, statusCount, units } from './board.js?v=golem-trio-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue } from './effects.js?v=golem-trio-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=golem-trio-1';
 
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=golem-1';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=golem-trio-1';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
@@ -19,6 +19,9 @@ export function createBotView(match) {
         return { ...card, preferredRow, destinationLengths: lengths, swing: -(card.power ?? 0) };
       }
       if (cardType(card) === 'effect') return { ...card, swing: effectSwing(match, 'bot', card) };
+      if (card.definition.deploy?.steps.some((step) => step.amount?.playedCategory)) {
+        return { ...card, swing: (card.power ?? 0) + effectSwing(match, 'bot', card) };
+      }
       if (card.definition.deploy?.steps.some((step) => step.status === 'infection' || step.action === 'replace-leader')) {
         return { ...card, swing: (card.power ?? 0) + effectSwing(match, 'bot', card) };
       }
@@ -163,9 +166,14 @@ export function pickBotTarget(match) {
   const optionsWithUnits = options.map((id) => findUnit(match, id));
   const highest = Math.max(0, ...Object.values(amounts ?? {}));
   const candidates = preferHigherAmount ? optionsWithUnits.filter(({ card }) => amounts[card.id] === highest) : optionsWithUnits;
-  const lethal = kind === 'damage' ? candidates.filter(({ card }) => lethalDamage(card, amounts?.[card.id] ?? amount)) : [];
+  const lethal = kind === 'damage' ? candidates.filter(({ card, side }) =>
+    side !== match.pending.side && lethalDamage(card, amounts?.[card.id] ?? amount)) : [];
   const priorities = {
-    damage: ({ card }) => statusCount(card, 'shield') ? 0 : card.power,
+    damage: ({ card, side }) => {
+      const shielded = statusCount(card, 'shield');
+      if (side !== match.pending.side) return shielded ? 0 : card.power;
+      return shielded ? -.5 : -1 - Math.min(card.power, Math.max(0, (amounts?.[card.id] ?? amount) - (card.armor ?? 0)));
+    },
     'friendly-damage': ({ card }) => {
       if (statusCount(card, 'shield')) return -.5;
       if (card.definition.id === 'gate-guardian' && card.armor > 0 && card.armor <= 2) return -card.power;

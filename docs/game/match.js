@@ -1,9 +1,9 @@
-import { inspectDeck } from './decks.js?v=golem-1';
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=golem-1';
-import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, spendResilience, statusCount, takeCards } from './board.js?v=golem-1';
-import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=golem-1';
+import { inspectDeck } from './decks.js?v=golem-trio-1';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=golem-trio-1';
+import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, spendResilience, statusCount, takeCards } from './board.js?v=golem-trio-1';
+import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=golem-trio-1';
 
-export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=golem-1';
+export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=golem-trio-1';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;
@@ -359,9 +359,10 @@ export function applyAction(match, side, action, { random = Math.random, copy = 
       placeCards(next.players[recipient], row, position, [card]);
     }
     const timing = playTiming(next, side, card);
+    const priorCategoryPlays = current.categoryPlays ?? {};
     const reactions = announcePlay(next, side, card, destination, timing === 'initiative' ? { initiative: true } : undefined);
     current.roundActed = true;
-    enqueueCardEffect(next, side, card, timing, Boolean(destination));
+    enqueueCardEffect(next, side, card, timing, Boolean(destination), priorCategoryPlays);
     next.effects.push(...reactions);
     if (!destination) next.effects.push({ discard: card, side });
     next.playedCard = true;

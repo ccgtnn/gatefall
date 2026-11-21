@@ -1,10 +1,10 @@
-import { emit } from './events.js?v=opponent-reveal-1';
-import { ROWS, ROW_LABELS } from './cards.js?v=golem-1';
+import { emit } from './events.js?v=golem-trio-1';
+import { ROWS, ROW_LABELS } from './cards.js?v=golem-trio-1';
 import {
   announcePlay, applyStatus, availableRows, basePower, boost, cardType, consume, createCard, damage, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, ROW_LIMIT,
   setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, units,
-} from './board.js?v=golem-1';
+} from './board.js?v=golem-trio-1';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);
@@ -155,15 +155,19 @@ export function availableOrders(match, side) {
     canStart(match, { ability: orderAbility(card.definition.order), side, sourceId: card.id }));
 }
 
-export function enqueueCardEffect(match, side, card, timing, requiredSource = true) {
+export function enqueueCardEffect(match, side, card, timing, requiredSource = true, priorCategoryPlays) {
   const ability = card.definition[timing] ?? (timing === 'deploy' ? card.definition.scenario?.prologue : undefined);
-  if (ability) match.effects.push({ ability, side, sourceId: card.id, sourceDefinitionId: card.definition.id, requiredSource });
+  if (ability) match.effects.push({ ability, side, sourceId: card.id, sourceDefinitionId: card.definition.id, requiredSource, priorCategoryPlays });
 }
 
 function valueOf(match, job, expression, target) {
   if (typeof expression === 'number') return expression;
   if (expression?.result) {
     return (expression.base ?? 0) + (job.results?.[expression.result] ?? 0) * (expression.scale ?? 1);
+  }
+  if (expression?.playedCategory) {
+    const plays = job.priorCategoryPlays ?? match.players[job.side].categoryPlays;
+    return Math.max(0, expression.base + (plays?.[expression.playedCategory] ?? 0) * expression.scale);
   }
   if (expression?.count) return targets(match, job, expression.count).length * (expression.scale ?? 1);
   if (expression?.status) return target ? statusCount(target.card, expression.status) * (expression.scale ?? 1) : 0;
@@ -195,7 +199,10 @@ function selectTargets(match, job, random) {
     if (pick.kind === 'damage') {
       const detail = amount ? String(amount) : Object.entries(pick.amount?.row ? ROW_LABELS : {})
         .map(([row, label]) => `${label}: ${row === pick.amount.row ? pick.amount.then : pick.amount.otherwise}`).join(' · ');
-      if (detail) prompt = `Выбери врага для урона: ${detail}.`;
+      if (detail) {
+        const target = pick.targets.scope === 'field' ? 'отряд' : 'врага';
+        prompt = `Выбери ${target} для урона: ${detail}.`;
+      }
     }
     match.pending = {
       side: job.side, options: options.map(({ card }) => card.id), prompt, kind: pick.kind, amount, amounts,
@@ -272,13 +279,14 @@ function playFromPile(match, job, step, random) {
     placeCards(recipient, destination.row, destination.position, [card]);
   }
   if (isEffect) match.effects.unshift({ discard: card, side: job.side });
+  const priorCategoryPlays = player.categoryPlays ?? {};
   const reactions = announcePlay(match, job.side, card, destination, { from: pile });
   match.effects.unshift(...reactions);
   if (step.after) match.effects.unshift({ side: job.side, sourceId: card.id, requiredSource: true,
     ability: { steps: [step.after] } });
   const ability = card.definition.deploy ?? card.definition.scenario?.prologue;
   if (ability) match.effects.unshift({ ability, side: job.side, sourceId: card.id,
-    sourceDefinitionId: card.definition.id, requiredSource: !isEffect });
+    sourceDefinitionId: card.definition.id, requiredSource: !isEffect, priorCategoryPlays });
   delete job.refs.deckCard;
   delete job.refs.deckPlacement;
   return true;
@@ -636,6 +644,11 @@ export function effectSwing(match, side, card) {
       swing += Math.max(0, ...candidates.map(({ card }) => infectionGain(card, step.amount, turns))) * .75;
     }
     if (step.action !== 'damage') continue;
+    if (step.target.scope === 'source') {
+      if (!statusCount(card, 'shield')) swing -= Math.min(card.power ?? 0,
+        Math.max(0, valueOf(match, job, step.amount) - (card.armor ?? 0)));
+      continue;
+    }
     if (step.target.rowRef) {
       const strip = ability.steps.find((part) => part.action === 'armor' && part.target?.rowRef === step.target.rowRef);
       swing += Math.max(0, ...ROWS.map((row) => rowDamage(match.players[opponent(side)], row, step.amount, -(strip?.amount ?? 0))));
@@ -646,10 +659,11 @@ export function effectSwing(match, side, card) {
     const stripArmor = step.amount?.result === 'armor' && step.amount.base !== undefined;
     const amounts = options.map((target) => valueOf(match, job, step.amount, target) + (stripArmor ? target.card.armor : 0));
     const highest = Math.max(0, ...amounts);
-    const points = options.map(({ card }, index) =>
+    const points = options.map(({ card, side: targetSide }, index) =>
       statusCount(card, 'shield') || (step.amount?.row && amounts[index] !== highest) ? 0
-        : Math.min(card.power, Math.max(0, amounts[index] - (stripArmor ? 0 : card.armor ?? 0))));
-    swing += step.target.infected && !step.mode ? points.reduce((sum, value) => sum + value, 0) : Math.max(0, ...points);
+        : (targetSide === side ? -1 : 1) * Math.min(card.power, Math.max(0, amounts[index] - (stripArmor ? 0 : card.armor ?? 0))));
+    swing += step.target.infected && !step.mode ? points.reduce((sum, value) => sum + value, 0)
+      : points.length ? Math.max(...points) : 0;
   }
   return swing;
 }

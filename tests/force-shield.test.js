@@ -15,7 +15,7 @@ function deployedGolem() {
 test('the Old Golem blocks a complete hit before armor, then takes normal damage', () => {
   const match = deployedGolem();
   const golem = findUnit(match, 'golem');
-  assert.equal(golem.card.power, 9);
+  assert.equal(golem.card.power, 10);
   assert.equal(statusCount(golem.card, 'shield'), 1);
   applyStatus(match, golem, 'armor', 2);
   damage(match, golem, 0);
@@ -26,14 +26,14 @@ test('the Old Golem blocks a complete hit before armor, then takes normal damage
   const event = match.log.at(-1);
   assert.equal(event.blockedDamage, 99);
   assert.equal(statusCount(golem.card, 'shield'), 0);
-  assert.equal(golem.card.power, 9);
+  assert.equal(golem.card.power, 10);
   assert.equal(golem.card.armor, 2);
 
   applyJournalEvent(playback, event);
   assert.equal(statusCount(findUnit(playback, 'golem').card, 'shield'), 0);
   assert.equal(damage(match, golem, 4), 0);
   assert.equal(golem.card.armor, 0);
-  assert.equal(golem.card.power, 7);
+  assert.equal(golem.card.power, 8);
 });
 
 test('infection bypasses the shield and leaves it for the next hit', () => {
@@ -41,6 +41,6 @@ test('infection bypasses the shield and leaves it for the next hit', () => {
   const golem = findUnit(match, 'golem');
   applyStatus(match, golem, 'infection', 1);
   tickInfection(match, golem);
-  assert.equal(golem.card.power, 8);
+  assert.equal(golem.card.power, 9);
   assert.equal(statusCount(golem.card, 'shield'), 1);
 });

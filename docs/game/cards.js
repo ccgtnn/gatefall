@@ -62,6 +62,8 @@ const infectionChoice = (amount) => choice('enemy', enemies,
 const armorRemoved = { result: 'armor' };
 const victimPower = { stat: 'power', ref: 'victim' };
 const salvoDamage = { row: 'surface', then: 5, otherwise: 3 };
+const fireGolemDamage = { playedCategory: 'Голем', base: 4, scale: 1 };
+const mountainDamage = { playedCategory: 'Голем', base: 10, scale: -1 };
 
 export const FIRST_SIGNAL = Object.freeze({
   id: 'first-signal', name: 'Первый сигнал', type: 'artifact', stratagem: true, token: true,
@@ -301,8 +303,21 @@ export const NEUTRAL_CARDS = Object.freeze([
         startTurnPulse: ability([{ action: 'scatter', amount: 3, visual: 'lightning' }]),
         startTurn: ability([{ action: 'break', target: self }, { action: 'scatter', amount: 1, visual: 'lightning' }]),
       }],
-    ['old-golem', 'Старый голем', 'gold', 9, 9, 'Силовой щит.', {
-      art: 'old-golem.webp', categories: ['Голем'], shield: true, keywords: ['Силовой щит'],
+    ['old-golem', 'Старый голем', 'gold', 9, 9, 'Силовой щит. После розыгрыша тобой любого Голема, включая эту карту, усиливается на 1, пока находится на поле.', {
+      art: 'old-golem.webp?v=force-sphere-1', categories: ['Голем'], shield: true, keywords: ['Силовой щит', 'Усиление'],
+      fieldEvents: { play: { friendly: true, category: 'Голем', ability: ability([action('boost', self, 1)]) } },
+    }],
+    ['fire-golem', 'Огненный голем', 'gold', 9, 5,
+      'При розыгрыше: нанеси 4 урона выбранному другому отряду. Урон увеличивается на 1 за каждого Голема, которого ты разыграл ранее в этом матче.', {
+        art: 'fire-golem.webp', categories: ['Голем'], keywords: ['Урон'],
+        deploy: ability([action('damage', chosen('victim'), fireGolemDamage)],
+          [choice('victim', { scope: 'field', type: 'unit', exclude: 'source' },
+            'Выбери отряд для урона.', { kind: 'damage', amount: fireGolemDamage })]),
+    }],
+    ['sleeping-mountain', 'Спящая гора', 'gold', 9, 17,
+      'При розыгрыше: нанеси себе 10 урона. Урон снижается на 1 за каждого Голема, которого ты разыграл ранее в этом матче, до 0.', {
+        art: 'sleeping-mountain.webp', categories: ['Голем'], keywords: ['Урон'],
+        deploy: ability([action('damage', self, mountainDamage)]),
     }],
   ].map(([id, name, rarity, provision, power, text, rules]) => Object.freeze({
     id, name, rarity, faction: NEUTRAL, provision, type: 'unit', ...(power === null ? {} : { power }), text, ...rules,

@@ -1,11 +1,11 @@
-import { createCard, opponent, statusCount } from '../game/board.js?v=golem-1';
+import { createCard, opponent, statusCount } from '../game/board.js?v=golem-trio-1';
 import { insertionPoint } from '../card-placement.js?v=opponent-reveal-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=golem-1';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=golem-1';
-import { playerHand } from './hand.js?v=golem-1';
-import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=golem-1';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=golem-1';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=golem-trio-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=golem-trio-1';
+import { playerHand } from './hand.js?v=golem-trio-1';
+import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=golem-trio-1';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=golem-trio-1';
 
 import { orderBadge } from './stat-badges.js?v=opponent-reveal-1';
 

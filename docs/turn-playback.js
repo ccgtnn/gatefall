@@ -1,5 +1,5 @@
-import { spendResilience } from './game/board.js?v=golem-1';
-import { ROWS } from './game/cards.js?v=golem-1';
+import { recordCategoryPlay, spendResilience } from './game/board.js?v=golem-trio-1';
+import { ROWS } from './game/cards.js?v=golem-trio-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;
@@ -61,6 +61,7 @@ export function applyJournalEvent(state, event) {
     return;
   }
   if (type === 'play') {
+    recordCategoryPlay(player, event.card);
     const pile = event.from ?? 'hand';
     player[pile] = player[pile].filter(({ id }) => id !== cardId);
     if (row) state.players[event.boardSide ?? side].board[row].splice(event.position, 0, { ...event.card });
