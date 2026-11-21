@@ -1,6 +1,6 @@
 import { createCard } from '../game/board.js?v=storm-eye-1';
 import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=storm-eye-1';
-import { BOOSTER_PRICE, REWARD_PAGES } from '../game/rewards.js?v=collection-2';
+import { BOOSTER_FACTIONS, BOOSTER_PRICE } from '../game/rewards.js?v=chapters-3';
 import { cardButton, showCard } from './cards.js?v=details-3';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { resourceIcon } from './resource-icon.js?v=1';
@@ -35,7 +35,7 @@ function capsule(page) {
 }
 
 function packOptions(className) {
-  return REWARD_PAGES.map((page) => {
+  return BOOSTER_FACTIONS.map((page) => {
     const item = element('article', 'booster-option ' + className);
     item.dataset.faction = page.id;
     item.style.setProperty('--booster-art', `url('./art/${page.image}')`);
@@ -134,7 +134,7 @@ export function createBoosterOpening(progress, openShop) {
     stage.replaceChildren();
     shownPack = pack?.id;
     if (!pack) return;
-    const page = REWARD_PAGES.find(({ id }) => id === pack.faction);
+    const page = BOOSTER_FACTIONS.find(({ id }) => id === pack.faction);
     stage.dataset.faction = pack.faction;
     stage.classList.toggle('is-opening', animateNext && view.dialog.open);
     const burst = element('div', 'booster-burst');

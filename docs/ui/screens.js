@@ -6,7 +6,7 @@ import { logView, roundText } from './menu.js?v=details-3';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=collection-2';
 import { factionFilters } from './faction-filters.js?v=1';
 import { copyLimit } from '../game/decks.js?v=collection-2';
-import { craftPrice, dismantleValue } from '../game/rewards.js?v=collection-2';
+import { craftPrice, dismantleValue } from '../game/rewards.js?v=chapters-3';
 import { resourceIcon } from './resource-icon.js?v=1';
 
 const catalogCards = [...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool)];

@@ -14,13 +14,13 @@ import { preview, showCard } from './ui/cards.js?v=details-3';
 import { createBattlefield } from './ui/field.js?v=details-3';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=details-3';
 import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=details-3';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=details-3';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=chapters-3';
 import { createSettings } from './ui/settings.js?v=storm-eye-1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
-import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=collection-2';
-import { createRewardBook } from './ui/reward-book.js?v=collection-2';
-import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=details-3';
+import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=chapters-3';
+import { createRewardBook } from './ui/reward-book.js?v=chapters-3';
+import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=chapters-3';
 import { createResourceBar } from './ui/resources.js?v=1';
 
 const app = document.querySelector('#app');

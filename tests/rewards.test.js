@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { craftPrice, createRewardProgress, REWARD_PAGES, REWARD_STORAGE_KEY, rewardState } from '../docs/game/rewards.js';
+import { BOOSTER_FACTIONS, craftPrice, createRewardProgress, REWARD_SECTIONS, REWARD_STORAGE_KEY, rewardState } from '../docs/game/rewards.js';
 import { NEUTRAL_CARDS } from '../docs/game/cards.js';
 
 function localStorage() {
@@ -11,13 +11,26 @@ function localStorage() {
   };
 }
 
-test('a new book has 25 keys, three pages and two rare ends on each page', () => {
+const chapters = REWARD_SECTIONS.flatMap((section) => section.chapters);
+
+test('the book has two sections, five 21-node chapters and reachable rare rewards', () => {
   const storage = localStorage();
   assert.equal(createRewardProgress(storage).get().keys, 25);
-  assert.deepEqual(REWARD_PAGES.map(({ id }) => id), ['protectorate', 'growth', 'neutral']);
-  for (const { nodes } of REWARD_PAGES) {
+  assert.deepEqual(REWARD_SECTIONS.map(({ chapters }) => chapters.length), [3, 2]);
+  assert.deepEqual(BOOSTER_FACTIONS.map(({ id }) => id), ['protectorate', 'growth', 'neutral']);
+  assert.equal(new Set(chapters.flatMap(({ nodes }) => nodes.map(({ id }) => id))).size, 105);
+  for (const { nodes } of chapters) {
+    assert.equal(nodes.length, 21);
+    const paths = new Map();
+    for (const { id, parent, cost } of nodes) {
+      const prefix = parent === null ? [] : paths.get(parent);
+      assert.ok(prefix, 'parent comes before its child');
+      paths.set(id, [...prefix, cost]);
+    }
     const terminals = nodes.filter(({ id }) => !nodes.some(({ parent }) => parent === id));
-    assert.deepEqual(terminals.map(({ kind }) => kind), ['card-back', 'battlefield']);
+    assert.deepEqual(terminals.map(({ kind }) => kind), ['card-back', 'battlefield', 'card-back', 'battlefield']);
+    assert.deepEqual(terminals.map(({ id }) => paths.get(id).length), [7, 7, 10, 10]);
+    assert.ok(terminals.every(({ id }) => paths.get(id).reduce((a, b) => a + b, 0) <= 25));
   }
 });
 
@@ -32,12 +45,12 @@ test('spending needs an unlocked parent and persists across pages and reloads', 
 
   const reloaded = createRewardProgress(storage);
   assert.deepEqual(reloaded.get(), { keys: 21, unlocked: new Set(['protectorate:signal', 'growth:signal', 'protectorate:supply']) });
-  assert.equal(rewardState(REWARD_PAGES[0].nodes[2], reloaded.get()), 'available');
+  assert.equal(rewardState(chapters[0].nodes[2], reloaded.get()), 'available');
 });
 
 test('25 keys can reach a rare reward, then spending stops exactly at zero', async () => {
   const wallet = createRewardProgress(localStorage());
-  const { nodes } = REWARD_PAGES[0];
+  const { nodes } = chapters[0];
   for (const node of nodes.slice(0, 7)) assert.equal(await wallet.unlock(node.id), 'opened');
   assert.equal(wallet.get().keys, 5);
   assert.equal(await wallet.unlock(nodes[7].id), 'opened');
@@ -185,4 +198,32 @@ test('an extra booster copy can be dismantled and a failed save mutates neither 
   storage.setItem = () => { throw new Error('quota'); };
   assert.equal(await wallet.dismantle(first), 'unavailable');
   assert.deepEqual(wallet.inventory(), beforeTrade);
+});
+
+test('legacy rare rewards and balances survive the expanded book', async () => {
+  const storage = localStorage();
+  const oldRoute = ['signal', 'supply', 'junction', 'upper-cache', 'upper-relay', 'upper-vault', 'upper-finish']
+    .map((stop) => 'protectorate:' + stop);
+  storage.setItem(REWARD_STORAGE_KEY, JSON.stringify({ unlocked: oldRoute }));
+  const wallet = createRewardProgress(storage);
+  assert.deepEqual(wallet.get(), { keys: 5, unlocked: new Set(oldRoute) });
+  assert.equal(wallet.inventory().gold, 365);
+  assert.equal(wallet.inventory().boosters.protectorate, 2);
+  assert.equal(await wallet.unlock('protectorate:upper-horizon'), 'locked');
+  assert.equal(await wallet.unlock('protectorate:upper-conduit'), 'opened');
+  assert.ok(wallet.get().unlocked.has('protectorate:upper-finish'));
+  assert.equal(wallet.inventory().essence, 855);
+});
+
+test('booster rewards in two chapters share the same faction inventory', async () => {
+  const storage = localStorage();
+  const wallet = createRewardProgress(storage, undefined, { random: () => 0 });
+  for (const id of ['neutral:signal', 'neutral:supply', 'debris-belt:signal', 'debris-belt:supply']) {
+    assert.equal(await wallet.unlock(id), 'opened');
+  }
+  assert.equal(wallet.inventory().boosters.neutral, 2);
+  assert.equal(await wallet.openPack('neutral'), 'done');
+  const copy = createRewardProgress(storage);
+  assert.deepEqual(copy.inventory().boosters, { neutral: 1, protectorate: 0, growth: 0 });
+  assert.equal(copy.inventory().pendingPack.faction, 'neutral');
 });

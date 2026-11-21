@@ -1,5 +1,5 @@
 import { button, element } from './dom.js?v=opponent-reveal-1';
-import { REWARD_PAGES, rewardState } from '../game/rewards.js?v=collection-2';
+import { REWARD_SECTIONS, rewardState } from '../game/rewards.js?v=chapters-3';
 import { resourceIcon } from './resource-icon.js?v=1';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
@@ -34,50 +34,74 @@ export function createRewardBook(progress) {
   heading.autofocus = true;
   header.append(button('Назад', () => book.close(), 'button reward-back'), heading);
 
-  const chapter = element('section', 'reward-chapter');
-  const chapterTitle = element('h3', 'reward-chapter-title', 'Глава I · Сигналы Врат');
+  const content = element('section', 'reward-chapter');
+  const sections = element('div', 'reward-sections');
+  sections.setAttribute('role', 'group');
+  sections.setAttribute('aria-label', 'Разделы Книги наград');
   const tabs = element('div', 'reward-tabs');
   tabs.setAttribute('role', 'group');
-  tabs.setAttribute('aria-label', 'Страницы главы');
+  tabs.setAttribute('aria-label', 'Главы раздела');
   const current = element('div', 'reward-page');
-  chapter.append(chapterTitle, tabs, current);
+  content.append(sections, tabs, current);
   const message = element('p', 'visually-hidden');
   message.setAttribute('role', 'status');
-  shell.append(header, chapter, message);
+  shell.append(header, content, message);
   book.append(shell);
   document.body.append(book);
 
-  let activePage = REWARD_PAGES[0];
+  let activeSection = REWARD_SECTIONS[0];
+  const selectedChapters = new Map(REWARD_SECTIONS.map((section) => [section.id, section.chapters[0]]));
+  let activeChapter = selectedChapters.get(activeSection.id);
   let selected;
   let busy = false;
   let nodeViews = [];
+  let chapterViews = [];
   let details;
-  const tabViews = REWARD_PAGES.map((page) => {
-    const tab = button(undefined, () => {
-      if (page === activePage) return;
-      activePage = page;
-      message.textContent = '';
-      drawPage();
-    }, 'reward-tab');
-    tab.dataset.faction = page.id;
-    const title = element('span', 'reward-tab-name', page.name);
+  const sectionViews = REWARD_SECTIONS.map((section) => {
+    const control = button(undefined, () => {
+      if (section === activeSection) return;
+      activeSection = section;
+      activeChapter = selectedChapters.get(section.id);
+      drawSection();
+    }, 'reward-section-tab');
     const count = element('span', 'reward-tab-progress');
-    tab.append(resourceIcon(page.id, true), title, count);
-    tabs.append(tab);
-    return { page, tab, count };
+    control.append(element('strong', null, section.title), count);
+    sections.append(control);
+    return { section, control, count };
   });
+
+  function drawSection() {
+    chapterViews = activeSection.chapters.map((chapter) => {
+      const tab = button(undefined, () => {
+        if (chapter === activeChapter) return;
+        activeChapter = chapter;
+        selectedChapters.set(activeSection.id, chapter);
+        drawPage();
+      }, 'reward-tab');
+      tab.dataset.faction = chapter.faction;
+      const count = element('span', 'reward-tab-progress');
+      tab.append(resourceIcon(chapter.faction, true), element('span', 'reward-tab-name', chapter.title), count);
+      return { chapter, tab, count };
+    });
+    tabs.replaceChildren(...chapterViews.map(({ tab }) => tab));
+    drawPage();
+  }
 
   function drawPage() {
     const state = progress.get();
-    const { id, name, title, image, nodes } = activePage;
+    const { faction, title, image, nodes } = activeChapter;
+    message.textContent = '';
     selected = nodes.find((node) => rewardState(node, state) === 'available') ?? nodes[0];
-    current.dataset.faction = id;
-    const pageHeading = element('h4', 'reward-page-title', title);
+    current.dataset.faction = faction;
+    const pageHeading = element('h3', 'reward-page-title', title);
     const grid = element('div', 'reward-page-grid');
     const chart = element('div', 'reward-chart');
     chart.tabIndex = 0;
     chart.setAttribute('role', 'region');
-    chart.setAttribute('aria-label', 'Маршруты · ' + name);
+    chart.setAttribute('aria-label', 'Маршруты · ' + title);
+    const tip = element('p', 'reward-scroll-tip', 'Карту можно листать в стороны.');
+    tip.id = 'reward-scroll-tip';
+    chart.setAttribute('aria-describedby', tip.id);
     const plot = element('div', 'reward-plot');
     plot.style.setProperty('--reward-map-image', `url('./art/${image}')`);
     const edges = document.createElementNS(svgNamespace, 'svg');
@@ -86,10 +110,11 @@ export function createRewardBook(progress) {
     edges.setAttribute('preserveAspectRatio', 'none');
     edges.setAttribute('aria-hidden', 'true');
     plot.append(edges);
+    const nodesById = new Map(nodes.map((node) => [node.id, node]));
     nodeViews = nodes.map((node) => {
       let edge;
       if (node.parent) {
-        const parent = nodes.find((candidate) => candidate.id === node.parent);
+        const parent = nodesById.get(node.parent);
         edge = document.createElementNS(svgNamespace, 'line');
         edge.setAttribute('x1', parent.x);
         edge.setAttribute('y1', parent.y);
@@ -120,7 +145,7 @@ export function createRewardBook(progress) {
     const panel = element('aside', 'reward-details');
     const emblem = element('div', 'reward-emblem');
     const kind = element('p', 'reward-kind');
-    const label = element('h5', 'reward-label');
+    const label = element('h4', 'reward-label');
     const value = element('p', 'reward-value');
     const description = element('p', 'reward-description');
     const status = element('p', 'reward-status');
@@ -130,17 +155,29 @@ export function createRewardBook(progress) {
     panel.append(emblem, kind, label, value, description, status, action);
     details = { panel, emblem, kind, label, value, description, status, action, actionPrice };
     grid.append(chart, panel);
-    current.replaceChildren(pageHeading, grid);
+    current.replaceChildren(pageHeading, tip, grid);
     refresh(state);
+    const selectedControl = nodeViews.find(({ node }) => node === selected).control;
+    requestAnimationFrame(() => {
+      if (!chart.isConnected || !book.open || chart.scrollWidth <= chart.clientWidth) return;
+      chart.scrollLeft = selectedControl.offsetLeft - chart.clientWidth / 2;
+    });
   }
 
   function refresh(state = progress.get()) {
     if (!details) return;
-    for (const { page, tab, count } of tabViews) {
-      const opened = page.nodes.filter((node) => state.unlocked.has(node.id)).length;
-      count.textContent = `${opened}/${page.nodes.length}`;
-      tab.setAttribute('aria-pressed', String(page === activePage));
-      tab.setAttribute('aria-label', `${page.name}, открыто ${opened} из ${page.nodes.length}`);
+    for (const { section, control, count } of sectionViews) {
+      const nodes = section.chapters.flatMap((chapter) => chapter.nodes);
+      const opened = nodes.filter(({ id }) => state.unlocked.has(id)).length;
+      count.textContent = `${opened}/${nodes.length}`;
+      control.setAttribute('aria-pressed', String(section === activeSection));
+      control.setAttribute('aria-label', `${section.title}, открыто ${opened} из ${nodes.length}`);
+    }
+    for (const { chapter, tab, count } of chapterViews) {
+      const opened = chapter.nodes.filter(({ id }) => state.unlocked.has(id)).length;
+      count.textContent = `${opened}/${chapter.nodes.length}`;
+      tab.setAttribute('aria-pressed', String(chapter === activeChapter));
+      tab.setAttribute('aria-label', `${chapter.title}, открыто ${opened} из ${chapter.nodes.length}`);
     }
     for (const { node, control, edge } of nodeViews) {
       const availability = rewardState(node, state);
@@ -160,7 +197,7 @@ export function createRewardBook(progress) {
     details.label.textContent = selected.label;
     details.value.textContent = rare ? '' : '×' + selected.value;
     details.description.textContent = description;
-    const parent = activePage.nodes.find((node) => node.id === selected.parent);
+    const parent = activeChapter.nodes.find((node) => node.id === selected.parent);
     details.status.textContent = availability === 'locked' ? `Сначала открой «${parent.label}».`
       : availability === 'unaffordable' ? `Нужно ключей: ${selected.cost}. У тебя ${state.keys}.`
         : availability === 'unlocked' ? 'Награда открыта.' : '';
@@ -182,5 +219,5 @@ export function createRewardBook(progress) {
   }
 
   progress.subscribe(() => { if (book.open) refresh(); });
-  return { dialog: book, header, prepare: drawPage };
+  return { dialog: book, header, prepare: drawSection };
 }
