@@ -1,11 +1,11 @@
-import { createCard, statusCount } from '../game/board.js?v=step-19';
+import { createCard, statusCount } from '../game/board.js?v=step-20';
 import { insertionPoint } from '../card-placement.js?v=field-6';
 import { button, element, iconButton, sideLabel } from './dom.js?v=step-11';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=step-19';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=step-19';
-import { playerHand } from './hand.js?v=step-19';
-import { availableOrders, canUseLeader, rowArmor } from '../game/effects.js?v=step-19';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=step-19';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=step-20';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=step-20';
+import { playerHand } from './hand.js?v=step-20';
+import { availableOrders, canUseLeader, rowArmor } from '../game/effects.js?v=step-20';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=step-20';
 
 export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, isMulliganFieldVisible, setMulliganField,
   playHuman, humanCanAct, placeSelected, settingsButton, showDrawer, selectCard, mulliganScreen }) {

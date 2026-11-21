@@ -1,4 +1,4 @@
-import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=step-19';
+import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=step-20';
 
 export const MIN_CARDS = 25;
 export const MIN_UNITS = 13;

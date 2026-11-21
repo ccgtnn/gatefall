@@ -237,7 +237,7 @@ test('leaders spend a configurable charge without ending the turn', () => {
   match = fixture({ faction: 'growth', charges: 1 });
   board(match, 'human', 'surface', unit('left', 'predator'), unit('cocoon', 'cocoon', { power: 3 }), unit('right', 'colossus'));
   match = target(target(applyAction(match, 'human', { type: 'leader' }), 'cocoon'), 'right');
-  assert.deepEqual(match.players.human.board.surface.map(({ power }) => power), [6, 16]);
+  assert.deepEqual(match.players.human.board.surface.map(({ power }) => power), [6, 13]);
   assert.equal(match.players.human.leader.charges, 0);
   assert.equal(match.turn, 'human');
 });
@@ -577,7 +577,7 @@ test('Broodlord groups only larvae in its row and doubles their current power', 
 });
 
 
-test('step 19 printed stats, titles and rarity match the approved balance', () => {
+test('printed stats, titles and rarity match the approved balance', () => {
   const all = [...Object.values(FACTIONS).flatMap(({ pool }) => pool), ...NEUTRAL_CARDS];
   const expected = {
     smelter: { power: 2 }, warden: { armor: 3 }, anvil: { rarity: 'gold', provision: 8 },
@@ -585,7 +585,7 @@ test('step 19 printed stats, titles and rarity match the approved balance', () =
     commander: { name: 'Кассия Фульмина', rarity: 'gold', provision: 8 },
     'shield-overload': { provision: 12 }, cocoon: { power: 3 }, 'spore-sac': { provision: 4, power: 4 },
     scavenger: { power: 3, zeal: true }, gulper: { power: 4 }, ravager: { provision: 9 },
-    colossus: { power: 8 }, 'recon-drone': { power: 4 }, 'gate-guardian': { armor: 4 },
+    colossus: { power: 5 }, 'recon-drone': { power: 4 }, 'gate-guardian': { armor: 4 },
     'gravity-pulse': { provision: 7 },
   };
   for (const [id, stats] of Object.entries(expected)) {

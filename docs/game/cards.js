@@ -160,7 +160,7 @@ const growth = [
       filter: { rarity: 'bronze', faction: 'growth' }, after: spawn('right') }]), keywords: ['Порождение'] }],
   ['nest', 'Гнездо-мать', 9, 3, 'В конце хода: породить по личинке в каждом своём ряду.',
     { art: 'nest.webp', endTurn: ability([spawn('right', 'all')]), keywords: ['Порождение'] }],
-  ['colossus', 'Колосс', 11, 8, 'При розыгрыше: поглотить всех своих соседей.',
+  ['colossus', 'Колосс', 11, 5, 'При розыгрыше: поглотить всех своих соседей.',
     { art: 'colossus.webp?v=2', deploy: ability([absorb(adjacent)]), keywords: ['Соседи', 'Поглощение'] }],
   ['ravager', 'Выводок-разоритель', 9, 4, 'При розыгрыше: поглотить свой отряд и нанести урон врагу в размере силы жертвы.',
     { art: 'ravager.webp', deploy: ability([
@@ -213,13 +213,13 @@ export const NEUTRAL_CARDS = Object.freeze([
       ], [choice('enemy', enemies, 'Выбери вражеский отряд для ЭМИ-гранаты.', { kind: 'emp' })]),
       keywords: ['Броня', 'Урон'],
     }],
-    ['gravity-pulse', 'Гравитационный импульс', 'bronze', 7, null, 'Выбери вражеский ряд: сними 2 брони и нанеси 2 урона всем отрядам в нём.', {
+    ['gravity-pulse', 'Гравитационный импульс', 'bronze', 7, null, 'Выбери вражеский ряд: сними 1 броню и нанеси 1 урон всем отрядам в нём.', {
       removalReserve: 4,
       art: 'gravity-pulse.webp',
       type: 'effect', deploy: ability([
         { action: 'select-row', ref: 'row', filter: 'units', prompt: 'Выбери вражеский ряд для Гравитационного импульса.' },
-        action('armor', { ...enemies, rowRef: 'row' }, -2),
-        action('damage', { ...enemies, rowRef: 'row' }, 2),
+        action('armor', { ...enemies, rowRef: 'row' }, -1),
+        action('damage', { ...enemies, rowRef: 'row' }, 1),
       ]), keywords: ['Броня', 'Урон'],
     }],
     ['liaison', 'Связной', 'gold', 9, 4, 'Счётчик 4: возьми карту.', {

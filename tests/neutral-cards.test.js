@@ -77,17 +77,17 @@ test('EMP removes armor before dealing base damage plus all the armor removed', 
   }
 });
 
-test('Gravity Pulse strips two armor before dealing two damage in the selected enemy row', () => {
+test('Gravity Pulse strips one armor before dealing one damage in the selected enemy row', () => {
   const match = scenario('gravity-pulse');
   match.players.human.board.surface = [unit('ally')];
-  match.players.bot.board.surface = [unit('plain'), unit('shielded', 3, { armor: 1 }), unit('heavy', 3, { armor: 5 }),
+  match.players.bot.board.surface = [unit('plain'), unit('shielded', 3, { armor: 1 }), unit('medium', 3, { armor: 2 }), unit('heavy', 3, { armor: 5 }),
     createCard('artifact', FIRST_SIGNAL)];
   match.players.bot.board.orbit = [unit('elsewhere')];
   const pending = play(match, 'gravity-pulse');
   assert.equal(pending.pending.selectionSide, 'bot');
   const next = pick(pending, 'surface');
   assert.deepEqual(next.players.bot.board.surface.map(({ power, armor }) => [power, armor]),
-    [[1, 0], [1, 0], [3, 1], [undefined, undefined]]);
+    [[2, 0], [2, 0], [3, 0], [3, 3], [undefined, undefined]]);
   assert.equal(next.players.bot.board.orbit[0].power, 3);
   assert.equal(next.players.human.board.surface[0].power, 3);
 });
@@ -178,12 +178,17 @@ test('Bounty Hunter is rewarded only when its hit kills', () => {
   }
 });
 
-test('Gate Guardian enters with four armor and Gravity Pulse triggers vulnerability through its armor', () => {
+test('Gate Guardian survives one Gravity Pulse and is discarded when a second strips its last armor', () => {
   let match = scenario('gate-guardian');
-  match.players.bot.hand = [card('gravity-pulse'), unit('reserve')];
+  const repeat = createCard('second-pulse', card('gravity-pulse').definition);
+  match.players.bot.hand = [card('gravity-pulse'), repeat, unit('reserve')];
   match = play(match, 'gate-guardian');
   assert.equal(match.players.human.board.orbit[0].armor, 4);
   match = pick(play(match, 'gravity-pulse'), 'orbit');
+  assert.equal(match.players.human.board.orbit[0].armor, 2);
+  assert.equal(match.players.human.board.orbit[0].power, 12);
+  match = play(match, 'spare', 'surface');
+  match = pick(play(match, 'second-pulse'), 'orbit');
   assert.equal(match.players.human.board.orbit.length, 0);
   assert.equal(match.players.human.discard[0].id, 'gate-guardian');
   assert.equal(count(match, 'discard'), 1);
