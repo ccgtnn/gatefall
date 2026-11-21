@@ -1,10 +1,10 @@
 import { emit } from './events.js?v=opponent-reveal-1';
-import { ROWS, ROW_LABELS } from './cards.js?v=neutral-gates-1';
+import { ROWS, ROW_LABELS } from './cards.js?v=faction-filters-1';
 import {
   announcePlay, applyStatus, availableRows, basePower, boost, cardType, consume, createCard, damage, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, ROW_LIMIT,
   setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, units,
-} from './board.js?v=neutral-gates-1';
+} from './board.js?v=faction-filters-1';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);

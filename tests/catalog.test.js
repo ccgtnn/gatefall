@@ -22,6 +22,8 @@ test('all 23 gold cards are included and catalog filters combine across factions
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'effect', provision: '11' }), ['world-gates']);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'effect', provision: '9' }), ['resurrection']);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'artifact', provision: '10' }), ['forgotten-gates']);
+  assert.equal(cards.find(({ id }) => id === 'world-gates').name, 'Врата Миров');
+  assert.equal(cards.find(({ id }) => id === 'forgotten-gates').name, 'Врата Забвения');
 });
 
 test('catalog sorts by increasing provision, alphabetically, or by decreasing printed power', () => {

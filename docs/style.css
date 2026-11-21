@@ -424,9 +424,11 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 }
 
 [data-faction="neutral"] {
-  --faction-edge: #a7abb1;
-  --faction-face: #303236;
-  --faction-light: #f1f2f3;
+  --faction-edge: #c4a77c;
+  --faction-face: #373026;
+  --faction-second: #242b38;
+  --faction-light: #f4e6d0;
+  --card-art-tone: sepia(.08) saturate(1.23) brightness(1.07);
 }
 
 [data-faction="protectorate"] {
@@ -536,6 +538,7 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   height: 100%;
   object-fit: cover;
   object-position: center;
+  filter: var(--card-art-tone, none);
 }
 .has-art::after {
   content: '';
@@ -690,10 +693,28 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 
 .card-catalog { display: grid; gap: .85rem; }
 .catalog-heading { display: flex; align-items: center; gap: .85rem; }
-.catalog-factions { display: flex; flex-wrap: wrap; gap: .4rem; }
-.catalog-factions [aria-pressed="true"] {
-  border-color: #c2d9ee;
-  background: #334a60;
+.faction-filters { display: flex; flex-wrap: wrap; gap: .35rem; }
+.faction-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: .33rem;
+  min-height: 2.25rem;
+  padding: .32rem .65rem;
+  border-color: #4c5965;
+  background: #222b35;
+  font-size: .85rem;
+}
+.faction-filter > svg {
+  flex: none;
+  width: 1.18rem;
+  height: 1.18rem;
+  color: var(--faction-edge, #c2d9ee);
+}
+.faction-filter[aria-pressed="true"], .faction-filter[aria-pressed="true"]:hover {
+  color: var(--faction-light, #eef6ff);
+  border-color: var(--faction-edge, #c2d9ee);
+  background: var(--faction-face, #334a60);
+  box-shadow: inset 0 0 0 1px var(--faction-edge, #c2d9ee);
 }
 .catalog-filters {
   display: grid;
@@ -768,10 +789,19 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 .deck-list-item h4 { color: var(--faction-light, inherit); }
 .deck-list-item .deck-toolbar { margin-top: .25rem; }
 
+#app:has(.deck-editor) { width: calc(100% - clamp(.75rem, 2vw, 2rem)); }
 .deck-editor { display: grid; gap: .5rem; }
+.deck-editor-toolbar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 3;
+  padding-block: .35rem;
+  background: #181818;
+}
+.deck-editor-toolbar > .button { min-height: 2.25rem; padding: .32rem .65rem; }
 .deck-editor-columns {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  grid-template-columns: minmax(14rem, min(30%, 25rem)) minmax(0, 1fr);
   gap: .5rem;
   align-items: start;
 }
@@ -802,7 +832,8 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 .deck-totals { display: flex; flex-wrap: wrap; gap: .25rem .5rem; font-size: .8rem; }
 .deck-invalid { color: #ffa9a1; }
 ul.deck-invalid { padding-inline-start: 1.1rem; margin: 0; font-size: .8rem; }
-.deck-save-status { min-height: 1.2rem; font-size: .85rem; color: var(--subtle); }
+.deck-save-status { font-size: .85rem; color: var(--subtle); }
+.deck-save-status:not(:empty) { flex-basis: 100%; }
 .deck-owned-list {
   display: grid;
   align-content: start;
@@ -838,7 +869,7 @@ ul.deck-invalid { padding-inline-start: 1.1rem; margin: 0; font-size: .8rem; }
   overflow: hidden;
   background: #4a5057;
 }
-.deck-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .28rem; }
+.deck-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .28rem; }
 .deck-collection-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 5.2rem), 1fr));
@@ -874,12 +905,17 @@ ul.deck-invalid { padding-inline-start: 1.1rem; margin: 0; font-size: .8rem; }
 }
 .deck-card-copies i { inline-size: .22rem; block-size: .42rem; border-radius: 1px; background: #d8e2f1; }
 .deck-card-copies i.is-used { background: #58616e; }
-.deck-copies-used .card-art-crop { filter: brightness(.42); }
+.deck-copies-used .card-art-crop { filter: var(--card-art-tone, saturate(1)) brightness(.42); }
 
 @media (max-width: 650px) {
-  .deck-editor-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .3rem; }
+  .deck-editor-columns { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: .3rem; }
   .deck-remove { grid-template-columns: 1.1rem 1rem .8rem minmax(0, 1fr) auto; gap: .12rem; }
   .deck-collection-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 3.8rem), 1fr)); }
+}
+@media (max-width: 520px) {
+  .deck-editor-columns { grid-template-columns: minmax(0, 1fr); }
+  .deck-editor-owned { max-height: max(12rem, 40dvh); }
+  .deck-editor-collection { max-height: none; }
 }
 @media (min-width: 540px) and (max-height: 540px) {
   .deck-editor-panel { max-height: max(11rem, calc(100dvh - 8rem)); }

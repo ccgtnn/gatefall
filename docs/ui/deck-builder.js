@@ -1,8 +1,9 @@
-import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=neutral-gates-1';
-import { createCard } from '../game/board.js?v=neutral-gates-1';
-import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=neutral-gates-1';
-import { addCardCrop, cardButton } from './cards.js?v=neutral-gates-1';
+import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=faction-filters-1';
+import { createCard } from '../game/board.js?v=faction-filters-1';
+import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=faction-filters-1';
+import { addCardCrop, cardButton } from './cards.js?v=faction-filters-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
+import { factionFilters } from './faction-filters.js?v=1';
 
 const byProvision = (a, b) => b.provision - a.provision || a.name.localeCompare(b.name, 'ru');
 
@@ -90,7 +91,7 @@ export function factionPicker(phaseLabel, select, back) {
 export function deckEditor(phaseLabel, deck, { save, play, back }) {
   phaseLabel.textContent = '';
   const screen = element('section', 'deck-editor');
-  screen.append(viewHeading('Редактор колоды'));
+  const toolbar = element('header', 'deck-toolbar deck-editor-toolbar');
   const columns = element('div', 'deck-editor-columns');
   const left = element('section', 'panel deck-editor-panel deck-editor-owned');
   const right = element('section', 'panel deck-editor-panel deck-editor-collection');
@@ -119,14 +120,14 @@ export function deckEditor(phaseLabel, deck, { save, play, back }) {
     status.textContent = save(deck) ? 'Колода сохранена.' : 'Колода доступна до закрытия страницы. Браузер не сохранил данные.';
   });
   let dirty = false;
-  const actions = element('div', 'deck-toolbar');
-  actions.append(button('К колодам', () => {
+  const backButton = button('Назад', () => {
     if (dirty) save(deck);
     back();
-  }), saveButton, playButton);
+  });
+  toolbar.append(backButton, viewHeading('Редактор колоды'), saveButton, playButton, status);
   left.append(nameField, leader.field, totals, errors, owned);
   columns.append(left, right);
-  screen.append(columns, actions, status);
+  screen.append(toolbar, columns);
 
   const pool = collection(deck.factionId).toSorted(byProvision);
   const searchField = element('label', 'deck-field');
@@ -137,11 +138,18 @@ export function deckEditor(phaseLabel, deck, { save, play, back }) {
   const rarity = selectField('Редкость', [['', 'Вся'], ...Object.entries(RARITY_LABELS)]);
   const provisions = selectField('Провизия', [['', 'Любая'], ...[...new Set(pool.map(({ provision }) => provision))]
     .sort((a, b) => a - b).map((cost) => [String(cost), String(cost)])]);
-  const faction = selectField('Категория', [['', 'Все'], [deck.factionId, 'Фракционные'], [NEUTRAL, 'Нейтральные']]);
+  let faction = '';
+  const choices = [['', 'Все']];
+  if (FACTIONS[deck.factionId]) choices.push([deck.factionId, FACTIONS[deck.factionId].name]);
+  choices.push([NEUTRAL, 'Нейтральные']);
+  const factions = factionFilters(choices, (id) => {
+    faction = id;
+    updateCollection();
+  });
   const filters = element('div', 'deck-filters');
-  filters.append(types.field, rarity.field, provisions.field, faction.field);
+  filters.append(types.field, rarity.field, provisions.field);
   const available = element('div', 'deck-collection-grid');
-  right.append(element('h3', null, 'Коллекция'), searchField, filters, available);
+  right.append(element('h3', null, 'Коллекция'), factions, searchField, filters, available);
   const cards = new Map();
 
   function updateDeck() {
@@ -170,6 +178,7 @@ export function deckEditor(phaseLabel, deck, { save, play, back }) {
       const invalid = result.overLimit.has(card.id) || !result.counts.has(card.id);
       remove.classList.toggle('deck-invalid', invalid);
       const image = element('span', 'deck-thumb');
+      if (card.faction) image.dataset.faction = card.faction;
       addCardCrop(image, card);
       remove.append(image, element('span', 'deck-number', card.provision ?? '—'),
         element('span', 'deck-number', card.power ?? '—'), element('span', null, card.name),
@@ -203,7 +212,7 @@ export function deckEditor(phaseLabel, deck, { save, play, back }) {
       (!types.input.value || types.input.value === card.type) &&
       (!rarity.input.value || rarity.input.value === card.rarity) &&
       (!provisions.input.value || Number(provisions.input.value) === card.provision) &&
-      (!faction.input.value || faction.input.value === card.faction));
+      (!faction || faction === card.faction));
     available.replaceChildren(...shown.map((card) => {
       const item = element('div', 'deck-collection-entry');
       const limit = copyLimit(card);
@@ -228,7 +237,7 @@ export function deckEditor(phaseLabel, deck, { save, play, back }) {
   name.addEventListener('input', () => { deck.name = name.value; changed(); });
   leader.input.addEventListener('change', () => { deck.leaderId = leader.input.value; changed(); });
   search.addEventListener('input', updateCollection);
-  for (const { input } of [types, rarity, provisions, faction]) input.addEventListener('change', updateCollection);
+  for (const { input } of [types, rarity, provisions]) input.addEventListener('change', updateCollection);
   updateCollection();
   return screen;
 }

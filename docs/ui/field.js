@@ -1,11 +1,11 @@
-import { createCard, statusCount } from '../game/board.js?v=neutral-gates-1';
+import { createCard, statusCount } from '../game/board.js?v=faction-filters-1';
 import { insertionPoint } from '../card-placement.js?v=opponent-reveal-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=neutral-gates-1';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=neutral-gates-1';
-import { playerHand } from './hand.js?v=neutral-gates-1';
-import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=neutral-gates-1';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=neutral-gates-1';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=faction-filters-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=faction-filters-1';
+import { playerHand } from './hand.js?v=faction-filters-1';
+import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=faction-filters-1';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=faction-filters-1';
 
 import { orderBadge } from './stat-badges.js?v=opponent-reveal-1';
 

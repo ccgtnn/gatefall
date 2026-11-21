@@ -1,9 +1,9 @@
-import { inspectDeck } from './decks.js?v=neutral-gates-1';
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=neutral-gates-1';
-import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, spendResilience, statusCount, takeCards } from './board.js?v=neutral-gates-1';
-import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=neutral-gates-1';
+import { inspectDeck } from './decks.js?v=faction-filters-1';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=faction-filters-1';
+import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, spendResilience, statusCount, takeCards } from './board.js?v=faction-filters-1';
+import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=faction-filters-1';
 
-export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=neutral-gates-1';
+export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=faction-filters-1';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;

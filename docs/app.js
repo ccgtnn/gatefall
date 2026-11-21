@@ -1,20 +1,20 @@
-import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=neutral-gates-1';
+import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=faction-filters-1';
 import { createDeckStorage } from './ui/deck-storage.js?v=step-16';
 import { bindCardPlacement } from './card-placement.js?v=opponent-reveal-1';
-import { animateCoin, animateHandTurn, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=neutral-gates-1';
+import { animateCoin, animateHandTurn, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=faction-filters-1';
 import { clearParticles } from './particles.js?v=step-14';
-import { playJournal } from './turn-playback.js?v=neutral-gates-1';
-import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=neutral-gates-1';
-import { placementSide } from './game/board.js?v=neutral-gates-1';
-import { FACTIONS } from './game/cards.js?v=neutral-gates-1';
-import { applyAction, createDeckMatch } from './game/match.js?v=neutral-gates-1';
+import { playJournal } from './turn-playback.js?v=faction-filters-1';
+import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=faction-filters-1';
+import { placementSide } from './game/board.js?v=faction-filters-1';
+import { FACTIONS } from './game/cards.js?v=faction-filters-1';
+import { applyAction, createDeckMatch } from './game/match.js?v=faction-filters-1';
 import { element, iconButton } from './ui/dom.js?v=opponent-reveal-1';
-import { preview, showCard } from './ui/cards.js?v=neutral-gates-1';
-import { createBattlefield } from './ui/field.js?v=neutral-gates-1';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=neutral-gates-1';
-import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=neutral-gates-1';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=neutral-gates-1';
-import { createSettings } from './ui/settings.js?v=neutral-gates-1';
+import { preview, showCard } from './ui/cards.js?v=faction-filters-1';
+import { createBattlefield } from './ui/field.js?v=faction-filters-1';
+import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=faction-filters-1';
+import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=faction-filters-1';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=faction-filters-1';
+import { createSettings } from './ui/settings.js?v=faction-filters-1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
 

@@ -1,9 +1,10 @@
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
-import { createCard } from '../game/board.js?v=neutral-gates-1';
-import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=neutral-gates-1';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=neutral-gates-1';
-import { logView, roundText } from './menu.js?v=neutral-gates-1';
+import { createCard } from '../game/board.js?v=faction-filters-1';
+import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=faction-filters-1';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=faction-filters-1';
+import { logView, roundText } from './menu.js?v=faction-filters-1';
 import { filterCatalog } from './catalog-cards.js?v=opponent-reveal-1';
+import { factionFilters } from './faction-filters.js?v=1';
 
 const catalogCards = [...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool)];
 const catalogFactions = [['', 'Все фракции'], [NEUTRAL, 'Нейтральные'],
@@ -20,17 +21,10 @@ export function catalogScreen(phaseLabel, back) {
   heading.tabIndex = -1;
   const header = element('div', 'catalog-heading');
   header.append(button('Назад', back), heading);
-  const factions = element('div', 'catalog-factions');
-  factions.setAttribute('role', 'group');
-  factions.setAttribute('aria-label', 'Фракция');
   let faction = '';
-  const tabs = catalogFactions.map(([id, label]) => {
-    const tab = button(label, () => {
-      faction = id;
-      update();
-    });
-    factions.append(tab);
-    return [id, tab];
+  const factions = factionFilters(catalogFactions, (id) => {
+    faction = id;
+    update();
   });
 
   const toolbar = element('div', 'catalog-filters');
@@ -52,7 +46,6 @@ export function catalogScreen(phaseLabel, back) {
   const grid = element('div', 'catalog-grid');
 
   function update() {
-    for (const [id, tab] of tabs) tab.setAttribute('aria-pressed', String(id === faction));
     const shown = filterCatalog(catalogCards, {
       faction, query: search.value, type: type.input.value, rarity: rarity.input.value,
       category: category.input.value, provision: provision.input.value, sort: sort.input.value,

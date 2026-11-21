@@ -266,7 +266,7 @@ export const NEUTRAL_CARDS = Object.freeze([
         action('boost', self, { result: 'kill', scale: 2 }),
       ], [enemyChoice(6)]), keywords: ['Урон', 'Усиление'],
     }],
-    ['world-gates', 'Врата миров', 'gold', 11, null, 'Посмотри свою колоду, выбери любую карту и сыграй её.', {
+    ['world-gates', 'Врата Миров', 'gold', 11, null, 'Посмотри свою колоду, выбери любую карту и сыграй её.', {
       type: 'effect', art: 'world-gates.webp', accent: 'gate', deploy: ability([{ action: 'play-from-deck', fullDeck: true }]),
     }],
     ['falura', 'Фалура, Пепел звёзд', 'gold', 19, null,
@@ -286,7 +286,7 @@ export const NEUTRAL_CARDS = Object.freeze([
       deploy: ability([{ action: 'play-from-discard', filter: { anyType: true, maxProvision: 10 },
         prompt: 'Выбери карту из своего сброса за 10 провизии или меньше.' }]),
     }],
-    ['forgotten-gates', 'Забытые врата', 'gold', 10, null,
+    ['forgotten-gates', 'Врата Забвения', 'gold', 10, null,
       'При розыгрыше: призови слева случайный отряд за 4 провизии из своей колоды. В начале твоего второго хода после розыгрыша призови справа ещё один такой отряд.', {
         type: 'artifact', art: 'forgotten-gates.webp', timer: 2, keywords: ['Призыв', 'Соседи'],
         deploy: ability([summonFromDeck('left', 4)]),

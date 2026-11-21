@@ -1,5 +1,5 @@
-import { spendResilience } from './game/board.js?v=neutral-gates-1';
-import { ROWS } from './game/cards.js?v=neutral-gates-1';
+import { spendResilience } from './game/board.js?v=faction-filters-1';
+import { ROWS } from './game/cards.js?v=faction-filters-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;

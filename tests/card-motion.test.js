@@ -43,7 +43,7 @@ function scenario() {
     querySelector: (selector) => selector.startsWith('.side') || selector === '.field-center' ? field : null,
   };
   const play = {
-    type: 'play', side: 'bot', cardId: 'gates', name: 'Врата миров',
+    type: 'play', side: 'bot', cardId: 'gates', name: 'Врата Миров',
     card: { definition: { art: 'world-gates.webp', rarity: 'gold', faction: 'neutral' } },
   };
   return { trace, overlays, field, finishReveal, screen, play };
@@ -58,7 +58,7 @@ test('an opponent effect is readable before it resolves, then the existing fligh
   assert.deepEqual(trace, [reveal + ':start']);
   assert.equal(overlays[0].style.left, '640px');
   assert.equal(overlays[0].children[0].src, './art/world-gates.webp');
-  assert.equal(overlays[0].children[1].textContent, 'Врата миров');
+  assert.equal(overlays[0].children[1].textContent, 'Врата Миров');
   const { keyframes, options } = overlays[0].motion;
   assert.equal(options.duration, 1344);
   assert.deepEqual(keyframes.slice(1, 3).map(({ opacity, offset }) => [opacity, offset]), [[1, 1 / 6], [1, 5 / 6]]);
