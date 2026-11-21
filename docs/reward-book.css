@@ -248,3 +248,30 @@
   .reward-tab { padding: .42rem .24rem; text-align: center; grid-template-columns: minmax(0, 1fr); gap: .15rem; justify-items: center; }
   .reward-tab > svg { width: 1.28rem; height: 1.28rem; }
 }
+
+@media (max-width: 760px), (max-width: 1050px) and (max-height: 550px) {
+  .reward-page-grid { grid-template-columns: minmax(0, 1fr); }
+  .reward-scroll-tip { display: none; }
+  .reward-plot {
+    min-width: 0;
+    height: clamp(20rem, 54dvh, 25rem);
+  }
+  .reward-node {
+    width: clamp(1.75rem, 4.8vw, 2.35rem);
+    padding: .1rem;
+    border-radius: .52rem .25rem .52rem .25rem;
+  }
+  .reward-node-price {
+    inset-block-end: -.4rem;
+    min-width: 1.2rem;
+    gap: .06rem;
+    padding: .05rem .1rem;
+    font-size: .63rem;
+  }
+  .reward-node-price > svg, .reward-node-check { width: .65rem; height: .65rem; }
+  .reward-node:hover, .reward-node[aria-pressed="true"] { outline-offset: 1px; }
+}
+
+@media (orientation: landscape) and (max-width: 1050px) and (max-height: 550px) {
+  .reward-plot { height: clamp(14rem, 65dvh, 20rem); }
+}

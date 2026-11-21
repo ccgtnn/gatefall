@@ -1,6 +1,6 @@
 import { button, element, setCardRarity } from './dom.js?v=opponent-reveal-1';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=storm-eye-1';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=storm-eye-1';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=golem-1';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=golem-1';
 
 import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=opponent-reveal-1';
 
@@ -41,6 +41,10 @@ export function showCard(card, { leader = false, legacy = false,
   if (definition.scenario) stats.push(`Главы ${card.chapter ?? 0}/${definition.scenario.chapters.length}`);
   const infection = statusCount(card, 'infection');
   if (infection) stats.push('Заражение ' + infection);
+  const hasShield = statusCount(card, 'shield');
+  if (hasShield || card.statuses?.shield === 0) {
+    stats.push(hasShield ? 'Щит активен' : 'Щит сбит');
+  }
   if (!leader && isUnit(card)) {
     const base = basePower(card);
     stats.push(power === base ? `Сила ${power}` : `Сила / база ${power} / ${base}`, `Броня ${armor ?? 0}`);

@@ -1,6 +1,6 @@
 import { button, element, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROW_LABELS } from '../game/cards.js?v=storm-eye-1';
-import { cardButton, showCard } from './cards.js?v=details-3';
+import { ROW_LABELS } from '../game/cards.js?v=golem-1';
+import { cardButton, showCard } from './cards.js?v=golem-1';
 
 export function roundText(event) {
   const { scores, winner } = event;
@@ -33,6 +33,9 @@ export function eventText(event) {
     case 'draw': return `${side}: добор ${event.count}${event.extraSwaps ? ` · дополнительных замен +${event.extraSwaps}` : ''}.`;
     case 'round-end': return roundText(event);
     case 'status': {
+      if (event.status === 'shield') return event.count
+        ? `«${event.name}»: силовой щит восстановлен.`
+        : `«${event.name}»: силовой щит ${event.blockedDamage ? `поглотил ${event.blockedDamage} урона и ` : ''}погас.`;
       if (event.status === 'infection') return event.tick
         ? `«${event.name}»: Заражение снимает 1 силу${event.count ? ' · осталось ' + event.count : ' и заканчивается'}.`
         : `«${event.name}»: Заражение ${event.count}.`;

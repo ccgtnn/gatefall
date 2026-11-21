@@ -1,5 +1,5 @@
-import { spendResilience } from './game/board.js?v=storm-eye-1';
-import { ROWS } from './game/cards.js?v=storm-eye-1';
+import { spendResilience } from './game/board.js?v=golem-1';
+import { ROWS } from './game/cards.js?v=golem-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;

@@ -1,11 +1,11 @@
-import { createCard, opponent, statusCount } from '../game/board.js?v=storm-eye-1';
+import { createCard, opponent, statusCount } from '../game/board.js?v=golem-1';
 import { insertionPoint } from '../card-placement.js?v=opponent-reveal-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=storm-eye-1';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=details-3';
-import { playerHand } from './hand.js?v=storm-eye-1';
-import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=storm-eye-1';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=storm-eye-1';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=golem-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=golem-1';
+import { playerHand } from './hand.js?v=golem-1';
+import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=golem-1';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=golem-1';
 
 import { orderBadge } from './stat-badges.js?v=opponent-reveal-1';
 
@@ -84,6 +84,12 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       if (statusCount(card, 'doomed')) face.classList.add('is-doomed');
       cardInspection(face, card, false, inspect);
       slot.append(face);
+      if (statusCount(card, 'shield')) {
+        const halo = element('span', 'force-shield-aura');
+        halo.setAttribute('aria-hidden', 'true');
+        face.setAttribute('aria-label', face.getAttribute('aria-label') + ' · Силовой щит активен');
+        slot.append(halo);
+      }
       if (card.definition.order) {
         const label = 'Приказ · ' + (ready ? 'готов' : cooldown ? 'осталось ходов: ' + cooldown : 'нет цели');
         const order = side === 'human'

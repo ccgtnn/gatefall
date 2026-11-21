@@ -1,9 +1,9 @@
-import { ROWS } from './cards.js?v=storm-eye-1';
-import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=storm-eye-1';
-import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue } from './effects.js?v=storm-eye-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=storm-eye-1';
+import { ROWS } from './cards.js?v=golem-1';
+import { cardType, findUnit, isUnit, neighbors, statusCount, units } from './board.js?v=golem-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue } from './effects.js?v=golem-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=golem-1';
 
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=storm-eye-1';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=golem-1';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
@@ -112,7 +112,7 @@ export function chooseBotAction(view, rules = BOT_RULES) {
 }
 
 function lethalDamage(card, amount) {
-  return amount >= card.power + (card.armor ?? 0);
+  return !statusCount(card, 'shield') && amount >= card.power + (card.armor ?? 0);
 }
 
 function sacrificePriority(card) {
@@ -165,8 +165,12 @@ export function pickBotTarget(match) {
   const candidates = preferHigherAmount ? optionsWithUnits.filter(({ card }) => amounts[card.id] === highest) : optionsWithUnits;
   const lethal = kind === 'damage' ? candidates.filter(({ card }) => lethalDamage(card, amounts?.[card.id] ?? amount)) : [];
   const priorities = {
-    'friendly-damage': ({ card }) => card.definition.id === 'gate-guardian' && card.armor > 0 && card.armor <= 2 ? -card.power
-      : -Math.min(card.power, Math.max(0, 2 - (card.armor ?? 0))),
+    damage: ({ card }) => statusCount(card, 'shield') ? 0 : card.power,
+    'friendly-damage': ({ card }) => {
+      if (statusCount(card, 'shield')) return -.5;
+      if (card.definition.id === 'gate-guardian' && card.armor > 0 && card.armor <= 2) return -card.power;
+      return -Math.min(card.power, Math.max(0, 2 - (card.armor ?? 0)));
+    },
     emp: ({ card }) => Math.min(card.power, 2 + (card.armor ?? 0)) + (card.armor ?? 0) * .1,
     consume: ({ card }) => sacrificePriority(card),
     'spend-armor': ({ card }) => amount ? card.armor : card.armor * 100 + card.power,

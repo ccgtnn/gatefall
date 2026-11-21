@@ -153,3 +153,21 @@ body:has(.is-deck-home) {
   .is-deck-home .subtitle { font-size: .65rem; }
   .deck-home { gap: .9rem; }
 }
+
+.campaigns {
+  display: grid;
+  gap: .55rem;
+}
+.campaign-slots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(.35rem, 1.3vw, .8rem);
+}
+.campaign-slot {
+  min-height: 3rem;
+  aspect-ratio: 2.8 / 1;
+  border: 1px dashed #6887a977;
+  border-radius: .55rem;
+  background: linear-gradient(155deg, #2537509c, #0b1623c7);
+  box-shadow: inset 0 1px #adc5e111;
+}

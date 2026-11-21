@@ -155,6 +155,17 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
 .field-center .slot:not(.filled) { visibility: hidden; border-color: #a7daed84; }
 .field-center .is-available > .slot:not(.filled) { visibility: visible; }
 .field-center .slot.filled { background: transparent; }
+.force-shield-aura {
+  position: absolute;
+  z-index: 1;
+  inset: 2% -3%;
+  border: 1px solid #8ff7ff;
+  border-radius: 42% 42% 36% 36% / 25% 25% 25% 25%;
+  box-shadow: 0 0 6px #66dfff, inset 0 0 7px #71d8ff8c;
+  outline: 1px solid #98f0ff38;
+  outline-offset: 2px;
+  pointer-events: none;
+}
 .field-center .unit-face { height: 100%; min-height: 0; padding: 0; }
 .field-center .drop-marker.is-center { aspect-ratio: 2 / 3; max-height: 100%; }
 

@@ -1,4 +1,4 @@
-import { ROWS } from './cards.js?v=storm-eye-1';
+import { ROWS } from './cards.js?v=golem-1';
 import { emit } from './events.js?v=opponent-reveal-1';
 
 export const ROW_LIMIT = 9;
@@ -116,6 +116,8 @@ const STATUS_RULES = Object.freeze({
   armor: { read: (card) => card.armor ?? 0, next: (current, amount) => Math.max(0, current + amount), unit: true },
   doomed: { read: (card) => Number(card.statuses?.doomed ?? card.definition.doomed ?? false),
     next: (_current, amount) => Number(amount > 0) },
+  shield: { read: (card) => Number(card.statuses?.shield ?? card.definition.shield ?? false),
+    next: (_current, amount) => Number(amount > 0), unit: true },
   infection: { read: (card) => card.statuses?.infection ?? 0,
     next: (current, amount) => amount < 0 ? Math.max(0, current + amount) : Math.max(current, amount),
     unit: true, turnEnd: 'infection-tick' },
@@ -196,6 +198,10 @@ export function discardCard(match, side, card, exile = false) {
 
 export function damage(match, unit, amount, sourceDefinitionId, extra) {
   if (!unit || !isUnit(unit.card) || amount <= 0) return;
+  if (statusCount(unit.card, 'shield')) {
+    applyStatus(match, unit, 'shield', -1, { ...extra, sourceDefinitionId, blockedDamage: amount });
+    return 0;
+  }
   const absorbed = Math.min(amount, unit.card.armor ?? 0);
   applyStatus(match, unit, 'armor', -absorbed, { ...extra, sourceDefinitionId });
   const lost = Math.min(unit.card.power, amount - absorbed);

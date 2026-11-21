@@ -9,8 +9,9 @@ export const CARD_TYPES = Object.freeze({ unit: 'Отряд', effect: 'Эффе�
 export const NEUTRAL = 'neutral';
 export const RARITY_LABELS = Object.freeze({ bronze: 'Бронза', gold: 'Золото' });
 export const KEYWORDS = Object.freeze({
-  'Урон': 'Сначала снимает броню, затем силу. Отряд с нулевой силой гибнет.',
+  'Урон': 'Если есть Силовой щит, первый удар сбивает его. Иначе урон снимает сначала броню, затем силу. Отряд с нулевой силой гибнет.',
   'Броня': 'Каждая единица поглощает 1 урон.',
+  'Силовой щит': 'Полностью поглощает первый удар по отряду, затем исчезает. Заражение и Уничтожение обходят щит.',
   'Усиление': 'Увеличивает текущую силу отряда.',
   'Порождение': 'Добавляет новую карту в ряд, если есть место.',
   'Призыв': 'Перемещает существующую карту из указанной стопки на поле. Способности «При розыгрыше» не срабатывают.',
@@ -300,6 +301,9 @@ export const NEUTRAL_CARDS = Object.freeze([
         startTurnPulse: ability([{ action: 'scatter', amount: 3, visual: 'lightning' }]),
         startTurn: ability([{ action: 'break', target: self }, { action: 'scatter', amount: 1, visual: 'lightning' }]),
       }],
+    ['old-golem', 'Старый голем', 'gold', 9, 9, 'Силовой щит.', {
+      art: 'old-golem.webp', categories: ['Голем'], shield: true, keywords: ['Силовой щит'],
+    }],
   ].map(([id, name, rarity, provision, power, text, rules]) => Object.freeze({
     id, name, rarity, faction: NEUTRAL, provision, type: 'unit', ...(power === null ? {} : { power }), text, ...rules,
   })),

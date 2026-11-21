@@ -1,5 +1,5 @@
-import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=storm-eye-1';
-import { copyLimit, PRESETS } from './decks.js?v=collection-2';
+import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=golem-1';
+import { copyLimit, PRESETS } from './decks.js?v=golem-1';
 
 export const STARTING_KEYS = 25;
 export const STARTING_ESSENCE = 800;

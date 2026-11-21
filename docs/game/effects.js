@@ -1,10 +1,10 @@
 import { emit } from './events.js?v=opponent-reveal-1';
-import { ROWS, ROW_LABELS } from './cards.js?v=storm-eye-1';
+import { ROWS, ROW_LABELS } from './cards.js?v=golem-1';
 import {
   announcePlay, applyStatus, availableRows, basePower, boost, cardType, consume, createCard, damage, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, ROW_LIMIT,
   setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, units,
-} from './board.js?v=storm-eye-1';
+} from './board.js?v=golem-1';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);
@@ -55,9 +55,11 @@ function viableChoices(match, job, index) {
 export function rowDamage(player, row, amount, armorStrip = 0) {
   return player.board[row].filter(isUnit).reduce((sum, card) => {
     const armor = Math.max(0, (card.armor ?? 0) - armorStrip);
-    const breaks = card.armor > 0 && armor <= amount &&
+    const shielded = statusCount(card, 'shield') > 0;
+    const breaks = card.armor > 0 && armor <= (shielded ? 0 : amount) &&
       card.definition.events?.['armor-break']?.steps.some((step) => step.action === 'discard' && step.target.scope === 'source');
-    return sum + (breaks ? card.power : Math.min(card.power, Math.max(0, amount - armor)));
+    if (breaks) return sum + card.power;
+    return sum + (shielded ? 0 : Math.min(card.power, Math.max(0, amount - armor)));
   }, 0);
 }
 
@@ -645,7 +647,7 @@ export function effectSwing(match, side, card) {
     const amounts = options.map((target) => valueOf(match, job, step.amount, target) + (stripArmor ? target.card.armor : 0));
     const highest = Math.max(0, ...amounts);
     const points = options.map(({ card }, index) =>
-      step.amount?.row && amounts[index] !== highest ? 0
+      statusCount(card, 'shield') || (step.amount?.row && amounts[index] !== highest) ? 0
         : Math.min(card.power, Math.max(0, amounts[index] - (stripArmor ? 0 : card.armor ?? 0))));
     swing += step.target.infected && !step.mode ? points.reduce((sum, value) => sum + value, 0) : Math.max(0, ...points);
   }

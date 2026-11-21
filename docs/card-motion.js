@@ -1,5 +1,5 @@
 import { setCardRarity } from './ui/dom.js?v=opponent-reveal-1';
-import { NEUTRAL } from './game/cards.js?v=storm-eye-1';
+import { NEUTRAL } from './game/cards.js?v=golem-1';
 import { burstParticles } from './particles.js?v=step-14';
 
 const VISUAL_EVENTS = new Set([
@@ -429,7 +429,7 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
     commit();
     return;
   }
-  if (event.scattered && (event.visual !== 'lightning' || event.type === 'damage')) {
+  if (event.scattered && (event.visual !== 'lightning' || event.type === 'damage' || event.blockedDamage)) {
     const entry = rects(screen).get(event.cardId);
     if (event.visual === 'lightning') await lightning(screen, entry, duration * .54);
     else await projectile(screen, event, entry, duration * .43);
@@ -463,6 +463,7 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
       motions.push(...shield(screen, entry, duration));
       break;
     case 'status':
+      if (event.status === 'shield') motions.push(...shield(screen, entry, duration));
       if (event.status === 'infection') {
         motions.push(...cardFlash(screen, entry, 'motion-infection', [
           { opacity: 0, transform: 'translate(-50%, -50%) scale(.85)' },

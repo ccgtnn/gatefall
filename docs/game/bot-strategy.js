@@ -1,8 +1,8 @@
-import { compareRollouts } from './bot-rollouts.js?v=storm-eye-1';
-import { ROWS } from './cards.js?v=storm-eye-1';
-import { cardType, opponent, placementSide, units } from './board.js?v=storm-eye-1';
-import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=storm-eye-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=storm-eye-1';
+import { compareRollouts } from './bot-rollouts.js?v=golem-1';
+import { ROWS } from './cards.js?v=golem-1';
+import { cardType, opponent, placementSide, units } from './board.js?v=golem-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=golem-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=golem-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };

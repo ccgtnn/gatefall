@@ -1,7 +1,7 @@
-import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=storm-eye-1';
-import { createCard } from '../game/board.js?v=storm-eye-1';
-import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=collection-2';
-import { addCardCrop, cardButton } from './cards.js?v=details-3';
+import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=golem-1';
+import { createCard } from '../game/board.js?v=golem-1';
+import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=golem-1';
+import { addCardCrop, cardButton } from './cards.js?v=golem-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { factionFilters } from './faction-filters.js?v=1';
 import { availabilityOptions, matchesAvailability } from './catalog-cards.js?v=collection-2';
@@ -73,6 +73,19 @@ export function deckListScreen(phaseLabel, decks, stats, actions, inventory) {
     group.append(list);
     screen.append(group);
   }
+
+  const campaigns = element('section', 'campaigns');
+  const campaignSlots = element('div', 'campaign-slots');
+  for (let index = 0; index < 3; index += 1) {
+    const slot = element('div', 'campaign-slot');
+    slot.setAttribute('aria-hidden', 'true');
+    campaignSlots.append(slot);
+  }
+  const title = element('h2', null, 'Кампании');
+  title.id = 'campaigns-title';
+  campaigns.setAttribute('aria-labelledby', title.id);
+  campaigns.append(title, campaignSlots);
+  screen.append(campaigns);
 
   function update() {
     const { owned } = inventory();
