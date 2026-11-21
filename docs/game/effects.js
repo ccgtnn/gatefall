@@ -1,9 +1,9 @@
 import { emit } from './events.js?v=step-16';
-import { ROWS, ROW_LABELS } from './cards.js?v=art-26';
+import { ROWS, ROW_LABELS } from './cards.js?v=art-27';
 import {
   announcePlay, applyStatus, availableRows, boost, cardType, consume, createCard, damage, findUnit,
   isUnit, neighbors, opponent, placeCards, removeUnit, spawnCards, statusEndTurn, takeCards, tickInfection, units,
-} from './board.js?v=art-26';
+} from './board.js?v=art-27';
 
 function reference(match, job, key = 'source') {
   return findUnit(match, key === 'source' ? job.sourceId : job.refs?.[key]);

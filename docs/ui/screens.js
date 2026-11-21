@@ -1,8 +1,8 @@
 import { button, element } from './dom.js?v=step-11';
-import { createCard } from '../game/board.js?v=art-26';
-import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from '../game/cards.js?v=art-26';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=art-26';
-import { logView, roundText } from './menu.js?v=art-26';
+import { createCard } from '../game/board.js?v=art-27';
+import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from '../game/cards.js?v=art-27';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=art-27';
+import { logView, roundText } from './menu.js?v=art-27';
 
 export function catalogScreen(phaseLabel, back) {
   phaseLabel.textContent = '';
