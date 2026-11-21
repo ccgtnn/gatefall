@@ -1,12 +1,12 @@
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
-import { createCard } from '../game/board.js?v=epic-golems-1';
-import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=epic-golems-1';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=epic-golems-1';
-import { logView, roundText } from './menu.js?v=epic-golems-1';
+import { createCard } from '../game/board.js?v=golem-reinforcements-1';
+import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=golem-reinforcements-1';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=golem-reinforcements-1';
+import { logView, roundText } from './menu.js?v=golem-reinforcements-1';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=collection-2';
 import { factionFilters } from './faction-filters.js?v=1';
-import { copyLimit } from '../game/decks.js?v=epic-golems-1';
-import { craftPrice, dismantleValue } from '../game/rewards.js?v=epic-golems-1';
+import { copyLimit } from '../game/decks.js?v=golem-reinforcements-1';
+import { craftPrice, dismantleValue } from '../game/rewards.js?v=golem-reinforcements-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 
 const catalogCards = [...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool)];

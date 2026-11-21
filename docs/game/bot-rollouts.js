@@ -1,8 +1,8 @@
-import { FACTIONS, ROWS } from './cards.js?v=epic-golems-1';
-import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=epic-golems-1';
-import { collection, copyLimit } from './decks.js?v=epic-golems-1';
-import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=epic-golems-1';
-import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=epic-golems-1';
+import { FACTIONS, ROWS } from './cards.js?v=golem-reinforcements-1';
+import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=golem-reinforcements-1';
+import { collection, copyLimit } from './decks.js?v=golem-reinforcements-1';
+import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=golem-reinforcements-1';
+import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=golem-reinforcements-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };

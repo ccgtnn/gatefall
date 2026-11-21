@@ -1,9 +1,9 @@
-import { ROWS } from './cards.js?v=epic-golems-1';
-import { cardType, findUnit, isUnit, neighbors, statusCount, units } from './board.js?v=epic-golems-1';
-import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue } from './effects.js?v=epic-golems-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=epic-golems-1';
+import { ROWS } from './cards.js?v=golem-reinforcements-1';
+import { cardType, findUnit, isUnit, neighbors, statusCount, units } from './board.js?v=golem-reinforcements-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue, rowScatterValue } from './effects.js?v=golem-reinforcements-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=golem-reinforcements-1';
 
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=epic-golems-1';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=golem-reinforcements-1';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
@@ -129,7 +129,7 @@ function bestTarget(candidates, priority) {
 }
 
 export function pickBotTarget(match) {
-  const { kind, amount, amounts, armorStrip, options, preferHigherAmount } = match.pending;
+  const { kind, amount, amounts, armorStrip, options, preferHigherAmount, scatter } = match.pending;
   const player = match.players[match.pending.side];
   if (kind === 'armor-row') {
     const row = bestTarget(options, (row) => rowArmor(player, row));
@@ -145,7 +145,8 @@ export function pickBotTarget(match) {
   }
   if (kind === 'enemy-row') {
     const enemy = match.players[match.pending.selectionSide];
-    const row = bestTarget(options, (row) => rowDamage(enemy, row, amount, armorStrip));
+    const row = bestTarget(options, (row) => scatter
+      ? rowScatterValue(enemy, row, amount) : rowDamage(enemy, row, amount, armorStrip));
     return { type: 'target', cardId: row };
   }
   if (kind === 'deck-card' || kind === 'deck-top') {

@@ -1,10 +1,10 @@
 import { emit } from './events.js?v=golem-trio-1';
-import { ROWS, ROW_LABELS } from './cards.js?v=epic-golems-1';
+import { ROWS, ROW_LABELS } from './cards.js?v=golem-reinforcements-1';
 import {
   announcePlay, applyStatus, availableRows, basePower, boost, cardType, consume, createCard, damage, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, ROW_LIMIT,
   setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, units,
-} from './board.js?v=epic-golems-1';
+} from './board.js?v=golem-reinforcements-1';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);
@@ -61,6 +61,13 @@ export function rowDamage(player, row, amount, armorStrip = 0) {
     if (breaks) return sum + card.power;
     return sum + (shielded ? 0 : Math.min(card.power, Math.max(0, amount - armor)));
   }, 0);
+}
+
+export function rowScatterValue(player, row, amount) {
+  const units = player.board[row].filter(isUnit);
+  const perUnit = amount / Math.max(1, units.length);
+  return units.reduce((sum, card) => sum +
+    Math.min(card.power, Math.max(0, perUnit - (card.armor ?? 0) - statusCount(card, 'shield'))), 0);
 }
 
 export function infectionGain(card, amount, turns = amount) {
@@ -441,8 +448,14 @@ export function runEffect(match, job, random) {
         const kind = { space: 'spawn-row', armor: 'armor-row', units: 'enemy-row', any: 'row-effect' }[step.filter];
         const damage = job.ability.steps.find((part) => part.action === 'damage' && part.target?.rowRef === step.ref);
         const armor = job.ability.steps.find((part) => part.action === 'armor' && part.target?.rowRef === step.ref);
-        pause(match, job, kind, step.ref, rows, step.prompt, {
-          selectionSide, ...(kind === 'row-effect' && { amount: job.ability.steps.find((part) => part.action === 'row-effect')?.amount }), ...(damage && { amount: damage.amount, armorStrip: -(armor?.amount ?? 0) }),
+        const scatter = job.ability.steps.find((part) => part.action === 'scatter' && part.rowRef === step.ref);
+        const amount = scatter && valueOf(match, job, scatter.amount);
+        const prompt = scatter ? `Выбери вражеский ряд · Ударов: ${amount} по 1 урону.` : step.prompt;
+        pause(match, job, kind, step.ref, rows, prompt, {
+          selectionSide,
+          ...(kind === 'row-effect' && { amount: job.ability.steps.find((part) => part.action === 'row-effect')?.amount }),
+          ...(damage && { amount: damage.amount, armorStrip: -(armor?.amount ?? 0) }),
+          ...(scatter && { amount, scatter: true }),
         });
         return;
       }
@@ -481,7 +494,8 @@ export function runEffect(match, job, random) {
   }
   if (step.action === 'scatter') {
     job.hits ??= valueOf(match, job, step.amount);
-    const enemies = units(match, opponent(job.side)).filter(({ card }) => isUnit(card));
+    const rows = step.rowRef ? [job.refs[step.rowRef]].filter(Boolean) : ROWS;
+    const enemies = units(match, opponent(job.side), rows).filter(({ card }) => isUnit(card));
     if (!enemies.length || job.hits <= 0) {
       delete job.hits;
       job.index += 1;
@@ -491,7 +505,8 @@ export function runEffect(match, job, random) {
     job.hits -= 1;
     match.effects.unshift(job);
     damage(match, enemies[Math.floor(random() * enemies.length)], 1, job.sourceDefinitionId, {
-      scattered: true, attacker: job.side, sourceRow: job.refs.row, ...(step.visual && { visual: step.visual }),
+      scattered: true, attacker: job.side, sourceRow: step.rowRef ? reference(match, job)?.row : job.refs.row,
+      ...(step.visual && { visual: step.visual }),
     });
     return;
   }
@@ -632,8 +647,14 @@ export function effectSwing(match, side, card) {
     }
     if (step.action === 'replace-leader') swing += 2;
     if (step.action === 'scatter') {
-      const health = units(match, opponent(side)).reduce((sum, { card }) => sum + (card.power ?? 0), 0);
-      swing += Math.min(health, Math.max(...ROWS.map((row) => rowArmor(player, row))));
+      const enemy = match.players[opponent(side)];
+      if (step.rowRef) {
+        const amount = valueOf(match, job, step.amount);
+        swing += Math.max(...ROWS.map((row) => rowScatterValue(enemy, row, amount)));
+      } else {
+        const health = units(match, opponent(side)).reduce((sum, { card }) => sum + (card.power ?? 0), 0);
+        swing += Math.min(health, Math.max(...ROWS.map((row) => rowArmor(player, row))));
+      }
     }
     if (step.action === 'status' && step.status === 'infection' && applyInfection) {
       const enemy = match.players[opponent(side)];

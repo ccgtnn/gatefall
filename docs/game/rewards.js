@@ -1,5 +1,5 @@
-import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=epic-golems-1';
-import { copyLimit, PRESETS } from './decks.js?v=epic-golems-1';
+import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=golem-reinforcements-1';
+import { copyLimit, PRESETS } from './decks.js?v=golem-reinforcements-1';
 
 export const STARTING_KEYS = 25;
 export const STARTING_ESSENCE = 800;

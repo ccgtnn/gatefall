@@ -62,7 +62,8 @@ const infectionChoice = (amount) => choice('enemy', enemies,
 const armorRemoved = { result: 'armor' };
 const victimPower = { stat: 'power', ref: 'victim' };
 const salvoDamage = { row: 'surface', then: 5, otherwise: 3 };
-const fireGolemDamage = { playedCategory: 'Голем', base: 4, scale: 1 };
+const golemDamage = { playedCategory: 'Голем', base: 4, scale: 1 };
+const imperialGolemBoost = { playedCategory: 'Голем', base: 5, scale: 1 };
 const mountainDamage = { playedCategory: 'Голем', base: 10, scale: -1 };
 
 export const FIRST_SIGNAL = Object.freeze({
@@ -127,6 +128,15 @@ const protectorate = [
       { action: 'armor', target: { ...allies, rowRef: 'row' }, amount: { stat: 'armor', scale: -1 }, save: 'armor' },
       { action: 'scatter', amount: armorRemoved },
     ]), keywords: ['Броня', 'Урон'] }],
+];
+
+const protectorateExtras = [
+  ['imperial-golem', 'Имперский голем', 8, 5,
+    'Броня 5. Уязвимость: усили себя на 5 и ещё на 1 за каждого Голема, которого ты уже разыграл в этом матче, включая эту карту.', {
+      rarity: 'epic', categories: ['Голем'], art: 'imperial-golem.webp', armor: 5,
+      events: { 'armor-break': ability([action('boost', self, imperialGolemBoost)]) },
+      keywords: ['Броня', 'Уязвимость', 'Усиление'],
+  }],
 ];
 
 const growth = [
@@ -310,14 +320,22 @@ export const NEUTRAL_CARDS = Object.freeze([
     ['fire-golem', 'Огненный голем', 'epic', 9, 5,
       'При розыгрыше: нанеси 4 урона выбранному другому отряду. Урон увеличивается на 1 за каждого Голема, которого ты разыграл ранее в этом матче.', {
         art: 'fire-golem.webp', categories: ['Голем'], keywords: ['Урон'],
-        deploy: ability([action('damage', chosen('victim'), fireGolemDamage)],
+        deploy: ability([action('damage', chosen('victim'), golemDamage)],
           [choice('victim', { scope: 'field', type: 'unit', exclude: 'source' },
-            'Выбери отряд для урона.', { kind: 'damage', amount: fireGolemDamage })]),
+            'Выбери отряд для урона.', { kind: 'damage', amount: golemDamage })]),
     }],
     ['sleeping-mountain', 'Спящая гора', 'epic', 9, 17,
       'При розыгрыше: нанеси себе 10 урона. Урон снижается на 1 за каждого Голема, которого ты разыграл ранее в этом матче, до 0.', {
         art: 'sleeping-mountain.webp', categories: ['Голем'], keywords: ['Урон'],
         deploy: ability([action('damage', self, mountainDamage)]),
+    }],
+    ['mystic-golem', 'Мистический голем', 'gold', 10, 4,
+      'При розыгрыше: распредели 4 удара по 1 урону между случайными отрядами выбранного вражеского ряда. За каждого Голема, которого ты разыграл раньше в этом матче, добавь ещё один удар.', {
+        art: 'mystic-golem.webp', categories: ['Голем'], keywords: ['Урон'],
+        deploy: ability([
+          { action: 'select-row', ref: 'targetRow', filter: 'units', prompt: 'Выбери вражеский ряд для ударов Мистического голема.' },
+          { action: 'scatter', rowRef: 'targetRow', amount: golemDamage, visual: 'lightning' },
+        ]),
     }],
   ].map(([id, name, rarity, provision, power, text, rules]) => Object.freeze({
     id, name, rarity, faction: NEUTRAL, provision, type: 'unit', ...(power === null ? {} : { power }), text, ...rules,
@@ -464,13 +482,14 @@ const growthLeaders = Object.freeze([
 
 function faction(id, name, strategy, entries, leaders, extras = []) {
   const pool = factionCards(entries, id);
-  const extraCards = extras.map(([cardId, label, provision, power, description, rules]) =>
-    [cardId, label, provision, power, description, { categories: ['Гниль'], rarity: 'bronze', ...rules }]);
-  return { name, strategy, pool: Object.freeze([...pool, ...factionCards(extraCards, id)]),
+  return { name, strategy, pool: Object.freeze([...pool, ...factionCards(extras, id)]),
     deck: presetCards(pool, id), leader: leaders[0], leaders };
 }
 
+const plagueCards = plague.map(([cardId, label, provision, power, description, rules]) =>
+  [cardId, label, provision, power, description, { categories: ['Гниль'], rarity: 'bronze', ...rules }]);
+
 export const FACTIONS = Object.freeze({
-  protectorate: faction('protectorate', 'Протекторат', 'Строй', protectorate, protectorateLeaders),
-  growth: faction('growth', 'Поросль', 'Пожирание', growth, growthLeaders, plague),
+  protectorate: faction('protectorate', 'Протекторат', 'Строй', protectorate, protectorateLeaders, protectorateExtras),
+  growth: faction('growth', 'Поросль', 'Пожирание', growth, growthLeaders, plagueCards),
 });

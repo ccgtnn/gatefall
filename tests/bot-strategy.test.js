@@ -139,6 +139,10 @@ test('the bot plays Broodlord in the row with three larvae', () => {
   match.players.bot.hand = [member('lord', 'growth', 'broodlord'), plain('ordinary', 5)];
   match.players.bot.board.orbit = [standard('spare-larva', LARVA)];
   match.players.bot.board.surface = ['a', 'b', 'c'].map((id) => standard(id, LARVA));
+  // Compare the two row payoffs without sampling the opponent's hidden responses.
+  match.players.human.hand = [];
+  match.players.human.deck = [];
+  match.players.human.board.orbit = [plain('enemy', 9)];
   for (const difficulty of ['normal', 'hard']) {
     const action = chooseBotTurn(match, difficulty);
     assert.equal(action.cardId, 'lord');

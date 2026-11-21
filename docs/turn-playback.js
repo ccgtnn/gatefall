@@ -1,5 +1,5 @@
-import { recordCategoryPlay, spendResilience } from './game/board.js?v=epic-golems-1';
-import { ROWS } from './game/cards.js?v=epic-golems-1';
+import { recordCategoryPlay, spendResilience } from './game/board.js?v=golem-reinforcements-1';
+import { ROWS } from './game/cards.js?v=golem-reinforcements-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;
