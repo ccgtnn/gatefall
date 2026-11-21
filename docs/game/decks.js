@@ -1,4 +1,4 @@
-import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=plague-a';
+import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=plague-b';
 
 export const MIN_CARDS = 25;
 export const MIN_UNITS = 13;
@@ -15,13 +15,24 @@ export function copyLimit(card) {
   return card.rarity === 'bronze' ? 2 : 1;
 }
 
-export const PRESETS = Object.freeze([...groups].map(([factionId, faction]) => Object.freeze({
+const factionPresets = [...groups].map(([factionId, faction]) => Object.freeze({
   id: 'preset-' + factionId,
   name: faction.name + ' · ' + faction.strategy,
   factionId,
   leaderId: faction.leader.id,
   cardIds: Object.freeze(faction.deck.map(({ id }) => id)),
-})));
+}));
+const plaguePreset = Object.freeze({
+  id: 'preset-growth-plague', name: 'Поросль · Чума', factionId: 'growth', leaderId: 'carrier',
+  cardIds: Object.freeze([
+    'rot-midge', 'rot-midge', 'plague-carrier', 'plague-carrier', 'rot-scavenger', 'rot-scavenger',
+    'boil', 'boil', 'rot', 'rot', 'rot-giant', 'pestilence', 'plague-burst', 'spore-season',
+    'acid-gland', 'acid-gland', 'spitter', 'spitter', 'cocoon', 'colossus', 'gulper', 'nest',
+    'annihilation', 'field-medic', 'veteran-mercenary',
+  ]),
+});
+
+export const PRESETS = Object.freeze([...factionPresets, plaguePreset]);
 
 export function inspectDeck(deck) {
   const faction = groups.get(deck?.factionId);

@@ -1,8 +1,8 @@
-import { FACTIONS, ROWS } from './cards.js?v=plague-a';
-import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=plague-a';
-import { collection, copyLimit } from './decks.js?v=plague-a';
-import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=plague-a';
-import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=plague-a';
+import { FACTIONS, ROWS } from './cards.js?v=plague-b';
+import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=plague-b';
+import { collection, copyLimit } from './decks.js?v=plague-b';
+import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=plague-b';
+import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=plague-b';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -25,7 +25,9 @@ export function visibleSupply(match) {
   const faction = FACTIONS[player.factionId];
   if (!faction) return [];
   const known = new Map();
-  for (const card of [...player.discard, ...player.exile, ...Object.values(player.board).flat()]) {
+  const field = Object.entries(match.players).flatMap(([side, owner]) =>
+    Object.values(owner.board).flat().filter((card) => (card.owner ?? side) === 'human'));
+  for (const card of [...player.discard, ...player.exile, ...field]) {
     if (!card.definition.token && !card.definition.stratagem) known.set(card.id, card.definition.id);
   }
   for (const event of match.log) {
@@ -97,13 +99,15 @@ function fastPlays(match, side) {
     const def = card.definition;
     const action = { type: 'play', cardId: card.id };
     const cost = printedValue(card);
+    const scenarioTrigger = ROWS.some((row) => player.board[row].some((entry) =>
+      entry.definition.scenario && def.categories?.includes(entry.definition.scenario.category))) ? 2 : 0;
     if (def.type === 'effect') {
       let points = effectSwing(match, side, card);
       if (def.id === 'shield-overload') {
         points -= Math.max(...ROWS.map((row) => rowArmor(player, row))) -
           Math.max(...ROWS.map((row) => overloadValue(player, row)));
       }
-      return { action, points, cost, reserve: def.removalReserve ?? 0 };
+      return { action, points: points + scenarioTrigger, cost, reserve: def.removalReserve ?? 0 };
     }
     const recipient = match.players[placementSide(side, card)];
     let choice;
@@ -121,8 +125,6 @@ function fastPlays(match, side) {
       ? effectSwing(match, side, card) : 0;
     const scenario = def.scenario ? Math.min(def.scenario.chapters.length,
       player.hand.filter((entry) => entry.definition.categories?.includes(def.scenario.category)).length) * 2 : 0;
-    const scenarioTrigger = ROWS.some((row) => player.board[row].some((entry) =>
-      entry.definition.scenario && def.categories?.includes(entry.definition.scenario.category))) ? 2 : 0;
     return {
       action: { ...action, row: choice.row, position: choice.position },
       points: (card.power ?? 0) * (def.enemySide ? -1 : 1) + (def.deploy || def.endTurn || def.order ? 1 : 0)

@@ -1,5 +1,5 @@
-import { ROWS } from './cards.js?v=plague-a';
-import { emit } from './events.js?v=plague-a';
+import { ROWS } from './cards.js?v=plague-b';
+import { emit } from './events.js?v=plague-b';
 
 export const ROW_LIMIT = 9;
 export const HAND_LIMIT = 10;

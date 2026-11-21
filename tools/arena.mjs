@@ -1,6 +1,6 @@
 import { availableParallelism } from 'node:os';
 import { writeFileSync } from 'node:fs';
-import { summarizeCards, summarizeOverload } from './arena-cards.mjs';
+import { summarizeCards, summarizeOverload, summarizePlagueEvents } from './arena-cards.mjs';
 import { resolve } from 'node:path';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 
@@ -13,13 +13,26 @@ const swap = (side) => side == null ? side : other(side);
 const reverseSides = ({ bot, human }) => ({ human: bot, bot: human });
 const mirrorEvent = (event) => ({
   ...event, side: swap(event.side), winner: swap(event.winner), attacker: swap(event.attacker),
+  ...(event.boardSide && { boardSide: swap(event.boardSide) }),
+  ...(event.owner && { owner: swap(event.owner) }),
   ...(event.scores && { scores: reverseSides(event.scores) }),
 });
+function mirrorPlayer(player) {
+  const mirrorCard = (card) => card.owner || card.infectionSource?.attacker
+    ? { ...card, ...(card.owner && { owner: swap(card.owner) }),
+      ...(card.infectionSource && { infectionSource: { ...card.infectionSource, attacker: swap(card.infectionSource.attacker) } }) } : card;
+  return { ...player,
+    board: Object.fromEntries(Object.entries(player.board).map(([row, cards]) => [row, cards.map(mirrorCard)])),
+    rowEffects: Object.fromEntries(Object.entries(player.rowEffects ?? {}).map(([row, effect]) =>
+      [row, { ...effect, attacker: swap(effect.attacker) }])),
+  };
+}
+
 function mirror(match) {
   return {
     ...match,
     turn: swap(match.turn), starter: swap(match.starter),
-    players: reverseSides(match.players),
+    players: { human: mirrorPlayer(match.players.bot), bot: mirrorPlayer(match.players.human) },
     log: match.log.map(mirrorEvent),
     effects: match.effects.map(mirrorEvent),
     pending: match.pending && {
@@ -29,19 +42,29 @@ function mirror(match) {
   };
 }
 
-async function run({ root, trials, rolloutSamples, trace, collectCards }) {
+async function run({ root, trials, rolloutSamples, trace, collectCards, progress }) {
   const { applyAction, confirmMulligan, createMatch, mulliganLimit, totalScore } = await import(root + '/docs/game/match.js');
   const { FACTIONS } = await import(root + '/docs/game/cards.js');
+  const { PRESETS, inspectDeck } = await import(root + '/docs/game/decks.js');
   const { chooseBotTurn } = await import(root + '/docs/game/bot.js');
   const results = [];
-  for (const { levels, faction, seed, starter, group, leaderPair } of trials) {
+  for (const { levels, faction, seed, starter, group, leaderPair, growth } of trials) {
     const random = randomFrom(seed);
     Math.random = randomFrom(seed ^ 0x124b62);
     const [humanLeader, botLeader] = leaderPair ?? [];
-    let match = createMatch({ humanFaction: faction, humanLeader: FACTIONS[faction].leaders[humanLeader]?.id, random });
+    const plague = growth === 'plague' ? inspectDeck(PRESETS.find(({ id }) => id === 'preset-growth-plague')) : null;
+    if (plague && !plague.valid) throw new Error('Invalid Plague deck: ' + JSON.stringify(plague.issues));
+    const decks = plague ? (faction === 'protectorate'
+      ? { human: FACTIONS.protectorate.deck, bot: plague.cards }
+      : { human: plague.cards, bot: FACTIONS.protectorate.deck }) : undefined;
+    let match = createMatch({ decks, humanFaction: faction, random, humanLeader:
+      plague && faction === 'growth' ? plague.leader.id : FACTIONS[faction].leaders[humanLeader]?.id });
     if (botLeader !== undefined) {
       const player = match.players.bot;
       player.leader = { ...FACTIONS[player.factionId].leaders[botLeader], charges: match.rules.leaderCharges };
+    }
+    if (plague && faction === 'protectorate') {
+      match.players.bot.leader = { ...plague.leader, charges: match.rules.leaderCharges };
     }
     match.starter = starter;
     const start = performance.now();
@@ -54,7 +77,7 @@ async function run({ root, trials, rolloutSamples, trace, collectCards }) {
       if (step > 300) throw new Error('Unfinished match: ' + JSON.stringify({ faction, seed, levels, round: match.round }));
       if (match.phase === 'mulligan') {
         const choices = match.players.human.hand.toSorted((a, b) =>
-          (a.definition.power ?? a.definition.provision) - (b.definition.power ?? b.definition.provision))
+          (a.power ?? a.definition.provision) - (b.power ?? b.definition.provision))
           .slice(0, mulliganLimit(match, 'human')).map(({ id }) => id);
         match = confirmMulligan(match, choices, { random });
         continue;
@@ -102,7 +125,18 @@ async function run({ root, trials, rolloutSamples, trace, collectCards }) {
       match = next;
     }
     results.push({ group, result: match.result, ms: performance.now() - start, hardTimings, faction, seed, starter,
-      leaderPair, rounds: match.log.filter(({ type }) => type === 'round-end'), decisions, played });
+      leaderPair, growth, rounds: match.log.filter(({ type }) => type === 'round-end'), decisions, played,
+      ...(collectCards && growth === 'plague' && { plagueEvents: match.log.flatMap((event) => {
+        if (event.type === 'damage' || event.type === 'status' || event.type === 'boost' ||
+            event.type === 'scenario-chapter' || event.type === 'row-effect' || event.type === 'play') {
+          const { type, side, sourceDefinitionId, tick, lost, amount, status, chapter, effect, card } = event;
+          return [{ type, side, sourceDefinitionId, tick, lost, amount, status, chapter,
+            ...(type === 'row-effect' && effect && { effect }),
+            ...(type === 'play' && card && { id: card.definition.id, baseGain: (card.basePower ?? 0) - (card.definition.power ?? 0) }) }];
+        }
+        return [];
+      }) }) });
+    if (progress) parentPort.postMessage({ completed: 1 });
   }
   return results;
 }
@@ -112,6 +146,8 @@ if (isMainThread) {
   const games = Number(options.games ?? 200);
   const root = resolve(options.root ?? '.');
   const trials = [];
+  const growthDecks = (options.growth ?? 'standard').split(',');
+  if (growthDecks.some((name) => name !== 'standard' && name !== 'plague')) throw new Error('Unknown Growth deck');
   const matchups = (options.matchups ?? 'hard-normal,normal-easy').split(',');
   if (!Number.isSafeInteger(games) || games < 2 || games % 2) throw new Error('--games must be a positive even number');
   for (const matchup of matchups) {
@@ -121,21 +157,28 @@ if (isMainThread) {
       for (let i = 0; i < games; i++) {
         const pair = Math.floor(i / 2);
         const leaderPair = first === second ? [pair % 3, Math.floor(pair / 3) % 3] : undefined;
-        trials.push({
-          group: first + '-' + second + '/' + faction, faction,
-          levels: { human: first, bot: second }, seed: Number(options.seed ?? 1729) + Math.floor(i / 2),
+        for (const growth of growthDecks) trials.push({
+          group: first + '-' + second + '/' + faction + (growth === 'plague' ? '/plague' : ''), faction, growth,
+          levels: { human: first, bot: second }, seed: Number(options.seed ?? 1729) + pair,
           starter: i % 2 ? 'bot' : 'human', leaderPair,
         });
       }
     }
   }
   const workers = Math.min(trials.length, Number(options.workers ?? Math.min(8, availableParallelism())));
+  let completed = 0;
   const batches = await Promise.all(Array.from({ length: workers }, (_, index) => new Promise((done, fail) => {
     const worker = new Worker(new URL(import.meta.url), {
-      workerData: { root, trace: Boolean(options.trace), collectCards: Boolean(options.cards), rolloutSamples: options.samples === undefined ? undefined : Number(options.samples),
+      workerData: { root, progress: Boolean(options.progress), trace: Boolean(options.trace), collectCards: Boolean(options.cards), rolloutSamples: options.samples === undefined ? undefined : Number(options.samples),
         trials: trials.filter((_, i) => i % workers === index) },
     });
-    worker.on('message', done);
+    worker.on('message', (message) => {
+      if (Array.isArray(message)) done(message);
+      else {
+        completed += message.completed;
+        if (completed % 25 === 0 || completed === trials.length) console.error(`Arena: ${completed}/${trials.length}`);
+      }
+    });
     worker.on('error', fail);
     worker.on('exit', (code) => { if (code) fail(new Error('Arena worker exited: ' + code)); });
   })));
@@ -169,7 +212,10 @@ if (isMainThread) {
   if (options.trace) writeFileSync(options.trace, JSON.stringify(matches.filter((match) => match.decisions.length > 0)));
   if (options.cards) {
     const mirrorMatches = matches.filter(({ group }) => group.startsWith('hard-hard/'));
-    writeFileSync(options.cards, JSON.stringify({ cards: summarizeCards(mirrorMatches), overload: summarizeOverload(mirrorMatches) }, null, 2));
+    const standard = mirrorMatches.filter(({ growth }) => growth !== 'plague');
+    const plague = mirrorMatches.filter(({ growth }) => growth === 'plague');
+    writeFileSync(options.cards, JSON.stringify({ cards: summarizeCards(standard), overload: summarizeOverload(standard),
+      ...(plague.length && { plagueCards: summarizeCards(plague), plagueEvents: summarizePlagueEvents(plague) }) }, null, 2));
   }
   console.log(JSON.stringify(summary, null, 2));
 } else {

@@ -1,10 +1,10 @@
-import { emit } from './events.js?v=plague-a';
-import { ROWS, ROW_LABELS } from './cards.js?v=plague-a';
+import { emit } from './events.js?v=plague-b';
+import { ROWS, ROW_LABELS } from './cards.js?v=plague-b';
 import {
-  announcePlay, applyStatus, availableRows, boost, cardType, consume, createCard, damage, findUnit,
+  announcePlay, applyStatus, availableRows, basePower, boost, cardType, consume, createCard, damage, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, removeUnit,
   setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, units,
-} from './board.js?v=plague-a';
+} from './board.js?v=plague-b';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);
@@ -18,6 +18,7 @@ function targets(match, job, query) {
   let candidates;
   switch (query.scope) {
     case 'source': candidates = [reference(match, job)].filter(Boolean); break;
+    case 'ref-set': candidates = (job.refs?.[query.ref] ?? []).map((id) => findUnit(match, id)).filter(Boolean); break;
     case 'ref': candidates = [reference(match, job, query.ref)].filter(Boolean); break;
     case 'neighbors': candidates = neighbors(match, origin); break;
     case 'ally': candidates = units(match, job.side); break;
@@ -191,10 +192,12 @@ function spawn(match, job, step) {
   const { position, row } = step;
   const rows = row === 'all' ? ROWS : [step.rowRef ? job.refs[step.rowRef] : row === 'source' ? origin?.row : row === 'death' ? job.row : row];
   for (const row of rows.filter(Boolean)) {
+    const nearSource = origin?.row === row && (origin.side === job.side || step.row === 'source');
+    const side = nearSource ? origin.side : job.side;
     const index = position === 'death' ? job.position
-      : origin?.row === row ? origin.position + (position === 'right' ? 1 : 0)
-        : match.players[job.side].board[row].length;
-    spawnCards(match, job.side, row, index, step.amount, step.card);
+      : nearSource ? origin.position + (position === 'right' ? 1 : 0)
+        : match.players[side].board[row].length;
+    spawnCards(match, side, row, index, step.amount, step.card);
   }
 }
 
@@ -229,6 +232,10 @@ function playFromPile(match, job, step, random) {
   }
   const [chosen] = player[pile].splice(index, 1);
   const card = pile === 'discard' ? createCard(chosen.id, chosen.definition) : chosen;
+  if (pile === 'discard' && basePower(chosen) !== chosen.definition.power) {
+    card.basePower = basePower(chosen);
+    card.power = card.basePower;
+  }
   const destination = job.refs.deckPlacement;
   if (destinationSide !== job.side) card.owner = job.side;
   placeCards(recipient, destination.row, destination.position, [card]);
@@ -446,6 +453,7 @@ export function runEffect(match, job, random) {
     job.remaining = step.mode === 'random' && eligible.length > count
       ? chooseSubset(eligible.map(({ card }) => card), count, random)
       : eligible.map(({ card }) => card.id);
+    if (step.saveTargets) job.refs[step.saveTargets] = [...job.remaining];
     if (step.grouped && job.remaining.length) {
       const [receiver] = targets(match, job, step.receiver);
       emit(match, { type: 'consume-group', side: job.side, cardIds: [...job.remaining], eaterId: receiver.card.id });

@@ -1,8 +1,8 @@
-import { compareRollouts } from './bot-rollouts.js?v=plague-a';
-import { ROWS } from './cards.js?v=plague-a';
-import { cardType, opponent, placementSide, units } from './board.js?v=plague-a';
-import { availableOrders, canUseLeader, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=plague-a';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=plague-a';
+import { compareRollouts } from './bot-rollouts.js?v=plague-b';
+import { ROWS } from './cards.js?v=plague-b';
+import { cardType, opponent, placementSide, units } from './board.js?v=plague-b';
+import { availableOrders, canUseLeader, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=plague-b';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=plague-b';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -54,6 +54,8 @@ function boardValue(state, side) {
       + (definition.resilience && state.round < 3 ? (power ?? 0) * .4 : 0)
       + (definition.scenario ? Math.min(definition.scenario.chapters.length - (card.chapter ?? 0),
         player.hand.filter((entry) => entry.definition.categories?.includes(definition.scenario.category)).length) * 2.5 : 0)
+      + (definition.fieldEvents?.death && ROWS.some((row) =>
+        enemy.board[row].some((entry) => entry.statuses?.infection)) ? 1.25 : 0)
       - .72 * Math.min(power ?? 0, card.statuses?.infection ?? 0);
   }, (player.leader?.charges ?? 0) * .9 + rot);
 }

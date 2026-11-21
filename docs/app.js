@@ -1,20 +1,20 @@
-import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=plague-a';
+import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=plague-b';
 import { createDeckStorage } from './ui/deck-storage.js?v=step-16';
-import { bindCardPlacement } from './card-placement.js?v=plague-a';
-import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=plague-a';
+import { bindCardPlacement } from './card-placement.js?v=plague-b';
+import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=plague-b';
 import { clearParticles } from './particles.js?v=step-14';
-import { playJournal } from './turn-playback.js?v=plague-a';
-import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=plague-a';
-import { placementSide } from './game/board.js?v=plague-a';
-import { FACTIONS } from './game/cards.js?v=plague-a';
-import { applyAction, createDeckMatch } from './game/match.js?v=plague-a';
+import { playJournal } from './turn-playback.js?v=plague-b';
+import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=plague-b';
+import { placementSide } from './game/board.js?v=plague-b';
+import { FACTIONS } from './game/cards.js?v=plague-b';
+import { applyAction, createDeckMatch } from './game/match.js?v=plague-b';
 import { element, iconButton } from './ui/dom.js?v=step-11';
-import { preview, showCard } from './ui/cards.js?v=plague-a';
-import { createBattlefield } from './ui/field.js?v=plague-a';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=plague-a';
-import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=plague-a';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=plague-a';
-import { createSettings } from './ui/settings.js?v=plague-a';
+import { preview, showCard } from './ui/cards.js?v=plague-b';
+import { createBattlefield } from './ui/field.js?v=plague-b';
+import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=plague-b';
+import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=plague-b';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=plague-b';
+import { createSettings } from './ui/settings.js?v=plague-b';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
 

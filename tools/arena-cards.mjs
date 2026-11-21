@@ -51,3 +51,24 @@ export function summarizeOverload(matches) {
   }
   return [...categories.values()];
 }
+
+export function summarizePlagueEvents(matches) {
+  const totals = {};
+  for (const { plagueEvents = [] } of matches) {
+    for (const event of plagueEvents) {
+      const id = event.sourceDefinitionId ?? (event.type === 'scenario-chapter' ? 'spore-season'
+        : event.type === 'play' ? event.id : undefined);
+      if (!id) continue;
+      const counter = totals[id] ??= { damage: 0, infectionTicks: 0, infectionAdded: 0, boost: 0, chapters: 0, baseGain: 0 };
+      if (event.type === 'damage') counter.damage += event.lost ?? 0;
+      if (event.type === 'status' && event.status === 'infection') {
+        if (event.tick) counter.infectionTicks++;
+        else counter.infectionAdded += Math.max(0, event.amount);
+      }
+      if (event.type === 'boost') counter.boost += event.amount;
+      if (event.type === 'scenario-chapter') counter.chapters++;
+      if (event.type === 'play') counter.baseGain += event.baseGain;
+    }
+  }
+  return totals;
+}

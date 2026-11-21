@@ -1,9 +1,9 @@
-import { ROWS } from './cards.js?v=plague-a';
-import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=plague-a';
-import { availableOrders, canUseLeader, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue } from './effects.js?v=plague-a';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=plague-a';
+import { ROWS } from './cards.js?v=plague-b';
+import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=plague-b';
+import { availableOrders, canUseLeader, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue } from './effects.js?v=plague-b';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=plague-b';
 
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=plague-a';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=plague-b';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
@@ -147,8 +147,8 @@ export function pickBotTarget(match) {
   }
   if (kind === 'deck-card' || kind === 'deck-top') {
     const optionsSet = new Set(options);
-    const card = bestTarget(player[match.pending.pile ?? 'deck'].filter(({ id }) => optionsSet.has(id)), ({ definition }) =>
-      (definition.power ?? definition.provision ?? 0) + (definition.armor ?? 0) * .15 + Number(Boolean(definition.deploy)));
+    const card = bestTarget(player[match.pending.pile ?? 'deck'].filter(({ id }) => optionsSet.has(id)), ({ definition, power }) =>
+      (power ?? definition.power ?? definition.provision ?? 0) + (definition.armor ?? 0) * .15 + Number(Boolean(definition.deploy)));
     return { type: 'target', cardId: card.id };
   }
   if (kind === 'deck-placement') {

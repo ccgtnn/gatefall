@@ -1,9 +1,9 @@
-import { inspectDeck } from './decks.js?v=plague-a';
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=plague-a';
-import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, statusCount, takeCards } from './board.js?v=plague-a';
-import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=plague-a';
+import { inspectDeck } from './decks.js?v=plague-b';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=plague-b';
+import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, statusCount, takeCards } from './board.js?v=plague-b';
+import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=plague-b';
 
-export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=plague-a';
+export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=plague-b';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;

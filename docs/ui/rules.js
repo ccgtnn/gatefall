@@ -1,4 +1,4 @@
-import { KEYWORDS } from '../game/cards.js?v=plague-a';
+import { KEYWORDS } from '../game/cards.js?v=plague-b';
 import { element } from './dom.js?v=step-11';
 
 export function bindRulesMenu() {

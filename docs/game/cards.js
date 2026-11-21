@@ -24,6 +24,7 @@ export const KEYWORDS = Object.freeze({
   'Приказ': 'Готов со следующего хода владельца. После применения в этом ходу нельзя пасовать.',
   'Рвение': 'Приказ готов сразу после появления карты на поле.',
   'Соседи': 'Две ближайшие позиции слева и справа в том же ряду. Артефакты тоже занимают позиции.',
+  'Гниение': 'В начале хода владельца ряда случайный отряд получает Заражение 2 либо 2 урона, если уже заражён. Длительность уменьшается и обнуляется в конце раунда.',
   'Стойкость': 'Карта остаётся в своём ряду после завершения раунда и сохраняет состояние.',
   'Сценарий': 'Пролог срабатывает при розыгрыше. Условие карты открывает по одной главе. После последней главы сценарий уходит из игры.',
   'Конец хода': 'Эффект срабатывает в конце хода владельца карты, в том числе после паса.',
@@ -264,6 +265,59 @@ const presetNeutrals = {
   growth: ['veteran-mercenary', 'gravity-pulse', 'liaison', 'field-medic'],
 };
 
+const infectedEnemies = { ...enemies, infected: true };
+const rot = (row, amount, rowRef) => ({ action: 'row-effect', effect: 'rot', side: 'enemy', row, rowRef, amount });
+const plague = [
+  ['rot-midge', 'Гнилостная мошка', 4, 3, 'Рвение. Приказ: наложить Заражение 1 на выбранный вражеский отряд. Перезарядка: 2 хода.', {
+    zeal: true,
+    order: { cooldown: 2, ...ability([infect(chosen('enemy'), 1)], [infectionChoice(1)]) },
+    keywords: ['Рвение', 'Приказ', 'Заражение'],
+  }],
+  ['plague-carrier', 'Разносчик', 5, 1, 'Играется на сторону противника. При розыгрыше: наложить Заражение 3 на своих соседей.', {
+    enemySide: true, deploy: ability([infect(adjacent, 3)]), keywords: ['Соседи', 'Заражение'],
+  }],
+  ['rot-scavenger', 'Падальщик гнили', 6, 3, 'При розыгрыше: усилить себя на 1 за каждый заражённый вражеский отряд.', {
+    deploy: ability([action('boost', self, { count: infectedEnemies })]), keywords: ['Усиление', 'Заражение'],
+  }],
+  ['boil', 'Нарывник', 4, 3, 'Когда гибнет заражённый вражеский отряд, усилить себя на 2.', {
+    fieldEvents: { death: { enemy: true, infected: true, ability: ability([action('boost', self, 2)]) } },
+    keywords: ['Усиление', 'Заражение'],
+  }],
+  ['rot', 'Гниение', 5, null, 'Наложить Гниение на выбранный вражеский ряд на 3 хода.', {
+    type: 'effect', deploy: ability([
+      { action: 'select-row', ref: 'rotRow', filter: 'any', side: 'enemy', prompt: 'Выбери вражеский ряд для Гниения.' },
+      rot(undefined, 3, 'rotRow'),
+    ]), keywords: ['Гниение'],
+  }],
+  ['rot-giant', 'Гнилой исполин', 11, 3, 'Пока в колоде или руке: +1 к базовой силе за каждое первое Заражение вражеского отряда. При розыгрыше: 1 урон каждому заражённому вражескому отряду.', {
+    rarity: 'gold',
+    pileEvents: { 'first-infection': { enemy: true, ability: ability([action('base-power', self, 1)]) } },
+    deploy: ability([action('damage', infectedEnemies, 1)]), keywords: ['Заражение', 'Урон'],
+  }],
+  ['pestilence', 'Мор', 11, null, 'Наложить Гниение на оба вражеских ряда на 3 хода.', {
+    rarity: 'gold', type: 'effect', deploy: ability([rot('all', 3)]), keywords: ['Гниение'],
+  }],
+  ['plague-burst', 'Чумной всплеск', 9, null, 'Нанести каждому заражённому вражескому отряду урон по его счётчику Заражения, затем снять с них Заражение.', {
+    rarity: 'gold', type: 'effect', deploy: ability([
+      { ...action('damage', infectedEnemies, { status: 'infection' }), saveTargets: 'infected' },
+      infect({ scope: 'ref-set', ref: 'infected' }, { status: 'infection', scale: -1 }),
+    ]), keywords: ['Заражение', 'Урон'],
+  }],
+  ['spore-season', 'Сезон спор', 12, null, 'Стойкость. Главы открываются по одной, когда ты разыгрываешь карту категории Гниль. Пролог: Заражение 2 случайному вражескому отряду. Глава 1: Заражение 2 двум случайным незаражённым вражеским отрядам. Глава 2: Гниение на сильнейший вражеский ряд на 2 хода. Глава 3: 2 урона всем заражённым вражеским отрядам.', {
+    rarity: 'gold', type: 'artifact', resilience: true, categories: [],
+    scenario: {
+      category: 'Гниль',
+      prologue: ability([{ ...infect(enemies, 2), mode: 'random' }]),
+      chapters: [
+        ability([{ ...infect({ ...enemies, infected: false }, 2), count: 2, mode: 'random' }]),
+        ability([rot('strongest', 2)]),
+        ability([action('damage', infectedEnemies, 2)]),
+      ],
+    },
+    keywords: ['Стойкость', 'Сценарий', 'Гниение', 'Заражение', 'Урон'],
+  }],
+];
+
 const singleBronzes = {
   protectorate: ['shield-generator', 'orbital-shield', 'standard', 'warden', 'reinforcements'],
   growth: ['spore-sac', 'incubator', 'gulper', 'swarm-call'],
@@ -335,12 +389,15 @@ const growthLeaders = Object.freeze([
   },
 ]);
 
-function faction(id, name, strategy, entries, leaders) {
+function faction(id, name, strategy, entries, leaders, extras = []) {
   const pool = factionCards(entries, id);
-  return { name, strategy, pool, deck: presetCards(pool, id), leader: leaders[0], leaders };
+  const extraCards = extras.map(([cardId, label, provision, power, description, rules]) =>
+    [cardId, label, provision, power, description, { categories: ['Гниль'], rarity: 'bronze', ...rules }]);
+  return { name, strategy, pool: Object.freeze([...pool, ...factionCards(extraCards, id)]),
+    deck: presetCards(pool, id), leader: leaders[0], leaders };
 }
 
 export const FACTIONS = Object.freeze({
   protectorate: faction('protectorate', 'Протекторат', 'Строй', protectorate, protectorateLeaders),
-  growth: faction('growth', 'Поросль', 'Пожирание', growth, growthLeaders),
+  growth: faction('growth', 'Поросль', 'Пожирание', growth, growthLeaders, plague),
 });

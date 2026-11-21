@@ -1,11 +1,11 @@
-import { createCard, statusCount } from '../game/board.js?v=plague-a';
-import { insertionPoint } from '../card-placement.js?v=plague-a';
+import { createCard, statusCount } from '../game/board.js?v=plague-b';
+import { insertionPoint } from '../card-placement.js?v=plague-b';
 import { button, element, iconButton, sideLabel } from './dom.js?v=step-11';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=plague-a';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=plague-a';
-import { playerHand } from './hand.js?v=plague-a';
-import { availableOrders, canUseLeader, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=plague-a';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=plague-a';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=plague-b';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=plague-b';
+import { playerHand } from './hand.js?v=plague-b';
+import { availableOrders, canUseLeader, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=plague-b';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=plague-b';
 
 export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, isMulliganFieldVisible, setMulliganField,
   playHuman, humanCanAct, placeSelected, settingsButton, showDrawer, selectCard, mulliganScreen }) {
