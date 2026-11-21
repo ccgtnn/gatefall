@@ -1,4 +1,4 @@
-import { ROWS } from './cards.js?v=rarity-frames-1';
+import { ROWS } from './cards.js?v=epic-golems-1';
 import { emit } from './events.js?v=golem-trio-1';
 
 export const ROW_LIMIT = 9;

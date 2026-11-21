@@ -1,4 +1,4 @@
-import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=rarity-frames-1';
+import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=epic-golems-1';
 
 export const MIN_CARDS = 25;
 export const MIN_UNITS = 13;
