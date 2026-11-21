@@ -1,7 +1,7 @@
-import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=opponent-reveal-1';
+import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=match-cues-1';
 import { createDeckStorage } from './ui/deck-storage.js?v=step-16';
 import { bindCardPlacement } from './card-placement.js?v=opponent-reveal-1';
-import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=opponent-reveal-1';
+import { animateCoin, animateHandTurn, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=match-cues-1';
 import { clearParticles } from './particles.js?v=step-14';
 import { playJournal } from './turn-playback.js?v=opponent-reveal-1';
 import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=opponent-reveal-1';
@@ -9,11 +9,11 @@ import { placementSide } from './game/board.js?v=opponent-reveal-1';
 import { FACTIONS } from './game/cards.js?v=opponent-reveal-1';
 import { applyAction, createDeckMatch } from './game/match.js?v=opponent-reveal-1';
 import { element, iconButton } from './ui/dom.js?v=opponent-reveal-1';
-import { preview, showCard } from './ui/cards.js?v=opponent-reveal-1';
-import { createBattlefield } from './ui/field.js?v=opponent-reveal-1';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=opponent-reveal-1';
-import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=opponent-reveal-1';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=opponent-reveal-1';
+import { preview, showCard } from './ui/cards.js?v=match-cues-1';
+import { createBattlefield } from './ui/field.js?v=match-cues-1';
+import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=match-cues-1';
+import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=match-cues-1';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=match-cues-1';
 import { createSettings } from './ui/settings.js?v=opponent-reveal-1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
@@ -289,7 +289,10 @@ async function updateMatch(next) {
   }
   render();
   const changedTurn = match.phase === 'playing' && match.turn !== before.turn;
-  if (changedTurn) showNotice(turnNotice, match.turn === 'human' ? 'Твой ход' : 'Ход противника', 1000);
+  const humanTurnStarted = humanCanAct() && !match.playedCard &&
+    (changedTurn || match.players.human.turns !== before.players.human.turns);
+  if (humanTurnStarted) animateHandTurn(screen, duration);
+  if (changedTurn || humanTurnStarted) showNotice(turnNotice, match.turn === 'human' ? 'Твой ход' : 'Ход противника', 1000);
   else if (match.phase !== 'playing') hideNotice(turnNotice);
   announcement.textContent = events.map(eventText).join(' ');
   if (match.phase === 'finished' || match.phase === 'mulligan') screen.querySelector('h2')?.focus({ preventScroll: true });

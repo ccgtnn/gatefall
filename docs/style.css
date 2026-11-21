@@ -377,6 +377,7 @@ dialog.card-preview {
   padding: 0;
   color: inherit;
   pointer-events: auto;
+  overscroll-behavior: contain;
   border-color: var(--rarity-border-color, #8897a9);
 }
 dialog.card-preview::backdrop { background: #0d1119cc; }

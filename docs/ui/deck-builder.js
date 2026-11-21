@@ -1,7 +1,7 @@
 import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=opponent-reveal-1';
 import { createCard } from '../game/board.js?v=opponent-reveal-1';
 import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=opponent-reveal-1';
-import { addCardCrop, cardButton } from './cards.js?v=opponent-reveal-1';
+import { addCardCrop, cardButton } from './cards.js?v=match-cues-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 
 const byProvision = (a, b) => b.provision - a.provision || a.name.localeCompare(b.name, 'ru');

@@ -610,6 +610,21 @@ body:has(#app[data-animation-speed="fast"]) .field-drawer[open] { animation-dura
   touch-action: pan-y;
 }
 
+.board-row[data-row-effect="rot"] { border-color: #5c995691; }
+.board-row[data-row-effect="rot"] .row-line::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background:
+    radial-gradient(ellipse at 14% 83%, #89de6752, transparent 46%),
+    radial-gradient(ellipse at 38% 66%, #73bc4544, transparent 52%),
+    radial-gradient(ellipse at 65% 92%, #8cc95350, transparent 48%),
+    radial-gradient(ellipse at 90% 73%, #61cb6849, transparent 48%),
+    linear-gradient(0deg, #36733645, transparent 67%);
+  pointer-events: none;
+  content: '';
+}
 .field-center .row-label:disabled { opacity: 1; }
 .row-effect-badge {
   color: #a9ec72;

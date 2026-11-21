@@ -2,8 +2,8 @@ import { createCard, statusCount } from '../game/board.js?v=opponent-reveal-1';
 import { insertionPoint } from '../card-placement.js?v=opponent-reveal-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
 import { ROWS, ROW_LABELS } from '../game/cards.js?v=opponent-reveal-1';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=opponent-reveal-1';
-import { playerHand } from './hand.js?v=opponent-reveal-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=match-cues-1';
+import { playerHand } from './hand.js?v=match-cues-1';
 import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=opponent-reveal-1';
 import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=opponent-reveal-1';
 
@@ -34,6 +34,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     label.append(rowIcon, score);
     const effect = player.rowEffects?.[row];
     if (effect) {
+      wrapper.dataset.rowEffect = effect.type;
       const { icon, label: name } = ROW_EFFECTS[effect.type];
       const badge = element('span', 'row-effect-badge', icon + effect.remaining);
       badge.title = `${name} · осталось ходов: ${effect.remaining}`;

@@ -91,10 +91,10 @@ async function revealOpponentCard(screen, event, duration) {
   try {
     await animate(card, [
       { transform: 'translate(-34%, -50%) scale(.9)', opacity: 0 },
-      { transform: 'translate(-100%, -50%) scale(1)', opacity: 1, offset: .22 },
-      { transform: 'translate(-100%, -50%) scale(1)', opacity: 1, offset: .78 },
+      { transform: 'translate(-100%, -50%) scale(1)', opacity: 1, offset: 1 / 6 },
+      { transform: 'translate(-100%, -50%) scale(1)', opacity: 1, offset: 5 / 6 },
       { transform: 'translate(-93%, -50%) scale(.96)', opacity: 0 },
-    ], duration * 3.15);
+    ], duration * 4.2);
     return card.isConnected && field.isConnected;
   } finally {
     card.remove();
@@ -390,7 +390,24 @@ export function animateCoin(coin, label, duration) {
   ], duration);
 }
 
+export function animateHandTurn(screen, duration) {
+  if (!duration) return;
+  const cards = screen.querySelectorAll('.battle-hand-cards > .hand-card');
+  const step = Math.round(duration / 6);
+  cards.forEach((card, index) => {
+    card.animate?.([
+      { boxShadow: '0 0 0 2px #ffdf4100, 0 0 12px #ffdf4100' },
+      { boxShadow: '0 0 0 2px #ffdf41, 0 0 12px #ffdf41c9', offset: .35 },
+      { boxShadow: '0 0 0 2px #ffdf4100, 0 0 12px #ffdf4100' },
+    ], { delay: index * step, duration: step * 2, easing: 'ease-out' });
+  });
+}
+
 export async function presentJournalEvent(screen, event, commit, render, duration) {
+  if (event.type === 'row-effect') {
+    render(commit());
+    return;
+  }
   if (duration === 0 || !VISUAL_EVENTS.has(event.type)) {
     commit();
     return;

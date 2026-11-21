@@ -22,6 +22,7 @@ class TestElement {
   prepend(child) { this.children.unshift(child); }
   replaceChildren(...children) { this.children = children; }
   showModal() { this.open = true; }
+  focus(options) { this.focusOptions = options; }
 }
 
 globalThis.document = {
@@ -54,6 +55,17 @@ test('live battlefield and hand faces hide provision, while catalog and preview 
   assert.ok(byClass(preview, 'stat-badge-provision'));
   showCard(makeCard('bastion'), { showProvision: false });
   assert.equal(byClass(preview, 'stat-badge-provision'), undefined);
+});
+
+test('card details start at the top and focus the title without scrolling the page', () => {
+  preview.open = true;
+  preview.scrollTop = 150;
+  showCard(makeCard('spore-season'));
+  const title = tree(preview).find(({ id }) => id === 'preview-title');
+  assert.equal(title.autofocus, true);
+  assert.equal(title.tabIndex, -1);
+  assert.deepEqual(title.focusOptions, { preventScroll: true });
+  assert.equal(preview.scrollTop, 0);
 });
 
 test('scenario progress renders filled diamonds and the wing marker is absent', () => {

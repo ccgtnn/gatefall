@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { presentJournalEvent } from '../docs/card-motion.js';
+import { animateHandTurn, presentJournalEvent } from '../docs/card-motion.js';
 
 function scenario() {
   const trace = [];
@@ -27,7 +27,8 @@ function scenario() {
         trace.push(this.className + ':end');
         this.isConnected = false;
       },
-      animate() {
+      animate(keyframes, options) {
+        this.motion = { keyframes, options };
         trace.push(this.className + ':start');
         return {
           finished: this.className.endsWith('motion-opponent-reveal') ? revealed : Promise.resolve(),
@@ -58,6 +59,9 @@ test('an opponent effect is readable before it resolves, then the existing fligh
   assert.equal(overlays[0].style.left, '640px');
   assert.equal(overlays[0].children[0].src, './art/world-gates.webp');
   assert.equal(overlays[0].children[1].textContent, 'Врата миров');
+  const { keyframes, options } = overlays[0].motion;
+  assert.equal(options.duration, 1344);
+  assert.deepEqual(keyframes.slice(1, 3).map(({ opacity, offset }) => [opacity, offset]), [[1, 1 / 6], [1, 5 / 6]]);
   finishReveal();
   await present;
   assert.deepEqual(trace, [reveal + ':start', reveal + ':end', 'commit', 'render', flight + ':start', flight + ':end']);
@@ -79,4 +83,25 @@ test('leaving during a reveal prevents its old flight after the field is detache
   finishReveal();
   await present;
   assert.deepEqual(trace, [reveal + ':start', reveal + ':end']);
+});
+
+test('the turn cue sweeps the hand in order and respects reduced motion', () => {
+  const pulses = [];
+  const cards = Array.from({ length: 10 }, (_, index) => ({
+    animate: (_, { delay, duration }) => pulses.push({ index, delay, duration }),
+  }));
+  const screen = { querySelectorAll: () => cards };
+  animateHandTurn(screen, 0);
+  assert.deepEqual(pulses, []);
+  animateHandTurn(screen, 320);
+  assert.deepEqual(pulses, cards.map((_, index) => ({ index, delay: 53 * index, duration: 106 })));
+});
+
+test('a row effect updates the field immediately on application and expiry', async () => {
+  const trace = [];
+  for (const effect of [{ type: 'rot', remaining: 3 }, null]) {
+    const event = { type: 'row-effect', side: 'bot', row: 'orbit', effect };
+    await presentJournalEvent({}, event, () => event, (state) => trace.push(state.effect), 320);
+  }
+  assert.deepEqual(trace, [{ type: 'rot', remaining: 3 }, null]);
 });

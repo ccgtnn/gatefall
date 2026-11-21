@@ -49,8 +49,9 @@ export function showCard(card, { leader = false, legacy = false, showProvision =
   if (timer !== undefined) stats.push(`Таймер ${timer}`);
   const title = element('h2', null, definition.name);
   title.id = 'preview-title';
+  title.tabIndex = -1;
+  title.autofocus = true;
   const close = button('Закрыть', () => preview.close());
-  close.autofocus = true;
   const body = element('div', 'preview-body');
   if (definition.accent) body.dataset.accent = definition.accent;
   body.append(title, element('p', 'muted', details.join(' · ')));
@@ -81,6 +82,8 @@ export function showCard(card, { leader = false, legacy = false, showProvision =
     preview.replaceChildren(body);
   }
   if (!preview.open) preview.showModal();
+  else title.focus({ preventScroll: true });
+  preview.scrollTop = 0;
 }
 
 export function cardInspection(node, card, placement = false, show = () => showCard(card)) {

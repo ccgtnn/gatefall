@@ -1,8 +1,8 @@
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { createCard } from '../game/board.js?v=opponent-reveal-1';
 import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=opponent-reveal-1';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=opponent-reveal-1';
-import { logView, roundText } from './menu.js?v=opponent-reveal-1';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=match-cues-1';
+import { logView, roundText } from './menu.js?v=match-cues-1';
 import { filterCatalog } from './catalog-cards.js?v=opponent-reveal-1';
 
 const catalogCards = [...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool)];
