@@ -127,7 +127,7 @@ body:has(.badges-demo) {
   --stat-size: inherit;
   --stat-font: inherit;
 }
-.demo-scale .old-preview-face { border-radius: 4px; }
+.demo-scale .old-preview-face { position: relative; border-radius: 4px; background: #101823; }
 .demo-scale .preview-art {
   position: absolute;
   inset: 0;
@@ -163,7 +163,7 @@ body:has(.badges-demo) {
 .demo-badge-power.power-damaged { color: #ff555e; }
 .demo-badge-armor { color: #e2f5ff; }
 .demo-badge-provision { color: #ffe4a5; }
-.demo-badge-order:has(strong) strong { font-size: .91em; }
+.demo-badge-order:has(strong) strong { transform: translate(.28em, .25em); font-size: .84em; }
 .demo-badge-infection { color: #e0ffbd; filter: drop-shadow(0 0 2px #8ef75aa0); }
 .demo-badge-rarity { width: calc(var(--badge-size) * 1.26); height: calc(var(--badge-size) * .72); }
 .demo-badge-chapters { display: inline-flex; width: max-content; height: calc(var(--badge-size) * .62); gap: 0; }

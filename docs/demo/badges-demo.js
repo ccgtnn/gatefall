@@ -18,7 +18,7 @@ function icon(name, width = 40, height = 40) {
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   svg.setAttribute('aria-hidden', 'true');
   const use = document.createElementNS(svgNamespace, 'use');
-  use.setAttribute('href', './demo/stat-badges.svg?v=1#' + name);
+  use.setAttribute('href', './demo/stat-badges.svg?v=2#' + name);
   svg.append(use);
   return svg;
 }
