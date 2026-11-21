@@ -456,7 +456,7 @@ test('Feast selects a different larva across rows, boosts the recipient and keep
   match = target(match, 'eater');
   assert.deepEqual(match.pending.options, ['larva']);
   match = target(match, 'larva');
-  assert.equal(match.players.human.board.surface[0].power, 10);
+  assert.equal(match.players.human.board.surface[0].power, 9);
   assert.equal(match.players.human.discard[0].id, 'feast');
   assert.equal(match.players.human.exile[0].id, 'larva');
 });

@@ -1,4 +1,4 @@
-import { ROWS } from './cards.js?v=step-20';
+import { ROWS } from './cards.js?v=step-21';
 import { emit } from './events.js?v=step-16';
 
 export const ROW_LIMIT = 9;

@@ -124,9 +124,9 @@ const growth = [
   ['cocoon', 'Кокон', 4, 3, 'При розыгрыше: породить по личинке с каждой стороны. Завещание: усилить поглотившего на 2.',
     { art: 'cocoon.webp?v=3', deploy: ability([spawn('left'), spawn('right')]),
       deathwish: ability([action('boost', chosen('consumer'), 2)]), keywords: ['Порождение', 'Завещание', 'Поглощение'] }],
-  ['feast', 'Пиршество', 4, null, 'Выбранный свой отряд поглощает одну другую свою личинку и получает ещё +5 силы.',
+  ['feast', 'Пиршество', 4, null, 'Выбранный свой отряд поглощает одну другую свою личинку и получает ещё +4 силы.',
     { art: 'feast.webp', type: 'effect', deploy: ability([
-      absorb(chosen('victim'), { receiver: chosen('ally'), extra: 5 }),
+      absorb(chosen('victim'), { receiver: chosen('ally'), extra: 4 }),
     ], [
       choice('ally', allies, 'Выбери свой отряд для Пиршества.', { kind: 'boost' }),
       choice('victim', { ...larvae, exclude: 'ally' }, 'Выбери личинку для поглощения.', { kind: 'consume' }),
@@ -258,7 +258,7 @@ export const NEUTRAL_CARDS = Object.freeze([
 ]);
 
 const presetNeutrals = {
-  protectorate: ['recon-drone', 'emp-grenade', 'gate-relic', 'gate-guardian'],
+  protectorate: ['recon-drone', 'smuggler', 'gate-relic', 'gate-guardian'],
   growth: ['veteran-mercenary', 'gravity-pulse', 'liaison', 'field-medic'],
 };
 

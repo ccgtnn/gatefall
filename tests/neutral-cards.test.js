@@ -27,7 +27,7 @@ test('all eleven neutrals are in the catalog and the both preset neutral package
   assert.equal(new Set(NEUTRAL_CARDS.map(({ id }) => id)).size, 11);
   const ids = ({ deck }) => deck.filter(({ faction }) => faction === 'neutral').map(({ id }) => id).sort();
   assert.deepEqual(ids(FACTIONS.protectorate),
-    ['annihilation', 'emp-grenade', 'gate-guardian', 'gate-relic', 'recon-drone', 'recon-drone']);
+    ['annihilation', 'gate-guardian', 'gate-relic', 'recon-drone', 'recon-drone', 'smuggler']);
   assert.deepEqual(ids(FACTIONS.growth),
     ['annihilation', 'field-medic', 'gravity-pulse', 'liaison', 'veteran-mercenary']);
 });

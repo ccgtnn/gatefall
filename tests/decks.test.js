@@ -14,7 +14,7 @@ test('the two immutable presets fit the provision cap and have enough units', ()
     assert.equal(result.cards.length, index === 0 ? 25 : 27);
     assert.ok(result.units >= 13);
     assert.equal(result.budget, 165);
-    assert.equal(result.cost, index === 0 ? 165 : 164);
+    assert.equal(result.cost, 164);
     assert.ok(Object.isFrozen(preset.cardIds));
     assert.equal(collection(preset.factionId).length, 26);
     assert.equal(collection(preset.factionId).filter(({ faction }) => faction === 'neutral').length, 11);
@@ -37,8 +37,9 @@ test('deck validation reports card, unit, copy, faction, leader, name and provis
 
 test('saved custom compositions and leaders are used to start a match against the opposing preset', () => {
   const deck = { ...protectorate, name: 'Custom', leaderId: 'fleet-admiral',
-    cardIds: protectorate.cardIds.map((id) => id === 'recon-drone' ? 'smuggler' : id) };
+    cardIds: protectorate.cardIds.map((id) => id === 'smuggler' ? 'emp-grenade' : id) };
   const match = createDeckMatch(deck, { random: () => .99 });
+  assert.ok(match);
   assert.equal(match.players.human.leader.id, 'fleet-admiral');
   assert.equal(match.players.human.factionId, 'protectorate');
   const ids = (player) => [...player.hand, ...player.deck].map(({ definition }) => definition.id).sort();

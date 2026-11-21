@@ -1,19 +1,19 @@
-import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=step-20';
+import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=step-21';
 import { createDeckStorage } from './ui/deck-storage.js?v=step-16';
 import { bindCardPlacement } from './card-placement.js?v=field-6';
-import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=step-20';
+import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=step-21';
 import { clearParticles } from './particles.js?v=step-14';
-import { playJournal } from './turn-playback.js?v=step-20';
-import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=step-20';
-import { FACTIONS } from './game/cards.js?v=step-20';
-import { applyAction, createDeckMatch } from './game/match.js?v=step-20';
+import { playJournal } from './turn-playback.js?v=step-21';
+import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=step-21';
+import { FACTIONS } from './game/cards.js?v=step-21';
+import { applyAction, createDeckMatch } from './game/match.js?v=step-21';
 import { element, iconButton } from './ui/dom.js?v=step-11';
-import { preview, showCard } from './ui/cards.js?v=step-20';
-import { createBattlefield } from './ui/field.js?v=step-20';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=step-20';
-import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=step-20';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=step-20';
-import { createSettings } from './ui/settings.js?v=step-20';
+import { preview, showCard } from './ui/cards.js?v=step-21';
+import { createBattlefield } from './ui/field.js?v=step-21';
+import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=step-21';
+import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=step-21';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=step-21';
+import { createSettings } from './ui/settings.js?v=step-21';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
 
