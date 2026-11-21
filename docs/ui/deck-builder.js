@@ -1,8 +1,8 @@
-import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=falura-art-1';
-import { createCard } from '../game/board.js?v=falura-art-1';
-import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=falura-art-1';
-import { addCardCrop, cardButton } from './cards.js?v=falura-art-1';
-import { button, element, selectField } from './dom.js?v=falura-art-1';
+import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=live-badges-1';
+import { createCard } from '../game/board.js?v=live-badges-1';
+import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=live-badges-1';
+import { addCardCrop, cardButton } from './cards.js?v=live-badges-1';
+import { button, element, selectField } from './dom.js?v=live-badges-1';
 
 const byProvision = (a, b) => b.provision - a.provision || a.name.localeCompare(b.name, 'ru');
 
@@ -27,15 +27,15 @@ function violations(result) {
 
 export function deckListScreen(phaseLabel, decks, stats, actions) {
   phaseLabel.textContent = '';
-  const screen = element('section', 'intro deck-home');
+  const screen = element('section', 'deck-home');
   const toolbar = element('div', 'deck-toolbar');
   toolbar.append(viewHeading('Колоды'), button('Новая колода', actions.create, 'button primary'),
     button('Все карты', actions.catalog));
   screen.append(toolbar);
 
   for (const [title, entries, preset] of [
-    ['Сохранённые колоды', decks, false],
     ['Стартовые колоды', PRESETS, true],
+    ['Сохранённые колоды', decks, false],
   ]) {
     const group = element('section', 'deck-list-group');
     group.append(element('h3', null, title));
@@ -211,14 +211,13 @@ export function deckEditor(phaseLabel, deck, { save, play, back }) {
         if ((inspectDeck(deck).counts.get(card.id) ?? 0) >= limit) return;
         deck.cardIds.push(card.id);
         changed();
-      }, { factionId: deck.factionId });
-      const cost = element('span', 'deck-card-cost', card.provision);
+      }, { factionId: deck.factionId }, false, { showProvision: true });
       const copies = element('span', 'deck-card-copies', '×' + limit);
       copies.setAttribute('aria-hidden', 'true');
       const pips = Array.from({ length: limit }, () => element('i'));
       copies.append(...pips);
       cards.set(card.id, { face, pips, limit, label: face.getAttribute('aria-label') });
-      face.append(cost, copies);
+      face.append(copies);
       item.append(face, element('span', 'deck-card-name', card.name));
       return item;
     }));

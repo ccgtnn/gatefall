@@ -1,20 +1,20 @@
-import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=falura-art-1';
+import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=live-badges-1';
 import { createDeckStorage } from './ui/deck-storage.js?v=step-16';
-import { bindCardPlacement } from './card-placement.js?v=falura-art-1';
-import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=falura-art-1';
+import { bindCardPlacement } from './card-placement.js?v=live-badges-1';
+import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=live-badges-1';
 import { clearParticles } from './particles.js?v=step-14';
-import { playJournal } from './turn-playback.js?v=falura-art-1';
-import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=falura-art-1';
-import { placementSide } from './game/board.js?v=falura-art-1';
-import { FACTIONS } from './game/cards.js?v=falura-art-1';
-import { applyAction, createDeckMatch } from './game/match.js?v=falura-art-1';
-import { element, iconButton } from './ui/dom.js?v=falura-art-1';
-import { preview, showCard } from './ui/cards.js?v=falura-art-1';
-import { createBattlefield } from './ui/field.js?v=falura-art-1';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=falura-art-1';
-import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=falura-art-1';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=falura-art-1';
-import { createSettings } from './ui/settings.js?v=falura-art-1';
+import { playJournal } from './turn-playback.js?v=live-badges-1';
+import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=live-badges-1';
+import { placementSide } from './game/board.js?v=live-badges-1';
+import { FACTIONS } from './game/cards.js?v=live-badges-1';
+import { applyAction, createDeckMatch } from './game/match.js?v=live-badges-1';
+import { element, iconButton } from './ui/dom.js?v=live-badges-1';
+import { preview, showCard } from './ui/cards.js?v=live-badges-1';
+import { createBattlefield } from './ui/field.js?v=live-badges-1';
+import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=live-badges-1';
+import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=live-badges-1';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=live-badges-1';
+import { createSettings } from './ui/settings.js?v=live-badges-1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
 
@@ -73,7 +73,7 @@ const cancelPlacement = bindCardPlacement(screen, (cardId, row, position) => {
   playHuman({ type: 'play', cardId, row, position });
 }, (node) => {
   const card = match.players.human.hand.find(({ id }) => id === node.dataset.cardId);
-  if (card && !replaying) showCard(card);
+  if (card && !replaying) showCard(card, { showProvision: false });
 });
 
 function settingsButton() {
@@ -205,6 +205,7 @@ function render() {
       });
     }
   }
+  app.classList.toggle('is-deck-home', content.classList.contains('deck-home'));
   screen.replaceChildren(content);
   menu.refresh(match, replaying);
 }

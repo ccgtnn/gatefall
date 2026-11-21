@@ -1,5 +1,5 @@
-import { ROWS } from './cards.js?v=falura-art-1';
-import { emit } from './events.js?v=falura-art-1';
+import { ROWS } from './cards.js?v=live-badges-1';
+import { emit } from './events.js?v=live-badges-1';
 
 export const ROW_LIMIT = 9;
 export const HAND_LIMIT = 10;

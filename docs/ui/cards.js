@@ -1,6 +1,8 @@
-import { button, element, setCardRarity } from './dom.js?v=falura-art-1';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=falura-art-1';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=falura-art-1';
+import { button, element, setCardRarity } from './dom.js?v=live-badges-1';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=live-badges-1';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=live-badges-1';
+
+import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=live-badges-1';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';
@@ -20,18 +22,20 @@ export function cardArt(definition, className) {
   return image;
 }
 
-export function addCardCrop(node, definition) {
+export function addCardCrop(node, definition, { fullArt = false } = {}) {
   setCardRarity(node, definition.rarity);
   if (!definition.art) return;
   node.classList.add('has-art');
-  node.prepend(cardArt(definition, 'card-art-crop'));
+  node.prepend(cardArt(fullArt ? { ...definition, artCrop: undefined } : definition, 'card-art-crop'));
 }
 
-export function showCard(card, { leader = false } = {}) {
+export function showCard(card, { leader = false, legacy = false, showProvision = true,
+  orderReady = false, orderCooldown = 0 } = {}) {
   const { definition, power, armor, timer, counter } = card;
   setCardRarity(preview, definition.rarity);
   const details = leader ? ['Лидер'] : [CARD_TYPES[cardType(card)], definition.faction === NEUTRAL && 'Нейтральная', RARITY_LABELS[definition.rarity],
-    definition.stratagem ? 'Стратагема' : definition.provision !== undefined ? `Провизия ${definition.provision}` : 'Токен'].filter(Boolean);
+    definition.stratagem ? 'Стратагема' : definition.provision === undefined ? 'Токен'
+      : showProvision && `Провизия ${definition.provision}`].filter(Boolean);
   details.push(...(definition.categories ?? []));
   const stats = [];
   if (definition.scenario) stats.push(`Главы ${card.chapter ?? 0}/${definition.scenario.chapters.length}`);
@@ -63,9 +67,15 @@ export function showCard(card, { leader = false } = {}) {
     body.append(glossary);
   }
   body.append(close);
-  if (definition.art) {
+  if (definition.art || (!leader && !legacy)) {
     const layout = element('div', 'preview-layout');
-    layout.append(cardArt(definition, 'preview-art'), body);
+    let art;
+    if (!leader && !legacy) {
+      const face = element('div', 'preview-card-face');
+      decorateCard(face, card, { factionId: definition.faction }, { showProvision, fullArt: true, orderReady, orderCooldown });
+      art = face;
+    } else art = cardArt(definition, 'preview-art');
+    layout.append(art, body);
     preview.replaceChildren(layout);
   } else {
     preview.replaceChildren(body);
@@ -167,14 +177,62 @@ function cardStats(card) {
   return stats;
 }
 
-export function decorateCard(node, card, player, { orderOnField = false } = {}) {
-  const { definition, timer, counter } = card;
+export function decorateCard(node, card, player, { orderOnField = false, legacy = false,
+  showProvision = false, fullArt = false, orderReady = false, orderCooldown = 0 } = {}) {
+  const { definition } = card;
   const type = cardType(card);
   node.dataset.type = type;
   if (definition.accent) node.dataset.accent = definition.accent;
   if (definition.enemySide) node.dataset.enemySide = 'true';
   node.dataset.faction = definition.faction === NEUTRAL ? NEUTRAL : player.factionId ?? '';
-  node.setAttribute('aria-label', cardLabel(card));
+  node.setAttribute('aria-label', cardLabel(card, legacy || showProvision));
+  if (legacy) legacyBadges(node, card, orderOnField);
+  else liveBadges(node, card, { orderOnField, showProvision, orderReady, orderCooldown });
+  if (definition.categories?.length) node.append(element('span', 'card-category', definition.categories.join(' · ')));
+  addCardCrop(node, definition, { fullArt });
+  if (!definition.art) node.append(element('span', 'card-art-placeholder', definition.name));
+}
+
+function liveBadges(node, card, { orderOnField, showProvision, orderReady, orderCooldown }) {
+  const { definition, armor, counter, timer } = card;
+  if (isUnit(card)) {
+    const power = statBadge('power', `Сила ${card.power} · база ${basePower(card)}`, card.power);
+    power.classList.add('unit-power');
+    power.classList.toggle('power-boosted', card.power > basePower(card));
+    power.classList.toggle('power-damaged', card.power < basePower(card));
+    node.append(power);
+  }
+  if (armor) {
+    const mark = statBadge('armor', 'Броня ' + armor, armor);
+    mark.classList.add('armor-stat');
+    node.append(mark);
+  }
+  if (showProvision && definition.provision !== undefined) node.append(statBadge('provision', 'Провизия ' + definition.provision, definition.provision));
+  if (definition.scenario) node.append(scenarioBadge(card.chapter ?? 0, definition.scenario.chapters.length));
+  else if (!isUnit(card)) node.append(element('span', 'card-kind', cardType(card) === 'artifact' ? '◇' : '✦'));
+  const infection = statusCount(card, 'infection');
+  if (infection) node.append(statBadge('infection', 'Заражение ' + infection, infection));
+
+  if (orderOnField) return;
+  if (counter > 0 || timer !== undefined) {
+    node.append(statBadge('hourglass', (timer === undefined ? 'Счётчик ' : 'Таймер ') + (timer ?? counter), timer ?? counter));
+  } else if (definition.order) {
+    const label = orderReady ? 'Приказ готов' : orderCooldown ? 'Перезарядка Приказа: ' + orderCooldown : 'Приказ';
+    node.append(orderBadge(orderReady, orderCooldown, label));
+  } else {
+    const word = card.resilient ? 'Стойкость' : statusCount(card, 'doomed') ? 'Обречённая'
+      : keywordsFor(card).find((keyword) => keyword !== 'Броня');
+    if (word) {
+      const mark = element('span', 'card-state', keywordIcons[word] ?? '○');
+      mark.title = word;
+      node.append(mark);
+    }
+  }
+}
+
+function legacyBadges(node, card, orderOnField) {
+  const { definition, timer, counter } = card;
+  const type = cardType(card);
   node.append(cardStats(card));
   if (type !== 'unit') {
     const scenario = definition.scenario;
@@ -199,12 +257,9 @@ export function decorateCard(node, card, player, { orderOnField = false } = {}) 
     badge.title = 'Заражение ' + infection;
     node.append(badge);
   }
-  if (definition.categories?.length) node.append(element('span', 'card-category', definition.categories.join(' · ')));
-  addCardCrop(node, definition);
-  if (!definition.art) node.append(element('span', 'card-art-placeholder', definition.name));
 }
 
-function cardLabel(card) {
+function cardLabel(card, showProvision) {
   const { definition, power, armor, timer, counter } = card;
   const details = [definition.name, CARD_TYPES[cardType(card)]];
   if (definition.faction === NEUTRAL) details.push('Нейтральная');
@@ -213,7 +268,8 @@ function cardLabel(card) {
   if (definition.enemySide) details.push('на сторону противника');
   if (isUnit(card)) details.push(`сила ${power}`);
   if (armor) details.push(`броня ${armor}`);
-  if (definition.rarity) details.push(RARITY_LABELS[definition.rarity], `провизия ${definition.provision}`);
+  if (definition.rarity) details.push(RARITY_LABELS[definition.rarity]);
+  if (showProvision && definition.provision !== undefined) details.push(`провизия ${definition.provision}`);
   if (statusCount(card, 'doomed')) details.push('Обречённая');
   const infection = statusCount(card, 'infection');
   if (infection) details.push('Заражение ' + infection);
@@ -224,10 +280,10 @@ function cardLabel(card) {
   return details.join(' · ');
 }
 
-export function cardButton(card, handler, player, placement = false) {
+export function cardButton(card, handler, player, placement = false, { showProvision = false } = {}) {
   const node = button(undefined, handler, 'hand-card');
   node.dataset.cardId = card.id;
-  decorateCard(node, card, player);
-  cardInspection(node, card, placement);
+  decorateCard(node, card, player, { showProvision });
+  cardInspection(node, card, placement, () => showCard(card, { showProvision }));
   return node;
 }

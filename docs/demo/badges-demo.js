@@ -1,7 +1,7 @@
-import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=falura-art-1';
-import { basePower, createCard, isUnit, statusCount } from '../game/board.js?v=falura-art-1';
-import { cardArt, decorateCard, showCard } from '../ui/cards.js?v=falura-art-1';
-import { button, element, setCardRarity } from '../ui/dom.js?v=falura-art-1';
+import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=live-badges-1';
+import { basePower, createCard, isUnit, statusCount } from '../game/board.js?v=live-badges-1';
+import { cardArt, decorateCard, showCard } from '../ui/cards.js?v=live-badges-1';
+import { button, element, setCardRarity } from '../ui/dom.js?v=live-badges-1';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const definitions = [...Object.values(FACTIONS).flatMap(({ pool }) => pool), ...NEUTRAL_CARDS];
@@ -71,7 +71,7 @@ function addDemoBadges(face, card, sample, context) {
 }
 
 function oldPreview(card) {
-  const face = button(undefined, () => showCard(card), 'old-preview-face');
+  const face = button(undefined, () => showCard(card, { legacy: true }), 'old-preview-face');
   face.setAttribute('aria-label', card.definition.name + ' · текущий просмотр');
   setCardRarity(face, card.definition.rarity);
   face.append(cardArt(card.definition, 'preview-art'));
@@ -92,9 +92,9 @@ function renderCard(card, sample, context, proposed, interactive = true) {
   const isField = context === 'field';
   const faceClass = isField ? 'unit-face' : 'hand-card';
   const face = interactive
-    ? button(undefined, () => proposed ? showProposed(card, sample) : showCard(card), faceClass)
+    ? button(undefined, () => proposed ? showProposed(card, sample) : showCard(card, { legacy: true }), faceClass)
     : element('div', faceClass);
-  decorateCard(face, card, { factionId: card.definition.faction }, { orderOnField: isField && Boolean(card.definition.order) });
+  decorateCard(face, card, { factionId: card.definition.faction }, { legacy: true, orderOnField: isField && Boolean(card.definition.order) });
   if (context === 'preview') face.prepend(cardArt(card.definition, 'preview-art'));
   if (context === 'preview') face.querySelector('.card-art-crop')?.remove();
   face.classList.toggle('demo-proposed-face', proposed);

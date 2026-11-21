@@ -1,0 +1,37 @@
+import { element } from './dom.js?v=live-badges-1';
+
+function symbol(name, size = 40) {
+  const namespace = 'http://www.w3.org/2000/svg';
+  const icon = document.createElementNS(namespace, 'svg');
+  icon.setAttribute('viewBox', `0 0 ${size} ${size}`);
+  icon.setAttribute('aria-hidden', 'true');
+  const use = document.createElementNS(namespace, 'use');
+  use.setAttribute('href', './demo/stat-badges.svg?v=3#' + name);
+  icon.append(use);
+  return icon;
+}
+
+export function statBadge(kind, label, value, variant = kind) {
+  const node = element('span', 'stat-badge stat-badge-' + kind);
+  node.title = label;
+  node.setAttribute('aria-label', label);
+  node.setAttribute('role', 'img');
+  node.append(symbol(variant));
+  if (value !== undefined) node.append(element('strong', null, value));
+  return node;
+}
+
+export function scenarioBadge(played, total) {
+  const node = element('span', 'stat-badge stat-badge-chapters');
+  node.setAttribute('role', 'img');
+  node.title = `Главы сценария: ${played} из ${total}`;
+  node.setAttribute('aria-label', node.title);
+  for (let index = 0; index < total; index++) {
+    node.append(symbol(index < played ? 'chapter-filled' : 'chapter-empty', 20));
+  }
+  return node;
+}
+
+export function orderBadge(ready, cooldown, label) {
+  return statBadge('order', label, cooldown || undefined, ready ? 'order-ready' : 'order-cooldown');
+}

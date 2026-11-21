@@ -1,11 +1,13 @@
-import { createCard, statusCount } from '../game/board.js?v=falura-art-1';
-import { insertionPoint } from '../card-placement.js?v=falura-art-1';
-import { button, element, iconButton, sideLabel } from './dom.js?v=falura-art-1';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=falura-art-1';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=falura-art-1';
-import { playerHand } from './hand.js?v=falura-art-1';
-import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=falura-art-1';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=falura-art-1';
+import { createCard, statusCount } from '../game/board.js?v=live-badges-1';
+import { insertionPoint } from '../card-placement.js?v=live-badges-1';
+import { button, element, iconButton, sideLabel } from './dom.js?v=live-badges-1';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=live-badges-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=live-badges-1';
+import { playerHand } from './hand.js?v=live-badges-1';
+import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=live-badges-1';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=live-badges-1';
+
+import { orderBadge } from './stat-badges.js?v=live-badges-1';
 
 export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, isMulliganFieldVisible, setMulliganField,
   playHuman, humanCanAct, placeSelected, settingsButton, showDrawer, selectCard, mulliganScreen }) {
@@ -67,23 +69,24 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       const slot = element('div', 'slot filled');
       slot.dataset.boardCard = card.id;
       if (match.hiddenDuringPlayback?.has(card.id)) slot.style.opacity = '0';
+      const cooldown = Math.max(0, card.readyAt - player.turns);
+      const ready = readyOrders.has(card.id);
+      const inspect = () => showCard(card, { showProvision: false, orderReady: ready, orderCooldown: cooldown });
       const face = button(undefined, () => {
         if (target) playHuman({ type: 'target', cardId: card.id });
-        else if (!rowTarget && !deckPlacement && !isReplaying() && getSelectedCardId() === undefined) showCard(card);
+        else if (!rowTarget && !deckPlacement && !isReplaying() && getSelectedCardId() === undefined) inspect();
       }, 'unit-face');
       decorateCard(face, card, player, { orderOnField: Boolean(card.definition.order) });
       if (target) face.classList.add('effect-target');
       if (statusCount(card, 'doomed')) face.classList.add('is-doomed');
-      cardInspection(face, card);
+      cardInspection(face, card, false, inspect);
       slot.append(face);
       if (card.definition.order) {
-        const cooldown = Math.max(0, card.readyAt - player.turns);
-        const ready = readyOrders.has(card.id);
         const label = 'Приказ · ' + (ready ? 'готов' : cooldown ? 'осталось ходов: ' + cooldown : 'нет цели');
-        const mark = ready ? '⚑' : cooldown > 0 ? cooldown : '◷';
         const order = side === 'human'
-          ? button(mark, () => playHuman({ type: 'order', cardId: card.id }), 'card-state unit-order')
-          : element('span', 'card-state unit-order', mark);
+          ? button(undefined, () => playHuman({ type: 'order', cardId: card.id }), 'unit-order stat-order-control')
+          : element('span', 'unit-order stat-order-control');
+        order.append(orderBadge(ready, cooldown, label));
         if (side === 'human') order.disabled = !humanCanAct() || !ready;
         order.classList.toggle('order-ready', ready);
         order.classList.toggle('order-sleep', !ready);

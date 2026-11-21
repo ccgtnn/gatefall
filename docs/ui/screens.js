@@ -1,9 +1,9 @@
-import { button, element, selectField } from './dom.js?v=falura-art-1';
-import { createCard } from '../game/board.js?v=falura-art-1';
-import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=falura-art-1';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=falura-art-1';
-import { logView, roundText } from './menu.js?v=falura-art-1';
-import { filterCatalog } from './catalog-cards.js?v=falura-art-1';
+import { button, element, selectField } from './dom.js?v=live-badges-1';
+import { createCard } from '../game/board.js?v=live-badges-1';
+import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=live-badges-1';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=live-badges-1';
+import { logView, roundText } from './menu.js?v=live-badges-1';
+import { filterCatalog } from './catalog-cards.js?v=live-badges-1';
 
 const catalogCards = [...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool)];
 const catalogFactions = [['', 'Все фракции'], [NEUTRAL, 'Нейтральные'],
@@ -61,7 +61,7 @@ export function catalogScreen(phaseLabel, back) {
     grid.replaceChildren(...shown.map((definition) => {
       const card = createCard(definition.id, definition);
       const item = element('div', 'catalog-entry');
-      item.append(cardButton(card, () => showCard(card), { factionId: definition.faction }),
+      item.append(cardButton(card, () => showCard(card), { factionId: definition.faction }, false, { showProvision: true }),
         element('span', null, definition.name));
       if (definition.categories?.length) item.append(element('span', 'catalog-category', definition.categories.join(' · ')));
       return item;

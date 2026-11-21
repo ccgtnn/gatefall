@@ -1,6 +1,6 @@
-import { button, element, sideLabel } from './dom.js?v=falura-art-1';
-import { ROW_LABELS } from '../game/cards.js?v=falura-art-1';
-import { cardButton, showCard } from './cards.js?v=falura-art-1';
+import { button, element, sideLabel } from './dom.js?v=live-badges-1';
+import { ROW_LABELS } from '../game/cards.js?v=live-badges-1';
+import { cardButton, showCard } from './cards.js?v=live-badges-1';
 
 export function roundText(event) {
   const { scores, winner } = event;
@@ -136,7 +136,7 @@ export function createMatchMenu(getMatch, showThoughts) {
     const ordered = player[pile].toSorted((left, right) =>
       (right.power ?? 0) - (left.power ?? 0) ||
       left.definition.name.localeCompare(right.definition.name, 'ru'));
-    cards.append(...ordered.map((card) => cardButton(card, () => showCard(card), player)));
+    cards.append(...ordered.map((card) => cardButton(card, () => showCard(card, { showProvision: false }), player)));
     if (!ordered.length) cards.append(element('p', 'muted', pile === 'deck' ? 'Колода пуста.' : 'Сброс пуст.'));
     drawer.replaceChildren(header, cards);
   }
