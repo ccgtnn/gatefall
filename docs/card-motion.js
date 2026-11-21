@@ -1,5 +1,5 @@
-import { setCardRarity } from './ui/dom.js?v=live-badges-1';
-import { NEUTRAL } from './game/cards.js?v=live-badges-1';
+import { setCardRarity } from './ui/dom.js?v=opponent-reveal-1';
+import { NEUTRAL } from './game/cards.js?v=opponent-reveal-1';
 import { burstParticles } from './particles.js?v=step-14';
 
 const VISUAL_EVENTS = new Set([
@@ -55,17 +55,10 @@ function oldHandPosition(screen, id) {
   return card ? center(card.getBoundingClientRect()) : null;
 }
 
-function fly(screen, event, current, handOrigin, duration) {
-  const target = current.get(event.cardId);
-  const field = screen.querySelector('.field-center');
-  if (!target && !field) return [];
-  const destination = center(target?.rect ?? field.getBoundingClientRect());
-  const view = screen.ownerDocument.defaultView;
-  const from = handOrigin ?? { x: destination.x, y: -30 };
-  const startY = Math.max(-40, Math.min(view.innerHeight + 40, from.y));
+function floatingCard(screen, event, className, destination, fullArt = false) {
   const definition = event.card?.definition;
-  const art = definition?.artCrop ?? definition?.art;
-  const card = floatNode(screen, 'motion-flight', art ? '' : event.name, destination);
+  const art = fullArt ? definition?.art : definition?.artCrop ?? definition?.art;
+  const card = floatNode(screen, className, art || fullArt ? '' : event.name, destination);
   setCardRarity(card, definition?.rarity);
   if (art) {
     const image = screen.ownerDocument.createElement('img');
@@ -75,8 +68,48 @@ function fly(screen, event, current, handOrigin, duration) {
     card.classList.add('has-art');
     card.append(image);
   }
-  card.dataset.faction = event.card?.definition.faction === NEUTRAL ? NEUTRAL
+  card.dataset.faction = definition?.faction === NEUTRAL ? NEUTRAL
     : screen.querySelector('[data-side="' + event.side + '"]')?.dataset.faction ?? '';
+  return card;
+}
+
+async function revealOpponentCard(screen, event, duration) {
+  const field = screen.querySelector('.side[data-side="bot"]');
+  if (!field) return true;
+  const view = screen.ownerDocument.defaultView;
+  if (view.getComputedStyle(field).visibility === 'hidden') return true;
+  const { right, top, height } = field.getBoundingClientRect();
+  const card = floatingCard(screen, event, 'motion-opponent-reveal', {
+    x: right - 8,
+    y: top + height / 2,
+  }, true);
+  const label = screen.ownerDocument.createElement('span');
+  label.className = 'opponent-reveal-name';
+  label.textContent = event.name;
+  card.append(label);
+
+  try {
+    await animate(card, [
+      { transform: 'translate(-34%, -50%) scale(.9)', opacity: 0 },
+      { transform: 'translate(-100%, -50%) scale(1)', opacity: 1, offset: .22 },
+      { transform: 'translate(-100%, -50%) scale(1)', opacity: 1, offset: .78 },
+      { transform: 'translate(-93%, -50%) scale(.96)', opacity: 0 },
+    ], duration * 3.15);
+    return card.isConnected && field.isConnected;
+  } finally {
+    card.remove();
+  }
+}
+
+function fly(screen, event, current, handOrigin, duration) {
+  const target = current.get(event.cardId);
+  const field = screen.querySelector('.field-center');
+  if (!target && !field) return [];
+  const destination = center(target?.rect ?? field.getBoundingClientRect());
+  const view = screen.ownerDocument.defaultView;
+  const from = handOrigin ?? { x: destination.x, y: -30 };
+  const startY = Math.max(-40, Math.min(view.innerHeight + 40, from.y));
+  const card = floatingCard(screen, event, 'motion-flight', destination);
   const slide = (factor) => point((from.x - destination.x) * factor, (startY - destination.y) * factor);
   const motion = animate(card, [
     { transform: 'translate(-50%, -50%) ' + slide(1) + ' scale(.92)', opacity: .3 },
@@ -362,6 +395,8 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
     commit();
     return;
   }
+
+  if (event.type === 'play' && event.side === 'bot' && !(await revealOpponentCard(screen, event, duration))) return;
 
   if (event.type === 'armor' && event.scattered) {
     commit();

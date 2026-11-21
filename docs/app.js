@@ -1,20 +1,20 @@
-import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=live-badges-1';
+import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=opponent-reveal-1';
 import { createDeckStorage } from './ui/deck-storage.js?v=step-16';
-import { bindCardPlacement } from './card-placement.js?v=live-badges-1';
-import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=live-badges-1';
+import { bindCardPlacement } from './card-placement.js?v=opponent-reveal-1';
+import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=opponent-reveal-1';
 import { clearParticles } from './particles.js?v=step-14';
-import { playJournal } from './turn-playback.js?v=live-badges-1';
-import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=live-badges-1';
-import { placementSide } from './game/board.js?v=live-badges-1';
-import { FACTIONS } from './game/cards.js?v=live-badges-1';
-import { applyAction, createDeckMatch } from './game/match.js?v=live-badges-1';
-import { element, iconButton } from './ui/dom.js?v=live-badges-1';
-import { preview, showCard } from './ui/cards.js?v=live-badges-1';
-import { createBattlefield } from './ui/field.js?v=live-badges-1';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=live-badges-1';
-import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=live-badges-1';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=live-badges-1';
-import { createSettings } from './ui/settings.js?v=live-badges-1';
+import { playJournal } from './turn-playback.js?v=opponent-reveal-1';
+import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=opponent-reveal-1';
+import { placementSide } from './game/board.js?v=opponent-reveal-1';
+import { FACTIONS } from './game/cards.js?v=opponent-reveal-1';
+import { applyAction, createDeckMatch } from './game/match.js?v=opponent-reveal-1';
+import { element, iconButton } from './ui/dom.js?v=opponent-reveal-1';
+import { preview, showCard } from './ui/cards.js?v=opponent-reveal-1';
+import { createBattlefield } from './ui/field.js?v=opponent-reveal-1';
+import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=opponent-reveal-1';
+import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=opponent-reveal-1';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=opponent-reveal-1';
+import { createSettings } from './ui/settings.js?v=opponent-reveal-1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
 
@@ -132,9 +132,10 @@ function start(deck) {
   const label = element('span', 'coin-result', 'Монетка: ты ходишь ' + (first ? 'первым' : 'вторым'));
   const coin = element('span', 'tossed-coin', first ? '✦' : '◈');
   coin.setAttribute('aria-hidden', 'true');
-  showNotice(coinNotice, '', 1500);
+  const coinDuration = settings.motion() * 2.85;
+  showNotice(coinNotice, '', Math.max(1500, coinDuration + 900));
   coinNotice.append(coin, label);
-  animateCoin(coin, label, settings.motion() * 1.9);
+  animateCoin(coin, label, coinDuration);
   screen.querySelector('h2').focus({ preventScroll: true });
 }
 
@@ -256,13 +257,16 @@ async function updateMatch(next) {
     try {
       await playJournal(before, events, async (event, commit, state) => {
         if (session !== matchSession) return;
-        settings.playSound(event);
         if (event.type === 'round-end') {
+          settings.playSound(event);
           await showRoundResult(event, state, duration);
           if (session === matchSession) commit();
           return;
         }
-        await presentJournalEvent(screen, event, commit, (state) => {
+        await presentJournalEvent(screen, event, () => {
+          if (session === matchSession) settings.playSound(event);
+          return commit();
+        }, (state) => {
           if (session === matchSession) renderPlayback(state);
         }, duration);
       });

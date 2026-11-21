@@ -1,7 +1,7 @@
-import { button, element } from './dom.js?v=live-badges-1';
-import { cardType, placementSide } from '../game/board.js?v=live-badges-1';
-import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=live-badges-1';
-import { cardButton, showCard } from './cards.js?v=live-badges-1';
+import { button, element } from './dom.js?v=opponent-reveal-1';
+import { cardType, placementSide } from '../game/board.js?v=opponent-reveal-1';
+import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=opponent-reveal-1';
+import { cardButton, showCard } from './cards.js?v=opponent-reveal-1';
 
 export function updatePlacementSelection(screen, match, selectedCardId) {
   const card = match.players.human.hand.find(({ id }) => id === selectedCardId);

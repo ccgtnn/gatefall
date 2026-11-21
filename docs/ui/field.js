@@ -1,13 +1,13 @@
-import { createCard, statusCount } from '../game/board.js?v=live-badges-1';
-import { insertionPoint } from '../card-placement.js?v=live-badges-1';
-import { button, element, iconButton, sideLabel } from './dom.js?v=live-badges-1';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=live-badges-1';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=live-badges-1';
-import { playerHand } from './hand.js?v=live-badges-1';
-import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=live-badges-1';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=live-badges-1';
+import { createCard, statusCount } from '../game/board.js?v=opponent-reveal-1';
+import { insertionPoint } from '../card-placement.js?v=opponent-reveal-1';
+import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=opponent-reveal-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=opponent-reveal-1';
+import { playerHand } from './hand.js?v=opponent-reveal-1';
+import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=opponent-reveal-1';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=opponent-reveal-1';
 
-import { orderBadge } from './stat-badges.js?v=live-badges-1';
+import { orderBadge } from './stat-badges.js?v=opponent-reveal-1';
 
 export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, isMulliganFieldVisible, setMulliganField,
   playHuman, humanCanAct, placeSelected, settingsButton, showDrawer, selectCard, mulliganScreen }) {
@@ -173,6 +173,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     panel.append(total, lives);
     if (side === 'bot') {
       const count = element('span', 'field-hand-count bot-hand-count');
+      count.classList.toggle('is-passed', player.passed);
       count.title = 'Карт в руке у бота';
       count.setAttribute('role', 'img');
       count.setAttribute('aria-label', 'Карт в руке у бота: ' + player.hand.length);

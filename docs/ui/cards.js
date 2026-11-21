@@ -1,8 +1,8 @@
-import { button, element, setCardRarity } from './dom.js?v=live-badges-1';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=live-badges-1';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=live-badges-1';
+import { button, element, setCardRarity } from './dom.js?v=opponent-reveal-1';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=opponent-reveal-1';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=opponent-reveal-1';
 
-import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=live-badges-1';
+import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=opponent-reveal-1';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';

@@ -1,5 +1,5 @@
-import { spendResilience } from './game/board.js?v=live-badges-1';
-import { ROWS } from './game/cards.js?v=live-badges-1';
+import { spendResilience } from './game/board.js?v=opponent-reveal-1';
+import { ROWS } from './game/cards.js?v=opponent-reveal-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;

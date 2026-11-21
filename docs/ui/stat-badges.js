@@ -1,4 +1,4 @@
-import { element } from './dom.js?v=live-badges-1';
+import { element } from './dom.js?v=opponent-reveal-1';
 
 function symbol(name, size = 40) {
   const namespace = 'http://www.w3.org/2000/svg';

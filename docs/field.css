@@ -150,7 +150,13 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
 .finish-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
 .match-result-score { font-weight: 700; }
 #match-notice { top: 41%; }
-#coin-notice { top: 23%; }
+#coin-notice {
+  top: 23%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.coin-result { text-shadow: 0 1px 3px #000, 0 0 9px #000; }
 .settings-actions:not([hidden]) {
   display: flex;
   flex-wrap: wrap;
@@ -177,7 +183,14 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   line-height: 1.1;
   pointer-events: none;
 }
-.is-human-turn .battle-hand {
+.is-human-turn .bot-hand-count.is-passed {
+  color: #8b9bab;
+  background: #070d15;
+  border-color: #263445;
+  box-shadow: inset 0 2px 6px #000a;
+}
+
+.battle-hand {
   background: radial-gradient(ellipse at center, #48979740, transparent 85%);
   border-color: #7bc9c974;
 }
