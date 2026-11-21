@@ -1,8 +1,8 @@
 import { button, element } from './dom.js?v=step-11';
-import { createCard } from '../game/board.js?v=art-27';
-import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from '../game/cards.js?v=art-27';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=art-27';
-import { logView, roundText } from './menu.js?v=art-27';
+import { createCard } from '../game/board.js?v=plague-a';
+import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from '../game/cards.js?v=plague-a';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=plague-a';
+import { logView, roundText } from './menu.js?v=plague-a';
 
 export function catalogScreen(phaseLabel, back) {
   phaseLabel.textContent = '';
@@ -22,6 +22,7 @@ export function catalogScreen(phaseLabel, back) {
       const card = createCard(definition.id, definition);
       const item = element('div', 'catalog-entry');
       item.append(cardButton(card, () => showCard(card), { factionId }), element('span', null, definition.name));
+      if (definition.categories?.length) item.append(element('span', 'catalog-category', definition.categories.join(' · ')));
       return item;
     }));
   }

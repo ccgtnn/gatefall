@@ -1,4 +1,4 @@
-import { ROWS } from './game/cards.js?v=art-27';
+import { ROWS } from './game/cards.js?v=plague-a';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;
@@ -9,6 +9,7 @@ function copyPlayer(player) {
   return {
     ...player,
     hand: [...player.hand],
+    rowEffects: { ...player.rowEffects },
     board: Object.fromEntries(ROWS.map((row) => [row, player.board[row].map((card) => ({ ...card }))])),
   };
 }
@@ -33,7 +34,8 @@ export function applyJournalEvent(state, event) {
 
   if (type === 'round-end') {
     for (const player of Object.values(state.players)) {
-      for (const row of ROWS) player.board[row] = [];
+      for (const row of ROWS) player.board[row] = player.board[row].filter(({ definition }) => definition.resilience);
+      player.rowEffects = {};
       player.passed = false;
     }
     return;
@@ -56,7 +58,12 @@ export function applyJournalEvent(state, event) {
   if (type === 'play') {
     const pile = event.from ?? 'hand';
     player[pile] = player[pile].filter(({ id }) => id !== cardId);
-    if (row) player.board[row].splice(event.position, 0, { ...event.card });
+    if (row) state.players[event.boardSide ?? side].board[row].splice(event.position, 0, { ...event.card });
+    return;
+  }
+  if (type === 'row-effect') {
+    if (event.effect) player.rowEffects[row] = event.effect;
+    else delete player.rowEffects[row];
     return;
   }
   if (type === 'spawn') {
@@ -76,10 +83,13 @@ export function applyJournalEvent(state, event) {
     if (type === 'death' || type === 'destroy' || type === 'discard') {
       const [card] = line.splice(index, 1);
       const pile = event.exile ? 'exile' : 'discard';
-      player[pile] = [...player[pile], card];
+      const owner = state.players[event.owner ?? side];
+      owner[pile] = [...owner[pile], card];
       break;
     }
-    if (type === 'boost' || type === 'damage') line[index].power = event.power;
+    if (type === 'scenario-chapter') line[index].chapter = event.chapter;
+    if (type === 'base-power') line[index].basePower = event.basePower;
+    if (['boost', 'damage', 'base-power', 'heal'].includes(type)) line[index].power = event.power;
     if (type === 'armor') line[index].armor = event.armor;
     if (type === 'status') {
       const card = line[index];

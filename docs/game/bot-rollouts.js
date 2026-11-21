@@ -1,8 +1,8 @@
-import { FACTIONS, ROWS } from './cards.js?v=art-27';
-import { createCard, isUnit, opponent, ROW_LIMIT } from './board.js?v=art-27';
-import { collection, copyLimit } from './decks.js?v=art-27';
-import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=art-27';
-import { availableOrders, canUseLeader, effectSwing, rowArmor } from './effects.js?v=art-27';
+import { FACTIONS, ROWS } from './cards.js?v=plague-a';
+import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=plague-a';
+import { collection, copyLimit } from './decks.js?v=plague-a';
+import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=plague-a';
+import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=plague-a';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -63,7 +63,7 @@ export function samplePosition(match, supply, random) {
 
 function printedValue(card) {
   const { definition: def } = card;
-  return (def.power ?? (def.provision ?? 0) * .5) + (def.deploy || def.order || def.endTurn ? 1.1 : 0);
+  return (card.power ?? def.power ?? (def.provision ?? 0) * .5) + (def.deploy || def.order || def.endTurn ? 1.1 : 0);
 }
 
 function rowValue(player, card, row, position) {
@@ -71,6 +71,10 @@ function rowValue(player, card, row, position) {
   const id = card.definition.id;
   const adjacent = [line[position - 1], line[position]].filter(Boolean);
   const nearby = adjacent.filter(isUnit);
+  if (card.definition.enemySide) {
+    const step = card.definition.deploy?.steps.find(({ target, status }) => target?.scope === 'neighbors' && status === 'infection');
+    return step && !player.passed ? nearby.reduce((sum, unit) => sum + infectionGain(unit, step.amount), 0) : 0;
+  }
   if (id === 'gate-guardian' && player.hand.some(({ definition }) => definition.id === 'shield-overload')) {
     return -rowArmor(player, row) * .25;
   }
@@ -101,20 +105,28 @@ function fastPlays(match, side) {
       }
       return { action, points, cost, reserve: def.removalReserve ?? 0 };
     }
+    const recipient = match.players[placementSide(side, card)];
     let choice;
     for (const row of ROWS) {
-      const line = player.board[row];
+      const line = recipient.board[row];
       if (line.length >= ROW_LIMIT) continue;
       for (let position = 0; position <= line.length; position++) {
-        const value = rowValue(player, card, row, position) - .02 * line.length;
+        const value = rowValue(recipient, card, row, position) - .02 * line.length;
         if (!choice || value > choice.value) choice = { row, position, value };
       }
     }
     const infection = def.deploy?.steps.some((step) => step.status === 'infection');
-    const removal = (def.removalReserve || infection) ? effectSwing(match, side, card) : 0;
+    const removal = (def.removalReserve || infection || def.scenario ||
+      def.deploy?.steps.some((step) => step.target?.infected || step.amount?.count))
+      ? effectSwing(match, side, card) : 0;
+    const scenario = def.scenario ? Math.min(def.scenario.chapters.length,
+      player.hand.filter((entry) => entry.definition.categories?.includes(def.scenario.category)).length) * 2 : 0;
+    const scenarioTrigger = ROWS.some((row) => player.board[row].some((entry) =>
+      entry.definition.scenario && def.categories?.includes(entry.definition.scenario.category))) ? 2 : 0;
     return {
       action: { ...action, row: choice.row, position: choice.position },
-      points: (card.power ?? 0) + (def.deploy || def.endTurn || def.order ? 1 : 0) + choice.value + removal,
+      points: (card.power ?? 0) * (def.enemySide ? -1 : 1) + (def.deploy || def.endTurn || def.order ? 1 : 0)
+        + choice.value + removal + scenario + scenarioTrigger,
       cost, reserve: 0,
     };
   });

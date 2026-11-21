@@ -1,9 +1,9 @@
-import { inspectDeck } from './decks.js?v=art-27';
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=art-27';
-import { announcePlay, availableRows, cardType, createCard, HAND_LIMIT, opponent, placeCards, playDestination, statusCount, takeCards, units } from './board.js?v=art-27';
-import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, orderAbility, playTiming, runEffect } from './effects.js?v=art-27';
+import { inspectDeck } from './decks.js?v=plague-a';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=plague-a';
+import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, statusCount, takeCards } from './board.js?v=plague-a';
+import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=plague-a';
 
-export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=art-27';
+export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=plague-a';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;
@@ -38,6 +38,7 @@ function createPlayer(side, definitions, random, factionId, leader, charges) {
     hand: deck.splice(0, HAND_LIMIT),
     deck,
     board: emptyBoard(),
+    rowEffects: {},
     discard: [],
     exile: [],
     turns: 0,
@@ -104,7 +105,7 @@ export function totalScore(player) {
 }
 
 export function canPlayCard(match, side, card) {
-  return cardType(card) === 'effect' ? canCast(match, side, card) : availableRows(match.players[side]).length > 0;
+  return cardType(card) === 'effect' ? canCast(match, side, card) : availableRows(match.players[placementSide(side, card)]).length > 0;
 }
 
 export function playableCards(match, side) {
@@ -170,7 +171,7 @@ function beginRound(match) {
   }
 }
 
-const mulliganValue = ({ definition }) => definition.power ?? definition.provision ?? 0;
+const mulliganValue = (card) => card.power ?? card.definition.provision ?? 0;
 
 export function confirmMulligan(match, cardIds = [], { random = Math.random } = {}) {
   if (match.phase !== 'mulligan') return match;
@@ -194,6 +195,7 @@ export function confirmMulligan(match, cardIds = [], { random = Math.random } = 
     next.log.push({ type: 'mulligan', side, count: counts[side], round: next.round });
   }
   beginRound(next);
+  enqueueStartTurn(next, next.turn);
   progress(next, random);
   return next;
 }
@@ -215,10 +217,13 @@ function resolveRound(match) {
   for (const side of SIDES) {
     const player = match.players[side];
     if (side !== winner) player.lives -= 1;
-    for (const { card } of units(match, side)) {
-      (statusCount(card, 'doomed') ? player.exile : player.discard).push(card);
+    for (const row of ROWS) {
+      for (const card of player.board[row]) {
+        if (!card.definition.resilience) discardCard(match, side, card, Boolean(statusCount(card, 'doomed')));
+      }
+      player.board[row] = player.board[row].filter((card) => card.definition.resilience);
     }
-    player.board = emptyBoard();
+    player.rowEffects = {};
     player.passed = false;
   }
   match.log.push({ type: 'round-end', round: match.round, scores, winner });
@@ -271,7 +276,10 @@ function progress(match, random) {
       player.turns += 1;
       player.usedAbility = false;
       if (player.passed && match.players[otherSide].passed) resolveRound(match);
-      else if (!match.players[otherSide].passed) match.turn = otherSide;
+      else {
+        if (!match.players[otherSide].passed) match.turn = otherSide;
+        enqueueStartTurn(match, match.turn);
+      }
       continue;
     }
 
@@ -299,7 +307,7 @@ function resumeEffect(match, side, action, random, copy) {
   if (side !== pending.side) return match;
   const placement = pending.kind === 'deck-placement';
   const selection = placement && action.type === 'place' && pending.options.includes(action.row)
-    ? playDestination(match.players[side], action)
+    ? playDestination(match.players[pending.selectionSide ?? side], action)
     : !placement && action.type === 'target' && pending.options.includes(action.cardId) && action.cardId;
   if (!selection) return match;
   const next = copy(match);
@@ -329,7 +337,7 @@ export function applyAction(match, side, action, { random = Math.random, copy = 
     const card = player.hand[cardIndex];
     if (match.playedCard || !card || !canPlayCard(match, side, card)) return match;
     if (cardType(card) !== 'effect') {
-      destination = playDestination(player, action);
+      destination = playDestination(match.players[placementSide(side, card)], action);
       if (!destination) return match;
     }
   }
@@ -345,12 +353,15 @@ export function applyAction(match, side, action, { random = Math.random, copy = 
     const [card] = current.hand.splice(cardIndex, 1);
     if (destination) {
       const { row, position } = destination;
-      placeCards(current, row, position, [card]);
+      const recipient = placementSide(side, card);
+      if (recipient !== side) card.owner = side;
+      placeCards(next.players[recipient], row, position, [card]);
     }
     const timing = playTiming(next, side, card);
-    announcePlay(next, side, card, destination, timing === 'initiative' ? { initiative: true } : undefined);
+    const reactions = announcePlay(next, side, card, destination, timing === 'initiative' ? { initiative: true } : undefined);
     current.roundActed = true;
     enqueueCardEffect(next, side, card, timing, Boolean(destination));
+    next.effects.push(...reactions);
     if (!destination) next.effects.push({ discard: card, side });
     next.playedCard = true;
   } else if (type === 'leader') {

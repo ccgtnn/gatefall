@@ -1,19 +1,20 @@
-import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=art-27';
+import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=plague-a';
 import { createDeckStorage } from './ui/deck-storage.js?v=step-16';
-import { bindCardPlacement } from './card-placement.js?v=field-6';
-import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=art-27';
+import { bindCardPlacement } from './card-placement.js?v=plague-a';
+import { animateCoin, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=plague-a';
 import { clearParticles } from './particles.js?v=step-14';
-import { playJournal } from './turn-playback.js?v=art-27';
-import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=art-27';
-import { FACTIONS } from './game/cards.js?v=art-27';
-import { applyAction, createDeckMatch } from './game/match.js?v=art-27';
+import { playJournal } from './turn-playback.js?v=plague-a';
+import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=plague-a';
+import { placementSide } from './game/board.js?v=plague-a';
+import { FACTIONS } from './game/cards.js?v=plague-a';
+import { applyAction, createDeckMatch } from './game/match.js?v=plague-a';
 import { element, iconButton } from './ui/dom.js?v=step-11';
-import { preview, showCard } from './ui/cards.js?v=art-27';
-import { createBattlefield } from './ui/field.js?v=art-27';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=art-27';
-import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=art-27';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=art-27';
-import { createSettings } from './ui/settings.js?v=art-27';
+import { preview, showCard } from './ui/cards.js?v=plague-a';
+import { createBattlefield } from './ui/field.js?v=plague-a';
+import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=plague-a';
+import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=plague-a';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=plague-a';
+import { createSettings } from './ui/settings.js?v=plague-a';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
 
@@ -162,9 +163,11 @@ function leaveMatch(surrender = false) {
   screen.querySelector('h2').focus({ preventScroll: true });
 }
 
-function placeSelected(row) {
+function placeSelected(row, side) {
   if (!selectedCardId || !humanCanAct()) return;
-  playHuman({ type: 'play', cardId: selectedCardId, row, position: match.players.human.board[row].length });
+  const card = match.players.human.hand.find(({ id }) => id === selectedCardId);
+  if (!card || placementSide('human', card) !== side) return;
+  playHuman({ type: 'play', cardId: selectedCardId, row, position: match.players[side].board[row].length });
 }
 
 function setMulliganField(visible) {

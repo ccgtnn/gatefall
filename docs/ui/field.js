@@ -1,31 +1,27 @@
-import { createCard, statusCount } from '../game/board.js?v=art-27';
-import { insertionPoint } from '../card-placement.js?v=field-6';
+import { createCard, statusCount } from '../game/board.js?v=plague-a';
+import { insertionPoint } from '../card-placement.js?v=plague-a';
 import { button, element, iconButton, sideLabel } from './dom.js?v=step-11';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=art-27';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=art-27';
-import { playerHand } from './hand.js?v=art-27';
-import { availableOrders, canUseLeader, rowArmor } from '../game/effects.js?v=art-27';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=art-27';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=plague-a';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=plague-a';
+import { playerHand } from './hand.js?v=plague-a';
+import { availableOrders, canUseLeader, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=plague-a';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=plague-a';
 
 export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, isMulliganFieldVisible, setMulliganField,
   playHuman, humanCanAct, placeSelected, settingsButton, showDrawer, selectCard, mulliganScreen }) {
   function rowView(match, side, player, row, readyOrders) {
     const wrapper = element('div', 'board-row');
     const pending = !isReplaying() && match.pending?.side === 'human' ? match.pending : null;
-    const eligible = side === 'human' && pending?.options.includes(row);
-    const rowTarget = pending?.selectionSide === side && pending.options.includes(row);
+    const deckPlacement = pending?.kind === 'deck-placement' &&
+      (pending.selectionSide ?? 'human') === side && pending.options.includes(row);
+    const rowTarget = pending?.kind !== 'deck-placement' && pending?.selectionSide === side && pending.options.includes(row);
     const armorTarget = rowTarget && pending.kind === 'armor-row';
-    const deckPlacement = eligible && pending.kind === 'deck-placement';
     const chooseRow = () => playHuman({ type: 'target', cardId: row });
     const place = (position) => playHuman({ type: 'place', row, position });
     const strength = rowScore(player, row);
-    const label = side === 'human' || rowTarget
-      ? button(undefined, rowTarget ? chooseRow : () => placeSelected(row), 'row-label')
-      : element('div', 'row-label');
-    if (side === 'human') {
-      label.disabled = !rowTarget;
-      label.setAttribute('aria-label', `Сыграть карту в ряд «${ROW_LABELS[row]}» · сила ${strength}`);
-    }
+    const label = button(undefined, rowTarget ? chooseRow : () => placeSelected(row, side), 'row-label');
+    label.disabled = !rowTarget;
+    label.setAttribute('aria-label', `Сыграть карту в ${side === 'bot' ? 'ряд противника' : 'ряд'} «${ROW_LABELS[row]}» · сила ${strength}`);
     const score = element('strong', 'row-score', strength);
     score.dataset.score = side + '-' + row;
     score.title = ROW_LABELS[row] + ' · ' + strength;
@@ -34,10 +30,19 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     const rowIcon = element('span', 'row-icon', row === 'orbit' ? '◎' : '▲');
     rowIcon.setAttribute('aria-hidden', 'true');
     label.append(rowIcon, score);
+    const effect = player.rowEffects?.[row];
+    if (effect) {
+      const { icon, label: name } = ROW_EFFECTS[effect.type];
+      const badge = element('span', 'row-effect-badge', icon + effect.remaining);
+      badge.title = `${name} · осталось ходов: ${effect.remaining}`;
+      label.setAttribute('aria-label', label.getAttribute('aria-label') + ' · ' + badge.title);
+      label.append(badge);
+    }
     if (rowTarget) {
       label.classList.add('effect-target');
       label.setAttribute('aria-label', armorTarget
         ? `Снять броню с ряда «${ROW_LABELS[row]}» · броня ${rowArmor(player, row)}`
+        : pending.kind === 'row-effect' ? `Наложить Гниение на ряд «${ROW_LABELS[row]}»`
         : side === 'bot' ? `Нанести урон во вражеском ряду «${ROW_LABELS[row]}»`
           : `Породить личинки в ряду «${ROW_LABELS[row]}»`);
     }
@@ -46,20 +51,17 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     slots.dataset.row = row;
     const cards = player.board[row];
     slots.classList.toggle('is-selectable', Boolean(rowTarget || deckPlacement));
-    if (side === 'human') {
-      slots.dataset.playRow = row;
-      slots.dataset.full = String(cards.length >= ROW_LIMIT);
-    }
-    if (side === 'human' || rowTarget) {
-      slots.addEventListener('click', (event) => {
-        if (event.target.closest('.unit-order, .placement-choice')) return;
-        if (rowTarget) chooseRow();
-        else if (deckPlacement) {
-          const rects = Array.from(slots.querySelectorAll('.slot.filled'), (node) => node.getBoundingClientRect());
-          place(insertionPoint(slots.getBoundingClientRect(), rects, event.clientX).position);
-        } else if (slots.classList.contains('is-selectable')) placeSelected(row);
-      });
-    }
+    slots.dataset.playRow = row;
+    slots.dataset.side = side;
+    slots.dataset.full = String(cards.length >= ROW_LIMIT);
+    slots.addEventListener('click', (event) => {
+      if (event.target.closest('.unit-order, .placement-choice')) return;
+      if (rowTarget) chooseRow();
+      else if (deckPlacement) {
+        const rects = Array.from(slots.querySelectorAll('.slot.filled'), (node) => node.getBoundingClientRect());
+        place(insertionPoint(slots.getBoundingClientRect(), rects, event.clientX).position);
+      } else if (slots.classList.contains('is-selectable')) placeSelected(row, side);
+    });
     for (const card of cards) {
       const target = !isReplaying() && match.pending?.side === 'human' && match.pending.options.includes(card.id);
       const slot = element('div', 'slot filled');

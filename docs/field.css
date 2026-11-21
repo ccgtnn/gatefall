@@ -598,3 +598,11 @@ body:has(#app[data-animation-speed="fast"]) .field-drawer[open] { animation-dura
   min-width: 0;
   touch-action: pan-y;
 }
+
+.field-center .row-label:disabled { opacity: 1; }
+.row-effect-badge {
+  color: #a9ec72;
+  font-size: clamp(7px, 2dvh, 12px);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}

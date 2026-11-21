@@ -1,6 +1,6 @@
 import { button, element, sideLabel } from './dom.js?v=step-11';
-import { ROW_LABELS } from '../game/cards.js?v=art-27';
-import { cardButton, showCard } from './cards.js?v=art-27';
+import { ROW_LABELS } from '../game/cards.js?v=plague-a';
+import { cardButton, showCard } from './cards.js?v=plague-a';
 
 export function roundText(event) {
   const { scores, winner } = event;
@@ -16,7 +16,7 @@ export function eventText(event) {
     case 'stratagem': return `${side}: на Поверхности появляется стратагема «${event.name}».`;
     case 'play': {
       if (!event.row) return `${side}: «${event.name}» · Эффект${event.initiative ? ' · Инициатива' : ''}.`;
-      return `${side}: «${event.name}» (${event.power ?? 'артефакт'})${event.from === 'deck' ? ' из колоды' : event.from === 'discard' ? ' из сброса' : ''} → ${ROW_LABELS[event.row]}.`;
+      return `${side}: «${event.name}» (${event.power ?? 'артефакт'})${event.from === 'deck' ? ' из колоды' : event.from === 'discard' ? ' из сброса' : ''} → ${ROW_LABELS[event.row]}${event.boardSide ? ' противника' : ''}.`;
     }
     case 'pass': {
       const reasons = {
@@ -37,6 +37,10 @@ export function eventText(event) {
         : `«${event.name}»: Заражение ${event.count}.`;
       return '';
     }
+    case 'row-effect': return `${side}, ${ROW_LABELS[event.row]}: ${event.effect ? 'Гниение · ' + event.effect.remaining : 'Гниение снято'}.`;
+    case 'scenario-chapter': return `«${event.name}»: глава ${event.chapter}.`;
+    case 'base-power': return `${side}: базовая сила карты — ${event.basePower}.`;
+    case 'heal': return `${side}: сила карты восстановлена до ${event.power}.`;
     case 'order-ready': return `Приказ карты «${event.name}» готов.`;
     case 'armor': return `${side}, «${event.name}»: броня ${event.amount > 0 ? '+' : '−'}${Math.abs(event.amount)}.`;
     case 'boost': return `${side}, «${event.name}»: усиление +${event.amount}.`;

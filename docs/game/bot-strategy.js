@@ -1,8 +1,8 @@
-import { compareRollouts } from './bot-rollouts.js?v=art-27';
-import { ROWS } from './cards.js?v=art-27';
-import { cardType, units } from './board.js?v=art-27';
-import { availableOrders, canUseLeader, destructionRolls, destructionSwing, rowArmor } from './effects.js?v=art-27';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=art-27';
+import { compareRollouts } from './bot-rollouts.js?v=plague-a';
+import { ROWS } from './cards.js?v=plague-a';
+import { cardType, opponent, placementSide, units } from './board.js?v=plague-a';
+import { availableOrders, canUseLeader, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=plague-a';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=plague-a';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -40,14 +40,22 @@ function boardValue(state, side) {
   const player = state.players[side];
   if (player.passed) return 0;
   const ready = new Set(availableOrders(state, side).map(({ card }) => card.id));
+  const enemy = state.players[opponent(side)];
+  const rot = ROWS.reduce((sum, row) => {
+    const effect = enemy.rowEffects?.[row];
+    return sum + (effect?.type === 'rot' ? rowEffectValue(enemy, row, effect.remaining, false) : 0);
+  }, 0);
   return units(state, side).reduce((sum, { card }) => {
     const { definition, power, armor, counter, timer } = card;
     return sum + (armor ?? 0) * .12 + (definition.id === 'larva' ? .12 : 0)
       + (ready.has(card.id) ? 1.15 : definition.order ? .35 : 0)
       + (definition.endTurn ? (timer === undefined ? 1.25 : .5 * Math.min(timer, 3)) : 0)
       + (counter > 0 && player.deck.length ? 1.6 / counter : 0)
+      + (definition.resilience && state.round < 3 ? (power ?? 0) * .4 : 0)
+      + (definition.scenario ? Math.min(definition.scenario.chapters.length - (card.chapter ?? 0),
+        player.hand.filter((entry) => entry.definition.categories?.includes(definition.scenario.category)).length) * 2.5 : 0)
       - .72 * Math.min(power ?? 0, card.statuses?.infection ?? 0);
-  }, (player.leader?.charges ?? 0) * .9);
+  }, (player.leader?.charges ?? 0) * .9 + rot);
 }
 
 function value(state, round) {
@@ -75,7 +83,7 @@ function positions(player, row, card) {
 }
 
 function placements(state, side, card, rows = ROWS) {
-  const player = state.players[side];
+  const player = state.players[placementSide(side, card)];
   return rows.flatMap((row) => player.board[row].length >= ROW_LIMIT ? [] : positions(player, row, card)
     .map((position) => ({ row, position })));
 }

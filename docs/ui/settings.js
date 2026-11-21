@@ -1,6 +1,6 @@
-import { bindRulesMenu } from './rules.js?v=art-27';
+import { bindRulesMenu } from './rules.js?v=plague-a';
 import { createSoundEffects, DEFAULT_VOLUME } from '../sound.js?v=step-10-volume';
-import { motionDuration } from '../turn-playback.js?v=art-27';
+import { motionDuration } from '../turn-playback.js?v=plague-a';
 
 export function createSettings(app, onLeave) {
   const settings = document.querySelector('#settings');

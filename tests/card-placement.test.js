@@ -15,7 +15,7 @@ test('a populated row offers positions at both edges and between neighboring car
   assert.deepEqual(insertionPoint(rowBounds, cardBounds, 190), { position: 2, offset: 116 });
 });
 
-function placementFixture(pointerType, { isEffect = false, full = false } = {}) {
+function placementFixture(pointerType, { isEffect = false, full = false, enemy = false, side = 'human' } = {}) {
   const played = [];
   const listeners = new Map();
   const ghost = {
@@ -24,7 +24,7 @@ function placementFixture(pointerType, { isEffect = false, full = false } = {}) 
   const marker = { ...ghost, classList: { toggle() {} } };
   let captured = null;
   const card = {
-    dataset: { cardId: 'orbit-card', type: isEffect ? 'effect' : 'unit' },
+    dataset: { cardId: 'orbit-card', type: isEffect ? 'effect' : 'unit', ...(enemy && { enemySide: 'true' }) },
     classList: { add() {}, remove() {} },
     getBoundingClientRect: () => ({ width: 32 }),
     cloneNode: () => ghost,
@@ -36,7 +36,7 @@ function placementFixture(pointerType, { isEffect = false, full = false } = {}) 
   };
   const slots = cardBounds.map((bounds) => ({ getBoundingClientRect: () => bounds }));
   const row = {
-    dataset: { playRow: 'orbit', full: String(full) },
+    dataset: { playRow: 'orbit', full: String(full), side },
     classList: { add() {}, remove() {}, toggle() {} },
     contains: (hit) => hit === row,
     getBoundingClientRect: () => rowBounds,
@@ -113,4 +113,14 @@ test('full rows block placement but accept a dragged Effect', () => {
   cast.send('pointerup', 106, 40);
   assert.deepEqual(cast.played, [{ id: 'orbit-card', row: 'orbit', position: 1 }]);
   assert.equal(cast.marker.hidden, true);
+});
+
+test('units played to the enemy side use its drop targets only', () => {
+  for (const side of ['human', 'bot']) {
+    const { send, played } = placementFixture('mouse', { enemy: true, side });
+    send('pointerdown', 105, 90);
+    send('pointermove', 106, 40);
+    send('pointerup', 106, 40);
+    assert.equal(played.length, Number(side === 'bot'));
+  }
 });

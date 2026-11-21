@@ -1,9 +1,9 @@
-import { ROWS } from './cards.js?v=art-27';
-import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=art-27';
-import { availableOrders, canUseLeader, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage } from './effects.js?v=art-27';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=art-27';
+import { ROWS } from './cards.js?v=plague-a';
+import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=plague-a';
+import { availableOrders, canUseLeader, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue } from './effects.js?v=plague-a';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=plague-a';
 
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=art-27';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=plague-a';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
@@ -12,6 +12,12 @@ export function createBotView(match) {
   const { human, bot } = match.players;
   return {
     cards: playableCards(match, 'bot').filter((card) => bot.usedAbility || !(destructionSwing(match, 'bot', card) < 0)).map((card) => {
+      if (card.definition.enemySide) {
+        const lengths = Object.fromEntries(ROWS.map((row) => [row, human.board[row].length]));
+        const preferredRow = ROWS.filter((row) => lengths[row] < ROW_LIMIT).reduce((best, row) =>
+          lengths[row] > lengths[best] ? row : best);
+        return { ...card, preferredRow, destinationLengths: lengths, swing: -(card.power ?? 0) };
+      }
       if (cardType(card) === 'effect') return { ...card, swing: effectSwing(match, 'bot', card) };
       if (card.definition.deploy?.steps.some((step) => step.status === 'infection')) {
         return { ...card, swing: (card.power ?? 0) + effectSwing(match, 'bot', card) };
@@ -38,7 +44,8 @@ export function createBotView(match) {
 const scoreValue = (card) => card.swing ?? card.power ?? 0;
 
 function weakestWinningCards(ordered, rowLengths, target) {
-  let openPlaces = ROWS.reduce((total, row) => total + ROW_LIMIT - rowLengths[row], 0);
+  const capacity = (lengths) => ROWS.reduce((total, row) => total + ROW_LIMIT - lengths[row], 0);
+  const places = { own: capacity(rowLengths), enemy: capacity(ordered.find((card) => card.destinationLengths)?.destinationLengths ?? rowLengths) };
   let best = null;
   let bestPower = Infinity;
   const chosen = [];
@@ -58,13 +65,14 @@ function weakestWinningCards(ordered, rowLengths, target) {
     for (let index = 0; index < end; index += 1) {
       const card = ordered[index];
       const occupiesSlot = cardType(card) !== 'effect';
-      if (occupiesSlot && openPlaces === 0) continue;
+      const side = card.definition.enemySide ? 'enemy' : 'own';
+      if (occupiesSlot && places[side] === 0) continue;
 
-      if (occupiesSlot) openPlaces -= 1;
+      if (occupiesSlot) places[side] -= 1;
       chosen.push(card);
       search(index, power + scoreValue(card));
       chosen.pop();
-      if (occupiesSlot) openPlaces += 1;
+      if (occupiesSlot) places[side] += 1;
     }
   }
 
@@ -75,7 +83,7 @@ function weakestWinningCards(ordered, rowLengths, target) {
 function playCard(card, view) {
   if (cardType(card) === 'effect') return { type: 'play', cardId: card.id };
   const row = card.preferredRow ?? ROWS.reduce((best, next) => view.rowLengths[next] < view.rowLengths[best] ? next : best);
-  return { type: 'play', cardId: card.id, row, position: view.rowLengths[row] };
+  return { type: 'play', cardId: card.id, row, position: (card.destinationLengths ?? view.rowLengths)[row] };
 }
 
 export function chooseBotAction(view, rules = BOT_RULES) {
@@ -128,6 +136,10 @@ export function pickBotTarget(match) {
     const row = bestTarget(options, (row) => -player.board[row].length);
     return { type: 'target', cardId: row };
   }
+  if (kind === 'row-effect') {
+    const enemy = match.players[match.pending.selectionSide];
+    return { type: 'target', cardId: bestTarget(options, (row) => rowEffectValue(enemy, row, amount)) };
+  }
   if (kind === 'enemy-row') {
     const enemy = match.players[match.pending.selectionSide];
     const row = bestTarget(options, (row) => rowDamage(enemy, row, amount, armorStrip));
@@ -140,8 +152,9 @@ export function pickBotTarget(match) {
     return { type: 'target', cardId: card.id };
   }
   if (kind === 'deck-placement') {
-    const row = bestTarget(options, (row) => -player.board[row].length);
-    return { type: 'place', row, position: player.board[row].length };
+    const recipient = match.players[match.pending.selectionSide ?? match.pending.side];
+    const row = bestTarget(options, (row) => -recipient.board[row].length);
+    return { type: 'place', row, position: recipient.board[row].length };
   }
   const optionsWithUnits = options.map((id) => findUnit(match, id));
   const highest = Math.max(0, ...Object.values(amounts ?? {}));

@@ -1,7 +1,7 @@
 import { button, element } from './dom.js?v=step-11';
-import { cardType } from '../game/board.js?v=art-27';
-import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=art-27';
-import { cardButton, showCard } from './cards.js?v=art-27';
+import { cardType, placementSide } from '../game/board.js?v=plague-a';
+import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=plague-a';
+import { cardButton, showCard } from './cards.js?v=plague-a';
 
 export function updatePlacementSelection(screen, match, selectedCardId) {
   const card = match.players.human.hand.find(({ id }) => id === selectedCardId);
@@ -9,7 +9,8 @@ export function updatePlacementSelection(screen, match, selectedCardId) {
     node.setAttribute('aria-pressed', String(node.dataset.cardId === selectedCardId));
   }
   for (const row of screen.querySelectorAll('[data-play-row]')) {
-    const available = Boolean(card && (cardType(card) === 'effect' || row.dataset.full !== 'true'));
+    const available = Boolean(card && placementSide('human', card) === row.dataset.side &&
+      (cardType(card) === 'effect' || row.dataset.full !== 'true'));
     row.classList.toggle('is-selectable', available);
     row.parentElement.querySelector('button.row-label').disabled = !available;
   }

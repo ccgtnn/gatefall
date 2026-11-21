@@ -1,6 +1,6 @@
 import { button, element } from './dom.js?v=step-11';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=art-27';
-import { cardType, isUnit, statusCount } from '../game/board.js?v=art-27';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=plague-a';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=plague-a';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';
@@ -30,10 +30,12 @@ export function showCard(card, { leader = false } = {}) {
   const { definition, power, armor, timer, counter } = card;
   const details = leader ? ['Лидер'] : [CARD_TYPES[cardType(card)], definition.faction === NEUTRAL && 'Нейтральная', RARITY_LABELS[definition.rarity],
     definition.stratagem ? 'Стратагема' : definition.provision !== undefined ? `Провизия ${definition.provision}` : 'Токен'].filter(Boolean);
+  details.push(...(definition.categories ?? []));
   const stats = [];
+  if (definition.scenario) stats.push(`Главы ${card.chapter ?? 0}/${definition.scenario.chapters.length}`);
   const infection = statusCount(card, 'infection');
   if (infection) stats.push('Заражение ' + infection);
-  if (!leader && isUnit(card)) stats.push(`Сила ${power}`, `Броня ${armor ?? 0}`);
+  if (!leader && isUnit(card)) stats.push(`Сила ${power} · база ${basePower(card)}`, `Броня ${armor ?? 0}`);
   if (counter > 0) stats.push(`Счётчик ${counter}`);
   if (timer !== undefined) stats.push(`Таймер ${timer}`);
   const title = element('h2', null, definition.name);
@@ -143,7 +145,9 @@ function cardStats(card) {
   const stats = element('span', 'card-stats');
   if (isUnit(card)) {
     const power = element('strong', 'unit-power', card.power);
-    power.title = 'Сила ' + card.power;
+    power.title = `Сила ${card.power} · база ${basePower(card)}`;
+    power.classList.toggle('power-boosted', card.power > basePower(card));
+    power.classList.toggle('power-damaged', card.power < basePower(card));
     stats.append(power);
   }
   if (card.armor) {
@@ -158,13 +162,16 @@ export function decorateCard(node, card, player, { orderOnField = false } = {}) 
   const { definition, timer, counter } = card;
   const type = cardType(card);
   node.dataset.type = type;
+  if (definition.enemySide) node.dataset.enemySide = 'true';
   node.dataset.faction = definition.faction === NEUTRAL ? NEUTRAL : player.factionId ?? '';
   node.dataset.rarity = definition.rarity ?? '';
   node.setAttribute('aria-label', cardLabel(card));
   node.append(cardStats(card));
   if (type !== 'unit') {
-    const mark = element('span', 'card-kind', type === 'artifact' ? '◇' : '✦');
-    mark.title = CARD_TYPES[type];
+    const scenario = definition.scenario;
+    const mark = element('span', 'card-kind', scenario
+      ? `${card.chapter ?? 0}/${scenario.chapters.length}` : type === 'artifact' ? '◇' : '✦');
+    mark.title = scenario ? 'Главы сценария' : CARD_TYPES[type];
     node.append(mark);
   }
   const word = definition.order ? 'Приказ' : definition.deathwish ? 'Завещание'
@@ -181,6 +188,7 @@ export function decorateCard(node, card, player, { orderOnField = false } = {}) 
     badge.title = 'Заражение ' + infection;
     node.append(badge);
   }
+  if (definition.categories?.length) node.append(element('span', 'card-category', definition.categories.join(' · ')));
   addCardCrop(node, definition);
   if (!definition.art) node.append(element('span', 'card-art-placeholder', definition.name));
 }
@@ -189,6 +197,9 @@ function cardLabel(card) {
   const { definition, power, armor, timer, counter } = card;
   const details = [definition.name, CARD_TYPES[cardType(card)]];
   if (definition.faction === NEUTRAL) details.push('Нейтральная');
+  details.push(...(definition.categories ?? []));
+  if (definition.scenario) details.push(`главы ${card.chapter ?? 0}/${definition.scenario.chapters.length}`);
+  if (definition.enemySide) details.push('на сторону противника');
   if (isUnit(card)) details.push(`сила ${power}`);
   if (armor) details.push(`броня ${armor}`);
   if (definition.rarity) details.push(RARITY_LABELS[definition.rarity], `провизия ${definition.provision}`);
