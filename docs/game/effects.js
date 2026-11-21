@@ -1,10 +1,10 @@
 import { emit } from './events.js?v=opponent-reveal-1';
-import { ROWS, ROW_LABELS } from './cards.js?v=faction-filters-1';
+import { ROWS, ROW_LABELS } from './cards.js?v=storm-eye-1';
 import {
   announcePlay, applyStatus, availableRows, basePower, boost, cardType, consume, createCard, damage, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, ROW_LIMIT,
   setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, units,
-} from './board.js?v=faction-filters-1';
+} from './board.js?v=storm-eye-1';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);
@@ -332,7 +332,9 @@ export function enqueueStartTurn(match, side) {
     if (match.players[side].rowEffects?.[row]) match.effects.push({ side, row, rowTick: true });
   }
   for (const { card } of units(match, side)) {
-    if (card.timer > 0 && card.definition.startTurn) match.effects.push({ side, sourceId: card.id, startTimer: true });
+    if (card.timer > 0 && (card.definition.startTurn || card.definition.startTurnPulse)) {
+      match.effects.push({ side, sourceId: card.id, startTimer: true });
+    }
   }
 }
 
@@ -388,6 +390,7 @@ const operations = {
   },
   boost,
   damage,
+  break: (match, target) => removeUnit(match, target, 'timer'),
   tick: (match, target) => {
     if (tickTimer(match, target)) removeUnit(match, target, 'timer');
   },
@@ -398,7 +401,10 @@ export function runEffect(match, job, random) {
   if (job.scenarioChapter) return playChapter(match, job);
   if (job.startTimer) {
     const source = reference(match, job);
-    if (source && tickTimer(match, source)) enqueueCardEffect(match, job.side, source.card, 'startTurn');
+    if (!source || !(source.card.timer > 0)) return;
+    const expired = tickTimer(match, source);
+    enqueueCardEffect(match, job.side, source.card, 'startTurnPulse');
+    if (expired) enqueueCardEffect(match, job.side, source.card, 'startTurn');
     return;
   }
   if (!job.started) {
@@ -474,7 +480,9 @@ export function runEffect(match, job, random) {
     }
     job.hits -= 1;
     match.effects.unshift(job);
-    damage(match, enemies[Math.floor(random() * enemies.length)], 1, job.sourceDefinitionId, { scattered: true, attacker: job.side, sourceRow: job.refs.row });
+    damage(match, enemies[Math.floor(random() * enemies.length)], 1, job.sourceDefinitionId, {
+      scattered: true, attacker: job.side, sourceRow: job.refs.row, ...(step.visual && { visual: step.visual }),
+    });
     return;
   }
   if (step.action === 'row-effect') {

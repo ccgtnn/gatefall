@@ -1,11 +1,11 @@
-import { createCard, statusCount } from '../game/board.js?v=faction-filters-1';
+import { createCard, opponent, statusCount } from '../game/board.js?v=storm-eye-1';
 import { insertionPoint } from '../card-placement.js?v=opponent-reveal-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=faction-filters-1';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=faction-filters-1';
-import { playerHand } from './hand.js?v=faction-filters-1';
-import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=faction-filters-1';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=faction-filters-1';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=storm-eye-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=storm-eye-1';
+import { playerHand } from './hand.js?v=storm-eye-1';
+import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=storm-eye-1';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=storm-eye-1';
 
 import { orderBadge } from './stat-badges.js?v=opponent-reveal-1';
 
@@ -124,7 +124,10 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     const section = element('section', 'side');
     section.dataset.side = side;
     section.dataset.faction = player.factionId ?? '';
-    section.setAttribute('aria-label', sideLabel[side]);
+    const underStorm = ROWS.some((row) => match.players[opponent(side)].board[row]
+      .some(({ definition }) => definition.fieldAura === 'psionic-storm'));
+    section.toggleAttribute('data-psionic-storm', underStorm);
+    section.setAttribute('aria-label', sideLabel[side] + (underStorm ? ' · Псионная буря' : ''));
     const rows = side === 'bot' ? ROWS : [...ROWS].reverse();
     section.append(...rows.map((row) => rowView(match, side, player, row, readyOrders)));
     if (side === 'bot' && player.passed) section.append(element('p', 'opponent-passed', 'ПАС'));

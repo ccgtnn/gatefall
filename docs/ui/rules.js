@@ -1,4 +1,4 @@
-import { KEYWORDS } from '../game/cards.js?v=faction-filters-1';
+import { KEYWORDS } from '../game/cards.js?v=storm-eye-1';
 import { element } from './dom.js?v=opponent-reveal-1';
 
 export function bindRulesMenu() {

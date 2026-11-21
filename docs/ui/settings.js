@@ -1,6 +1,6 @@
-import { bindRulesMenu } from './rules.js?v=faction-filters-1';
+import { bindRulesMenu } from './rules.js?v=storm-eye-1';
 import { createSoundEffects, DEFAULT_VOLUME } from '../sound.js?v=step-10-volume';
-import { motionDuration } from '../turn-playback.js?v=faction-filters-1';
+import { motionDuration } from '../turn-playback.js?v=storm-eye-1';
 
 export function createSettings(app, onLeave) {
   const settings = document.querySelector('#settings');

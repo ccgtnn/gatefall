@@ -1,5 +1,5 @@
 import { setCardRarity } from './ui/dom.js?v=opponent-reveal-1';
-import { NEUTRAL } from './game/cards.js?v=faction-filters-1';
+import { NEUTRAL } from './game/cards.js?v=storm-eye-1';
 import { burstParticles } from './particles.js?v=step-14';
 
 const VISUAL_EVENTS = new Set([
@@ -259,6 +259,16 @@ function projectile(screen, event, entry, duration) {
   ], duration).finally(() => shot.remove());
 }
 
+function lightning(screen, entry, duration) {
+  if (!entry) return Promise.resolve();
+  const bolt = floatNode(screen, 'motion-lightning', '', center(entry.rect));
+  return animate(bolt, [
+    { opacity: 0, transform: 'translate(-50%, -100%) scaleY(.8)' },
+    { opacity: .95, transform: 'translate(-50%, -100%) scaleY(1)', offset: .28 },
+    { opacity: 0, transform: 'translate(-50%, -100%) scaleY(1)' },
+  ], duration).finally(() => bolt.remove());
+}
+
 function hit(screen, entry, event, duration) {
   if (!entry) return [];
   const { node, rect } = entry;
@@ -419,8 +429,10 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
     commit();
     return;
   }
-  if (event.scattered) {
-    await projectile(screen, event, rects(screen).get(event.cardId), duration * .43);
+  if (event.scattered && (event.visual !== 'lightning' || event.type === 'damage')) {
+    const entry = rects(screen).get(event.cardId);
+    if (event.visual === 'lightning') await lightning(screen, entry, duration * .54);
+    else await projectile(screen, event, entry, duration * .43);
     duration *= .52;
   }
   if (event.type === 'consume' && event.grouped) {

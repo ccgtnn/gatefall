@@ -610,6 +610,19 @@ body:has(#app[data-animation-speed="fast"]) .field-drawer[open] { animation-dura
   touch-action: pan-y;
 }
 
+.side[data-psionic-storm] .board-row { border-color: #6199e392; }
+.side[data-psionic-storm] .row-line::before {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(ellipse at 12% 68%, #75c4fa58, transparent 44%),
+    radial-gradient(ellipse at 42% 88%, #2a83ff50, transparent 54%),
+    radial-gradient(ellipse at 74% 73%, #5c78fa59, transparent 50%),
+    radial-gradient(ellipse at 96% 83%, #63c4ff43, transparent 45%);
+  pointer-events: none;
+  content: '';
+}
 .board-row[data-row-effect="rot"] { border-color: #5c995691; }
 .board-row[data-row-effect="rot"] .row-line::after {
   position: absolute;

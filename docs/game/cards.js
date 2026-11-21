@@ -26,6 +26,7 @@ export const KEYWORDS = Object.freeze({
   'Рвение': 'Приказ готов сразу после появления карты на поле.',
   'Соседи': 'Две ближайшие позиции слева и справа в том же ряду. Артефакты тоже занимают позиции.',
   'Гниение': 'В начале хода владельца ряда случайный отряд получает Заражение 2 либо 2 урона, если уже заражён. Длительность уменьшается и обнуляется в конце раунда.',
+  'Псионная буря': 'В начале твоего хода каждая молния выбирает случайный вражеский отряд и наносит ему 1 урон. Цели могут повторяться.',
   'Стойкость': 'Карта один раз остаётся в своём ряду до следующего раунда и сохраняет состояние.',
   'Сценарий': 'Пролог срабатывает при розыгрыше. Условие карты открывает по одной главе. После последней главы сценарий остаётся на поле до конца раунда. Стойкость может перенести его в следующий раунд.',
   'Конец хода': 'Эффект срабатывает в конце хода владельца карты, в том числе после паса.',
@@ -184,7 +185,7 @@ const strongestPresent = { targets: strongest };
 const annihilate = { action: 'destroy', target: strongest, visual: 'annihilation' };
 
 export const ANNIHILATION = Object.freeze({
-  id: 'annihilation', name: 'Аннигиляция', art: 'annihilation.webp', removalReserve: 8, faction: NEUTRAL, type: 'effect', rarity: 'gold', provision: 12,
+  id: 'annihilation', name: 'Аннигиляция', art: 'annihilation.webp?v=neutral-palette-1', removalReserve: 8, faction: NEUTRAL, type: 'effect', rarity: 'gold', provision: 12,
   text: 'Уничтожь сильнейший отряд на поле, свой или чужой. При равенстве выбери случайный из сильнейших. Инициатива: уничтожь все отряды с наибольшей силой.',
   deploy: { ...ability([{ ...annihilate, mode: 'random' }]), when: strongestPresent },
   initiative: { ...ability([annihilate]), when: strongestPresent },
@@ -209,22 +210,22 @@ export const NEUTRAL_CARDS = Object.freeze([
   ANNIHILATION,
   ...[
     ['veteran-mercenary', 'Наёмник-ветеран', 'bronze', 4, 3, 'Нанеси 2 урона своему отряду. Усиль себя на 3.', {
-      art: 'veteran-mercenary.webp',
+      art: 'veteran-mercenary.webp?v=neutral-palette-1',
       deploy: ability([action('damage', chosen('ally'), 2), action('boost', self, 3)],
         [choice('ally', allies, 'Выбери свой отряд для 2 урона.', { kind: 'friendly-damage', amount: 2 })]),
       keywords: ['Урон', 'Усиление'],
     }],
     ['smuggler', 'Контрабандист', 'bronze', 4, 3, 'Инициатива: усиль себя на 3.', {
-      art: 'smuggler.webp',
+      art: 'smuggler.webp?v=neutral-palette-1',
       initiative: ability([action('boost', self, 3)]), keywords: ['Инициатива', 'Усиление'],
     }],
     ['recon-drone', 'Разведдрон', 'bronze', 4, 4, 'Посмотри свою колоду и выбери карту. Она становится верхней.', {
-      art: 'recon-drone.webp',
+      art: 'recon-drone.webp?v=neutral-palette-1',
       deploy: ability([{ action: 'choose-deck-top' }]),
     }],
     ['emp-grenade', 'ЭМИ-граната', 'bronze', 5, null, 'Сними всю броню с вражеского отряда. Нанеси 2 урона плюс число снятых единиц брони.', {
       removalReserve: 4,
-      art: 'emp-grenade.webp',
+      art: 'emp-grenade.webp?v=neutral-palette-1',
       type: 'effect',
       deploy: ability([
         { ...action('armor', chosen('enemy'), { stat: 'armor', scale: -1 }), save: 'armor' },
@@ -234,7 +235,7 @@ export const NEUTRAL_CARDS = Object.freeze([
     }],
     ['gravity-pulse', 'Гравитационный импульс', 'bronze', 7, null, 'Выбери вражеский ряд: сними 1 броню и нанеси 1 урон всем отрядам в нём.', {
       removalReserve: 4,
-      art: 'gravity-pulse.webp',
+      art: 'gravity-pulse.webp?v=neutral-palette-1',
       type: 'effect', deploy: ability([
         { action: 'select-row', ref: 'row', filter: 'units', prompt: 'Выбери вражеский ряд для Гравитационного импульса.' },
         action('armor', { ...enemies, rowRef: 'row' }, -1),
@@ -242,16 +243,16 @@ export const NEUTRAL_CARDS = Object.freeze([
       ]), keywords: ['Броня', 'Урон'],
     }],
     ['liaison', 'Связной', 'gold', 9, 4, 'Счётчик 4: возьми карту.', {
-      art: 'liaison.webp',
+      art: 'liaison.webp?v=neutral-palette-1',
       counter: { amount: 4, effect: ability([{ action: 'draw', amount: 1 }]) },
       keywords: ['Счётчик'],
     }],
     ['field-medic', 'Полевой реаниматор', 'gold', 9, 3, 'Сыграй бронзовый отряд из своего сброса.', {
-      art: 'field-medic.webp',
+      art: 'field-medic.webp?v=neutral-palette-1',
       deploy: ability([{ action: 'play-from-discard', filter: { rarity: 'bronze' } }]),
     }],
     ['gate-relic', 'Реликт врат', 'gold', 9, null, 'Приказ (перезарядка 2): усиль свой отряд на 3.', {
-      art: 'gate-relic.webp',
+      art: 'gate-relic.webp?v=neutral-palette-1',
       type: 'artifact', order: {
         ...ability([action('boost', chosen('ally'), 3)],
           [choice('ally', allies, 'Выбери свой отряд для усиления на 3.', { kind: 'boost' })]),
@@ -260,7 +261,7 @@ export const NEUTRAL_CARDS = Object.freeze([
     }],
     ['bounty-hunter', 'Охотник за головами', 'gold', 10, 4, 'Нанеси 6 урона вражескому отряду. Если он погиб от этого удара, усиль себя на 2.', {
       removalReserve: 5,
-      art: 'bounty-hunter.webp',
+      art: 'bounty-hunter.webp?v=neutral-palette-1',
       deploy: ability([
         { ...action('damage', chosen('enemy'), 6), save: 'kill' },
         action('boost', self, { result: 'kill', scale: 2 }),
@@ -277,7 +278,7 @@ export const NEUTRAL_CARDS = Object.freeze([
         keywords: ['Приказ', 'Урон', 'Порождение'],
       }],
     ['gate-guardian', 'Хранитель врат', 'gold', 10, 12, 'Броня 4. Уязвимость: отправь эту карту в сброс.', {
-      art: 'gate-guardian.webp',
+      art: 'gate-guardian.webp?v=neutral-palette-1',
       armor: 4, events: { 'armor-break': ability([action('discard', self)]) },
       keywords: ['Броня', 'Уязвимость'],
     }],
@@ -291,6 +292,13 @@ export const NEUTRAL_CARDS = Object.freeze([
         type: 'artifact', art: 'forgotten-gates.webp', timer: 2, keywords: ['Призыв', 'Соседи'],
         deploy: ability([summonFromDeck('left', 4)]),
         startTurn: ability([summonFromDeck('right', 4)]),
+      }],
+    ['storm-eye', 'Глаз бури', 'bronze', 5, null,
+      'При розыгрыше: создай Псионную бурю над вражескими рядами. В начале каждого из твоих следующих 3 ходов она бьёт 3 раза на 1 урон по случайным вражеским отрядам. Цели могут повторяться. После третьего хода бури Кристалл ломается и наносит ещё 1 урон случайному вражескому отряду.', {
+        type: 'artifact', art: 'storm-eye.webp', categories: ['Кристалл'], keywords: ['Псионная буря', 'Урон'],
+        fieldAura: 'psionic-storm', timer: 3,
+        startTurnPulse: ability([{ action: 'scatter', amount: 3, visual: 'lightning' }]),
+        startTurn: ability([{ action: 'break', target: self }, { action: 'scatter', amount: 1, visual: 'lightning' }]),
       }],
   ].map(([id, name, rarity, provision, power, text, rules]) => Object.freeze({
     id, name, rarity, faction: NEUTRAL, provision, type: 'unit', ...(power === null ? {} : { power }), text, ...rules,

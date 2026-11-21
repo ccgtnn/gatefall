@@ -1,8 +1,8 @@
-import { FACTIONS, ROWS } from './cards.js?v=faction-filters-1';
-import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=faction-filters-1';
-import { collection, copyLimit } from './decks.js?v=faction-filters-1';
-import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=faction-filters-1';
-import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=faction-filters-1';
+import { FACTIONS, ROWS } from './cards.js?v=storm-eye-1';
+import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=storm-eye-1';
+import { collection, copyLimit } from './decks.js?v=storm-eye-1';
+import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=storm-eye-1';
+import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=storm-eye-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };

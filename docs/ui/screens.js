@@ -1,8 +1,8 @@
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
-import { createCard } from '../game/board.js?v=faction-filters-1';
-import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=faction-filters-1';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=faction-filters-1';
-import { logView, roundText } from './menu.js?v=faction-filters-1';
+import { createCard } from '../game/board.js?v=storm-eye-1';
+import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=storm-eye-1';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=storm-eye-1';
+import { logView, roundText } from './menu.js?v=storm-eye-1';
 import { filterCatalog } from './catalog-cards.js?v=opponent-reveal-1';
 import { factionFilters } from './faction-filters.js?v=1';
 

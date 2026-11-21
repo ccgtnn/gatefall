@@ -428,7 +428,7 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   --faction-face: #373026;
   --faction-second: #242b38;
   --faction-light: #f4e6d0;
-  --card-art-tone: sepia(.08) saturate(1.23) brightness(1.07);
+  --deck-copies-brightness: .63;
 }
 
 [data-faction="protectorate"] {
@@ -538,7 +538,6 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   height: 100%;
   object-fit: cover;
   object-position: center;
-  filter: var(--card-art-tone, none);
 }
 .has-art::after {
   content: '';
@@ -596,6 +595,19 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   transform: translate(-100%, -50%);
 }
 .motion-opponent-reveal[data-rarity="gold"] { border: 2px solid var(--rarity-border-color); }
+.motion-lightning {
+  width: clamp(14px, 4dvh, 34px);
+  height: clamp(36px, 16dvh, 136px);
+  filter: drop-shadow(0 0 4px #50bbff) drop-shadow(0 0 9px #4890ff);
+}
+.motion-lightning::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #def8ff;
+  clip-path: polygon(73% 0, 22% 37%, 57% 43%, 9% 71%, 47% 75%, 50% 100%, 100% 67%, 62% 64%, 94% 35%, 61% 32%);
+  content: '';
+}
 .motion-opponent-reveal .card-art-crop { object-fit: contain; background: #152434; }
 .opponent-reveal-name {
   padding: .38em .32em .33em;
@@ -905,7 +917,7 @@ ul.deck-invalid { padding-inline-start: 1.1rem; margin: 0; font-size: .8rem; }
 }
 .deck-card-copies i { inline-size: .22rem; block-size: .42rem; border-radius: 1px; background: #d8e2f1; }
 .deck-card-copies i.is-used { background: #58616e; }
-.deck-copies-used .card-art-crop { filter: var(--card-art-tone, saturate(1)) brightness(.42); }
+.deck-copies-used .card-art-crop { filter: brightness(var(--deck-copies-brightness, .42)); }
 
 @media (max-width: 650px) {
   .deck-editor-columns { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: .3rem; }

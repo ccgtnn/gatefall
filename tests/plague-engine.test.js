@@ -34,7 +34,7 @@ test('categories cover the existing Growth pool and identify the Void neutrals',
   assert.deepEqual(categories['Гниль'].slice(0, 2).map(({ id }) => id), ['acid-gland','spitter']);
   assert.equal(categories.undefined?.some((card) => !card.scenario) ?? false, false);
   assert.ok(FACTIONS.protectorate.pool.every((card) => !card.categories));
-  assert.deepEqual([...NEUTRAL_CARDS, SHADOW].filter((card) => card.categories).map(({ id, categories }) => [id, categories]),
+  assert.deepEqual([...NEUTRAL_CARDS, SHADOW].filter((card) => card.categories?.includes('Пустота')).map(({ id, categories }) => [id, categories]),
     [['falura', ['Пустота']], ['shadow', ['Пустота']]]);
 });
 

@@ -22,9 +22,9 @@ function scenario(id) {
   return match;
 }
 
-test('all fifteen neutrals are in the catalog and both preset neutral packages are legal', () => {
-  assert.equal(NEUTRAL_CARDS.length, 15);
-  assert.equal(new Set(NEUTRAL_CARDS.map(({ id }) => id)).size, 15);
+test('all sixteen neutrals are in the catalog and both preset neutral packages are legal', () => {
+  assert.equal(NEUTRAL_CARDS.length, 16);
+  assert.equal(new Set(NEUTRAL_CARDS.map(({ id }) => id)).size, 16);
   const ids = ({ deck }) => deck.filter(({ faction }) => faction === 'neutral').map(({ id }) => id).sort();
   assert.deepEqual(ids(FACTIONS.protectorate),
     ['annihilation', 'gate-guardian', 'gate-relic', 'recon-drone', 'recon-drone', 'smuggler']);
