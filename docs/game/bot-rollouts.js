@@ -1,8 +1,8 @@
-import { FACTIONS, ROWS } from './cards.js?v=plague-art-2';
-import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=plague-art-2';
-import { collection, copyLimit } from './decks.js?v=plague-art-2';
-import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=plague-art-2';
-import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=plague-art-2';
+import { FACTIONS, ROWS } from './cards.js?v=world-gates-1';
+import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=world-gates-1';
+import { collection, copyLimit } from './decks.js?v=world-gates-1';
+import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=world-gates-1';
+import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=world-gates-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -100,7 +100,8 @@ function fastPlays(match, side) {
     const action = { type: 'play', cardId: card.id };
     const cost = printedValue(card);
     const scenarioTrigger = ROWS.some((row) => player.board[row].some((entry) =>
-      entry.definition.scenario && def.categories?.includes(entry.definition.scenario.category))) ? 2 : 0;
+      entry.definition.scenario && entry.chapter < entry.definition.scenario.chapters.length &&
+      def.categories?.includes(entry.definition.scenario.category))) ? 2 : 0;
     if (def.type === 'effect') {
       let points = effectSwing(match, side, card);
       if (def.id === 'shield-overload') {
@@ -121,7 +122,7 @@ function fastPlays(match, side) {
     }
     const infection = def.deploy?.steps.some((step) => step.status === 'infection');
     const removal = (def.removalReserve || infection || def.scenario ||
-      def.deploy?.steps.some((step) => step.target?.infected || step.amount?.count))
+      def.deploy?.steps.some((step) => step.target?.infected || step.amount?.count || step.action === 'replace-leader'))
       ? effectSwing(match, side, card) : 0;
     const scenario = def.scenario ? Math.min(def.scenario.chapters.length,
       player.hand.filter((entry) => entry.definition.categories?.includes(def.scenario.category)).length) * 2 : 0;
@@ -132,6 +133,10 @@ function fastPlays(match, side) {
       cost, reserve: 0,
     };
   });
+}
+
+function unitsCanTakeLeaderDamage(player) {
+  return ROWS.some((row) => player.board[row].some((card) => isUnit(card) && (card.armor ?? 0) < 2));
 }
 
 function quickAction(match, side, pickTarget) {
@@ -146,6 +151,8 @@ function quickAction(match, side, pickTarget) {
   const player = match.players[side];
   const enemy = match.players[opponent(side)];
   const lead = totalScore(player) - totalScore(enemy);
+  if (player.leader?.order && !(enemy.passed && lead > 0) && canUseLeader(match, side) &&
+      unitsCanTakeLeaderDamage(enemy)) return { type: 'leader' };
   if (match.playedCard) {
     const [order] = availableOrders(match, side);
     return order && !(enemy.passed && lead > 0) ? { type: 'order', cardId: order.card.id } : END;
@@ -194,7 +201,7 @@ function assessment(match, round) {
   }
   if (!last) return Math.tanh((totalScore(bot) - totalScore(human)) / 18) * .5;
   const worth = (player) => player.hand.reduce((sum, card) => sum + 3.5 + printedValue(card) * .6, 0)
-    + (player.leader?.charges ?? 0) * 4.5;
+    + (player.leader?.order ? 4.5 : (player.leader?.charges ?? 0) * 4.5);
   const cards = worth(bot) - worth(human);
   // A life lead means the opponent needs both remaining rounds. Extra cards carry over.
   const lives = (bot.lives - human.lives) * (round === 1 ? 12 : 4);

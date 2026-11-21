@@ -818,8 +818,18 @@ ul.deck-invalid { padding-inline-start: 1.1rem; margin: 0; font-size: .8rem; }
   .deck-editor-panel { max-height: max(11rem, calc(100dvh - 8rem)); }
 }
 
-.unit-power.power-boosted { color: #8dee9c; }
-.unit-power.power-damaged { color: #ff9b94; }
+.unit-power.power-boosted { color: #45ff77; text-shadow: 0 1px 2px #000, 0 0 4px #45ff7780; }
+.unit-power.power-damaged { color: #ff555e; text-shadow: 0 1px 2px #000, 0 0 4px #ff555e80; }
+
+:is(.hand-card, .unit-face)[data-accent="gate"] {
+  --faction-edge: #e9bf66;
+  background: radial-gradient(ellipse at 50% 37%, #236bb9, #12274f 66%, #0d1534);
+  color: #c9e6ff;
+}
+
+.preview-body[data-accent="gate"] h2 { color: #8cc9ff; }
+
+.card-kind.is-complete { color: #f5d17f; border-color: #f5d17f; }
 .card-category {
   position: absolute;
   inset: auto 0 17%;

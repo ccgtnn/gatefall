@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { applyStatus, basePower, changeBasePower, createCard, damage, findUnit, heal, setRowEffect, statusCount } from '../docs/game/board.js';
-import { FACTIONS, LARVA, NEUTRAL_CARDS } from '../docs/game/cards.js';
+import { FACTIONS, LARVA, NEUTRAL_CARDS, SHADOW } from '../docs/game/cards.js';
 import { applyAction, canPlayCard, createMatch, totalScore } from '../docs/game/match.js';
 import { applyJournalEvent, createPlaybackState } from '../docs/turn-playback.js';
 
@@ -26,14 +26,16 @@ function setup() {
   return match;
 }
 
-test('categories cover the existing Growth pool and leave other factions uncategorized', () => {
+test('categories cover the existing Growth pool and identify the Void neutrals', () => {
   const categories = Object.groupBy([...FACTIONS.growth.pool, LARVA], (def) => def.categories?.[0]);
   assert.deepEqual(categories['Выводок'].map(({ id }) => id).sort(),
     ['broodlord','cocoon','colossus','feast','gulper','incubator','larva','nest','ravager','scavenger','swarm-call']);
   assert.deepEqual(categories['Росток'].map(({ id }) => id).sort(), ['predator','spore-sac','vine']);
   assert.deepEqual(categories['Гниль'].slice(0, 2).map(({ id }) => id), ['acid-gland','spitter']);
   assert.equal(categories.undefined?.some((card) => !card.scenario) ?? false, false);
-  assert.ok([...FACTIONS.protectorate.pool, ...NEUTRAL_CARDS].every((card) => !card.categories));
+  assert.ok(FACTIONS.protectorate.pool.every((card) => !card.categories));
+  assert.deepEqual([...NEUTRAL_CARDS, SHADOW].filter((card) => card.categories).map(({ id, categories }) => [id, categories]),
+    [['falura', ['Пустота']], ['shadow', ['Пустота']]]);
 });
 
 test('damage changes current power; fortify and weaken preserve the offset; healing resets it', () => {
@@ -141,14 +143,14 @@ test('pile passives trigger on the first infection and after expiry, in both dec
   assert.equal(basePower(findUnit(match, 'field').card), 5);
 });
 
-test('scenarios run the prologue, ignore themselves and enemy plays, retain chapters and exile after chapter three', () => {
+test('scenarios run the prologue, ignore themselves and enemy plays, stop triggering at chapter three and carry the completed scenario', () => {
   let match = setup();
   const ally = { scope: 'ally', type: 'unit' };
   const spell = (amount) => ({ steps: [{ action: 'boost', target: ally, amount }] });
   const scenario = unit('scenario', { type: 'artifact', resilience: true, categories: ['Гниль'],
     scenario: { category: 'Гниль', prologue: spell(1), chapters: [spell(2), spell(3), spell(4)] } });
   match.players.human.board.orbit = [unit('witness', { resilience: true })];
-  match.players.human.hand.push(scenario, ...['one','two','three'].map((id) => unit(id, { categories: ['Гниль'] })));
+  match.players.human.hand.push(scenario, ...['one','two','three','four'].map((id) => unit(id, { categories: ['Гниль'] })));
   match.players.bot.hand.push(unit('wrong', { categories: ['Гниль'] }));
   match = step(match, 'human', play('scenario', 1));
   assert.equal(findUnit(match, 'witness').card.power, 6);
@@ -161,7 +163,12 @@ test('scenarios run the prologue, ignore themselves and enemy plays, retain chap
   match = step(match, 'human', play('two', 3));
   assert.equal(findUnit(match, 'scenario').card.chapter, 2);
   match = step(match, 'human', play('three', 4));
-  assert.equal(findUnit(match, 'scenario'), undefined);
-  assert.equal(match.players.human.exile.at(-1).id, 'scenario');
+  assert.equal(findUnit(match, 'scenario').card.chapter, 3);
   assert.equal(findUnit(match, 'witness').card.power, 15);
+  match = step(match, 'human', play('four', 5));
+  assert.equal(match.log.filter(({ type }) => type === 'scenario-chapter').length, 3);
+  const next = step(match, 'human', pass);
+  assert.equal(next.round, 2);
+  assert.equal(findUnit(next, 'scenario').card.chapter, 3);
+  assert.equal(findUnit(next, 'scenario').card.resilient, false);
 });

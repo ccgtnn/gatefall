@@ -1,5 +1,5 @@
-import { spendResilience } from './game/board.js?v=plague-art-2';
-import { ROWS } from './game/cards.js?v=plague-art-2';
+import { spendResilience } from './game/board.js?v=world-gates-1';
+import { ROWS } from './game/cards.js?v=world-gates-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;
@@ -50,6 +50,10 @@ export function applyJournalEvent(state, event) {
   if (!player) return;
 
   if (type === 'pass') player.passed = true;
+  if (type === 'leader-replaced') player.leader = event.leader;
+  if (type === 'leader' && event.lastUsedTurn !== undefined) {
+    player.leader = { ...player.leader, lastUsedTurn: event.lastUsedTurn };
+  }
   if (type === 'draw' && event.cards) {
     const drawn = new Set(event.cards.map(({ id }) => id));
     player.deck = player.deck.filter(({ id }) => !drawn.has(id));

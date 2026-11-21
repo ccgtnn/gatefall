@@ -1,11 +1,11 @@
-import { createCard, statusCount } from '../game/board.js?v=plague-art-2';
-import { insertionPoint } from '../card-placement.js?v=plague-art-2';
+import { createCard, statusCount } from '../game/board.js?v=world-gates-1';
+import { insertionPoint } from '../card-placement.js?v=world-gates-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=step-11';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=plague-art-2';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=plague-art-2';
-import { playerHand } from './hand.js?v=plague-art-2';
-import { availableOrders, canUseLeader, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=plague-art-2';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=plague-art-2';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=world-gates-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=world-gates-1';
+import { playerHand } from './hand.js?v=world-gates-1';
+import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=world-gates-1';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=world-gates-1';
 
 export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, isMulliganFieldVisible, setMulliganField,
   playHuman, humanCanAct, placeSelected, settingsButton, showDrawer, selectCard, mulliganScreen }) {
@@ -139,10 +139,14 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     if (leader.art) portrait.append(cardArt(leader, 'leader-image'));
     else portrait.append(element('span', 'leader-placeholder', '♜'));
     cardInspection(portrait, { definition: leader }, false, () => showCard({ definition: leader }, { leader: true }));
-    const power = button('ϟ ' + leader.charges, () => playHuman({ type: 'leader' }), 'leader-power');
+    const cooldown = leaderCooldown(player);
+    const power = button(leader.order ? (cooldown ? '◷ ' + cooldown : '⚑') : 'ϟ ' + leader.charges,
+      () => playHuman({ type: 'leader' }), 'leader-power');
     power.title = leader.text;
-    power.setAttribute('aria-label', leader.name + ' · зарядов ' + leader.charges);
-    power.disabled = side !== 'human' || !humanCanAct() || match.playedCard || !canUseLeader(match, side);
+    power.setAttribute('aria-label', leader.name + ' · ' + (leader.order
+      ? cooldown ? 'Перезарядка приказа: ' + cooldown : 'Приказ лидера'
+      : 'зарядов ' + leader.charges));
+    power.disabled = side !== 'human' || !humanCanAct() || !canUseLeader(match, side);
     panel.append(portrait, power);
     return panel;
   }
@@ -201,8 +205,9 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     panel.setAttribute('aria-labelledby', title.id);
     const choices = element('div', 'deck-choice-cards');
     const pile = pending.pile ?? 'deck';
-    const selectable = pending.options.map((id) => human[pile].find((card) => card.id === id));
-    const scrollable = pending.kind === 'deck-top' || pile === 'discard';
+    const options = new Set(pending.options);
+    const selectable = human[pile].filter(({ id }) => pending.fullDeck || options.has(id));
+    const scrollable = pending.fullDeck || pending.kind === 'deck-top' || pile === 'discard';
     if (scrollable) {
       panel.classList.add('pile-offer');
       selectable.sort((a, b) => a.definition.name.localeCompare(b.definition.name, 'ru'));
@@ -210,7 +215,8 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     for (const item of selectable) {
       const card = pile === 'discard' ? createCard(item.id, item.definition) : item;
       const node = cardButton(card, () => playHuman({ type: 'target', cardId: card.id }), human);
-      node.classList.add('effect-target');
+      node.disabled = !options.has(card.id);
+      node.classList.toggle('effect-target', !node.disabled);
       node.append(element('span', 'deck-choice-name', card.definition.name));
       choices.append(node);
     }

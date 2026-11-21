@@ -1,5 +1,5 @@
-import { ROWS } from './cards.js?v=plague-art-2';
-import { emit } from './events.js?v=plague-art-2';
+import { ROWS } from './cards.js?v=world-gates-1';
+import { emit } from './events.js?v=world-gates-1';
 
 export const ROW_LIMIT = 9;
 export const HAND_LIMIT = 10;
@@ -179,11 +179,11 @@ export function removeUnit(match, unit, reason, consumerId, extra) {
   const player = match.players[side];
   player.board[row].splice(position, 1);
   const owner = card.owner ?? side;
-  const exile = ['destroy', 'scenario-complete'].includes(reason) || statusCount(card, 'doomed') > 0;
+  const exile = reason === 'destroy' || statusCount(card, 'doomed') > 0;
   discardCard(match, side, card, exile);
-  const death = ['destroy', 'discard', 'scenario-complete'].includes(reason) ? undefined : { row, position, refs: { consumer: consumerId } };
+  const death = ['destroy', 'discard'].includes(reason) ? undefined : { row, position, refs: { consumer: consumerId } };
   match.effects.unshift(...emit(match, {
-    type: death ? 'death' : reason === 'scenario-complete' ? 'destroy' : reason, side,
+    type: death ? 'death' : reason, side,
     ...(owner !== side && { owner }), name: card.definition.name, cardId: card.id, power: card.power,
     infection: statusCount(card, 'infection'), exile, reason, ...extra,
   }, { source: card, death }));

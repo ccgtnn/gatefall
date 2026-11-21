@@ -1,6 +1,6 @@
 import { button, element } from './dom.js?v=step-11';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=plague-art-2';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=plague-art-2';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=world-gates-1';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=world-gates-1';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';
@@ -35,7 +35,10 @@ export function showCard(card, { leader = false } = {}) {
   if (definition.scenario) stats.push(`Главы ${card.chapter ?? 0}/${definition.scenario.chapters.length}`);
   const infection = statusCount(card, 'infection');
   if (infection) stats.push('Заражение ' + infection);
-  if (!leader && isUnit(card)) stats.push(`Сила ${power} · база ${basePower(card)}`, `Броня ${armor ?? 0}`);
+  if (!leader && isUnit(card)) {
+    const base = basePower(card);
+    stats.push(power === base ? `Сила ${power}` : `Сила / база ${power} / ${base}`, `Броня ${armor ?? 0}`);
+  }
   if (counter > 0) stats.push(`Счётчик ${counter}`);
   if (timer !== undefined) stats.push(`Таймер ${timer}`);
   const title = element('h2', null, definition.name);
@@ -43,6 +46,7 @@ export function showCard(card, { leader = false } = {}) {
   const close = button('Закрыть', () => preview.close());
   close.autofocus = true;
   const body = element('div', 'preview-body');
+  if (definition.accent) body.dataset.accent = definition.accent;
   body.append(title, element('p', 'muted', details.join(' · ')));
   if (stats.length) body.append(element('p', 'preview-stats', stats.join(' · ')));
   body.append(element('p', null, definition.text ?? 'Без эффекта.'));
@@ -165,6 +169,7 @@ export function decorateCard(node, card, player, { orderOnField = false } = {}) 
   const { definition, timer, counter } = card;
   const type = cardType(card);
   node.dataset.type = type;
+  if (definition.accent) node.dataset.accent = definition.accent;
   if (definition.enemySide) node.dataset.enemySide = 'true';
   node.dataset.faction = definition.faction === NEUTRAL ? NEUTRAL : player.factionId ?? '';
   node.dataset.rarity = definition.rarity ?? '';
@@ -174,7 +179,9 @@ export function decorateCard(node, card, player, { orderOnField = false } = {}) 
     const scenario = definition.scenario;
     const mark = element('span', 'card-kind', scenario
       ? `${card.chapter ?? 0}/${scenario.chapters.length}` : type === 'artifact' ? '◇' : '✦');
-    mark.title = scenario ? 'Главы сценария' : CARD_TYPES[type];
+    const complete = scenario && card.chapter === scenario.chapters.length;
+    mark.classList.toggle('is-complete', Boolean(complete));
+    mark.title = complete ? 'Все главы сыграны' : scenario ? 'Главы сценария' : CARD_TYPES[type];
     node.append(mark);
   }
   const word = card.resilient ? 'Стойкость' : definition.order ? 'Приказ' : definition.deathwish ? 'Завещание'

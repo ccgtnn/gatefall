@@ -16,8 +16,8 @@ test('the three immutable presets fit the provision cap and have enough units', 
     assert.equal(result.budget, 165);
     assert.equal(result.cost, 164);
     assert.ok(Object.isFrozen(preset.cardIds));
-    assert.equal(collection(preset.factionId).length, index === 0 ? 26 : 35);
-    assert.equal(collection(preset.factionId).filter(({ faction }) => faction === 'neutral').length, 11);
+    assert.equal(collection(preset.factionId).length, index === 0 ? 28 : 37);
+    assert.equal(collection(preset.factionId).filter(({ faction }) => faction === 'neutral').length, 13);
   }
 });
 

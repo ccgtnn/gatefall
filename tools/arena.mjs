@@ -1,6 +1,6 @@
 import { availableParallelism } from 'node:os';
 import { writeFileSync } from 'node:fs';
-import { summarizeCards, summarizeOverload, summarizePlagueEvents } from './arena-cards.mjs';
+import { summarizeCards, summarizeOverload, summarizePlagueEvents, summarizeNewNeutrals } from './arena-cards.mjs';
 import { resolve } from 'node:path';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 
@@ -42,21 +42,24 @@ function mirror(match) {
   };
 }
 
-async function run({ root, trials, rolloutSamples, trace, collectCards, progress }) {
+async function run({ root, trials, rolloutSamples, trace, collectCards, progress, newNeutrals }) {
   const { applyAction, confirmMulligan, createMatch, mulliganLimit, totalScore } = await import(root + '/docs/game/match.js');
-  const { FACTIONS } = await import(root + '/docs/game/cards.js');
+  const { FACTIONS, NEUTRAL_CARDS } = await import(root + '/docs/game/cards.js');
   const { PRESETS, inspectDeck } = await import(root + '/docs/game/decks.js');
   const { chooseBotTurn } = await import(root + '/docs/game/bot.js');
   const results = [];
+  const additions = newNeutrals ? NEUTRAL_CARDS.filter(({ id }) => id === 'world-gates' || id === 'falura') : [];
   for (const { levels, faction, seed, starter, group, leaderPair, growth } of trials) {
     const random = randomFrom(seed);
     Math.random = randomFrom(seed ^ 0x124b62);
     const [humanLeader, botLeader] = leaderPair ?? [];
     const plague = growth === 'plague' ? inspectDeck(PRESETS.find(({ id }) => id === 'preset-growth-plague')) : null;
     if (plague && !plague.valid) throw new Error('Invalid Plague deck: ' + JSON.stringify(plague.issues));
-    const decks = plague ? (faction === 'protectorate'
+    let decks = plague ? (faction === 'protectorate'
       ? { human: FACTIONS.protectorate.deck, bot: plague.cards }
       : { human: plague.cards, bot: FACTIONS.protectorate.deck }) : undefined;
+    if (decks && newNeutrals) decks = Object.fromEntries(Object.entries(decks)
+      .map(([side, cards]) => [side, [...cards, ...additions]]));
     let match = createMatch({ decks, humanFaction: faction, random, humanLeader:
       plague && faction === 'growth' ? plague.leader.id : FACTIONS[faction].leaders[humanLeader]?.id });
     if (botLeader !== undefined) {
@@ -125,7 +128,9 @@ async function run({ root, trials, rolloutSamples, trace, collectCards, progress
       match = next;
     }
     results.push({ group, result: match.result, ms: performance.now() - start, hardTimings, faction, seed, starter,
-      leaderPair, growth, rounds: match.log.filter(({ type }) => type === 'round-end'), decisions, played,
+      leaderPair, growth, ...(collectCards && newNeutrals && { neutralEvents: match.log.filter((event) =>
+        event.type === 'play' || (event.type === 'spawn' && event.cards[0]?.definition.id === 'shadow') ||
+        (event.sourceDefinitionId === 'falura' && ['damage', 'armor', 'leader'].includes(event.type))) }), rounds: match.log.filter(({ type }) => type === 'round-end'), decisions, played,
       ...(collectCards && growth === 'plague' && { plagueEvents: match.log.flatMap((event) => {
         if (event.type === 'damage' || event.type === 'status' || event.type === 'boost' ||
             event.type === 'scenario-chapter' || event.type === 'row-effect' || event.type === 'play') {
@@ -148,6 +153,9 @@ if (isMainThread) {
   const trials = [];
   const growthDecks = (options.growth ?? 'standard').split(',');
   if (growthDecks.some((name) => name !== 'standard' && name !== 'plague')) throw new Error('Unknown Growth deck');
+  if (options['new-neutrals'] && growthDecks.some((name) => name !== 'plague')) {
+    throw new Error('--new-neutrals requires --growth=plague');
+  }
   const matchups = (options.matchups ?? 'hard-normal,normal-easy').split(',');
   if (!Number.isSafeInteger(games) || games < 2 || games % 2) throw new Error('--games must be a positive even number');
   for (const matchup of matchups) {
@@ -169,7 +177,7 @@ if (isMainThread) {
   let completed = 0;
   const batches = await Promise.all(Array.from({ length: workers }, (_, index) => new Promise((done, fail) => {
     const worker = new Worker(new URL(import.meta.url), {
-      workerData: { root, progress: Boolean(options.progress), trace: Boolean(options.trace), collectCards: Boolean(options.cards), rolloutSamples: options.samples === undefined ? undefined : Number(options.samples),
+      workerData: { root, newNeutrals: Boolean(options['new-neutrals']), progress: Boolean(options.progress), trace: Boolean(options.trace), collectCards: Boolean(options.cards), rolloutSamples: options.samples === undefined ? undefined : Number(options.samples),
         trials: trials.filter((_, i) => i % workers === index) },
     });
     worker.on('message', (message) => {
@@ -215,6 +223,7 @@ if (isMainThread) {
     const standard = mirrorMatches.filter(({ growth }) => growth !== 'plague');
     const plague = mirrorMatches.filter(({ growth }) => growth === 'plague');
     writeFileSync(options.cards, JSON.stringify({ cards: summarizeCards(standard), overload: summarizeOverload(standard),
+      ...(options['new-neutrals'] && { newNeutrals: summarizeNewNeutrals(plague) }),
       ...(plague.length && { plagueCards: summarizeCards(plague), plagueEvents: summarizePlagueEvents(plague) }) }, null, 2));
   }
   console.log(JSON.stringify(summary, null, 2));

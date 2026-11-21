@@ -26,7 +26,7 @@ export const KEYWORDS = Object.freeze({
   'Соседи': 'Две ближайшие позиции слева и справа в том же ряду. Артефакты тоже занимают позиции.',
   'Гниение': 'В начале хода владельца ряда случайный отряд получает Заражение 2 либо 2 урона, если уже заражён. Длительность уменьшается и обнуляется в конце раунда.',
   'Стойкость': 'Карта один раз остаётся в своём ряду до следующего раунда и сохраняет состояние.',
-  'Сценарий': 'Пролог срабатывает при розыгрыше. Условие карты открывает по одной главе. После последней главы сценарий уходит из игры.',
+  'Сценарий': 'Пролог срабатывает при розыгрыше. Условие карты открывает по одной главе. После последней главы сценарий остаётся на поле до конца раунда. Стойкость может перенести его в следующий раунд.',
   'Конец хода': 'Эффект срабатывает в конце хода владельца карты, в том числе после паса.',
   'Таймер': 'Считается в конце твоего хода, включая ход розыгрыша и пас.',
 });
@@ -40,7 +40,7 @@ const self = { scope: 'source' };
 const adjacent = { scope: 'neighbors', type: 'unit' };
 const allies = { scope: 'ally', type: 'unit' };
 const enemies = { scope: 'enemy', type: 'unit' };
-const larvae = { ...allies, token: true };
+const larvae = { ...allies, definitionId: LARVA.id };
 const otherAlly = { ...allies, exclude: 'source' };
 const allyRow = { ...allies, row: 'source' };
 const chosen = (ref) => ({ scope: 'ref', ref });
@@ -189,6 +189,19 @@ export const ANNIHILATION = Object.freeze({
   keywords: ['Уничтожение', 'Инициатива'],
 });
 
+export const SHADOW = Object.freeze({
+  id: 'shadow', name: 'Тень', faction: NEUTRAL, type: 'unit', power: 2,
+  text: 'Обречённая. Пока на твоей стороне поля есть хотя бы одна Тень, Приказ лидера от Фалуры готов каждый твой ход.',
+  categories: ['Пустота'], doomed: true, token: true, keywords: ['Обречённость'],
+});
+
+const faluraOrder = {
+  text: 'Приказ: нанести 2 урона выбранному вражескому отряду. Перезарядка 1 ход. Если на твоём поле есть Тень, готов каждый твой ход.',
+  cooldown: 1,
+  quickenedBy: SHADOW.id,
+  ability: ability([action('damage', chosen('enemy'), 2)], [enemyChoice(2)]),
+};
+
 export const NEUTRAL_CARDS = Object.freeze([
   ANNIHILATION,
   ...[
@@ -250,6 +263,16 @@ export const NEUTRAL_CARDS = Object.freeze([
         action('boost', self, { result: 'kill', scale: 2 }),
       ], [enemyChoice(6)]), keywords: ['Урон', 'Усиление'],
     }],
+    ['world-gates', 'Врата миров', 'gold', 11, null, 'Посмотри свою колоду, выбери любую карту и сыграй её.', {
+      type: 'effect', accent: 'gate', deploy: ability([{ action: 'play-from-deck', fullDeck: true }]),
+    }],
+    ['falura', 'Фалура, Пепел звёзд', 'gold', 19, null,
+      'Замени способность лидера до конца матча Приказом: нанести 2 урона выбранному вражескому отряду. Перезарядка 1 ход. Породи 2 Тени. Пока на твоём поле есть Тень, Приказ готов каждый твой ход.', {
+        type: 'artifact', categories: ['Пустота'],
+        deploy: ability([{ action: 'replace-leader', order: faluraOrder },
+          { ...spawn('right', 'source', 2), card: SHADOW, overflow: true }]),
+        keywords: ['Приказ', 'Урон', 'Порождение'],
+      }],
     ['gate-guardian', 'Хранитель врат', 'gold', 10, 12, 'Броня 4. Уязвимость: отправь эту карту в сброс.', {
       art: 'gate-guardian.webp',
       armor: 4, events: { 'armor-break': ability([action('discard', self)]) },

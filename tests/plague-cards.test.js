@@ -134,7 +134,7 @@ test('Plague Burst deals damage by infection counters and cleanses surviving tar
   assert.equal(findUnit(match,'clean').card.power, 5);
 });
 
-test('Spore Season opens each chapter from actual Rot plays, chooses the strongest row and exiles itself', () => {
+test('Spore Season opens each chapter from actual Rot plays, chooses the strongest row and remains on the field', () => {
   let match = fixture('spore-season','rot-midge','rot-giant','boil');
   match.players.bot.board.orbit = [unit('a'),unit('b'),unit('c'),unit('d')];
   match.players.bot.board.surface = [unit('e',2)];
@@ -152,8 +152,8 @@ test('Spore Season opens each chapter from actual Rot plays, chooses the stronge
   damage(match, findUnit(match,'d'), 1);
   match = act(match, 'play', 'boil', 3);
   assert.deepEqual(['a','b','c','d','e'].map((id) => findUnit(match,id).card.power), [2,2,2,4,2]);
-  assert.equal(findUnit(match,'spore-season'), undefined);
-  assert.equal(match.players.human.exile.at(-1).chapter, 3);
+  assert.equal(findUnit(match,'spore-season').card.chapter, 3);
+  assert.equal(match.players.human.exile.some(({ id }) => id === 'spore-season'), false);
 });
 
 for (const destination of ['discard', 'exile']) {

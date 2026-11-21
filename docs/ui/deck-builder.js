@@ -1,7 +1,7 @@
-import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=plague-art-2';
-import { createCard } from '../game/board.js?v=plague-art-2';
-import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=plague-art-2';
-import { addCardCrop, cardButton } from './cards.js?v=plague-art-2';
+import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=world-gates-1';
+import { createCard } from '../game/board.js?v=world-gates-1';
+import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=world-gates-1';
+import { addCardCrop, cardButton } from './cards.js?v=world-gates-1';
 import { button, element } from './dom.js?v=step-11';
 
 const byProvision = (a, b) => b.provision - a.provision || a.name.localeCompare(b.name, 'ru');

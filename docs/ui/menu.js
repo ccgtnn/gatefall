@@ -1,6 +1,6 @@
 import { button, element, sideLabel } from './dom.js?v=step-11';
-import { ROW_LABELS } from '../game/cards.js?v=plague-art-2';
-import { cardButton, showCard } from './cards.js?v=plague-art-2';
+import { ROW_LABELS } from '../game/cards.js?v=world-gates-1';
+import { cardButton, showCard } from './cards.js?v=world-gates-1';
 
 export function roundText(event) {
   const { scores, winner } = event;
@@ -15,7 +15,7 @@ export function eventText(event) {
     case 'round-start': return `Раунд ${event.round}. Первый ход: ${side.toLowerCase()}.`;
     case 'stratagem': return `${side}: на Поверхности появляется стратагема «${event.name}».`;
     case 'play': {
-      if (!event.row) return `${side}: «${event.name}» · Эффект${event.initiative ? ' · Инициатива' : ''}.`;
+      if (!event.row) return `${side}: «${event.name}» · Эффект${event.from === 'deck' ? ' из колоды' : ''}${event.initiative ? ' · Инициатива' : ''}.`;
       return `${side}: «${event.name}» (${event.power ?? 'артефакт'})${event.from === 'deck' ? ' из колоды' : event.from === 'discard' ? ' из сброса' : ''} → ${ROW_LABELS[event.row]}${event.boardSide ? ' противника' : ''}.`;
     }
     case 'pass': {
@@ -38,6 +38,7 @@ export function eventText(event) {
       return '';
     }
     case 'row-effect': return `${side}, ${ROW_LABELS[event.row]}: ${event.effect ? 'Гниение · ' + event.effect.remaining : 'Гниение снято'}.`;
+    case 'leader-replaced': return `${side}: Фалура заменила способность лидера Приказом.`;
     case 'scenario-chapter': return `«${event.name}»: глава ${event.chapter}.`;
     case 'base-power': return `${side}: базовая сила карты — ${event.basePower}.`;
     case 'heal': return `${side}: сила карты восстановлена до ${event.power}.`;
@@ -51,7 +52,7 @@ export function eventText(event) {
     case 'consume': return `«${event.eater}» поглощает «${event.name}» (${event.amount} силы).`;
     case 'deathwish': return `Завещание: «${event.name}».`;
     case 'spawn': return `${side}: ${ROW_LABELS[event.row]}, порождение «${event.name}» ×${event.count}.`;
-    case 'leader': return `${side}: способность лидера «${event.name}».`;
+    case 'leader': return `${side}: ${event.lastUsedTurn === undefined ? 'способность' : 'Приказ'} лидера «${event.name}».`;
     case 'counter': return `Счётчик «${event.name}»: ${event.remaining}.`;
     case 'tick': return 'Таймер «' + event.name + '»: ' + event.remaining + '.';
     case 'order': return `${side}: Приказ карты «${event.name}».`;

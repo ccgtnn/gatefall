@@ -1,8 +1,8 @@
-import { compareRollouts } from './bot-rollouts.js?v=plague-art-2';
-import { ROWS } from './cards.js?v=plague-art-2';
-import { cardType, opponent, placementSide, units } from './board.js?v=plague-art-2';
-import { availableOrders, canUseLeader, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=plague-art-2';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=plague-art-2';
+import { compareRollouts } from './bot-rollouts.js?v=world-gates-1';
+import { ROWS } from './cards.js?v=world-gates-1';
+import { cardType, opponent, placementSide, units } from './board.js?v=world-gates-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=world-gates-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=world-gates-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -107,7 +107,7 @@ function plays(state, side) {
 
 function abilities(state, side) {
   const actions = availableOrders(state, side).map(({ card }) => ({ type: 'order', cardId: card.id }));
-  if (!state.playedCard && canUseLeader(state, side)) actions.push({ type: 'leader' });
+  if (canUseLeader(state, side)) actions.push({ type: 'leader' });
   return actions;
 }
 
@@ -116,6 +116,12 @@ function choices(state) {
   if (kind === 'deck-placement') {
     const card = state.players[side][pile].find((item) => item.id === cardId);
     return placements(state, side, card, options).map((destination) => ({ type: 'place', ...destination }));
+  }
+  if (state.pending.fullDeck) {
+    const legal = new Set(options);
+    return state.players[side].deck.filter(({ id }) => legal.has(id))
+      .map((card) => ({ id: card.id, value: deckCardValue(state, side, card) }))
+      .sort((a, b) => b.value - a.value).map(({ id }) => ({ type: 'target', cardId: id }));
   }
   const ids = kind === 'deck-top'
     ? state.players[side].deck.filter(({ id }) => options.includes(id))

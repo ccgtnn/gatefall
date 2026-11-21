@@ -72,3 +72,38 @@ export function summarizePlagueEvents(matches) {
   }
   return totals;
 }
+
+export function summarizeNewNeutrals(matches) {
+  const totals = {};
+  for (const { faction, played, neutralEvents } of matches) {
+    for (const side of ['human', 'bot']) {
+      const owner = side === 'human' ? faction : faction === 'protectorate' ? 'growth' : 'protectorate';
+      const record = totals[owner] ??= { gates: { plays: 0, points: 0, pulls: {} },
+        falura: { plays: 0, viaGates: 0, shadows: 0, leaderUses: 0, damage: 0, armorRemoved: 0 } };
+      let gates = false;
+      for (const event of neutralEvents) {
+        if (event.type === 'play') {
+          const id = event.card.definition.id;
+          if (event.side === side && id === 'falura') {
+            record.falura.plays++;
+            if (gates && event.from === 'deck') record.falura.viaGates++;
+          }
+          if (gates && event.side === side && event.from === 'deck') {
+            record.gates.pulls[id] = (record.gates.pulls[id] ?? 0) + 1;
+          }
+          gates = event.side === side && id === 'world-gates';
+        }
+        if (event.type === 'spawn' && event.side === side) record.falura.shadows += event.count;
+        if (event.type === 'leader' && event.side === side) record.falura.leaderUses++;
+        if (event.side !== side && event.type === 'damage') record.falura.damage += event.lost;
+        if (event.side !== side && event.type === 'armor') record.falura.armorRemoved -= event.amount;
+      }
+      for (const play of played) {
+        if (play.side !== side || play.id !== 'world-gates') continue;
+        record.gates.plays++;
+        record.gates.points += play.points;
+      }
+    }
+  }
+  return totals;
+}

@@ -1,9 +1,9 @@
-import { inspectDeck } from './decks.js?v=plague-art-2';
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=plague-art-2';
-import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, spendResilience, statusCount, takeCards } from './board.js?v=plague-art-2';
-import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=plague-art-2';
+import { inspectDeck } from './decks.js?v=world-gates-1';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=world-gates-1';
+import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, spendResilience, statusCount, takeCards } from './board.js?v=world-gates-1';
+import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=world-gates-1';
 
-export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=plague-art-2';
+export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=world-gates-1';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;
@@ -285,7 +285,7 @@ function progress(match, random) {
     }
 
     if (match.playedCard) {
-      if (availableOrders(match, side).length) return;
+      if (availableOrders(match, side).length || canUseLeader(match, side)) return;
       match.ending = 'effects';
       continue;
     }
@@ -330,7 +330,7 @@ export function applyAction(match, side, action, { random = Math.random, copy = 
   if (type === 'pass' && !canPass(match, side)) return match;
   if (type === 'end-turn' && !canEndTurn(match, side)) return match;
   if (type === 'order' && !availableOrders(match, side).some(({ card }) => card.id === cardId)) return match;
-  if (type === 'leader' && (match.playedCard || !canUseLeader(match, side))) return match;
+  if (type === 'leader' && !canUseLeader(match, side)) return match;
   if (type !== 'play' && type !== 'pass' && type !== 'order' && type !== 'leader' && type !== 'end-turn') return match;
   const cardIndex = type === 'play' ? player.hand.findIndex(({ id }) => id === cardId) : -1;
   let destination;
@@ -368,9 +368,12 @@ export function applyAction(match, side, action, { random = Math.random, copy = 
   } else if (type === 'leader') {
     current.usedAbility = true;
     current.roundActed = true;
-    current.leader.charges -= 1;
-    next.log.push({ type: 'leader', side, name: current.leader.name });
-    next.effects.push({ ability: current.leader.ability, side });
+    const { leader } = current;
+    if (leader.order) leader.lastUsedTurn = current.turns;
+    else leader.charges -= 1;
+    const sourceDefinitionId = leader.order?.sourceDefinitionId;
+    next.log.push({ type: 'leader', side, name: leader.name, ...(sourceDefinitionId && { sourceDefinitionId, lastUsedTurn: leader.lastUsedTurn }) });
+    next.effects.push({ ability: leader.ability, side, sourceDefinitionId });
   } else {
     current.usedAbility = true;
     current.roundActed = true;

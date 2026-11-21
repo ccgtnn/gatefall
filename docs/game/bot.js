@@ -1,9 +1,9 @@
-import { ROWS } from './cards.js?v=plague-art-2';
-import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=plague-art-2';
-import { availableOrders, canUseLeader, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue } from './effects.js?v=plague-art-2';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=plague-art-2';
+import { ROWS } from './cards.js?v=world-gates-1';
+import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=world-gates-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue } from './effects.js?v=world-gates-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=world-gates-1';
 
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=plague-art-2';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=world-gates-1';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
@@ -19,7 +19,7 @@ export function createBotView(match) {
         return { ...card, preferredRow, destinationLengths: lengths, swing: -(card.power ?? 0) };
       }
       if (cardType(card) === 'effect') return { ...card, swing: effectSwing(match, 'bot', card) };
-      if (card.definition.deploy?.steps.some((step) => step.status === 'infection')) {
+      if (card.definition.deploy?.steps.some((step) => step.status === 'infection' || step.action === 'replace-leader')) {
         return { ...card, swing: (card.power ?? 0) + effectSwing(match, 'bot', card) };
       }
       if (card.definition.id !== 'broodlord') return card;
@@ -147,8 +147,12 @@ export function pickBotTarget(match) {
   }
   if (kind === 'deck-card' || kind === 'deck-top') {
     const optionsSet = new Set(options);
-    const card = bestTarget(player[match.pending.pile ?? 'deck'].filter(({ id }) => optionsSet.has(id)), ({ definition, power }) =>
-      (power ?? definition.power ?? definition.provision ?? 0) + (definition.armor ?? 0) * .15 + Number(Boolean(definition.deploy)));
+    const candidates = player[match.pending.pile ?? 'deck'].filter(({ id }) => optionsSet.has(id));
+    const card = bestTarget(candidates, (card) => {
+      if (match.pending.fullDeck) return deckCardValue(match, match.pending.side, card);
+      const { definition, power } = card;
+      return (power ?? definition.power ?? definition.provision ?? 0) + (definition.armor ?? 0) * .15 + Number(Boolean(definition.deploy));
+    });
     return { type: 'target', cardId: card.id };
   }
   if (kind === 'deck-placement') {
@@ -179,6 +183,7 @@ export function pickBotTarget(match) {
 function beneficialLeader(match, view, allies) {
   const player = match.players.bot;
   if (!canUseLeader(match, 'bot')) return false;
+  if (player.leader.order) return units(match, 'human').some(({ card }) => isUnit(card) && (card.armor ?? 0) < 2);
   if (player.leader.ability.select?.[0]?.kind === 'marshal') {
     return !view.opponentPassed && allies.some((unit) => neighbors(match, unit).some(({ card }) => isUnit(card)));
   }
@@ -203,7 +208,7 @@ function chooseEasyTurn(match) {
         return { type: 'order', cardId: order.card.id };
       }
     }
-    if (!match.playedCard && beneficialLeader(match, view, allies)) return { type: 'leader' };
+    if (beneficialLeader(match, view, allies) || (!view.cards.length && !match.playedCard && canUseLeader(match, 'bot') && !view.opponentPassed)) return { type: 'leader' };
   }
   if (match.playedCard) return { type: 'end-turn' };
   return chooseBotAction(view);
