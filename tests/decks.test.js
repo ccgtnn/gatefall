@@ -65,3 +65,19 @@ test('saved drafts reload independently of presets and of the editor object', as
   assert.equal(decks.save(draft), true);
   assert.deepEqual(createDeckStorage(storage).list()[0].cardIds, ['smuggler', 'smuggler']);
 });
+
+test('ownership validation blocks a two-copy deck even when one copy still exists', () => {
+  const { counts } = inspectDeck(protectorate);
+  const owned = Object.fromEntries(counts);
+  const id = [...counts].find(([, quantity]) => quantity === 2)[0];
+  assert.equal(inspectDeck(protectorate, owned).valid, true);
+  owned[id] -= 1;
+  const short = inspectDeck(protectorate, owned);
+  assert.equal(short.valid, false);
+  assert.equal(short.issues.ownership, true);
+  assert.equal(short.issues.copies, false);
+  assert.equal(short.missing.get(id), 1);
+  delete owned[id];
+  assert.equal(inspectDeck(protectorate, owned).missing.get(id), 2);
+  assert.equal(inspectDeck(protectorate).valid, true);
+});

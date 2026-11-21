@@ -1,9 +1,10 @@
 import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=storm-eye-1';
 import { createCard } from '../game/board.js?v=storm-eye-1';
-import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=storm-eye-1';
+import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=collection-2';
 import { addCardCrop, cardButton } from './cards.js?v=storm-eye-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { factionFilters } from './faction-filters.js?v=1';
+import { availabilityOptions, matchesAvailability } from './catalog-cards.js?v=collection-2';
 
 const byProvision = (a, b) => b.provision - a.provision || a.name.localeCompare(b.name, 'ru');
 
@@ -20,19 +21,21 @@ function violations(result) {
     units: 'Нужно минимум ' + MIN_UNITS + ' отрядов.',
     provisions: 'Лимит провизии ' + result.budget + ' превышен.',
     copies: 'Лимит копий: бронза ×2, золото ×1.',
+    ownership: 'В коллекции отсутствуют копии · ' + [...result.missing.values()].reduce((sum, copies) => sum + copies, 0) + '.',
     foreign: 'Убери карты, недоступные этой фракции.',
     leader: 'Выбери лидера своей фракции.',
   };
   return Object.keys(messages).filter((key) => result.issues[key]).map((key) => messages[key]);
 }
 
-export function deckListScreen(phaseLabel, decks, stats, actions) {
+export function deckListScreen(phaseLabel, decks, stats, actions, inventory) {
   phaseLabel.textContent = '';
   const screen = element('section', 'deck-home');
   const toolbar = element('div', 'deck-toolbar');
   toolbar.append(viewHeading('Колоды'), button('Новая колода', actions.create, 'button primary'),
     button('Все карты', actions.catalog));
   screen.append(toolbar);
+  const items = [];
 
   for (const [title, entries, preset] of [
     ['Стартовые колоды', PRESETS, true],
@@ -54,10 +57,10 @@ export function deckListScreen(phaseLabel, decks, stats, actions) {
         const { win, loss } = stats.get(deck.factionId);
         item.append(element('p', 'muted', 'Победы ' + win + ' · Поражения ' + loss));
       }
-      if (!result.valid) item.append(element('p', 'deck-invalid', violations(result).join(' ')));
+      const errors = element('p', 'deck-invalid');
+      item.append(errors);
       const row = element('div', 'deck-toolbar');
       const play = button('Играть', () => actions.play(deck), 'button primary');
-      play.disabled = !result.valid;
       play.setAttribute('aria-label', 'Играть: ' + title);
       const edit = button(preset ? 'Копировать' : 'Редактировать', () =>
         preset ? actions.copy(deck) : actions.edit(deck));
@@ -65,10 +68,23 @@ export function deckListScreen(phaseLabel, decks, stats, actions) {
       row.append(play, edit);
       item.append(row);
       list.append(item);
+      items.push({ deck, errors, play });
     }
     group.append(list);
     screen.append(group);
   }
+
+  function update() {
+    const { owned } = inventory();
+    for (const { deck, errors, play } of items) {
+      const result = inspectDeck(deck, owned);
+      play.disabled = !result.valid;
+      errors.hidden = result.valid;
+      errors.textContent = violations(result).join(' ');
+    }
+  }
+  screen.addEventListener('collection-change', update);
+  update();
   return screen;
 }
 
@@ -113,7 +129,7 @@ export function deckEditor(phaseLabel, deck, { save, play, back, inventory }) {
   const status = element('p', 'deck-save-status');
   status.setAttribute('role', 'status');
   const playButton = button('Играть', () => {
-    if (inspectDeck(deck).valid) play(deck);
+    if (inspectDeck(deck, inventory().owned).valid) play(deck);
   }, 'button primary');
   const saveButton = button('Сохранить', () => {
     dirty = false;
@@ -136,6 +152,7 @@ export function deckEditor(phaseLabel, deck, { save, play, back, inventory }) {
   searchField.append(element('span', null, 'Поиск по имени'), search);
   const types = selectField('Тип', [['', 'Все'], ...Object.entries(CARD_TYPES)]);
   const rarity = selectField('Редкость', [['', 'Вся'], ...Object.entries(RARITY_LABELS)]);
+  const availability = selectField('Наличие', availabilityOptions);
   const provisions = selectField('Провизия', [['', 'Любая'], ...[...new Set(pool.map(({ provision }) => provision))]
     .sort((a, b) => a - b).map((cost) => [String(cost), String(cost)])]);
   let faction = '';
@@ -147,13 +164,13 @@ export function deckEditor(phaseLabel, deck, { save, play, back, inventory }) {
     updateCollection();
   });
   const filters = element('div', 'deck-filters');
-  filters.append(types.field, rarity.field, provisions.field);
+  filters.append(types.field, rarity.field, provisions.field, availability.field);
   const available = element('div', 'deck-collection-grid');
   right.append(element('h3', null, 'Коллекция'), factions, searchField, filters, available);
   const cards = new Map();
 
-  function updateDeck() {
-    const result = inspectDeck(deck);
+  function updateDeck(ownership = inventory().owned) {
+    const result = inspectDeck(deck, ownership);
     playButton.disabled = !result.valid;
     name.setAttribute('aria-invalid', String(result.issues.name));
     leader.input.setAttribute('aria-invalid', String(result.issues.leader));
@@ -174,22 +191,23 @@ export function deckEditor(phaseLabel, deck, { save, play, back, inventory }) {
         changed();
       }, 'deck-remove');
       const quantity = result.counts.get(card.id) ?? deck.cardIds.filter((id) => id === card.id).length;
-      remove.setAttribute('aria-label', 'Убрать: ' + card.name);
-      const invalid = result.overLimit.has(card.id) || !result.counts.has(card.id);
+      const missing = result.missing.get(card.id);
+      remove.setAttribute('aria-label', 'Убрать: ' + card.name + (missing ? ' · отсутствует копий ' + missing : ''));
+      const invalid = missing || result.overLimit.has(card.id) || !result.counts.has(card.id);
       remove.classList.toggle('deck-invalid', invalid);
       const image = element('span', 'deck-thumb');
       if (card.faction) image.dataset.faction = card.faction;
       addCardCrop(image, card);
       remove.append(image, element('span', 'deck-number', card.provision ?? '—'),
         element('span', 'deck-number', card.power ?? '—'), element('span', null, card.name),
-        element('small', null, '×' + quantity));
+        element('small', null, missing ? `×${quantity} · нет ${missing}` : '×' + quantity));
       line.append(remove);
       return line;
     }));
 
     for (const [id, { face, pips, limit, label }] of cards) {
       const used = result.counts.get(id) ?? 0;
-      face.classList.toggle('deck-copies-used', used >= limit);
+      face.classList.toggle('deck-copies-used', limit > 0 && used >= limit);
       face.setAttribute('aria-disabled', String(used >= limit));
       face.setAttribute('aria-label', label + ' · В колоде ' + used + ' из ' + limit);
       pips.forEach((pip, index) => pip.classList.toggle('is-used', index < used));
@@ -210,6 +228,7 @@ export function deckEditor(phaseLabel, deck, { save, play, back, inventory }) {
     const query = search.value.trim().toLocaleLowerCase('ru');
     const shown = pool.filter((card) =>
       card.name.toLocaleLowerCase('ru').includes(query) &&
+      matchesAvailability(availability.input.value, owned[card.id]) &&
       (!types.input.value || types.input.value === card.type) &&
       (!rarity.input.value || rarity.input.value === card.rarity) &&
       (!provisions.input.value || Number(provisions.input.value) === card.provision) &&
@@ -217,8 +236,10 @@ export function deckEditor(phaseLabel, deck, { save, play, back, inventory }) {
     available.replaceChildren(...shown.map((card) => {
       const item = element('div', 'deck-collection-entry');
       const limit = Math.min(copyLimit(card), owned[card.id]);
+      item.classList.toggle('card-unavailable', !limit);
       const face = cardButton(createCard(card.id, card), () => {
-        if ((inspectDeck(deck).counts.get(card.id) ?? 0) >= limit) return;
+        const currentLimit = Math.min(copyLimit(card), inventory().owned[card.id]);
+        if ((inspectDeck(deck).counts.get(card.id) ?? 0) >= currentLimit) return;
         deck.cardIds.push(card.id);
         changed();
       }, { factionId: deck.factionId }, false, { showProvision: true });
@@ -232,14 +253,14 @@ export function deckEditor(phaseLabel, deck, { save, play, back, inventory }) {
       return item;
     }));
     if (!shown.length) available.append(element('p', 'muted', 'Карты не найдены.'));
-    updateDeck();
+    updateDeck(owned);
   }
 
   screen.addEventListener('collection-change', updateCollection);
   name.addEventListener('input', () => { deck.name = name.value; changed(); });
   leader.input.addEventListener('change', () => { deck.leaderId = leader.input.value; changed(); });
   search.addEventListener('input', updateCollection);
-  for (const { input } of [types, rarity, provisions]) input.addEventListener('change', updateCollection);
+  for (const { input } of [types, rarity, provisions, availability]) input.addEventListener('change', updateCollection);
   updateCollection();
   return screen;
 }

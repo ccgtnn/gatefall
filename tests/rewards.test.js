@@ -148,3 +148,41 @@ test('concurrent pack opening charges once, and a failed craft leaves essence un
   assert.equal(first.inventory().essence, essence);
   assert.equal(first.inventory().owned[target.id], second.inventory().owned[target.id]);
 });
+
+test('dismantling pays per copy, persists starter losses and supports crafting them back', async () => {
+  const storage = localStorage();
+  const wallet = createRewardProgress(storage);
+  const base = wallet.inventory();
+  const gold = 'annihilation';
+  const bronze = 'rot-midge';
+  assert.equal(base.owned[gold], 1);
+  assert.equal(base.owned[bronze], 2);
+
+  assert.equal(await wallet.dismantle('missing-id'), 'unknown');
+  assert.equal(await wallet.dismantle(gold), 'done');
+  assert.equal(await wallet.dismantle(gold), 'empty');
+  assert.equal(await wallet.dismantle(bronze), 'done');
+  const reloaded = createRewardProgress(storage, undefined, { legacyDecks: [{ cardIds: [gold, bronze, bronze] }] });
+  assert.deepEqual([reloaded.inventory().owned[gold], reloaded.inventory().owned[bronze], reloaded.inventory().essence],
+    [0, 1, base.essence + 220]);
+  assert.equal(await reloaded.craft(gold), 'done');
+  assert.equal(await reloaded.craft(bronze), 'done');
+  assert.deepEqual([wallet.inventory().owned[gold], wallet.inventory().owned[bronze], wallet.inventory().essence],
+    [1, 2, base.essence + 220 - 900]);
+});
+
+test('an extra booster copy can be dismantled and a failed save mutates neither cards nor essence', async () => {
+  const storage = localStorage();
+  const wallet = createRewardProgress(storage, undefined, { random: () => 0 });
+  const first = NEUTRAL_CARDS[0].id;
+  const base = wallet.inventory().owned[first];
+  await wallet.unlock('neutral:signal');
+  await wallet.unlock('neutral:supply');
+  assert.equal(await wallet.openPack('neutral'), 'done');
+  assert.equal(wallet.inventory().owned[first], base + 1);
+
+  const beforeTrade = wallet.inventory();
+  storage.setItem = () => { throw new Error('quota'); };
+  assert.equal(await wallet.dismantle(first), 'unavailable');
+  assert.deepEqual(wallet.inventory(), beforeTrade);
+});

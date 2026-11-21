@@ -1,5 +1,5 @@
 import { button, element } from './dom.js?v=opponent-reveal-1';
-import { REWARD_PAGES, rewardState } from '../game/rewards.js?v=economy-1';
+import { REWARD_PAGES, rewardState } from '../game/rewards.js?v=collection-2';
 import { resourceIcon } from './resource-icon.js?v=1';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';

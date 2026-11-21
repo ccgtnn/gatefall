@@ -34,7 +34,7 @@ const plaguePreset = Object.freeze({
 
 export const PRESETS = Object.freeze([...factionPresets, plaguePreset]);
 
-export function inspectDeck(deck) {
+export function inspectDeck(deck, owned) {
   const faction = groups.get(deck?.factionId);
   const leader = faction?.leaders.find(({ id }) => id === deck.leaderId);
   const allowed = new Map(collection(deck?.factionId).map((card) => [card.id, card]));
@@ -42,6 +42,13 @@ export function inspectDeck(deck) {
   const cards = cardIds.map((id) => allowed.get(id)).filter(Boolean);
   const counts = new Map();
   for (const { id } of cards) counts.set(id, (counts.get(id) ?? 0) + 1);
+  const missing = new Map();
+  if (owned) {
+    for (const [id, quantity] of counts) {
+      const available = owned[id] ?? 0;
+      if (available < quantity) missing.set(id, quantity - available);
+    }
+  }
   const overLimit = new Set([...counts].filter(([id, count]) => count > copyLimit(allowed.get(id))).map(([id]) => id));
   const units = cards.filter(({ type }) => type === 'unit').length;
   const cost = cards.reduce((total, { provision }) => total + provision, 0);
@@ -51,9 +58,10 @@ export function inspectDeck(deck) {
     units: units < MIN_UNITS,
     provisions: cost > budget,
     copies: overLimit.size > 0,
+    ownership: missing.size > 0,
     foreign: cards.length !== cardIds.length,
     leader: !leader,
     name: typeof deck?.name !== 'string' || !deck.name.trim(),
   };
-  return { valid: !Object.values(issues).some(Boolean), cards, counts, units, cost, budget, overLimit, leader, issues };
+  return { valid: !Object.values(issues).some(Boolean), cards, counts, units, cost, budget, overLimit, missing, leader, issues };
 }

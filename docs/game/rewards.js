@@ -1,5 +1,5 @@
 import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=storm-eye-1';
-import { copyLimit, PRESETS } from './decks.js?v=storm-eye-1';
+import { copyLimit, PRESETS } from './decks.js?v=collection-2';
 
 export const STARTING_KEYS = 25;
 export const STARTING_ESSENCE = 800;
@@ -9,6 +9,10 @@ export const BOOSTER_SIZE = 5;
 export function craftPrice(card) {
   return card.rarity === 'gold' ? 800 : 100;
 }
+export function dismantleValue(card) {
+  return card.rarity === 'gold' ? 200 : 20;
+}
+
 export const REWARD_STORAGE_KEY = 'gatefall.reward-book';
 
 const route = [
@@ -152,15 +156,18 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
       purchased: countsFor(pools.keys(), saved.purchased),
       opened: countsFor(pools.keys(), saved.opened),
       earnedCards: countsFor(definitions.keys(), saved.earnedCards),
+      dismantledCards: countsFor(definitions.keys(), saved.dismantledCards),
+      dismantlingEssence: count(saved.dismantlingEssence),
       essenceSpent: count(saved.essenceSpent),
       goldSpent: count(saved.goldSpent),
       pendingPack: readPack(saved.pendingPack),
     };
   }
 
-  function balances({ progress, legacy, purchased, opened, earnedCards, essenceSpent, goldSpent, pendingPack }) {
+  function balances({ progress, legacy, purchased, opened, earnedCards, dismantledCards, dismantlingEssence,
+    essenceSpent, goldSpent, pendingPack }) {
     let gold = 0;
-    let essence = STARTING_ESSENCE;
+    let essence = STARTING_ESSENCE + dismantlingEssence;
     const boosters = {};
     for (const { id, nodes } of REWARD_PAGES) {
       boosters[id] = purchased[id] - opened[id];
@@ -175,7 +182,7 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
     const owned = {};
     for (const [id, card] of definitions) {
       const initial = Math.min(copyLimit(card), Math.max(starter[id] ?? 0, count(legacy[id])));
-      owned[id] = initial + earnedCards[id];
+      owned[id] = Math.max(0, initial + earnedCards[id] - dismantledCards[id]);
     }
     return {
       keys: progress.keys, gold: Math.max(0, gold - goldSpent), essence: Math.max(0, essence - essenceSpent),
@@ -263,6 +270,16 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
         if (essence < price) return 'unaffordable';
         state.essenceSpent += price;
         state.earnedCards[id] += 1;
+        return 'done';
+      });
+    },
+    dismantle(id) {
+      const card = definitions.get(id);
+      if (!card) return Promise.resolve('unknown');
+      return transact((state) => {
+        if (!balances(state).owned[id]) return 'empty';
+        state.dismantledCards[id] += 1;
+        state.dismantlingEssence += dismantleValue(card);
         return 'done';
       });
     },

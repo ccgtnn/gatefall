@@ -45,3 +45,14 @@ test('a reused card container drops the previous rarity for cards without one', 
   setCardRarity(container, undefined);
   assert.ok(!('rarity' in container.dataset));
 });
+
+test('availability filters compose with other filters and distinguish one copy from zero', () => {
+  const owned = { 'resurrection': 0, 'world-gates': 1 };
+  const options = { faction: 'neutral', type: 'effect', rarity: 'gold', owned };
+  assert.ok(ids(options).includes('resurrection'));
+  assert.deepEqual(ids({ ...options, availability: 'owned' }), ['world-gates']);
+  const unavailable = ids({ ...options, availability: 'missing' });
+  assert.ok(unavailable.includes('resurrection'));
+  assert.ok(!unavailable.includes('world-gates'));
+  assert.ok(!unavailable.includes('falura'));
+});

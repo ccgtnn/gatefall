@@ -1,4 +1,4 @@
-import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=economy-1';
+import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=collection-2';
 import { createDeckStorage } from './ui/deck-storage.js?v=step-16';
 import { bindCardPlacement } from './card-placement.js?v=opponent-reveal-1';
 import { animateCoin, animateHandTurn, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=storm-eye-1';
@@ -7,19 +7,20 @@ import { playJournal } from './turn-playback.js?v=storm-eye-1';
 import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=storm-eye-1';
 import { placementSide } from './game/board.js?v=storm-eye-1';
 import { FACTIONS } from './game/cards.js?v=storm-eye-1';
+import { inspectDeck } from './game/decks.js?v=collection-2';
 import { applyAction, createDeckMatch } from './game/match.js?v=storm-eye-1';
 import { element, iconButton } from './ui/dom.js?v=opponent-reveal-1';
 import { preview, showCard } from './ui/cards.js?v=storm-eye-1';
 import { createBattlefield } from './ui/field.js?v=storm-eye-1';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=storm-eye-1';
 import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=storm-eye-1';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=economy-1';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=collection-2';
 import { createSettings } from './ui/settings.js?v=storm-eye-1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
-import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=economy-1';
-import { createRewardBook } from './ui/reward-book.js?v=economy-1';
-import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=1';
+import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=collection-2';
+import { createRewardBook } from './ui/reward-book.js?v=collection-2';
+import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=collection-2';
 import { createResourceBar } from './ui/resources.js?v=1';
 
 const app = document.querySelector('#app');
@@ -55,7 +56,7 @@ const openResources = createResourceBar(app.querySelector('.masthead'), document
   essence: catalog,
   packCount: createBoosterOpening(progress, () => openResources('gold')),
 });
-progress.subscribe(() => screen.querySelector('.deck-editor')?.dispatchEvent(new Event('collection-change')));
+progress.subscribe(() => screen.querySelector('.deck-editor, .deck-home, .finish')?.dispatchEvent(new Event('collection-change')));
 window.addEventListener('storage', (event) => {
   if (event.key === REWARD_STORAGE_KEY || event.key === null) progress.refresh();
 });
@@ -121,20 +122,33 @@ function goTo(view) {
   screen.querySelector('h2')?.focus({ preventScroll: true });
 }
 
-function editDeck(deck) {
+function editDeck(deck, notice = '') {
   editedDeck = structuredClone(deck);
   goTo('edit');
+  if (notice) screen.querySelector('.deck-save-status').textContent = notice;
 }
 
 function makeDeck(factionId, leaderId, source) {
   const id = globalThis.crypto?.randomUUID?.() ?? 'deck-' + Date.now() + '-' + Math.random();
+  const { owned } = progress.inventory();
+  const cardIds = (source?.cardIds ?? []).filter((cardId) => {
+    if (!owned[cardId]) return false;
+    owned[cardId] -= 1;
+    return true;
+  });
+  const skipped = source ? source.cardIds.length - cardIds.length : 0;
   editDeck({
     id, name: source ? source.name + ' (копия)' : FACTIONS[factionId].name,
-    factionId, leaderId, cardIds: source ? [...source.cardIds] : [],
-  });
+    factionId, leaderId, cardIds,
+  }, skipped ? `В копию вошли доступные карты. Пропущено копий · ${skipped}.` : '');
+}
+
+function canPlayDeck(deck) {
+  return inspectDeck(deck, progress.inventory().owned).valid;
 }
 
 function start(deck) {
+  if (!canPlayDeck(deck)) return;
   const next = createDeckMatch(deck);
   if (!next) return;
   matchDeck = structuredClone(deck);
@@ -201,8 +215,10 @@ function render() {
   app.classList.toggle('in-match', match?.phase === 'mulligan' || match?.phase === 'playing');
   let content;
   if (match?.phase === 'mulligan' || match?.phase === 'playing') content = battlefield();
-  else if (match?.phase === 'finished') content = finishedScreen(match, phaseLabel, () => start(matchDeck), leaveMatch, settings.showBotThoughts());
-  else {
+  else if (match?.phase === 'finished') {
+    content = finishedScreen(match, phaseLabel, () => start(matchDeck), leaveMatch,
+      settings.showBotThoughts(), () => canPlayDeck(matchDeck));
+  } else {
     const back = () => goTo('decks');
     switch (menuView) {
       case 'faction': content = factionPicker(phaseLabel, (id) => {
@@ -219,7 +235,7 @@ function render() {
       default: content = deckListScreen(phaseLabel, deckStore.list(), stats, {
         create: () => goTo('faction'), catalog: () => openResources('essence'), play: start, edit: editDeck,
         copy: (deck) => makeDeck(deck.factionId, deck.leaderId, deck),
-      });
+      }, progress.inventory);
     }
   }
   app.classList.toggle('is-deck-home', content.classList.contains('deck-home'));

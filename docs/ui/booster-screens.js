@@ -1,6 +1,6 @@
 import { createCard } from '../game/board.js?v=storm-eye-1';
 import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=storm-eye-1';
-import { BOOSTER_PRICE, REWARD_PAGES } from '../game/rewards.js?v=economy-1';
+import { BOOSTER_PRICE, REWARD_PAGES } from '../game/rewards.js?v=collection-2';
 import { cardButton, showCard } from './cards.js?v=storm-eye-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { resourceIcon } from './resource-icon.js?v=1';
