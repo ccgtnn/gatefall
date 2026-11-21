@@ -183,7 +183,7 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   line-height: 1.1;
   pointer-events: none;
 }
-.is-human-turn .bot-hand-count.is-passed {
+.bot-hand-count.is-passed {
   color: #8b9bab;
   background: #070d15;
   border-color: #263445;
