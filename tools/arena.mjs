@@ -147,7 +147,10 @@ async function run({ root, trials, rolloutSamples, trace, collectCards, progress
 }
 
 if (isMainThread) {
-  const options = Object.fromEntries(process.argv.slice(2).map((arg) => arg.replace(/^--/, '').split('=')));
+  const options = Object.fromEntries(process.argv.slice(2).map((arg) => {
+    const [name, value] = arg.replace(/^--/, '').split('=');
+    return [name, value ?? true];
+  }));
   const games = Number(options.games ?? 200);
   const root = resolve(options.root ?? '.');
   const trials = [];
