@@ -1,4 +1,4 @@
-import { FACTIONS, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=falura-art-1';
+import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=falura-art-1';
 import { basePower, createCard, isUnit, statusCount } from '../game/board.js?v=falura-art-1';
 import { cardArt, decorateCard, showCard } from '../ui/cards.js?v=falura-art-1';
 import { button, element, setCardRarity } from '../ui/dom.js?v=falura-art-1';
@@ -18,7 +18,7 @@ function icon(name, width = 40, height = 40) {
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   svg.setAttribute('aria-hidden', 'true');
   const use = document.createElementNS(svgNamespace, 'use');
-  use.setAttribute('href', './demo/stat-badges.svg?v=2#' + name);
+  use.setAttribute('href', './demo/stat-badges.svg?v=3#' + name);
   svg.append(use);
   return svg;
 }
@@ -28,7 +28,7 @@ function badge(kind, label, value, variant = kind) {
   node.title = label;
   node.setAttribute('aria-label', label);
   node.setAttribute('role', 'img');
-  node.append(kind === 'rarity' ? icon(variant, 50, 28) : icon(variant));
+  node.append(icon(variant));
   if (value !== undefined) node.append(element('strong', null, value));
   return node;
 }
@@ -44,7 +44,7 @@ function chapters(played, total) {
   return node;
 }
 
-function addDemoBadges(face, card, sample) {
+function addDemoBadges(face, card, sample, context) {
   const { definition, armor, counter, timer } = card;
   for (const node of face.querySelectorAll('.card-stats, .card-kind, .infection-badge')) node.remove();
   if (definition.order || counter > 0 || timer !== undefined) face.querySelector('.card-state')?.remove();
@@ -56,8 +56,9 @@ function addDemoBadges(face, card, sample) {
     face.append(power);
   }
   if (armor) face.append(badge('armor', 'Броня ' + armor, armor));
-  if (definition.provision !== undefined) face.append(badge('provision', 'Провизия ' + definition.provision, definition.provision));
-  if (definition.rarity) face.append(badge('rarity', RARITY_LABELS[definition.rarity], undefined, 'rarity-' + definition.rarity));
+  if ((context === 'catalog' || context === 'preview') && definition.provision !== undefined) {
+    face.append(badge('provision', 'Провизия ' + definition.provision, definition.provision));
+  }
 
   if (definition.scenario) face.append(chapters(card.chapter, definition.scenario.chapters.length));
   if (definition.order) face.append(sample.cooldown
@@ -97,7 +98,7 @@ function renderCard(card, sample, context, proposed, interactive = true) {
   if (context === 'preview') face.prepend(cardArt(card.definition, 'preview-art'));
   if (context === 'preview') face.querySelector('.card-art-crop')?.remove();
   face.classList.toggle('demo-proposed-face', proposed);
-  if (proposed) addDemoBadges(face, card, sample);
+  if (proposed) addDemoBadges(face, card, sample, context);
   wrapper.append(face);
   if (!proposed && isField && sample.cooldown) {
     const order = element('span', 'card-state unit-order order-sleep', sample.cooldown);
@@ -158,7 +159,6 @@ for (const [label, preview] of [
   ['Сила', badge('power', 'Сила 7', 7)],
   ['Броня', badge('armor', 'Броня 6', 6)],
   ['Провизия', badge('provision', 'Провизия 11', 11)],
-  ['Редкость', [badge('rarity', 'Золото', undefined, 'rarity-gold'), badge('rarity', 'Бронза', undefined, 'rarity-bronze')]],
   ['Приказ', [badge('order', 'Приказ готов', undefined, 'order-ready'), badge('order', 'Перезарядка Приказа: 2', 2, 'order-cooldown')]],
   ['Таймер / счётчик', badge('hourglass', 'Счётчик 4', 4)],
   ['Заражение', badge('infection', 'Заражение 3', 3)],

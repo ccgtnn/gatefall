@@ -165,7 +165,6 @@ body:has(.badges-demo) {
 .demo-badge-provision { color: #ffe4a5; }
 .demo-badge-order:has(strong) strong { transform: translate(.28em, .25em); font-size: .84em; }
 .demo-badge-infection { color: #e0ffbd; filter: drop-shadow(0 0 2px #8ef75aa0); }
-.demo-badge-rarity { width: calc(var(--badge-size) * 1.26); height: calc(var(--badge-size) * .72); }
 .demo-badge-chapters { display: inline-flex; width: max-content; height: calc(var(--badge-size) * .62); gap: 0; }
 .demo-badge-chapters > svg { position: static; width: calc(var(--badge-size) * .62); height: 100%; }
 .demo-proposed-face > .demo-badge { position: absolute; z-index: 2; }
@@ -174,14 +173,12 @@ body:has(.badges-demo) {
 .demo-proposed-face > .demo-badge-armor, .demo-proposed-face > .demo-badge-provision { right: 1px; }
 .demo-proposed-face > .demo-badge-provision, .demo-proposed-face > .demo-badge-infection,
 .demo-proposed-face > :is(.demo-badge-hourglass, .demo-badge-order) { bottom: 1px; }
-.demo-proposed-face > .demo-badge-rarity,
 .demo-proposed-face > .demo-badge-chapters,
 .demo-proposed-face > :is(.demo-badge-hourglass, .demo-badge-order) {
   left: 50%;
   transform: translateX(-50%);
 }
-.demo-proposed-face > .demo-badge-rarity { top: 1px; }
-.demo-proposed-face > .demo-badge-chapters { top: calc(var(--badge-size) * .72 + 2px); }
+.demo-proposed-face > .demo-badge-chapters { top: 1px; }
 
 dialog.demo-preview-dialog {
   --demo-card-width: 100%;
