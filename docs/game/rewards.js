@@ -1,4 +1,14 @@
+import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=storm-eye-1';
+import { copyLimit, PRESETS } from './decks.js?v=storm-eye-1';
+
 export const STARTING_KEYS = 25;
+export const STARTING_ESSENCE = 800;
+export const BOOSTER_PRICE = 100;
+export const BOOSTER_SIZE = 5;
+
+export function craftPrice(card) {
+  return card.rarity === 'gold' ? 800 : 100;
+}
 export const REWARD_STORAGE_KEY = 'gatefall.reward-book';
 
 const route = [
@@ -89,35 +99,172 @@ export function rewardState(node, { keys, unlocked }) {
   return keys >= node.cost ? 'available' : 'unaffordable';
 }
 
-export function createRewardProgress(storage, locks) {
-  let ids = [];
+const pools = new Map(Object.entries(FACTIONS).map(([id, { pool }]) => [id, pool]));
+pools.set(NEUTRAL, NEUTRAL_CARDS);
+const definitions = new Map([...pools.values()].flat().map((card) => [card.id, card]));
+const count = (value) => Number.isSafeInteger(value) && value > 0 ? value : 0;
 
-  function get() {
-    if (storage) {
-      try { ids = JSON.parse(storage.getItem(REWARD_STORAGE_KEY))?.unlocked ?? []; } catch {}
+function countsFor(keys, values) {
+  return Object.fromEntries([...keys].map((id) => [id, count(values?.[id])]));
+}
+
+function starterCards(decks) {
+  const cards = {};
+  for (const { cardIds } of decks) {
+    const quantities = new Map();
+    for (const id of cardIds) {
+      if (definitions.has(id)) quantities.set(id, (quantities.get(id) ?? 0) + 1);
     }
-    return readProgress(ids);
+    for (const [id, quantity] of quantities) {
+      cards[id] = Math.max(cards[id] ?? 0, Math.min(quantity, copyLimit(definitions.get(id))));
+    }
   }
+  return cards;
+}
 
-  async function unlock(id) {
-    const node = nodesById.get(id);
-    if (!node) return 'unknown';
-    const commit = () => {
-      const progress = get();
-      const state = rewardState(node, progress);
-      if (state !== 'available') return state;
-      const next = [...progress.unlocked, id];
-      try {
-        storage?.setItem(REWARD_STORAGE_KEY, JSON.stringify({ unlocked: next }));
-      } catch {
-        return 'unavailable';
-      }
-      ids = next;
-      return 'opened';
+function packCards(id, random) {
+  const pool = [...pools.get(id)];
+  return Array.from({ length: BOOSTER_SIZE }, () =>
+    pool.splice(Math.floor(random() * pool.length), 1)[0].id);
+}
+
+function readPack(pack) {
+  const faction = pools.get(pack?.faction);
+  if (!faction || !count(pack.id) || !Array.isArray(pack.cards) || pack.cards.length !== BOOSTER_SIZE ||
+      new Set(pack.cards).size !== BOOSTER_SIZE ||
+      !pack.cards.every((id) => definitions.get(id)?.faction === pack.faction)) return null;
+  return pack;
+}
+
+export function createRewardProgress(storage, locks, { legacyDecks = [], random = Math.random } = {}) {
+  const listeners = new Set();
+  const starter = starterCards(PRESETS);
+  const legacy = starterCards(legacyDecks);
+  let saved = {};
+
+  function read() {
+    if (storage) {
+      try { saved = JSON.parse(storage.getItem(REWARD_STORAGE_KEY)) ?? {}; } catch {}
+    }
+    return {
+      progress: readProgress(saved.unlocked),
+      legacy: saved.legacy ?? legacy,
+      purchased: countsFor(pools.keys(), saved.purchased),
+      opened: countsFor(pools.keys(), saved.opened),
+      earnedCards: countsFor(definitions.keys(), saved.earnedCards),
+      essenceSpent: count(saved.essenceSpent),
+      goldSpent: count(saved.goldSpent),
+      pendingPack: readPack(saved.pendingPack),
     };
-    if (!locks) return commit();
-    try { return await locks.request(REWARD_STORAGE_KEY, commit); } catch { return 'unavailable'; }
   }
 
-  return { get, unlock };
+  function balances({ progress, legacy, purchased, opened, earnedCards, essenceSpent, goldSpent, pendingPack }) {
+    let gold = 0;
+    let essence = STARTING_ESSENCE;
+    const boosters = {};
+    for (const { id, nodes } of REWARD_PAGES) {
+      boosters[id] = purchased[id] - opened[id];
+      for (const node of nodes) {
+        if (!progress.unlocked.has(node.id)) continue;
+        if (node.kind === 'gold' || node.kind === 'gold-stack') gold += node.value;
+        if (node.kind === 'essence') essence += node.value;
+        if (node.kind === 'booster') boosters[id] += node.value;
+      }
+      boosters[id] = Math.max(0, boosters[id]);
+    }
+    const owned = {};
+    for (const [id, card] of definitions) {
+      const initial = Math.min(copyLimit(card), Math.max(starter[id] ?? 0, count(legacy[id])));
+      owned[id] = initial + earnedCards[id];
+    }
+    return {
+      keys: progress.keys, gold: Math.max(0, gold - goldSpent), essence: Math.max(0, essence - essenceSpent),
+      boosters, packCount: Object.values(boosters).reduce((sum, value) => sum + value, 0), owned, pendingPack,
+    };
+  }
+
+  function refresh() {
+    for (const listener of listeners) listener();
+  }
+
+  async function transact(change) {
+    const commit = () => {
+      const state = read();
+      const outcome = change(state);
+      if (outcome !== 'opened' && outcome !== 'done') return outcome;
+      const { progress, ...economy } = state;
+      const next = { unlocked: [...progress.unlocked], ...economy };
+      try { storage?.setItem(REWARD_STORAGE_KEY, JSON.stringify(next)); }
+      catch { return 'unavailable'; }
+      saved = next;
+      return outcome;
+    };
+    let outcome;
+    try { outcome = locks ? await locks.request(REWARD_STORAGE_KEY, commit) : commit(); }
+    catch { return 'unavailable'; }
+    if (outcome === 'opened' || outcome === 'done') refresh();
+    return outcome;
+  }
+
+  return {
+    get: () => read().progress,
+    inventory: () => balances(read()),
+    refresh,
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    unlock(id) {
+      const node = nodesById.get(id);
+      if (!node) return Promise.resolve('unknown');
+      return transact(({ progress }) => {
+        const state = rewardState(node, progress);
+        if (state !== 'available') return state;
+        progress.unlocked.add(id);
+        return 'opened';
+      });
+    },
+    buyPack(id) {
+      if (!pools.has(id)) return Promise.resolve('unknown');
+      return transact((state) => {
+        if (balances(state).gold < BOOSTER_PRICE) return 'unaffordable';
+        state.purchased[id] += 1;
+        state.goldSpent += BOOSTER_PRICE;
+        return 'done';
+      });
+    },
+    openPack(id) {
+      if (!pools.has(id)) return Promise.resolve('unknown');
+      return transact((state) => {
+        if (state.pendingPack) return 'pending';
+        if (!balances(state).boosters[id]) return 'empty';
+        const cards = packCards(id, random);
+        state.opened[id] += 1;
+        for (const cardId of cards) state.earnedCards[cardId] += 1;
+        const number = Object.values(state.opened).reduce((sum, value) => sum + value, 0);
+        state.pendingPack = { id: number, faction: id, cards };
+        return 'done';
+      });
+    },
+    finishPack(id) {
+      return transact((state) => {
+        if (state.pendingPack?.id !== id) return 'unknown';
+        state.pendingPack = null;
+        return 'done';
+      });
+    },
+    craft(id) {
+      const card = definitions.get(id);
+      if (!card) return Promise.resolve('unknown');
+      return transact((state) => {
+        const { essence, owned } = balances(state);
+        if (owned[id] >= copyLimit(card)) return 'owned';
+        const price = craftPrice(card);
+        if (essence < price) return 'unaffordable';
+        state.essenceSpent += price;
+        state.earnedCards[id] += 1;
+        return 'done';
+      });
+    },
+  };
 }
