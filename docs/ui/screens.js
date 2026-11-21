@@ -5,6 +5,9 @@ import { addCardCrop, cardButton, showCard } from './cards.js?v=storm-eye-1';
 import { logView, roundText } from './menu.js?v=storm-eye-1';
 import { filterCatalog } from './catalog-cards.js?v=opponent-reveal-1';
 import { factionFilters } from './faction-filters.js?v=1';
+import { copyLimit } from '../game/decks.js?v=storm-eye-1';
+import { craftPrice } from '../game/rewards.js?v=economy-1';
+import { resourceIcon } from './resource-icon.js?v=1';
 
 const catalogCards = [...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool)];
 const catalogFactions = [['', 'Все фракции'], [NEUTRAL, 'Нейтральные'],
@@ -14,13 +17,8 @@ const categoryOptions = [...new Set(catalogCards.flatMap(({ categories }) => cat
 const provisionOptions = [...new Set(catalogCards.map(({ provision }) => provision))]
   .sort((a, b) => a - b).map((cost) => [String(cost), String(cost)]);
 
-export function catalogScreen(phaseLabel, back) {
-  phaseLabel.textContent = '';
+export function catalogScreen(progress) {
   const panel = element('section', 'card-catalog');
-  const heading = element('h2', null, 'Все карты');
-  heading.tabIndex = -1;
-  const header = element('div', 'catalog-heading');
-  header.append(button('Назад', back), heading);
   let faction = '';
   const factions = factionFilters(catalogFactions, (id) => {
     faction = id;
@@ -44,6 +42,21 @@ export function catalogScreen(phaseLabel, back) {
   const count = element('p', 'muted');
   count.setAttribute('role', 'status');
   const grid = element('div', 'catalog-grid');
+  const message = element('p', 'economy-status');
+  message.setAttribute('role', 'status');
+  let items = [];
+  let crafting = false;
+
+  function updateCrafting() {
+    const { essence, owned } = progress.inventory();
+    for (const { definition, price, quantity, craft } of items) {
+      const copies = owned[definition.id];
+      quantity.textContent = `В коллекции · ${copies}`;
+      craft.disabled = crafting || copies >= copyLimit(definition) || essence < price;
+      craft.title = copies >= copyLimit(definition) ? 'Для колоды уже хватает копий'
+        : essence < price ? 'Нужно больше эссенции' : craft.getAttribute('aria-label');
+    }
+  }
 
   function update() {
     const shown = filterCatalog(catalogCards, {
@@ -51,21 +64,41 @@ export function catalogScreen(phaseLabel, back) {
       category: category.input.value, provision: provision.input.value, sort: sort.input.value,
     });
     count.textContent = `Показано ${shown.length} из ${catalogCards.length}`;
-    grid.replaceChildren(...shown.map((definition) => {
+    items = shown.map((definition) => {
       const card = createCard(definition.id, definition);
       const item = element('div', 'catalog-entry');
       item.append(cardButton(card, () => showCard(card), { factionId: definition.faction }, false, { showProvision: true }),
         element('span', null, definition.name));
       if (definition.categories?.length) item.append(element('span', 'catalog-category', definition.categories.join(' · ')));
-      return item;
-    }));
+      const price = craftPrice(definition);
+      const quantity = element('span', 'catalog-quantity');
+      const craft = button(undefined, async () => {
+        if (crafting) return;
+        crafting = true;
+        updateCrafting();
+        const outcome = await progress.craft(definition.id);
+        crafting = false;
+        updateCrafting();
+        message.textContent = outcome === 'done' ? `Создана карта «${definition.name}»`
+          : outcome === 'owned' ? 'В коллекции уже достаточно копий.' : outcome === 'unaffordable'
+            ? 'Нужно больше эссенции.' : 'Не удалось сохранить карту.';
+        if (!craft.disabled) craft.focus({ preventScroll: true });
+      }, 'button craft-button');
+      craft.setAttribute('aria-label', `Создать «${definition.name}» за ${price} эссенции`);
+      craft.append(resourceIcon('essence'), element('span', null, price));
+      item.append(quantity, craft);
+      return { definition, price, item, quantity, craft };
+    });
+    grid.replaceChildren(...items.map(({ item }) => item));
+    updateCrafting();
     if (!shown.length) grid.append(element('p', 'catalog-empty muted', 'Карты не найдены.'));
   }
 
   search.addEventListener('input', update);
   for (const { input } of fields) input.addEventListener('change', update);
   update();
-  panel.append(header, factions, toolbar, count, grid);
+  progress.subscribe(updateCrafting);
+  panel.append(factions, toolbar, count, message, grid);
   return panel;
 }
 

@@ -1,4 +1,4 @@
-import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=storm-eye-1';
+import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=economy-1';
 import { createDeckStorage } from './ui/deck-storage.js?v=step-16';
 import { bindCardPlacement } from './card-placement.js?v=opponent-reveal-1';
 import { animateCoin, animateHandTurn, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=storm-eye-1';
@@ -13,11 +13,14 @@ import { preview, showCard } from './ui/cards.js?v=storm-eye-1';
 import { createBattlefield } from './ui/field.js?v=storm-eye-1';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=storm-eye-1';
 import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=storm-eye-1';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=storm-eye-1';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=economy-1';
 import { createSettings } from './ui/settings.js?v=storm-eye-1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
-import { createRewardBook } from './ui/reward-book.js?v=1';
+import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=economy-1';
+import { createRewardBook } from './ui/reward-book.js?v=economy-1';
+import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=1';
+import { createResourceBar } from './ui/resources.js?v=1';
 
 const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
@@ -40,10 +43,22 @@ let replaying = false;
 let mulliganFieldVisible = false;
 let storage;
 try { storage = window.localStorage; } catch {}
-document.querySelector('#start-settings').after(createRewardBook(storage, navigator.locks));
 const deckStore = createDeckStorage(storage);
 const stats = createFactionStats(Object.keys(FACTIONS), storage);
 const settings = createSettings(app, leaveMatch);
+const progress = createRewardProgress(storage, navigator.locks, { legacyDecks: deckStore.list() });
+const catalog = economyDialog('card-collection', 'Все карты');
+catalog.body.append(catalogScreen(progress));
+const openResources = createResourceBar(app.querySelector('.masthead'), document.querySelector('#start-settings'), progress, {
+  keys: createRewardBook(progress),
+  gold: createBoosterShop(progress, () => openResources('packCount')),
+  essence: catalog,
+  packCount: createBoosterOpening(progress, () => openResources('gold')),
+});
+progress.subscribe(() => screen.querySelector('.deck-editor')?.dispatchEvent(new Event('collection-change')));
+window.addEventListener('storage', (event) => {
+  if (event.key === REWARD_STORAGE_KEY || event.key === null) progress.refresh();
+});
 const menu = createMatchMenu(() => match, () => settings.showBotThoughts());
 const { drawer } = menu;
 const hand = {
@@ -190,20 +205,19 @@ function render() {
   else {
     const back = () => goTo('decks');
     switch (menuView) {
-      case 'catalog': content = catalogScreen(phaseLabel, back); break;
       case 'faction': content = factionPicker(phaseLabel, (id) => {
         selectedFaction = id;
         goTo('leader');
       }, back); break;
       case 'leader': content = leaderScreen(phaseLabel, selectedFaction, makeDeck, () => goTo('faction')); break;
       case 'edit': content = deckEditor(phaseLabel, editedDeck, {
-        back, save: (deck) => deckStore.save(deck), play: (deck) => {
+        back, inventory: progress.inventory, save: (deck) => deckStore.save(deck), play: (deck) => {
           deckStore.save(deck);
           start(deck);
         },
       }); break;
       default: content = deckListScreen(phaseLabel, deckStore.list(), stats, {
-        create: () => goTo('faction'), catalog: () => goTo('catalog'), play: start, edit: editDeck,
+        create: () => goTo('faction'), catalog: () => openResources('essence'), play: start, edit: editDeck,
         copy: (deck) => makeDeck(deck.factionId, deck.leaderId, deck),
       });
     }

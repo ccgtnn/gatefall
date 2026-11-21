@@ -88,7 +88,7 @@ export function factionPicker(phaseLabel, select, back) {
   return screen;
 }
 
-export function deckEditor(phaseLabel, deck, { save, play, back }) {
+export function deckEditor(phaseLabel, deck, { save, play, back, inventory }) {
   phaseLabel.textContent = '';
   const screen = element('section', 'deck-editor');
   const toolbar = element('header', 'deck-toolbar deck-editor-toolbar');
@@ -206,6 +206,7 @@ export function deckEditor(phaseLabel, deck, { save, play, back }) {
 
   function updateCollection() {
     cards.clear();
+    const { owned } = inventory();
     const query = search.value.trim().toLocaleLowerCase('ru');
     const shown = pool.filter((card) =>
       card.name.toLocaleLowerCase('ru').includes(query) &&
@@ -215,7 +216,7 @@ export function deckEditor(phaseLabel, deck, { save, play, back }) {
       (!faction || faction === card.faction));
     available.replaceChildren(...shown.map((card) => {
       const item = element('div', 'deck-collection-entry');
-      const limit = copyLimit(card);
+      const limit = Math.min(copyLimit(card), owned[card.id]);
       const face = cardButton(createCard(card.id, card), () => {
         if ((inspectDeck(deck).counts.get(card.id) ?? 0) >= limit) return;
         deck.cardIds.push(card.id);
@@ -234,6 +235,7 @@ export function deckEditor(phaseLabel, deck, { save, play, back }) {
     updateDeck();
   }
 
+  screen.addEventListener('collection-change', updateCollection);
   name.addEventListener('input', () => { deck.name = name.value; changed(); });
   leader.input.addEventListener('change', () => { deck.leaderId = leader.input.value; changed(); });
   search.addEventListener('input', updateCollection);
