@@ -1,7 +1,7 @@
-import { button, element } from './dom.js?v=catalog-rarity-1';
-import { cardType, placementSide } from '../game/board.js?v=catalog-rarity-1';
-import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=catalog-rarity-1';
-import { cardButton, showCard } from './cards.js?v=catalog-rarity-1';
+import { button, element } from './dom.js?v=falura-art-1';
+import { cardType, placementSide } from '../game/board.js?v=falura-art-1';
+import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=falura-art-1';
+import { cardButton, showCard } from './cards.js?v=falura-art-1';
 
 export function updatePlacementSelection(screen, match, selectedCardId) {
   const card = match.players.human.hand.find(({ id }) => id === selectedCardId);

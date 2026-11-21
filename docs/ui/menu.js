@@ -1,6 +1,6 @@
-import { button, element, sideLabel } from './dom.js?v=catalog-rarity-1';
-import { ROW_LABELS } from '../game/cards.js?v=catalog-rarity-1';
-import { cardButton, showCard } from './cards.js?v=catalog-rarity-1';
+import { button, element, sideLabel } from './dom.js?v=falura-art-1';
+import { ROW_LABELS } from '../game/cards.js?v=falura-art-1';
+import { cardButton, showCard } from './cards.js?v=falura-art-1';
 
 export function roundText(event) {
   const { scores, winner } = event;

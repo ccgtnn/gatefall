@@ -1,5 +1,5 @@
-import { spendResilience } from './game/board.js?v=catalog-rarity-1';
-import { ROWS } from './game/cards.js?v=catalog-rarity-1';
+import { spendResilience } from './game/board.js?v=falura-art-1';
+import { ROWS } from './game/cards.js?v=falura-art-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;

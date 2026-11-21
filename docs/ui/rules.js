@@ -1,5 +1,5 @@
-import { KEYWORDS } from '../game/cards.js?v=catalog-rarity-1';
-import { element } from './dom.js?v=catalog-rarity-1';
+import { KEYWORDS } from '../game/cards.js?v=falura-art-1';
+import { element } from './dom.js?v=falura-art-1';
 
 export function bindRulesMenu() {
   const dialog = document.querySelector('#rules-dialog');

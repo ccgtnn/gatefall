@@ -1,9 +1,9 @@
-import { ROWS } from './cards.js?v=catalog-rarity-1';
-import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=catalog-rarity-1';
-import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue } from './effects.js?v=catalog-rarity-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=catalog-rarity-1';
+import { ROWS } from './cards.js?v=falura-art-1';
+import { cardType, findUnit, isUnit, neighbors, units } from './board.js?v=falura-art-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue } from './effects.js?v=falura-art-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=falura-art-1';
 
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=catalog-rarity-1';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=falura-art-1';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;

@@ -1,9 +1,9 @@
-import { button, element, selectField } from './dom.js?v=catalog-rarity-1';
-import { createCard } from '../game/board.js?v=catalog-rarity-1';
-import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=catalog-rarity-1';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=catalog-rarity-1';
-import { logView, roundText } from './menu.js?v=catalog-rarity-1';
-import { filterCatalog } from './catalog-cards.js?v=catalog-rarity-1';
+import { button, element, selectField } from './dom.js?v=falura-art-1';
+import { createCard } from '../game/board.js?v=falura-art-1';
+import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=falura-art-1';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=falura-art-1';
+import { logView, roundText } from './menu.js?v=falura-art-1';
+import { filterCatalog } from './catalog-cards.js?v=falura-art-1';
 
 const catalogCards = [...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool)];
 const catalogFactions = [['', 'Все фракции'], [NEUTRAL, 'Нейтральные'],

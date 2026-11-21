@@ -1,6 +1,6 @@
-import { button, element, setCardRarity } from './dom.js?v=catalog-rarity-1';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=catalog-rarity-1';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=catalog-rarity-1';
+import { button, element, setCardRarity } from './dom.js?v=falura-art-1';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=falura-art-1';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=falura-art-1';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';

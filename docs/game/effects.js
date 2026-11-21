@@ -1,10 +1,10 @@
-import { emit } from './events.js?v=catalog-rarity-1';
-import { ROWS, ROW_LABELS } from './cards.js?v=catalog-rarity-1';
+import { emit } from './events.js?v=falura-art-1';
+import { ROWS, ROW_LABELS } from './cards.js?v=falura-art-1';
 import {
   announcePlay, applyStatus, availableRows, basePower, boost, cardType, consume, createCard, damage, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, removeUnit, ROW_LIMIT,
   setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, units,
-} from './board.js?v=catalog-rarity-1';
+} from './board.js?v=falura-art-1';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);

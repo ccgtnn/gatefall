@@ -1,5 +1,5 @@
-import { setCardRarity } from './ui/dom.js?v=catalog-rarity-1';
-import { NEUTRAL } from './game/cards.js?v=catalog-rarity-1';
+import { setCardRarity } from './ui/dom.js?v=falura-art-1';
+import { NEUTRAL } from './game/cards.js?v=falura-art-1';
 import { burstParticles } from './particles.js?v=step-14';
 
 const VISUAL_EVENTS = new Set([
