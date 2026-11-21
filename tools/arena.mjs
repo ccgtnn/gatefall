@@ -1,4 +1,6 @@
 import { availableParallelism } from 'node:os';
+import { writeFileSync } from 'node:fs';
+import { summarizeCards, summarizeOverload } from './arena-cards.mjs';
 import { resolve } from 'node:path';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 
@@ -27,17 +29,27 @@ function mirror(match) {
   };
 }
 
-async function run({ root, trials, rolloutSamples }) {
-  const { applyAction, confirmMulligan, createMatch, mulliganLimit } = await import(root + '/docs/game/match.js');
+async function run({ root, trials, rolloutSamples, trace, collectCards }) {
+  const { applyAction, confirmMulligan, createMatch, mulliganLimit, totalScore } = await import(root + '/docs/game/match.js');
+  const { FACTIONS } = await import(root + '/docs/game/cards.js');
   const { chooseBotTurn } = await import(root + '/docs/game/bot.js');
   const results = [];
-  for (const { levels, faction, seed, starter, group } of trials) {
+  for (const { levels, faction, seed, starter, group, leaderPair } of trials) {
     const random = randomFrom(seed);
     Math.random = randomFrom(seed ^ 0x124b62);
-    let match = createMatch({ humanFaction: faction, random });
+    const [humanLeader, botLeader] = leaderPair ?? [];
+    let match = createMatch({ humanFaction: faction, humanLeader: FACTIONS[faction].leaders[humanLeader]?.id, random });
+    if (botLeader !== undefined) {
+      const player = match.players.bot;
+      player.leader = { ...FACTIONS[player.factionId].leaders[botLeader], charges: match.rules.leaderCharges };
+    }
     match.starter = starter;
     const start = performance.now();
     const hardTimings = [];
+    const decisions = [];
+    const played = [];
+    let play;
+    const leadFor = (side) => totalScore(match.players[side]) - totalScore(match.players[other(side)]);
     for (let step = 0; match.phase !== 'finished'; step++) {
       if (step > 300) throw new Error('Unfinished match: ' + JSON.stringify({ faction, seed, levels, round: match.round }));
       if (match.phase === 'mulligan') {
@@ -49,14 +61,48 @@ async function run({ root, trials, rolloutSamples }) {
       }
       const side = match.pending?.side ?? match.turn;
       const options = { random: Math.random, rolloutSamples };
+      if (trace && levels[side] === 'normal') {
+        const player = match.players[side];
+        options.onDecision = (decision) => {
+          const label = (action) => player.hand.find(({ id }) => id === action.cardId)?.definition.name ?? action.cardId;
+          decisions.push({
+            side, round: match.round, lead: leadFor(side), hand: player.hand.length,
+            enemyHand: match.players[other(side)].hand.length, enemyPassed: match.players[other(side)].passed,
+            ...decision, name: label(decision.action),
+            candidates: decision.candidates.map((candidate) => ({ ...candidate, name: label(candidate.action) })),
+          });
+        };
+      }
       const choosing = performance.now();
       const action = chooseBotTurn(side === 'bot' ? match : mirror(match), levels[side], options);
       if (levels[side] === 'hard') hardTimings.push(performance.now() - choosing);
       const next = applyAction(match, side, action, { random });
+      if (collectCards && action.type === 'play') {
+        const { definition } = match.players[side].hand.find(({ id }) => id === action.cardId);
+        play = { id: definition.id, name: definition.name, side, round: match.round, row: action.row,
+          lead: leadFor(side), at: step, damage: 0 };
+      }
+      if (play) {
+        const events = next.log.slice(match.log.length);
+        const scores = events.find(({ type }) => type === 'round-end')?.scores;
+        if (play.id === 'shield-overload') {
+          if (match.pending?.kind === 'armor-row') play.row = action.cardId;
+          play.damage += events.filter((event) => event.type === 'damage' && event.sourceDefinitionId === play.id)
+            .reduce((sum, event) => sum + event.lost, 0);
+        }
+        if (!next.pending) {
+          const owner = play.side;
+          const lead = scores ? scores[owner] - scores[other(owner)]
+            : totalScore(next.players[owner]) - totalScore(next.players[other(owner)]);
+          played.push({ ...play, points: lead - play.lead });
+          play = undefined;
+        }
+      }
       if (next === match) throw new Error('Illegal action: ' + JSON.stringify({ faction, seed, levels, action, side }));
       match = next;
     }
-    results.push({ group, result: match.result, ms: performance.now() - start, hardTimings });
+    results.push({ group, result: match.result, ms: performance.now() - start, hardTimings, faction, seed, starter,
+      leaderPair, rounds: match.log.filter(({ type }) => type === 'round-end'), decisions, played });
   }
   return results;
 }
@@ -66,13 +112,19 @@ if (isMainThread) {
   const games = Number(options.games ?? 200);
   const root = resolve(options.root ?? '.');
   const trials = [];
-  for (const [first, second] of [['hard', 'normal'], ['normal', 'easy']]) {
-    for (const faction of ['protectorate', 'growth']) {
+  const matchups = (options.matchups ?? 'hard-normal,normal-easy').split(',');
+  if (!Number.isSafeInteger(games) || games < 2 || games % 2) throw new Error('--games must be a positive even number');
+  for (const matchup of matchups) {
+    const [first, second] = matchup.split('-');
+    if (![first, second].every((level) => ['hard', 'normal', 'easy'].includes(level))) throw new Error('Invalid matchup: ' + matchup);
+    for (const faction of first === second ? ['protectorate'] : ['protectorate', 'growth']) {
       for (let i = 0; i < games; i++) {
+        const pair = Math.floor(i / 2);
+        const leaderPair = first === second ? [pair % 3, Math.floor(pair / 3) % 3] : undefined;
         trials.push({
           group: first + '-' + second + '/' + faction, faction,
           levels: { human: first, bot: second }, seed: Number(options.seed ?? 1729) + Math.floor(i / 2),
-          starter: i % 2 ? 'bot' : 'human',
+          starter: i % 2 ? 'bot' : 'human', leaderPair,
         });
       }
     }
@@ -80,7 +132,7 @@ if (isMainThread) {
   const workers = Math.min(trials.length, Number(options.workers ?? Math.min(8, availableParallelism())));
   const batches = await Promise.all(Array.from({ length: workers }, (_, index) => new Promise((done, fail) => {
     const worker = new Worker(new URL(import.meta.url), {
-      workerData: { root, rolloutSamples: options.samples === undefined ? undefined : Number(options.samples),
+      workerData: { root, trace: Boolean(options.trace), collectCards: Boolean(options.cards), rolloutSamples: options.samples === undefined ? undefined : Number(options.samples),
         trials: trials.filter((_, i) => i % workers === index) },
     });
     worker.on('message', done);
@@ -101,11 +153,24 @@ if (isMainThread) {
     record.winRate = Number((100 * record.win / record.games).toFixed(2));
     record.processMs = Math.round(record.processMs);
   }
-  summary.hardDecisionMs = {
+  if (hardTimings.length) summary.hardDecisionMs = {
     median: Math.round(hardTimings[Math.floor(hardTimings.length * .5)]),
     p95: Math.round(hardTimings[Math.floor(hardTimings.length * .95)]),
     max: Math.round(hardTimings.at(-1)),
   };
+  const matches = batches.flat();
+  for (const group of new Set(matches.map((match) => match.group))) {
+    if (!group.startsWith('hard-hard/')) continue;
+    summary[group].byStarter = Object.fromEntries(['human', 'bot'].map((starter) => {
+      const subset = matches.filter((match) => match.group === group && match.starter === starter);
+      return [starter, Object.fromEntries(['win', 'loss', 'draw'].map((result) => [result, subset.filter((match) => match.result === result).length]))];
+    }));
+  }
+  if (options.trace) writeFileSync(options.trace, JSON.stringify(matches.filter((match) => match.decisions.length > 0)));
+  if (options.cards) {
+    const mirrorMatches = matches.filter(({ group }) => group.startsWith('hard-hard/'));
+    writeFileSync(options.cards, JSON.stringify({ cards: summarizeCards(mirrorMatches), overload: summarizeOverload(mirrorMatches) }, null, 2));
+  }
   console.log(JSON.stringify(summary, null, 2));
 } else {
   parentPort.postMessage(await run(workerData));
