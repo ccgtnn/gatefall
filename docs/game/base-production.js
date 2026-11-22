@@ -1,8 +1,9 @@
-import { BUILDINGS, productionHours, productionRates } from './base.js?v=base-production-1';
+import { BUILDINGS, productionHours, productionRates } from './base.js?v=base-outpost-1';
 
 const HOUR = 3_600_000;
-// Sixteenths keep every level's hourly rate exact while retaining fractional resources.
-const TICKS_PER_RESOURCE = HOUR * 16;
+// Established resources retain their saved scale. Key rates need three additional fractional bits.
+const rateScale = (key) => key === 'keys' ? 128 : 16;
+const ticksPerResource = (key) => HOUR * rateScale(key);
 const isCount = (value) => Number.isSafeInteger(value) && value >= 0;
 
 export function readProduction(saved, buildings) {
@@ -30,7 +31,7 @@ export function advanceProduction(production, buildings, now) {
     const stock = production.stock[kind];
     if (!stock) continue;
     for (const [key, rate] of Object.entries(productionRates(kind, level))) {
-      stock[key] = Math.min(rate * hours * TICKS_PER_RESOURCE, stock[key] + elapsed * rate * 16);
+      stock[key] = Math.min(rate * hours * ticksPerResource(key), stock[key] + elapsed * rate * rateScale(key));
     }
   }
 }
@@ -42,10 +43,10 @@ export function productionView(production, buildings) {
       const stock = production.stock[kind];
       const rates = productionRates(kind, level);
       const outputs = Object.fromEntries(Object.entries(rates).map(([key, rate]) => [
-        key, { stored: Math.floor(stock[key] / TICKS_PER_RESOURCE), capacity: rate * hours },
+        key, { stored: Math.floor(stock[key] / ticksPerResource(key)), capacity: rate * hours },
       ]));
       const fill = Math.min(...Object.entries(rates)
-        .map(([key, rate]) => stock[key] / (rate * hours * TICKS_PER_RESOURCE)));
+        .map(([key, rate]) => stock[key] / (rate * hours * ticksPerResource(key))));
       return [kind, { outputs, fill, full: fill >= 1 }];
     }));
 }
@@ -55,10 +56,10 @@ export function takeProduction(production, kind) {
   const entries = kind === undefined ? Object.values(production.stock) : [production.stock[kind]];
   for (const stock of entries) {
     for (const [key, ticks] of Object.entries(stock ?? {})) {
-      const units = Math.floor(ticks / TICKS_PER_RESOURCE);
+      const units = Math.floor(ticks / ticksPerResource(key));
       if (!units) continue;
       rewards[key] = (rewards[key] ?? 0) + units;
-      stock[key] = ticks - units * TICKS_PER_RESOURCE;
+      stock[key] = ticks - units * ticksPerResource(key);
     }
   }
   return rewards;

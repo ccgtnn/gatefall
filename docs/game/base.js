@@ -8,6 +8,7 @@ export const MATERIALS = Object.freeze({
 export const STARTING_MATERIALS = Object.freeze({ steel: 200, energyCells: 100, gateShards: 5 });
 export const MAX_BUILDING_LEVEL = 5;
 export const BUILDINGS = Object.freeze({
+  outpost: { name: 'Форпост', art: 'outpost', cost: { gold: 500, steel: 150, energyCells: 100 }, production: { keys: 1 / 8 } },
   tavern: { name: 'Таверна', plot: '5', art: 'tavern', cost: { gold: 300, steel: 150, energyCells: 50 }, effect: (level) => `Ежедневные задания · слотов: ${level} · скоро` },
   mine: { name: 'Шахта', plot: '2', art: 'mine', cost: { gold: 400, steel: 100, energyCells: 50 }, production: { steel: 20, gold: 10 } },
   power: { name: 'Энергостанция', art: 'power', cost: { gold: 350, steel: 75, energyCells: 25 }, production: { energyCells: 10 } },
@@ -47,9 +48,13 @@ export function productionRates(kind, level) {
 
 const outputNames = { gold: 'золота', steel: 'стали', energyCells: 'энергоячеек' };
 const number = new Intl.NumberFormat('ru', { maximumFractionDigits: 4 });
+const intervalNumber = new Intl.NumberFormat('ru', { maximumFractionDigits: 2 });
 
 export function buildingEffect(kind, level = 1) {
   const rates = productionRates(kind, level);
+  if (kind === 'outpost') {
+    return `1 ключ за ${intervalNumber.format(1 / rates.keys)} ч · +${level * 5}% золота за победу`;
+  }
   if (rates) {
     return Object.entries(rates).map(([key, rate]) => number.format(rate) + ' ' + outputNames[key]).join(' + ') + ' / ч';
   }

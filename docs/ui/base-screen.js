@@ -1,6 +1,6 @@
-import { createBaseGrid } from './base-grid.js?v=base-production-1';
+import { createBaseGrid } from './base-grid.js?v=base-outpost-1';
 import { BASE_OVERLAYS, BASE_POSITIONS, baseLayout, overlayStyle } from './base-layout.js?v=base-mine-1';
-import { BASE_PLOTS, BUILDING_BY_PLOT, BUILDINGS, MATERIALS, buildingEffect, constructionShortages } from '../game/base.js?v=base-production-1';
+import { BASE_PLOTS, BUILDING_BY_PLOT, BUILDINGS, MATERIALS, buildingEffect, constructionShortages } from '../game/base.js?v=base-outpost-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { dialogClose, sectionDialog } from './resources.js?v=interface-polish-1';
 import { resourceIcon } from './resource-icon.js?v=1';

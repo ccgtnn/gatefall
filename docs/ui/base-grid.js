@@ -1,4 +1,5 @@
-import { BUILDINGS, MAX_BUILDING_LEVEL, buildingEffect, buildingPrice, buildingSlot, constructionShortages } from '../game/base.js?v=base-production-1';
+import { weeklyBundle } from '../game/outpost.js?v=base-outpost-1';
+import { BUILDINGS, MAX_BUILDING_LEVEL, buildingEffect, buildingPrice, buildingSlot, constructionShortages } from '../game/base.js?v=base-outpost-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { dialogClose } from './resources.js?v=interface-polish-1';
 
@@ -24,24 +25,34 @@ export function createBaseGrid(shell, progress, labels, materialIcon) {
 
   let busy = false;
   const producers = [];
+  let renderWeekly;
   const number = new Intl.NumberFormat('ru');
   const canCollect = (stock) => Object.values(stock?.outputs ?? {}).some(({ stored }) => stored > 0);
 
-  async function collect(kind) {
+  function bundleText(bundle) {
+    return Object.entries(bundle).map(([key, value]) => `${labels[key]} ${number.format(value)}`).join(' · ');
+  }
+
+  function collect(kind) {
+    return claim(() => progress.collect(kind), 'Ресурсы собраны.', 'Пока нечего собирать.');
+  }
+
+  async function claim(action, success, empty) {
     if (busy) return;
     busy = true;
     updateProduction();
-    const result = await progress.collect(kind);
+    const result = await action();
     busy = false;
     updateProduction();
-    status.textContent = result === 'done' ? 'Ресурсы собраны.'
-      : result === 'unavailable' ? 'Не удалось сохранить сбор.' : 'Пока нечего собирать.';
+    status.textContent = result === 'done' ? success
+      : result === 'unavailable' ? 'Не удалось сохранить сбор.' : empty;
   }
 
   function updateProduction() {
     const production = progress.production();
     collectAll.disabled = busy || !Object.values(production).some(canCollect);
     for (const [kind, show] of producers) show(production[kind]);
+    renderWeekly?.(progress.weeklyOutpost());
   }
 
   const cards = Object.entries(BUILDINGS).map(([kind, definition]) => {
@@ -77,9 +88,11 @@ export function createBaseGrid(shell, progress, labels, materialIcon) {
       heading.textContent = definition.name;
       body.replaceChildren(element('strong', null, 'Уровень ' + level),
         element('p', null, buildingEffect(kind, level)));
+      if (kind === 'outpost') body.append(element('p', null, 'Еженедельно · ' + bundleText(weeklyBundle(level))));
       if (level < MAX_BUILDING_LEVEL) {
         body.append(element('strong', null, 'Следующий уровень · ' + (level + 1)),
           element('p', null, buildingEffect(kind, level + 1)));
+        if (kind === 'outpost') body.append(element('p', null, 'Еженедельно · ' + bundleText(weeklyBundle(level + 1))));
       }
       if (definition.details) body.append(element('p', null, definition.details));
       details.showModal();
@@ -120,12 +133,32 @@ export function createBaseGrid(shell, progress, labels, materialIcon) {
         storage.hidden = !stock;
         if (!stock) return;
         quantity.textContent = Object.entries(stock.outputs).map(([key, { stored, capacity }]) =>
-          `${labels[key]} ${number.format(stored)}/${number.format(Math.floor(capacity))}`).join(' · ');
+          `${key === 'keys' ? 'Ключи' : labels[key]} ${number.format(stored)}/${number.format(Math.floor(capacity))}`).join(' · ');
         bar.value = stock.fill;
         full.hidden = !stock.full;
         card.classList.toggle('is-full', stock.full);
         collectButton.disabled = busy || !canCollect(stock);
       }]);
+    }
+    if (kind === 'outpost') {
+      const panel = element('div', 'base-production');
+      const title = element('strong', null, 'Еженедельный бонус');
+      const bundle = element('p', 'base-production-output');
+      const cooldown = element('p', 'base-production-output');
+      const claimButton = button('Получить', () => claim(() => progress.claimOutpost(),
+        'Еженедельный бонус получен.', 'Еженедельный бонус пока недоступен.'), 'button');
+      const hour = 3_600_000;
+      panel.append(title, bundle, cooldown, claimButton);
+      info.append(panel);
+      renderWeekly = (weekly) => {
+        panel.hidden = !weekly;
+        if (!weekly) return;
+        bundle.textContent = bundleText(weekly.bundle);
+        claimButton.disabled = busy || weekly.remaining > 0;
+        const hours = Math.ceil(weekly.remaining / hour);
+        cooldown.hidden = !hours;
+        cooldown.textContent = `Следующий сбор через ${hours >= 24 ? Math.floor(hours / 24) + ' д ' : ''}${hours % 24} ч`;
+      };
     }
     info.append(priceLabel, price, shortage, actions);
     card.append(picture, info);

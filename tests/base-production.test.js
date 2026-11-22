@@ -112,3 +112,78 @@ test('legacy buildings start producing at the first checkpoint and reset clears 
   assert.deepEqual(reopen().production(), {});
   assert.equal(reopen().inventory().gold, 1000);
 });
+
+test('the Outpost produces a key in eight hours and collection feeds the reward book', async () => {
+  const { wallet, tick, reopen } = setup();
+  assert.equal(await wallet.build('outpost', 'outpost'), 'done');
+  tick(7);
+  assert.equal(reopen().production().outpost.outputs.keys.stored, 0);
+  tick(20);
+  const after = reopen();
+  assert.deepEqual(after.production().outpost.outputs.keys, { stored: 1, capacity: 1 });
+  assert.equal(after.production().outpost.full, true);
+  assert.equal(after.inventory().keys, 1000);
+  assert.equal(await after.collect(), 'done');
+  assert.equal(await reopen().unlock('growth:signal'), 'opened');
+  assert.equal(reopen().inventory().keys, 1000);
+});
+
+test('Outpost upgrades speed up key production and use the warehouse capacity', async () => {
+  const { wallet, tick, reopen } = setup({
+    base: { buildings: { outpost: { kind: 'outpost', level: 2 }, warehouse: { kind: 'warehouse', level: 1 } } },
+  });
+  await wallet.checkpointProduction();
+  tick(6);
+  assert.deepEqual(reopen().production().outpost.outputs.keys, { stored: 1, capacity: 2.25 });
+  tick(12);
+  assert.equal(await reopen().collect('outpost'), 'done');
+  assert.equal(reopen().inventory().keys, 27);
+  tick(4);
+  assert.equal(reopen().production().outpost.outputs.keys.stored, 1);
+});
+
+test('only victories earn gold, including five percent per Outpost level, once per match', async () => {
+  const starter = setup();
+  assert.equal(await starter.wallet.rewardMatch('regular-win', 'win'), 'done');
+  assert.equal(starter.wallet.inventory().gold, 1020);
+  const { wallet, reopen } = setup({
+    startingGold: 1000, base: { buildings: { outpost: { kind: 'outpost', level: 3 } } },
+  });
+  assert.equal(await wallet.rewardMatch('lost', 'loss'), 'empty');
+  assert.equal(await wallet.rewardMatch('drawn', 'draw'), 'empty');
+  assert.equal(wallet.inventory().gold, 1000);
+  let queue = Promise.resolve();
+  const locks = { request: (_, commit) => (queue = queue.then(commit)) };
+  const results = await Promise.all([reopen(locks).rewardMatch('won', 'win'), reopen(locks).rewardMatch('won', 'win')]);
+  assert.deepEqual(results, ['done', 'claimed']);
+  assert.equal(await reopen().rewardMatch('won', 'win'), 'claimed');
+  assert.equal(reopen().inventory().gold, 1023);
+});
+
+test('the weekly bundle scales, survives reload, and cannot be claimed twice or after clock rollback', async () => {
+  const { wallet, tick, reopen } = setup({
+    startingGold: 1000, base: { buildings: { outpost: { kind: 'outpost', level: 2 } } },
+  });
+  assert.equal(await setup().wallet.claimOutpost(), 'empty');
+  assert.deepEqual(wallet.weeklyOutpost(), { bundle: { gold: 200, steel: 100, energyCells: 100 }, remaining: 0 });
+  await wallet.checkpointProduction();
+  tick(-1);
+  assert.equal(await reopen().claimOutpost(), 'cooldown');
+  tick(1);
+  let queue = Promise.resolve();
+  const locks = { request: (_, commit) => (queue = queue.then(commit)) };
+  const outcomes = await Promise.all([reopen(locks).claimOutpost(), reopen(locks).claimOutpost()]);
+  assert.deepEqual(outcomes, ['done', 'cooldown']);
+  assert.equal(reopen().inventory().gold, 1200);
+  assert.deepEqual(reopen().base().materials, { steel: 300, energyCells: 200, gateShards: 5 });
+  tick(167);
+  assert.equal(await reopen().claimOutpost(), 'cooldown');
+  tick(1);
+  await reopen().checkpointProduction();
+  tick(-.5);
+  assert.equal(await reopen().claimOutpost(), 'cooldown');
+  tick(.5);
+  assert.equal(await reopen().claimOutpost(), 'done');
+  assert.equal(await reopen().claimOutpost(), 'cooldown');
+  assert.equal(reopen().inventory().gold, 1400);
+});

@@ -1,5 +1,6 @@
-import { advanceProduction, productionView, readProduction, takeProduction } from './base-production.js?v=base-production-1';
-import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=base-production-1';
+import { victoryGold, weeklyReward } from './outpost.js?v=base-outpost-1';
+import { advanceProduction, productionView, readProduction, takeProduction } from './base-production.js?v=base-outpost-1';
+import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=base-outpost-1';
 import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=flagship-art-2';
 import { copyLimit, PRESETS } from './decks.js?v=flagship-art-2';
 
@@ -376,8 +377,8 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
   let saved = null;
   let latestTime = 0;
 
-  function observedTime() {
-    latestTime = Math.max(latestTime, now());
+  function observedTime(time = now()) {
+    latestTime = Math.max(latestTime, time);
     return latestTime;
   }
 
@@ -389,11 +390,13 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
     const fresh = saved === null;
     const base = readBase(snapshot.base);
     const startingKeys = fresh ? STARTING_KEYS : count(snapshot.startingKeys) || LEGACY_STARTING_KEYS;
+    const producedKeys = count(snapshot.producedKeys);
     return {
       startingGold: fresh ? STARTING_GOLD : count(snapshot.startingGold),
       startingKeys,
       startingEssence: fresh ? STARTING_ESSENCE : count(snapshot.startingEssence) || LEGACY_STARTING_ESSENCE,
-      progress: readProgress(snapshot.unlocked, startingKeys),
+      progress: readProgress(snapshot.unlocked, startingKeys + producedKeys),
+      producedKeys,
       legacy: snapshot.legacy ?? legacy,
       purchased: countsFor(pools.keys(), snapshot.purchased),
       opened: countsFor(pools.keys(), snapshot.opened),
@@ -405,13 +408,16 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
       base,
       production: readProduction(snapshot.production, base.buildings),
       producedGold: count(snapshot.producedGold),
+      rewardGold: count(snapshot.rewardGold),
+      rewardedMatches: Array.isArray(snapshot.rewardedMatches) ? snapshot.rewardedMatches : [],
+      lastWeeklyClaim: Number.isSafeInteger(snapshot.lastWeeklyClaim) ? snapshot.lastWeeklyClaim : null,
       pendingPack: readPack(snapshot.pendingPack),
     };
   }
 
   function balances({ progress, legacy, purchased, opened, earnedCards, dismantledCards, dismantlingEssence,
-    essenceSpent, goldSpent, startingGold, startingEssence, producedGold, pendingPack }) {
-    let gold = startingGold + producedGold;
+    essenceSpent, goldSpent, startingGold, startingEssence, producedGold, rewardGold, pendingPack }) {
+    let gold = startingGold + producedGold + rewardGold;
     let essence = startingEssence + dismantlingEssence;
     const boosters = Object.fromEntries(BOOSTER_FACTIONS.map(({ id }) => [id, purchased[id] - opened[id]]));
     for (const { faction, nodes } of chapters) {
@@ -442,8 +448,9 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
     const commit = () => {
       const state = read();
       const previousProductionAt = state.production.at;
-      advanceProduction(state.production, state.base.buildings, observedTime());
-      const outcome = change(state, previousProductionAt);
+      const time = now();
+      advanceProduction(state.production, state.base.buildings, observedTime(time));
+      const outcome = change(state, previousProductionAt, time);
       if (outcome !== 'opened' && outcome !== 'done') return outcome;
       const { progress, ...economy } = state;
       const next = { unlocked: [...progress.unlocked], ...economy };
@@ -507,12 +514,46 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
     },
     collect(kind) {
       return transact((state) => {
-        const { gold = 0, ...materials } = takeProduction(state.production, kind);
+        const { gold = 0, keys = 0, ...materials } = takeProduction(state.production, kind);
         const hasMaterials = Object.keys(materials).length > 0;
-        if (!gold && !hasMaterials) return 'empty';
-        if (!Number.isSafeInteger(state.producedGold + gold)) return 'unavailable';
+        if (!gold && !keys && !hasMaterials) return 'empty';
+        if (!Number.isSafeInteger(state.producedGold + gold) ||
+          !Number.isSafeInteger(state.startingKeys + state.producedKeys + keys)) return 'unavailable';
         if (hasMaterials && !creditMaterials(state.base.materials, materials)) return 'unavailable';
         state.producedGold += gold;
+        state.producedKeys += keys;
+        return 'done';
+      });
+    },
+    weeklyOutpost() {
+      const state = read();
+      const time = now();
+      return weeklyReward(state.base.buildings.outpost?.level, state.lastWeeklyClaim,
+        time, Math.max(observedTime(time), state.production.at ?? 0));
+    },
+    claimOutpost() {
+      return transact((state, _previousAt, time) => {
+        const weekly = weeklyReward(state.base.buildings.outpost?.level, state.lastWeeklyClaim,
+          time, state.production.at);
+        if (!weekly) return 'empty';
+        if (weekly.remaining) return 'cooldown';
+        const { gold, ...materials } = weekly.bundle;
+        if (!Number.isSafeInteger(state.rewardGold + gold) || !creditMaterials(state.base.materials, materials)) {
+          return 'unavailable';
+        }
+        state.rewardGold += gold;
+        state.lastWeeklyClaim = time;
+        return 'done';
+      });
+    },
+    rewardMatch(matchId, result) {
+      if (result !== 'win' || typeof matchId !== 'string' || !matchId) return Promise.resolve('empty');
+      return transact((state) => {
+        if (state.rewardedMatches.includes(matchId)) return 'claimed';
+        const gold = victoryGold(state.base.buildings.outpost?.level);
+        if (!Number.isSafeInteger(state.rewardGold + gold)) return 'unavailable';
+        state.rewardGold += gold;
+        state.rewardedMatches = [...state.rewardedMatches, matchId];
         return 'done';
       });
     },
