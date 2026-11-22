@@ -6,7 +6,8 @@ export const MATERIALS = Object.freeze({
   energyCells: 'Энергоячейки',
   gateShards: 'Осколки врат',
 });
-export const STARTING_MATERIALS = Object.freeze({ steel: 200, energyCells: 100, gateShards: 5 });
+export const STARTING_MATERIALS = Object.freeze({ steel: 1000, energyCells: 1000, gateShards: 1000 });
+const LEGACY_MATERIALS = Object.freeze({ steel: 200, energyCells: 100, gateShards: 5 });
 export const BUILDINGS = Object.freeze({
   mine: Object.freeze({
     name: 'Шахта',
@@ -24,8 +25,9 @@ export const BUILDINGS = Object.freeze({
 
 const amount = (value) => Number.isSafeInteger(value) && value >= 0;
 
-export function readBase(saved) {
-  const materials = Object.fromEntries(Object.entries(STARTING_MATERIALS).map(([key, initial]) => {
+export function readBase(saved, { legacy = false } = {}) {
+  const initialMaterials = legacy ? LEGACY_MATERIALS : STARTING_MATERIALS;
+  const materials = Object.fromEntries(Object.entries(initialMaterials).map(([key, initial]) => {
     const value = saved?.materials?.[key];
     return [key, amount(value) ? value : initial];
   }));

@@ -1,10 +1,12 @@
-import { BUILDING_BY_PLOT, BUILDINGS, constructionShortages, creditMaterials, readBase } from './base.js?v=base-mine-1';
+import { BUILDING_BY_PLOT, BUILDINGS, constructionShortages, creditMaterials, readBase } from './base.js?v=starting-resources-1';
 import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=flagship-art-2';
 import { copyLimit, PRESETS } from './decks.js?v=flagship-art-2';
 
-export const STARTING_KEYS = 25;
+export const STARTING_KEYS = 1000;
 export const STARTING_GOLD = 1000;
-export const STARTING_ESSENCE = 800;
+export const STARTING_ESSENCE = 1000;
+const LEGACY_STARTING_KEYS = 25;
+const LEGACY_STARTING_ESSENCE = 800;
 export const BOOSTER_PRICE = 100;
 export const BOOSTER_SIZE = 5;
 export const BOOSTER_RARITY_WEIGHTS = Object.freeze({ bronze: 75, epic: 20, gold: 5 });
@@ -297,9 +299,8 @@ const nodesById = new Map(chapters.flatMap(({ nodes }) => nodes.map((node) => [n
 
 const routeOpen = (node, unlocked) => !node.parents.length || node.parents.some((parent) => unlocked.has(parent));
 
-function readProgress(ids) {
+function readProgress(ids, keys) {
   const unlocked = new Set();
-  let keys = STARTING_KEYS;
   if (Array.isArray(ids)) {
     for (const id of ids) {
       const node = nodesById.get(id);
@@ -378,9 +379,13 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
       try { saved = JSON.parse(storage.getItem(REWARD_STORAGE_KEY)); } catch {}
     }
     const snapshot = saved ?? {};
+    const fresh = saved === null;
+    const startingKeys = fresh ? STARTING_KEYS : count(snapshot.startingKeys) || LEGACY_STARTING_KEYS;
     return {
-      startingGold: saved === null ? STARTING_GOLD : count(snapshot.startingGold),
-      progress: readProgress(snapshot.unlocked),
+      startingGold: fresh ? STARTING_GOLD : count(snapshot.startingGold),
+      startingKeys,
+      startingEssence: fresh ? STARTING_ESSENCE : count(snapshot.startingEssence) || LEGACY_STARTING_ESSENCE,
+      progress: readProgress(snapshot.unlocked, startingKeys),
       legacy: snapshot.legacy ?? legacy,
       purchased: countsFor(pools.keys(), snapshot.purchased),
       opened: countsFor(pools.keys(), snapshot.opened),
@@ -389,15 +394,15 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
       dismantlingEssence: count(snapshot.dismantlingEssence),
       essenceSpent: count(snapshot.essenceSpent),
       goldSpent: count(snapshot.goldSpent),
-      base: readBase(snapshot.base),
+      base: readBase(snapshot.base, { legacy: !fresh }),
       pendingPack: readPack(snapshot.pendingPack),
     };
   }
 
   function balances({ progress, legacy, purchased, opened, earnedCards, dismantledCards, dismantlingEssence,
-    essenceSpent, goldSpent, startingGold, pendingPack }) {
+    essenceSpent, goldSpent, startingGold, startingEssence, pendingPack }) {
     let gold = startingGold;
-    let essence = STARTING_ESSENCE + dismantlingEssence;
+    let essence = startingEssence + dismantlingEssence;
     const boosters = Object.fromEntries(BOOSTER_FACTIONS.map(({ id }) => [id, purchased[id] - opened[id]]));
     for (const { faction, nodes } of chapters) {
       for (const node of nodes) {

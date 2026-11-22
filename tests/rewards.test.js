@@ -16,7 +16,7 @@ const chapters = REWARD_SECTIONS.flatMap((section) => section.chapters);
 
 test('the book has two sections, five chapters and reachable rare rewards', () => {
   const storage = localStorage();
-  assert.equal(createRewardProgress(storage).get().keys, 25);
+  assert.equal(createRewardProgress(storage).get().keys, 1000);
   assert.deepEqual(REWARD_SECTIONS.map(({ chapters }) => chapters.length), [3, 2]);
   assert.deepEqual(BOOSTER_FACTIONS.map(({ id }) => id), ['protectorate', 'growth', 'neutral']);
   assert.equal(new Set(chapters.flatMap(({ nodes }) => nodes.map(({ id }) => id))).size, 120);
@@ -92,12 +92,14 @@ test('spending needs an unlocked parent and persists across pages and reloads', 
   assert.equal(await first.unlock('protectorate:supply'), 'opened');
 
   const reloaded = createRewardProgress(storage);
-  assert.deepEqual(reloaded.get(), { keys: 21, unlocked: new Set(['protectorate:signal', 'growth:signal', 'protectorate:supply']) });
+  assert.deepEqual(reloaded.get(), { keys: 996, unlocked: new Set(['protectorate:signal', 'growth:signal', 'protectorate:supply']) });
   assert.equal(rewardState(chapters[0].nodes[2], reloaded.get()), 'available');
 });
 
-test('25 keys can reach a rare reward, then spending stops exactly at zero', async () => {
-  const wallet = createRewardProgress(localStorage());
+test('a legacy wallet with 25 keys can reach a rare reward, then spending stops at zero', async () => {
+  const storage = localStorage();
+  storage.setItem(REWARD_STORAGE_KEY, JSON.stringify({ unlocked: [] }));
+  const wallet = createRewardProgress(storage);
   const { nodes } = chapters[0];
   for (const node of nodes.slice(0, 7)) assert.equal(await wallet.unlock(node.id), 'opened');
   assert.equal(wallet.get().keys, 5);
@@ -119,7 +121,7 @@ test('a failing storage write leaves the balance and route unchanged', async () 
   storage.setItem = () => { throw new Error('storage is full'); };
   const wallet = createRewardProgress(storage);
   assert.equal(await wallet.unlock('growth:signal'), 'unavailable');
-  assert.deepEqual(wallet.get(), { keys: 25, unlocked: new Set() });
+  assert.deepEqual(wallet.get(), { keys: 1000, unlocked: new Set() });
 });
 
 test('wallet instances share a lock and both openings survive concurrent writes', async () => {
@@ -134,7 +136,7 @@ test('wallet instances share a lock and both openings survive concurrent writes'
   const first = createRewardProgress(storage, locks);
   const second = createRewardProgress(storage, locks);
   assert.deepEqual(await Promise.all([first.unlock('growth:signal'), second.unlock('neutral:signal')]), ['opened', 'opened']);
-  assert.deepEqual(first.get(), { keys: 23, unlocked: new Set(['growth:signal', 'neutral:signal']) });
+  assert.deepEqual(first.get(), { keys: 998, unlocked: new Set(['growth:signal', 'neutral:signal']) });
 });
 
 test('a fresh wallet starts with 1000 gold and keeps its balance after spending and reopening', async () => {
@@ -235,7 +237,7 @@ test('crafting spends rarity price, caps usable copies and preserves previous de
   assert.equal(await wallet.craft(gold.id), 'owned');
   assert.equal(await wallet.craft(otherGold.id), 'unaffordable');
   const reloaded = createRewardProgress(storage);
-  assert.equal(reloaded.inventory().essence, 0);
+  assert.equal(reloaded.inventory().essence, 200);
   assert.equal(reloaded.inventory().owned[gold.id], 1);
   assert.equal(reloaded.inventory().owned[bronze.id], initial);
 });

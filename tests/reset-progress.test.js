@@ -40,7 +40,9 @@ function boot(storage) {
 test('reset restores the first-launch inventory, rewards, decks, stats, and preferences', async () => {
   const storage = memoryStorage();
   const initial = boot(storage);
-  assert.equal(initial.inventory.gold, 1000);
+  const { gold, keys, essence, packCount } = initial.inventory;
+  assert.deepEqual({ gold, keys, essence, packCount }, { gold: 1000, keys: 1000, essence: 1000, packCount: 0 });
+  assert.deepEqual(initial.base.materials, { steel: 1000, energyCells: 1000, gateShards: 1000 });
   const deck = { id: 'custom', name: 'Проверка', factionId: 'protectorate', leaderId: 'marshal', cardIds: ['old-golem'] };
   const deckStorage = createDeckStorage(storage);
   assert.equal(deckStorage.save(deck), true);
