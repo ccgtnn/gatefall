@@ -1,6 +1,6 @@
-import { createBaseGrid } from './base-grid.js?v=building-grid-1';
+import { createBaseGrid } from './base-grid.js?v=base-production-1';
 import { BASE_OVERLAYS, BASE_POSITIONS, baseLayout, overlayStyle } from './base-layout.js?v=base-mine-1';
-import { BASE_PLOTS, BUILDING_BY_PLOT, BUILDINGS, MATERIALS, buildingEffect, constructionShortages } from '../game/base.js?v=building-grid-1';
+import { BASE_PLOTS, BUILDING_BY_PLOT, BUILDINGS, MATERIALS, buildingEffect, constructionShortages } from '../game/base.js?v=base-production-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { dialogClose, sectionDialog } from './resources.js?v=interface-polish-1';
 import { resourceIcon } from './resource-icon.js?v=1';
@@ -73,18 +73,32 @@ export function createBaseScreen(progress) {
 
   dialog.classList.add('base-screen-grid');
   dialog.querySelector('.section-back').after(materials);
-  const render = createBaseGrid(shell, progress, labels, materialIcon);
+  const grid = createBaseGrid(shell, progress, labels, materialIcon);
+  let timer;
   function update() {
     const scene = progress.base();
     const { gold } = progress.inventory();
     updateMaterials(scene, gold);
-    render(scene, gold);
+    grid.update(scene, gold);
   }
   progress.subscribe(() => { if (dialog.open) update(); });
+  dialog.addEventListener('close', () => {
+    if (dialog.open) return;
+    clearInterval(timer);
+    void progress.checkpointProduction();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (!dialog.open) return;
+    if (document.hidden) void progress.checkpointProduction();
+    else grid.updateProduction();
+  });
   return () => {
+    if (dialog.open) return;
     update();
     dialog.showModal();
     dialog.scrollTop = 0;
+    clearInterval(timer);
+    timer = setInterval(grid.updateProduction, 1000);
   };
 }
 

@@ -124,12 +124,12 @@ test('new building prices, levels, affordability and the level cap survive reloa
   const wallet = createRewardProgress(storage);
   assert.equal(await wallet.upgrade('warehouse', 1), 'stale');
   assert.equal(await wallet.build('warehouse', 'warehouse'), 'done');
-  assert.deepEqual(buildingPrice('warehouse', 2), { gold: 375, steel: 120, energyCells: 38 });
-  assert.deepEqual(buildingPrice('warehouse', 3), { gold: 563, steel: 180, energyCells: 57 });
+  assert.deepEqual(buildingPrice('warehouse', 2), { gold: 94, steel: 120, energyCells: 38 });
+  assert.deepEqual(buildingPrice('warehouse', 3), { gold: 141, steel: 180, energyCells: 57 });
   assert.equal(await wallet.upgrade('warehouse', 1), 'done');
   const again = createRewardProgress(storage);
   assert.equal(again.base().buildings.warehouse.level, 2);
-  assert.equal(again.inventory().gold, 375);
+  assert.equal(again.inventory().gold, 656);
   assert.deepEqual(again.base().materials, { steel: 0, energyCells: 37, gateShards: 5 });
   assert.equal(await again.upgrade('warehouse', 1), 'stale');
   assert.equal(await again.upgrade('warehouse', 2), 'unaffordable');

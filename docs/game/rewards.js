@@ -1,4 +1,5 @@
-import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=building-grid-1';
+import { advanceProduction, productionView, readProduction, takeProduction } from './base-production.js?v=base-production-1';
+import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=base-production-1';
 import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=flagship-art-2';
 import { copyLimit, PRESETS } from './decks.js?v=flagship-art-2';
 
@@ -368,11 +369,17 @@ function readPack(pack) {
   return { id, faction: pack.faction, cards, essenceByCard: countsFor(cards, pack.essenceByCard) };
 }
 
-export function createRewardProgress(storage, locks, { legacyDecks = [], random = Math.random } = {}) {
+export function createRewardProgress(storage, locks, { legacyDecks = [], random = Math.random, now = Date.now } = {}) {
   const listeners = new Set();
   const starter = starterCards(PRESETS);
   const legacy = starterCards(legacyDecks);
   let saved = null;
+  let latestTime = 0;
+
+  function observedTime() {
+    latestTime = Math.max(latestTime, now());
+    return latestTime;
+  }
 
   function read() {
     if (storage) {
@@ -380,6 +387,7 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
     }
     const snapshot = saved ?? {};
     const fresh = saved === null;
+    const base = readBase(snapshot.base);
     const startingKeys = fresh ? STARTING_KEYS : count(snapshot.startingKeys) || LEGACY_STARTING_KEYS;
     return {
       startingGold: fresh ? STARTING_GOLD : count(snapshot.startingGold),
@@ -394,14 +402,16 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
       dismantlingEssence: count(snapshot.dismantlingEssence),
       essenceSpent: count(snapshot.essenceSpent),
       goldSpent: count(snapshot.goldSpent),
-      base: readBase(snapshot.base),
+      base,
+      production: readProduction(snapshot.production, base.buildings),
+      producedGold: count(snapshot.producedGold),
       pendingPack: readPack(snapshot.pendingPack),
     };
   }
 
   function balances({ progress, legacy, purchased, opened, earnedCards, dismantledCards, dismantlingEssence,
-    essenceSpent, goldSpent, startingGold, startingEssence, pendingPack }) {
-    let gold = startingGold;
+    essenceSpent, goldSpent, startingGold, startingEssence, producedGold, pendingPack }) {
+    let gold = startingGold + producedGold;
     let essence = startingEssence + dismantlingEssence;
     const boosters = Object.fromEntries(BOOSTER_FACTIONS.map(({ id }) => [id, purchased[id] - opened[id]]));
     for (const { faction, nodes } of chapters) {
@@ -431,7 +441,9 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
   async function transact(change) {
     const commit = () => {
       const state = read();
-      const outcome = change(state);
+      const previousProductionAt = state.production.at;
+      advanceProduction(state.production, state.base.buildings, observedTime());
+      const outcome = change(state, previousProductionAt);
       if (outcome !== 'opened' && outcome !== 'done') return outcome;
       const { progress, ...economy } = state;
       const next = { unlocked: [...progress.unlocked], ...economy };
@@ -484,6 +496,26 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
       });
     },
     base: () => read().base,
+    production() {
+      const { base, production } = read();
+      advanceProduction(production, base.buildings, observedTime());
+      return productionView(production, base.buildings);
+    },
+    checkpointProduction() {
+      return transact(({ production }, previousAt) =>
+        previousAt !== production.at && Object.keys(production.stock).length ? 'done' : 'empty');
+    },
+    collect(kind) {
+      return transact((state) => {
+        const { gold = 0, ...materials } = takeProduction(state.production, kind);
+        const hasMaterials = Object.keys(materials).length > 0;
+        if (!gold && !hasMaterials) return 'empty';
+        if (!Number.isSafeInteger(state.producedGold + gold)) return 'unavailable';
+        if (hasMaterials && !creditMaterials(state.base.materials, materials)) return 'unavailable';
+        state.producedGold += gold;
+        return 'done';
+      });
+    },
     grantMaterials(reward) {
       return transact(({ base }) => creditMaterials(base.materials, reward) ? 'done' : 'unknown');
     },
