@@ -1,5 +1,5 @@
-import { ROWS } from './cards.js?v=neutral-slay-1';
-import { emit } from './events.js?v=orbital-strike-1';
+import { ROWS } from './cards.js?v=rebirth-1';
+import { emit } from './events.js?v=rebirth-1';
 
 export const ROW_LIMIT = 9;
 export const HAND_LIMIT = 10;
@@ -134,6 +134,7 @@ export function setRowEffect(match, side, row, effect) {
 
 const STATUS_RULES = Object.freeze({
   armor: { read: (card) => card.armor ?? 0, next: (current, amount) => Math.max(0, current + amount), unit: true },
+  immune: { read: (card) => Number(card.definition.immune ?? false) },
   doomed: { read: (card) => Number(card.statuses?.doomed ?? card.definition.doomed ?? false),
     next: (_current, amount) => Number(amount > 0) },
   shield: { read: (card) => Number(card.statuses?.shield ?? card.definition.shield ?? false),
@@ -155,7 +156,7 @@ export function statusCount(card, status) {
 
 export function applyStatus(match, unit, status, amount, extra) {
   const rule = STATUS_RULES[status];
-  if (!unit || !rule || (rule.unit && !isUnit(unit.card)) || !Number.isInteger(amount)) return 0;
+  if (!unit || !rule?.next || (rule.unit && !isUnit(unit.card)) || !Number.isInteger(amount)) return 0;
   const { card, side } = unit;
   if (status === 'target' && extra?.attacker !== opponent(side)) return 0;
   const before = rule.read(card);

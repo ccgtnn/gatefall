@@ -1,8 +1,8 @@
-import { compareRollouts } from './bot-rollouts.js?v=neutral-slay-1';
-import { ROWS } from './cards.js?v=neutral-slay-1';
-import { activeOrder, cardType, infectionDamage, opponent, placementSide, statusCount, units } from './board.js?v=neutral-slay-1';
-import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=neutral-slay-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=neutral-slay-1';
+import { compareRollouts } from './bot-rollouts.js?v=rebirth-1';
+import { ROWS } from './cards.js?v=rebirth-1';
+import { activeOrder, cardType, infectionDamage, opponent, placementSide, statusCount, units } from './board.js?v=rebirth-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=rebirth-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=rebirth-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };

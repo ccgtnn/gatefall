@@ -1,17 +1,17 @@
-import { emit } from './events.js?v=orbital-strike-1';
-import { ROWS, ROW_LABELS } from './cards.js?v=neutral-slay-1';
+import { deathwishDefinitions, deathwishJobs, emit } from './events.js?v=rebirth-1';
+import { ROWS, ROW_LABELS } from './cards.js?v=rebirth-1';
 import {
   activeOrder, announcePlay, applyStatus, availableRows, boost, cardType, consume, damage, damageOverflow, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, restoreCard, ROW_LIMIT,
   setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, infectionDamage, units,
-} from './board.js?v=neutral-slay-1';
+} from './board.js?v=rebirth-1';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);
   return findUnit(match, key === 'source' ? job.sourceId : job.refs?.[key]);
 }
 
-function targets(match, job, query) {
+function targets(match, job, query, choosing = false) {
   const origin = reference(match, job, query.of);
   const row = query.row === 'source' ? reference(match, job)?.row : query.rowRef ? job.refs?.[query.rowRef] : query.row;
   if (query.row && !row) return [];
@@ -27,6 +27,9 @@ function targets(match, job, query) {
     default: throw new Error(`Unknown target scope: ${query.scope}`);
   }
   const eligible = candidates.filter((unit) =>
+    (!choosing || !statusCount(unit.card, 'immune')) &&
+    (!query.rarity || unit.card.definition.rarity === query.rarity) &&
+    (!query.deathwish || deathwishDefinitions(unit.card).length > 0) &&
     (!row || unit.row === row) &&
     (!query.type || cardType(unit.card) === query.type) &&
     (!query.unitOrOrder || isUnit(unit.card) || unit.card.definition.order) &&
@@ -37,16 +40,16 @@ function targets(match, job, query) {
     (!query.exclude || unit.card.id !== reference(match, job, query.exclude)?.card.id) &&
     (query.armorAtLeast === undefined || (unit.card.armor ?? 0) >= query.armorAtLeast) &&
     (query.powerAtLeast === undefined || (unit.card.power ?? 0) >= query.powerAtLeast));
-  if (!query.strongest) return eligible;
-  const strongest = Math.max(...eligible.map(({ card }) => card.power));
-  return eligible.filter(({ card }) => card.power === strongest);
+  if (!query.strongest && !query.weakest) return eligible;
+  const extreme = (query.strongest ? Math.max : Math.min)(...eligible.map(({ card }) => card.power));
+  return eligible.filter(({ card }) => card.power === extreme);
 }
 
 function viableChoices(match, job, index) {
   const selection = job.ability.select ?? [];
   const pick = selection[index];
   if (!pick) return [];
-  const candidates = targets(match, job, pick.targets);
+  const candidates = targets(match, job, pick.targets, pick.mode !== 'random');
   if (index === selection.length - 1) return candidates;
   return candidates.filter(({ card }) => viableChoices(match, {
     ...job, refs: { ...job.refs, [pick.ref]: card.id },
@@ -83,6 +86,7 @@ export function rowArmor(player, row) {
 function pileCandidates(cards, filter) {
   return cards.filter(({ definition }) => (filter.anyType || (definition.type ?? 'unit') === 'unit') &&
     (!filter.rarity || definition.rarity === filter.rarity) &&
+    (!filter.definitionId || definition.id === filter.definitionId) &&
     (!filter.faction || definition.faction === filter.faction) &&
     (filter.provision === undefined || definition.provision === filter.provision) &&
     (filter.maxProvision === undefined || definition.provision <= filter.maxProvision || definition.id === filter.provisionException) &&
@@ -299,10 +303,12 @@ function playFromPile(match, job, step, random) {
 
 function summonFromDeck(match, job, step, random) {
   const source = reference(match, job);
-  if (!source) return;
-  const { side, row, position } = source;
+  const location = source ?? (step.position === 'death' ? job : undefined);
+  if (!location?.row) return;
+  const { side, row, position } = location;
   const player = match.players[side];
-  const index = position + Number(step.position === 'right');
+  const index = Math.min(player.board[row].length,
+    position + Number(step.position === 'right' || (step.position === 'death' && Boolean(source))));
   if (!playDestination(player, { row, position: index })) return;
   const candidates = pileCandidates(player.deck, step.filter);
   if (!candidates.length) return;
@@ -459,6 +465,37 @@ export function runEffect(match, job, random) {
     match.effects.unshift(job);
     return;
   }
+  if (step.action === 'choose-unit') {
+    if (!job.refs[step.ref]) {
+      const options = targets(match, job, step.target, true).map(({ card }) => card.id);
+      if (options.length) {
+        pause(match, job, step.kind, step.ref, options, step.prompt);
+        return;
+      }
+    }
+    job.index += 1;
+    match.effects.unshift(job);
+    return;
+  }
+  if (step.action === 'inherit-deathwishes') {
+    const unit = reference(match, job);
+    if (unit) {
+      const wishes = new Map();
+      for (const card of match.players[job.side].discard) {
+        if (card.definition.rarity !== 'bronze') continue;
+        for (const definition of deathwishDefinitions(card)) {
+          const signature = JSON.stringify(definition.deathwish);
+          if (!wishes.has(signature)) wishes.set(signature, definition);
+        }
+      }
+      const inheritedDeathwishes = [...wishes.values()];
+      unit.card.inheritedDeathwishes = inheritedDeathwishes;
+      match.log.push({ type: 'inherit-deathwishes', side: unit.side, cardId: unit.card.id, inheritedDeathwishes });
+    }
+    job.index += 1;
+    match.effects.unshift(job);
+    return;
+  }
   if (step.status === 'target') {
     const reactions = [];
     const queued = match.effects.length;
@@ -600,6 +637,10 @@ export function runEffect(match, job, random) {
   if (step.action === 'consume') {
     const [receiver] = targets(match, job, step.receiver);
     result = consume(match, target, receiver, step);
+  } else if (step.action === 'activate-deathwish') {
+    match.effects.unshift(...deathwishJobs(target.card, {
+      side: target.side, row: target.row, position: target.position, sourceId: target.card.id,
+    }));
   } else if (step.action === 'destroy') {
     removeUnit(match, target, 'destroy', undefined, {
       sourceDefinitionId: job.sourceDefinitionId,
@@ -699,7 +740,7 @@ export function effectSwing(match, side, card) {
       const enemy = match.players[opponent(side)];
       if (enemy.passed) continue;
       const selection = ability.select?.find(({ ref }) => ref === step.target.ref);
-      const candidates = targets(match, job, selection?.targets ?? step.target);
+      const candidates = targets(match, job, selection?.targets ?? step.target, Boolean(selection && selection.mode !== 'random'));
       const turns = Math.max(1, enemy.hand.length);
       swing += Math.max(0, ...candidates.map(({ card }) => infectionGain(card, step.amount, turns))) * .75;
     }
@@ -720,7 +761,7 @@ export function effectSwing(match, side, card) {
       continue;
     }
     const index = (ability.select ?? []).findIndex(({ ref }) => ref === step.target.ref);
-    const options = index < 0 ? targets(match, job, step.target) : targets(match, job, ability.select[index].targets);
+    const options = index < 0 ? targets(match, job, step.target) : targets(match, job, ability.select[index].targets, ability.select[index].mode !== 'random');
     const stripArmor = step.amount?.result === 'armor' && step.amount.base !== undefined;
     const amounts = options.map((target) => valueOf(match, job, step.amount, target) + (stripArmor ? target.card.armor : 0));
     const highest = Math.max(0, ...amounts);

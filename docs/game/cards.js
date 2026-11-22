@@ -20,6 +20,7 @@ export const KEYWORDS = Object.freeze({
   'Уязвимость': 'Эффект срабатывает, когда карта теряет последнюю единицу брони.',
   'Инициатива': 'Бонус, если розыгрыш этой карты — твоё первое действие в раунде. Лидер и Приказы тоже считаются действиями.',
   'Уничтожение': 'Удаляет карту из игры без Завещания.',
+  'Неуязвимость': 'Этот отряд нельзя выбрать целью любого игрока. Случайные и массовые эффекты действуют на него как обычно.',
   'Расправа': 'Дополнительный эффект срабатывает, если отряд погиб от этого удара.',
   'Завещание': 'Срабатывает при гибели от урона, поглощения, Заражения или таймера.',
   'Заражение': 'В конце хода владельца отряд теряет 1 силу в обход брони. Силовой щит поглощает один тик и исчезает. После каждого тика счётчик уменьшается на 1.',
@@ -482,6 +483,42 @@ const plague = [
   }],
 ];
 
+const rebirth = [
+  ['thorn-screecher', 'Шипастый крикун', 4, 3, 'Завещание: призови из своей колоды Шипастого крикуна, если он там есть.', {
+    art: 'thorn-screecher.webp',
+    deathwish: ability([{ action: 'summon-from-deck', position: 'death', filter: { definitionId: 'thorn-screecher' } }]),
+  }],
+  ['synaptic-parasite', 'Синаптический паразит', 5, 2,
+    'При розыгрыше: выбери свою обычную карту с Завещанием на поле и активируй её Завещание. Карта остаётся на поле.', {
+      art: 'synaptic-parasite.webp', keywords: ['Завещание'],
+      deploy: ability([action('activate-deathwish', chosen('ally'))],
+        [choice('ally', { scope: 'ally', rarity: 'bronze', deathwish: true }, 'Выбери обычную карту, чьё Завещание сработает.', { kind: 'deathwish' })]),
+    }],
+  ['acid-capsule', 'Кислотная капсула', 5, 3, 'Завещание: нанеси 5 урона случайному вражескому отряду.', {
+    art: 'acid-capsule.webp', keywords: ['Урон'],
+    deathwish: ability([{ ...action('damage', enemies, 5), mode: 'random' }]),
+  }],
+  ['xylaris-bloom', 'Цветение Ксилларис', 8, 4, 'Завещание: уничтожь слабейший вражеский отряд. При равенстве выбери случайного из слабейших.', {
+    art: 'xylaris-bloom.webp', rarity: 'epic', keywords: ['Уничтожение'],
+    deathwish: ability([{ ...action('destroy', { ...enemies, weakest: true }), mode: 'random' }]),
+  }],
+  ['bioreactor', 'Биореактор', 11, 4, 'Неуязвимость. При розыгрыше: поочерёдно поглоти до 3 других своих отрядов, выбирая их по одному.', {
+    art: 'bioreactor.webp', rarity: 'gold', immune: true, keywords: ['Неуязвимость', 'Поглощение'],
+    deploy: ability([1, 2, 3].flatMap((number) => {
+      const ref = 'victim' + number;
+      return [
+        { action: 'choose-unit', ref, target: otherAlly, kind: 'consume', prompt: `Поглощение ${number} из 3. Выбери свой отряд.` },
+        absorb(chosen(ref)),
+      ];
+    })),
+  }],
+  ['genome-keeper', 'Хранитель генома', 13, 1, 'При розыгрыше: получи все уникальные Завещания обычных карт из своего сброса.', {
+    art: 'genome-keeper.webp', rarity: 'gold', keywords: ['Завещание'],
+    deploy: ability([{ action: 'inherit-deathwishes' }]),
+  }],
+].map(([id, name, provision, power, text, rules]) =>
+  [id, name, provision, power, text, { categories: ['Росток'], rarity: 'bronze', ...rules }]);
+
 const singleBronzes = {
   protectorate: ['shield-generator', 'orbital-shield', 'standard', 'warden', 'reinforcements'],
   growth: ['spore-sac', 'incubator', 'gulper', 'swarm-call'],
@@ -564,5 +601,5 @@ const plagueCards = plague.map(([cardId, label, provision, power, description, r
 
 export const FACTIONS = Object.freeze({
   protectorate: faction('protectorate', 'Протекторат', 'Строй', protectorate, protectorateLeaders, protectorateExtras),
-  growth: faction('growth', 'Поросль', 'Пожирание', growth, growthLeaders, plagueCards),
+  growth: faction('growth', 'Поросль', 'Пожирание', growth, growthLeaders, [...plagueCards, ...rebirth]),
 });

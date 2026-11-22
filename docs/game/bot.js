@@ -1,9 +1,10 @@
-import { ROWS } from './cards.js?v=neutral-slay-1';
-import { cardType, findUnit, isUnit, neighbors, restoreCard, statusCount, units } from './board.js?v=neutral-slay-1';
-import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue, rowScatterValue } from './effects.js?v=neutral-slay-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=neutral-slay-1';
+import { ROWS } from './cards.js?v=rebirth-1';
+import { cardType, findUnit, isUnit, neighbors, restoreCard, statusCount, units } from './board.js?v=rebirth-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue, rowScatterValue } from './effects.js?v=rebirth-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=rebirth-1';
 
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=neutral-slay-1';
+import { deathwishDefinitions } from './events.js?v=rebirth-1';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=rebirth-1';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
@@ -127,8 +128,9 @@ function lethalDamage(card, amount) {
 }
 
 function sacrificePriority(card) {
-  if (card.definition.token) return 100;
-  if (card.definition.deathwish) return 50;
+  const wishes = deathwishDefinitions(card).length;
+  if (wishes) return 100 + 10 * wishes - card.power;
+  if (card.definition.token) return 50;
   return -card.power;
 }
 
@@ -198,6 +200,7 @@ export function pickBotTarget(match) {
     },
     emp: ({ card }) => Math.min(card.power, 2 + (card.armor ?? 0)) + (card.armor ?? 0) * .1,
     consume: ({ card }) => sacrificePriority(card),
+    deathwish: ({ card }) => deathwishDefinitions(card).length * 10 + card.power,
     'spend-armor': ({ card }) => amount ? card.armor : card.armor * 100 + card.power,
     'ready-order': ({ card }) => card.definition.order && card.readyAt > player.turns ? 20 + (card.power ?? 0) : card.power ?? 0,
     'infection-target': ({ card }) => infectionGain(card, amount, Math.max(1, match.players[match.pending.side === 'human' ? 'bot' : 'human'].hand.length)),
@@ -221,7 +224,7 @@ function beneficialLeader(match, view, allies) {
   if (player.leader.id !== 'devourer' && player.leader.ability.select?.[0]?.kind !== 'consume') return !view.opponentPassed;
   const sacrifices = allies.filter((unit) => isUnit(unit.card) && neighbors(match, unit).some(({ card }) => isUnit(card)));
   const { card } = bestTarget(sacrifices, ({ card }) => sacrificePriority(card));
-  return card.power >= 2 || Boolean(card.definition.deathwish) || view.score === view.opponentScore;
+  return card.power >= 2 || deathwishDefinitions(card).length > 0 || view.score === view.opponentScore;
 }
 
 function chooseEasyTurn(match) {

@@ -1,9 +1,9 @@
-import { inspectDeck, ORBITAL_STRIKE_PRESET } from './decks.js?v=neutral-slay-1';
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=neutral-slay-1';
-import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, spendResilience, statusCount, takeCards } from './board.js?v=neutral-slay-1';
-import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=neutral-slay-1';
+import { inspectDeck, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET } from './decks.js?v=rebirth-1';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=rebirth-1';
+import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, spendResilience, statusCount, takeCards } from './board.js?v=rebirth-1';
+import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=rebirth-1';
 
-export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=neutral-slay-1';
+export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=rebirth-1';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;
@@ -91,12 +91,16 @@ export function createDeckMatch(deck, options = {}) {
   if (!result.valid) return null;
   const botFaction = deck.factionId === 'growth' ? 'protectorate' : 'growth';
   const random = options.random ?? Math.random;
-  const orbital = botFaction === 'protectorate' && random() < .5 ? inspectDeck(ORBITAL_STRIKE_PRESET) : null;
+  const roll = random();
+  const alternate = botFaction === 'protectorate'
+    ? (roll < .5 && ORBITAL_STRIKE_PRESET)
+    : (roll >= .5 && REBIRTH_PRESET);
+  const botPreset = alternate ? inspectDeck(alternate) : null;
   return createMatch({
     random,
     rules: options.rules,
-    decks: { human: result.cards, bot: orbital?.cards ?? FACTIONS[botFaction].deck },
-    botLeader: orbital?.leader.id,
+    decks: { human: result.cards, bot: botPreset?.cards ?? FACTIONS[botFaction].deck },
+    botLeader: botPreset?.leader.id,
     humanFaction: deck.factionId,
     humanLeader: result.leader.id,
   });

@@ -84,7 +84,8 @@ test('failed and unaffordable builds keep their materials, and material grants p
 });
 
 test('the Mine builds only on the right-middle plot and deducts its price', async () => {
-  const wallet = createRewardProgress();
+  let saved = JSON.stringify({ startingGold: 1000 });
+  const wallet = createRewardProgress({ getItem: () => saved, setItem: (_key, value) => { saved = value; } });
   for (const plot of BASE_PLOTS.filter((plot) => plot !== '2')) {
     assert.equal(await wallet.build(plot, 'mine'), 'unknown');
   }
@@ -100,7 +101,7 @@ test('the Mine builds only on the right-middle plot and deducts its price', asyn
 
 test('the Mine and the Tavern persist in back-to-front order regardless of construction order', async () => {
   for (const order of [['mine', 'tavern'], ['tavern', 'mine']]) {
-    let save = null;
+    let save = JSON.stringify({ startingGold: 1000 });
     const storage = { getItem: () => save, setItem: (_key, value) => { save = value; } };
     const wallet = createRewardProgress(storage);
     assert.equal(await wallet.grantMaterials({ steel: 50 }), 'done');
@@ -119,7 +120,7 @@ test('the Mine and the Tavern persist in back-to-front order regardless of const
 });
 
 test('new building prices, levels, affordability and the level cap survive reloads', async () => {
-  let saved = null;
+  let saved = JSON.stringify({ startingGold: 1000 });
   const storage = { getItem: () => saved, setItem: (_key, value) => { saved = value; } };
   const wallet = createRewardProgress(storage);
   assert.equal(await wallet.upgrade('warehouse', 1), 'stale');

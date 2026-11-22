@@ -1,8 +1,9 @@
 import { dialogClose } from './resources.js?v=interface-polish-1';
 import { button, element, setCardRarity } from './dom.js?v=opponent-reveal-1';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=neutral-slay-1';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=neutral-slay-1';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=rebirth-1';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=rebirth-1';
 
+import { deathwishDefinitions } from '../game/events.js?v=rebirth-1';
 import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=orbital-strike-1';
 
 export const preview = document.createElement('dialog');
@@ -65,7 +66,13 @@ export function showCard(card, { leader = false, legacy = false,
   body.append(heading, element('p', 'muted', details.join(' · ')));
   if (stats.length) body.append(element('p', 'preview-stats', stats.join(' · ')));
   body.append(element('p', null, definition.text ?? 'Без эффекта.'));
+  if (card.inheritedDeathwishes?.length) {
+    const wishes = element('ul');
+    wishes.append(...card.inheritedDeathwishes.map(({ name }) => element('li', null, name)));
+    body.append(element('p', 'preview-stats', 'Полученные Завещания'), wishes);
+  }
   const glossaryWords = new Set(definition.keywords);
+  if (deathwishDefinitions(card).length) glossaryWords.add('Завещание');
   if (marked) glossaryWords.add('Цель');
   if (infection || definition.id === 'carrier') glossaryWords.add('Заражение');
   if (definition.endTurn) glossaryWords.add('Конец хода');
@@ -152,6 +159,7 @@ export function cardInspection(node, card, placement = false, show = () => showC
 }
 
 const keywordIcons = {
+  'Неуязвимость': '◈',
   'Броня': '⬟',
   'Стойкость': '⛨',
   'Урон': '✷',
@@ -256,7 +264,7 @@ function legacyBadges(node, card, orderOnField) {
     mark.title = complete ? 'Все главы сыграны' : scenario ? 'Главы сценария' : CARD_TYPES[type];
     node.append(mark);
   }
-  const word = card.resilient ? 'Стойкость' : definition.order ? 'Приказ' : definition.deathwish ? 'Завещание'
+  const word = card.resilient ? 'Стойкость' : definition.order ? 'Приказ' : deathwishDefinitions(card).length ? 'Завещание'
     : statusCount(card, 'doomed') ? 'Обречённая' : keywordsFor(card).find((keyword) => keyword !== 'Броня');
   if (!orderOnField && (counter > 0 || timer !== undefined || word)) {
     const mark = element('span', 'card-state', counter > 0 ? counter : timer ?? keywordIcons[word] ?? '○');
@@ -287,7 +295,7 @@ function cardLabel(card, showProvision) {
   if (statusCount(card, 'doomed')) details.push('Обречённая');
   const infection = statusCount(card, 'infection');
   if (infection) details.push('Заражение ' + infection);
-  if (definition.deathwish) details.push('Завещание');
+  if (deathwishDefinitions(card).length) details.push('Завещание');
   if (counter > 0) details.push(`счётчик ${counter}`);
   if (timer !== undefined) details.push(`таймер ${timer}`);
   details.push(...keywordsFor(card).filter((word) => word !== 'Завещание' && (word !== 'Броня' || !armor)));

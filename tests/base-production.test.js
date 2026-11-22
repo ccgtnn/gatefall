@@ -5,7 +5,7 @@ import { createRewardProgress, REWARD_STORAGE_KEY } from '../docs/game/rewards.j
 import { resetProgress } from '../docs/game/reset-progress.js';
 
 const HOUR = 3_600_000;
-function setup(snapshot = null) {
+function setup(snapshot = { startingGold: 1000, startingKeys: 1000 }) {
   let saved = snapshot && JSON.stringify(snapshot);
   const storage = {
     get length() { return saved === null ? 0 : 1; },
@@ -110,7 +110,7 @@ test('legacy buildings start producing at the first checkpoint and reset clears 
   assert.equal(reopen().inventory().gold, 1030);
   await resetProgress(storage);
   assert.deepEqual(reopen().production(), {});
-  assert.equal(reopen().inventory().gold, 1000);
+  assert.equal(reopen().inventory().gold, 10000);
 });
 
 test('the Outpost produces a key in eight hours and collection feeds the reward book', async () => {

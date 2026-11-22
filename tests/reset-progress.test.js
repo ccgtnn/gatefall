@@ -41,8 +41,8 @@ test('reset restores the first-launch inventory, rewards, decks, stats, and pref
   const storage = memoryStorage();
   const initial = boot(storage);
   const { gold, keys, essence, packCount } = initial.inventory;
-  assert.deepEqual({ gold, keys, essence, packCount }, { gold: 1000, keys: 1000, essence: 1000, packCount: 0 });
-  assert.deepEqual(initial.base.materials, { steel: 200, energyCells: 100, gateShards: 5 });
+  assert.deepEqual({ gold, keys, essence, packCount }, { gold: 10000, keys: 10000, essence: 10000, packCount: 0 });
+  assert.deepEqual(initial.base.materials, { steel: 10000, energyCells: 10000, gateShards: 10000 });
   const deck = { id: 'custom', name: 'Проверка', factionId: 'protectorate', leaderId: 'marshal', cardIds: ['old-golem'] };
   const deckStorage = createDeckStorage(storage);
   assert.equal(deckStorage.save(deck), true);
@@ -51,7 +51,7 @@ test('reset restores the first-launch inventory, rewards, decks, stats, and pref
   for (const [key, value] of Object.entries(preferences)) storage.setItem(key, value);
   storage.setItem('other-game.save', 'keep');
   const rewards = createRewardProgress(storage, undefined, { legacyDecks: [deck], random: () => 0 });
-  assert.equal(await rewards.craft('mystic-golem'), 'done');
+  assert.equal(await rewards.dismantle('mystic-golem'), 'done');
   for (const stop of ['signal', 'supply', 'junction', 'upper-cache']) {
     assert.equal(await rewards.unlock('neutral:' + stop), 'opened');
   }

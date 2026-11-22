@@ -9,7 +9,7 @@ test('home shows up to four playable decks in last-played order across reloads',
   const storage = { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
   const { owned } = createRewardProgress(storage).inventory();
   const store = createDeckStorage(storage);
-  assert.deepEqual(store.recent(owned), PRESETS);
+  assert.deepEqual(store.recent(owned), PRESETS.slice(0, 4));
   const custom = Array.from({ length: 6 }, (_, i) => ({
     ...PRESETS[0], id: `custom-${i}`, name: `Колода ${i}`,
   }));

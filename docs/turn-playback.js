@@ -1,5 +1,5 @@
-import { recordCategoryPlay, spendResilience } from './game/board.js?v=neutral-slay-1';
-import { ROWS } from './game/cards.js?v=neutral-slay-1';
+import { recordCategoryPlay, spendResilience } from './game/board.js?v=rebirth-1';
+import { ROWS } from './game/cards.js?v=rebirth-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;
@@ -101,6 +101,7 @@ export function applyJournalEvent(state, event) {
       owner[pile] = [...owner[pile], card];
       break;
     }
+    if (type === 'inherit-deathwishes') line[index].inheritedDeathwishes = event.inheritedDeathwishes;
     if (type === 'scenario-chapter') line[index].chapter = event.chapter;
     if (type === 'base-power') line[index].basePower = event.basePower;
     if (['boost', 'damage', 'base-power', 'heal'].includes(type)) line[index].power = event.power;

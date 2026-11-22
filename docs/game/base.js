@@ -5,7 +5,8 @@ export const MATERIALS = Object.freeze({
   energyCells: 'Энергоячейки',
   gateShards: 'Осколки врат',
 });
-export const STARTING_MATERIALS = Object.freeze({ steel: 200, energyCells: 100, gateShards: 5 });
+const LEGACY_MATERIALS = Object.freeze({ steel: 200, energyCells: 100, gateShards: 5 });
+export const STARTING_MATERIALS = Object.freeze({ steel: 10000, energyCells: 10000, gateShards: 10000 });
 export const MAX_BUILDING_LEVEL = 5;
 export const BUILDINGS = Object.freeze({
   outpost: { name: 'Форпост', art: 'outpost', cost: { gold: 500, steel: 150, energyCells: 100 }, production: { keys: 1 / 8 } },
@@ -64,8 +65,8 @@ export function buildingEffect(kind, level = 1) {
 
 const amount = (value) => Number.isSafeInteger(value) && value >= 0;
 
-export function readBase(saved) {
-  const materials = Object.fromEntries(Object.entries(STARTING_MATERIALS).map(([key, initial]) => {
+export function readBase(saved, fresh = false) {
+  const materials = Object.fromEntries(Object.entries(fresh ? STARTING_MATERIALS : LEGACY_MATERIALS).map(([key, initial]) => {
     const value = saved?.materials?.[key];
     return [key, amount(value) ? value : initial];
   }));

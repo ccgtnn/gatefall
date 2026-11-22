@@ -1,4 +1,4 @@
-import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=neutral-slay-1';
+import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=rebirth-1';
 
 export const MIN_CARDS = 25;
 export const MIN_UNITS = 13;
@@ -43,7 +43,17 @@ export const ORBITAL_STRIKE_PRESET = Object.freeze({
   ]),
 });
 
-export const PRESETS = Object.freeze([...factionPresets, plaguePreset, ORBITAL_STRIKE_PRESET]);
+export const REBIRTH_PRESET = Object.freeze({
+  id: 'preset-growth-rebirth', name: 'Поросль · Перерождение', factionId: 'growth', leaderId: 'devourer',
+  cardIds: Object.freeze([
+    'thorn-screecher', 'thorn-screecher', 'synaptic-parasite', 'synaptic-parasite', 'acid-capsule', 'acid-capsule',
+    'xylaris-bloom', 'bioreactor', 'genome-keeper',
+    'cocoon', 'cocoon', 'vine', 'vine', 'spore-sac', 'spore-sac', 'acid-gland', 'acid-gland', 'spitter', 'spitter',
+    'ravager', 'nest', 'colossus', 'broodlord', 'annihilation', 'carrion-devourer',
+  ]),
+});
+
+export const PRESETS = Object.freeze([...factionPresets, plaguePreset, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET]);
 
 export function inspectDeck(deck, owned) {
   const faction = groups.get(deck?.factionId);

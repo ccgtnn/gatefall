@@ -1,12 +1,12 @@
 import { victoryGold, weeklyReward } from './outpost.js?v=base-outpost-1';
-import { advanceProduction, productionView, readProduction, takeProduction } from './base-production.js?v=base-outpost-1';
-import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=base-outpost-1';
-import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=neutral-slay-1';
-import { copyLimit, PRESETS } from './decks.js?v=neutral-slay-1';
+import { advanceProduction, productionView, readProduction, takeProduction } from './base-production.js?v=rebirth-1';
+import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=rebirth-1';
+import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=rebirth-1';
+import { copyLimit } from './decks.js?v=rebirth-1';
 
-export const STARTING_KEYS = 1000;
-export const STARTING_GOLD = 1000;
-export const STARTING_ESSENCE = 1000;
+export const STARTING_KEYS = 10000;
+export const STARTING_GOLD = 10000;
+export const STARTING_ESSENCE = 10000;
 const LEGACY_STARTING_KEYS = 25;
 const LEGACY_STARTING_ESSENCE = 800;
 export const BOOSTER_PRICE = 100;
@@ -329,20 +329,6 @@ function countsFor(keys, values) {
   return Object.fromEntries([...keys].map((id) => [id, count(values?.[id])]));
 }
 
-function starterCards(decks) {
-  const cards = {};
-  for (const { cardIds } of decks) {
-    const quantities = new Map();
-    for (const id of cardIds) {
-      if (definitions.has(id)) quantities.set(id, (quantities.get(id) ?? 0) + 1);
-    }
-    for (const [id, quantity] of quantities) {
-      cards[id] = Math.max(cards[id] ?? 0, Math.min(quantity, copyLimit(definitions.get(id))));
-    }
-  }
-  return cards;
-}
-
 export function drawBoosterCards(pool, random = Math.random) {
   const available = Object.entries(BOOSTER_RARITY_WEIGHTS).map(([rarity, weight]) => ({
     rarity, weight, cards: pool.filter((card) => card.rarity === rarity),
@@ -380,10 +366,8 @@ function revealPackCard(state, cardId) {
   pack.revealed.push(cardId);
 }
 
-export function createRewardProgress(storage, locks, { legacyDecks = [], random = Math.random, now = Date.now } = {}) {
+export function createRewardProgress(storage, locks, { random = Math.random, now = Date.now } = {}) {
   const listeners = new Set();
-  const starter = starterCards(PRESETS);
-  const legacy = starterCards(legacyDecks);
   let saved = null;
   let latestTime = 0;
 
@@ -398,7 +382,9 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
     }
     const snapshot = saved ?? {};
     const fresh = saved === null;
-    const base = readBase(snapshot.base);
+    const base = readBase(snapshot.base, fresh);
+    // One-time full collection grant. Keep resource balances and discard the old copy ledger.
+    const hasFullCollection = snapshot.fullCollection === true;
     const startingKeys = fresh ? STARTING_KEYS : count(snapshot.startingKeys) || LEGACY_STARTING_KEYS;
     const producedKeys = count(snapshot.producedKeys);
     return {
@@ -407,11 +393,11 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
       startingEssence: fresh ? STARTING_ESSENCE : count(snapshot.startingEssence) || LEGACY_STARTING_ESSENCE,
       progress: readProgress(snapshot.unlocked, startingKeys + producedKeys),
       producedKeys,
-      legacy: snapshot.legacy ?? legacy,
+      fullCollection: true,
       purchased: countsFor(pools.keys(), snapshot.purchased),
       opened: countsFor(pools.keys(), snapshot.opened),
-      earnedCards: countsFor(definitions.keys(), snapshot.earnedCards),
-      dismantledCards: countsFor(definitions.keys(), snapshot.dismantledCards),
+      earnedCards: countsFor(definitions.keys(), hasFullCollection ? snapshot.earnedCards : undefined),
+      dismantledCards: countsFor(definitions.keys(), hasFullCollection ? snapshot.dismantledCards : undefined),
       dismantlingEssence: count(snapshot.dismantlingEssence),
       essenceSpent: count(snapshot.essenceSpent),
       goldSpent: count(snapshot.goldSpent),
@@ -425,7 +411,7 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
     };
   }
 
-  function balances({ progress, legacy, purchased, opened, earnedCards, dismantledCards, dismantlingEssence,
+  function balances({ progress, purchased, opened, earnedCards, dismantledCards, dismantlingEssence,
     essenceSpent, goldSpent, startingGold, startingEssence, producedGold, rewardGold, pendingPack }) {
     let gold = startingGold + producedGold + rewardGold;
     let essence = startingEssence + dismantlingEssence;
@@ -441,7 +427,7 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
     for (const id of Object.keys(boosters)) boosters[id] = Math.max(0, boosters[id]);
     const owned = {};
     for (const [id, card] of definitions) {
-      const initial = Math.min(copyLimit(card), Math.max(starter[id] ?? 0, count(legacy[id])));
+      const initial = copyLimit(card);
       owned[id] = Math.max(0, initial + earnedCards[id] - dismantledCards[id]);
     }
     return {

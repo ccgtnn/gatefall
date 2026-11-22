@@ -1,22 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { FACTIONS } from '../docs/game/cards.js';
-import { collection, inspectDeck, PRESETS } from '../docs/game/decks.js';
+import { collection, inspectDeck, PRESETS, REBIRTH_PRESET } from '../docs/game/decks.js';
 import { createDeckMatch } from '../docs/game/match.js';
 
 const [protectorate, growth] = PRESETS;
 const shortDeck = { ...protectorate, cardIds: [] };
 
-test('the four immutable presets fit the provision cap and have enough units', () => {
+test('the five immutable presets fit the provision cap and have enough units', () => {
   for (const [index, preset] of PRESETS.entries()) {
     const result = inspectDeck(preset);
     assert.equal(result.valid, true);
     assert.equal(result.cards.length, index === 1 ? 27 : 25);
     assert.ok(result.units >= 13);
     assert.equal(result.budget, 165);
-    assert.equal(result.cost, preset.id === 'preset-protectorate-orbital' ? 163 : 164);
+    assert.equal(result.cost, ({ 'preset-protectorate-orbital': 163, 'preset-growth-rebirth': 165 })[preset.id] ?? 164);
     assert.ok(Object.isFrozen(preset.cardIds));
-    assert.equal(collection(preset.factionId).length, 46);
+    assert.equal(collection(preset.factionId).length, preset.factionId === 'growth' ? 52 : 46);
     assert.equal(collection(preset.factionId).filter(({ faction }) => faction === 'neutral').length, 22);
   }
 });
@@ -44,7 +44,10 @@ test('saved custom compositions and leaders are used to start a match against th
   assert.equal(match.players.human.factionId, 'protectorate');
   const ids = (player) => [...player.hand, ...player.deck].map(({ definition }) => definition.id).sort();
   assert.deepEqual(ids(match.players.human), deck.cardIds.toSorted());
-  assert.deepEqual(ids(match.players.bot), FACTIONS.growth.deck.map(({ id }) => id).sort());
+  assert.deepEqual(ids(match.players.bot), REBIRTH_PRESET.cardIds.toSorted());
+  assert.equal(match.players.bot.leader.id, 'devourer');
+  const defaultMatch = createDeckMatch(deck, { random: () => 0 });
+  assert.deepEqual(ids(defaultMatch.players.bot), FACTIONS.growth.deck.map(({ id }) => id).sort());
   assert.equal(createDeckMatch(shortDeck), null);
 });
 
