@@ -42,7 +42,9 @@ test('reset restores the first-launch inventory, rewards, decks, stats, and pref
   const initial = boot(storage);
   assert.equal(initial.inventory.gold, 1000);
   const deck = { id: 'custom', name: 'Проверка', factionId: 'protectorate', leaderId: 'marshal', cardIds: ['old-golem'] };
-  assert.equal(createDeckStorage(storage).save(deck), true);
+  const deckStorage = createDeckStorage(storage);
+  assert.equal(deckStorage.save(deck), true);
+  deckStorage.recordPlay(deck.id);
   createFactionStats(['protectorate'], storage).record('protectorate', 'win');
   for (const [key, value] of Object.entries(preferences)) storage.setItem(key, value);
   storage.setItem('other-game.save', 'keep');
@@ -56,7 +58,7 @@ test('reset restores the first-launch inventory, rewards, decks, stats, and pref
   for (const stop of ['signal', 'supply', 'junction', 'upper-cache', 'upper-relay', 'upper-vault']) {
     assert.equal(await rewards.unlock('protectorate:' + stop), 'opened');
   }
-  assert.equal(await rewards.build('4', 'tavern'), 'done');
+  assert.equal(await rewards.build('5', 'tavern'), 'done');
   assert.equal(await rewards.grantMaterials({ gateShards: 3 }), 'done');
   const before = boot(storage);
   assert.ok(before.inventory.pendingPack);

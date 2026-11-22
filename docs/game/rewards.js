@@ -1,4 +1,4 @@
-import { BASE_PLOTS, BUILDINGS, constructionShortages, creditMaterials, readBase } from './base.js?v=base-1';
+import { BUILDING_BY_PLOT, BUILDINGS, constructionShortages, creditMaterials, readBase } from './base.js?v=home-base-1';
 import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=flagship-art-2';
 import { copyLimit, PRESETS } from './decks.js?v=flagship-art-2';
 
@@ -465,7 +465,7 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
       return transact(({ base }) => creditMaterials(base.materials, reward) ? 'done' : 'unknown');
     },
     build(plot, kind) {
-      if (!BASE_PLOTS.includes(plot) || !Object.hasOwn(BUILDINGS, kind)) return Promise.resolve('unknown');
+      if (!Object.hasOwn(BUILDING_BY_PLOT, plot) || BUILDING_BY_PLOT[plot] !== kind) return Promise.resolve('unknown');
       return transact((state) => {
         const { materials, buildings } = state.base;
         if (buildings[plot]) return 'occupied';

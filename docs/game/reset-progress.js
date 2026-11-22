@@ -1,4 +1,4 @@
-import { REWARD_STORAGE_KEY } from './rewards.js?v=base-layout-2';
+import { REWARD_STORAGE_KEY } from './rewards.js?v=home-base-1';
 
 export async function resetProgress(storage, locks) {
   function clearGameData() {

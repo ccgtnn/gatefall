@@ -5,6 +5,7 @@ import { addCardCrop, cardButton } from './cards.js?v=flagship-art-2';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { factionFilters } from './faction-filters.js?v=1';
 import { availabilityOptions, matchesAvailability } from './catalog-cards.js?v=collection-2';
+import { campaignShelf } from './campaigns.js?v=home-base-1';
 import { sectionBack } from './resources.js?v=interface-polish-1';
 
 const byProvision = (a, b) => b.provision - a.provision || a.name.localeCompare(b.name, 'ru');
@@ -29,72 +30,110 @@ function violations(result) {
   return Object.keys(messages).filter((key) => result.issues[key]).map((key) => messages[key]);
 }
 
-export function deckListScreen(phaseLabel, decks, stats, actions, inventory) {
+function deckListItem(deck, stats, actions) {
+  const result = inspectDeck(deck);
+  const item = element('article', 'panel deck-list-item');
+  item.dataset.faction = deck.factionId;
+  const title = deck.name.trim() || 'Без названия';
+  item.append(element('h4', null, title), element('p', 'muted',
+    [FACTIONS[deck.factionId]?.name, result.leader?.name, result.cards.length + ' карт',
+      result.cost + ' / ' + result.budget + ' провизии'].filter(Boolean).join(' · ')));
+  if (stats) {
+    const { win, loss } = stats.get(deck.factionId);
+    item.append(element('p', 'muted', 'Победы ' + win + ' · Поражения ' + loss));
+  }
+  const row = element('div', 'deck-toolbar');
+  const play = button('Играть', () => actions.play(deck), 'button primary');
+  play.setAttribute('aria-label', 'Играть: ' + title);
+  row.append(play);
+  if (actions.copy) {
+    const copy = button('Копировать', () => actions.copy(deck));
+    copy.setAttribute('aria-label', 'Копировать: ' + title);
+    row.append(copy);
+  }
+  if (actions.edit) {
+    const edit = button('Редактировать', () => actions.edit(deck));
+    edit.setAttribute('aria-label', 'Редактировать: ' + title);
+    row.append(edit);
+  }
+  const errors = element('p', 'deck-invalid');
+  errors.hidden = true;
+  item.append(errors, row);
+  return { deck, item, errors, play };
+}
+
+const campaigns = [];
+
+export function deckHomeScreen(phaseLabel, stats, actions, recentDecks) {
   phaseLabel.textContent = '';
   const screen = element('section', 'deck-home');
-  const toolbar = element('div', 'deck-toolbar');
-  toolbar.append(viewHeading('Колоды'), button('Новая колода', actions.create, 'button primary'),
-    button('Все карты', actions.catalog), button('База', actions.base));
-  screen.append(toolbar);
-  const items = [];
+  const sections = element('section', 'home-block');
+  const tiles = element('div', 'home-tiles');
+  for (const [title, open] of [['База', actions.base], ['Все карты', actions.catalog]]) {
+    tiles.append(button(title, open, 'button home-tile'));
+  }
+  sections.append(element('h2', null, 'Разделы'), tiles);
+  const decks = element('section', 'home-block');
+  const heading = element('div', 'deck-toolbar home-decks-toolbar');
+  heading.append(element('h2', null, 'Колоды'), button('Все колоды', actions.all));
+  const list = element('div', 'deck-list');
+  decks.append(heading, list);
+  screen.append(campaignShelf(campaigns), sections, decks);
 
-  for (const [title, entries, preset] of [
+  function update() {
+    const cards = recentDecks().map((deck) => deckListItem(deck,
+      PRESETS.includes(deck) ? stats : undefined, { play: actions.play }).item);
+    list.replaceChildren(...(cards.length ? cards : [element('p', 'muted', 'Нет доступных колод.')]));
+  }
+  screen.addEventListener('collection-change', update);
+  update();
+  return screen;
+}
+
+export function deckListScreen(phaseLabel, decks, stats, actions, inventory) {
+  phaseLabel.textContent = '';
+  const screen = element('section', 'all-decks');
+  screen.setAttribute('aria-label', 'Все колоды');
+  const toolbar = element('div', 'deck-toolbar all-decks-toolbar');
+  const filters = factionFilters([['', 'Все фракции'], ...Object.entries(FACTIONS)
+    .map(([id, { name }]) => [id, name])], (id) => {
+    faction = id;
+    update();
+  });
+  toolbar.append(filters, button('Новая колода', actions.create, 'button primary'));
+  screen.append(sectionBack(actions.back), toolbar);
+  let faction = '';
+  const groups = [
     ['Стартовые колоды', PRESETS, true],
     ['Сохранённые колоды', decks, false],
-  ]) {
+  ].map(([title, entries, preset]) => {
     const group = element('section', 'deck-list-group');
-    group.append(element('h3', null, title));
     const list = element('div', 'deck-list');
-    if (!entries.length) list.append(element('p', 'muted', 'Пока нет сохранённых колод.'));
-    for (const deck of entries) {
-      const result = inspectDeck(deck);
-      const item = element('article', 'panel deck-list-item');
-      item.dataset.faction = deck.factionId;
-      const title = deck.name.trim() || 'Без названия';
-      item.append(element('h4', null, title), element('p', 'muted',
-        [FACTIONS[deck.factionId]?.name, result.leader?.name, result.cards.length + ' карт',
-          result.cost + ' / ' + result.budget + ' провизии'].filter(Boolean).join(' · ')));
-      if (preset) {
-        const { win, loss } = stats.get(deck.factionId);
-        item.append(element('p', 'muted', 'Победы ' + win + ' · Поражения ' + loss));
-      }
-      const errors = element('p', 'deck-invalid');
-      item.append(errors);
-      const row = element('div', 'deck-toolbar');
-      const play = button('Играть', () => actions.play(deck), 'button primary');
-      play.setAttribute('aria-label', 'Играть: ' + title);
-      const edit = button(preset ? 'Копировать' : 'Редактировать', () =>
-        preset ? actions.copy(deck) : actions.edit(deck));
-      edit.setAttribute('aria-label', (preset ? 'Копировать: ' : 'Редактировать: ') + title);
-      row.append(play, edit);
-      item.append(row);
-      list.append(item);
-      items.push({ deck, errors, play });
-    }
-    group.append(list);
+    const empty = element('p', 'muted');
+    group.append(element('h3', null, title), list, empty);
     screen.append(group);
-  }
-
-  const campaigns = element('section', 'campaigns');
-  const campaignSlots = element('div', 'campaign-slots');
-  for (let index = 0; index < 3; index += 1) {
-    const slot = element('div', 'campaign-slot');
-    slot.setAttribute('aria-hidden', 'true');
-    campaignSlots.append(slot);
-  }
-  const title = element('h2', null, 'Кампании');
-  title.id = 'campaigns-title';
-  campaigns.setAttribute('aria-labelledby', title.id);
-  campaigns.append(title, campaignSlots);
-  screen.append(campaigns);
+    const items = entries.map((deck) => deckListItem(deck, preset ? stats : undefined,
+      { play: actions.play, copy: actions.copy, edit: preset ? undefined : actions.edit }));
+    list.append(...items.map(({ item }) => item));
+    return { items, empty, list, preset };
+  });
 
   function update() {
     const { owned } = inventory();
-    for (const { deck, errors, play } of items) {
-      const result = inspectDeck(deck, owned);
-      play.disabled = !result.valid;
-      errors.hidden = result.valid;
-      errors.textContent = violations(result).join(' ');
+    for (const { items, empty, list, preset } of groups) {
+      let count = 0;
+      for (const { deck, item, errors, play } of items) {
+        item.hidden = Boolean(faction && deck.factionId !== faction);
+        if (item.hidden) continue;
+        count += 1;
+        const result = inspectDeck(deck, owned);
+        play.disabled = !result.valid;
+        errors.hidden = result.valid;
+        errors.textContent = violations(result).join(' ');
+      }
+      list.hidden = count === 0;
+      empty.hidden = count > 0;
+      empty.textContent = !preset && !items.length ? 'Пока нет сохранённых колод.' : 'Нет колод этой фракции.';
     }
   }
   screen.addEventListener('collection-change', update);

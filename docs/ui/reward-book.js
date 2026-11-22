@@ -1,5 +1,5 @@
 import { button, element } from './dom.js?v=opponent-reveal-1';
-import { REWARD_SECTIONS, rewardState } from '../game/rewards.js?v=base-layout-2';
+import { REWARD_SECTIONS, rewardState } from '../game/rewards.js?v=home-base-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 import { dialogClose, sectionDialog } from './resources.js?v=interface-polish-1';
 

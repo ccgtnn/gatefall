@@ -1,5 +1,5 @@
 import { BASE_POSITIONS, baseLayout } from './base-layout.js?v=base-layout-2';
-import { BASE_PLOTS, BUILDINGS, MATERIALS, constructionShortages } from '../game/base.js?v=base-1';
+import { BASE_PLOTS, BUILDING_BY_PLOT, BUILDINGS, MATERIALS, constructionShortages } from '../game/base.js?v=home-base-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { dialogClose, sectionDialog } from './resources.js?v=interface-polish-1';
 import { resourceIcon } from './resource-icon.js?v=1';
@@ -10,7 +10,7 @@ const iconPath = {
   energyCells: 'M10 6h12v23H10zM13 3h6v3m-1 4-4 8h4l-3 6',
   gateShards: 'm16 3 9 10-9 16-9-16zm0 0v26M7 13h18M4 7v4m-2-2h4m21 13v4m-2-2h4',
 };
-const spritePath = './art/base-tavern.webp';
+const reserved = 'Участок под будущую постройку';
 
 function materialIcon(key) {
   if (key === 'gold') return resourceIcon(key);
@@ -87,7 +87,6 @@ export function createBaseScreen(progress) {
   let selected;
   let hovered;
   let busy = false;
-  let mask;
   let scene = progress.base();
   const plots = BASE_PLOTS.map((id, index) => {
     const [x, y, width, height] = BASE_POSITIONS[index];
@@ -98,21 +97,31 @@ export function createBaseScreen(progress) {
     control.style.setProperty('--plot-size', width + '%');
     control.style.setProperty('--plot-height', height + '%');
     const pad = element('span', 'base-pad');
-    const sprite = element('img', 'base-building');
-    sprite.alt = '';
-    sprite.draggable = false;
-    sprite.hidden = true;
-    sprite.src = spritePath;
-    if (!index) sprite.decode().then(() => { mask = makeMask(sprite); }).catch(() => {});
-    control.append(pad, sprite);
+    if (!BUILDING_BY_PLOT[id]) control.classList.add('is-reserved');
+    const view = { id, x, y, control, pad, kind: BUILDING_BY_PLOT[id] };
+    control.append(pad);
+    if (view.kind) {
+      const { art, placement } = BUILDINGS[view.kind];
+      const sprite = element('img', 'base-building');
+      sprite.alt = '';
+      sprite.draggable = false;
+      sprite.hidden = true;
+      sprite.src = art;
+      for (const [key, value] of Object.entries(placement)) {
+        sprite.style.setProperty('--building-' + key, value + '%');
+      }
+      sprite.decode().then(() => { view.mask = makeMask(sprite); }).catch(() => {});
+      view.sprite = sprite;
+      control.append(sprite);
+    }
     stage.append(control);
-    return { id, x, y, control, pad, sprite };
+    return view;
   });
   stage.append(tooltip);
 
   function plotAt(event) {
     const { clientX: x, clientY: y } = event;
-    return plots.findLast(({ id, sprite, pad }) => scene.buildings[id]
+    return plots.findLast(({ id, sprite, pad, mask }) => scene.buildings[id]
       ? mask && contains(sprite.getBoundingClientRect(), x, y, mask)
       : contains(pad.getBoundingClientRect(), x, y));
   }
@@ -126,7 +135,7 @@ export function createBaseScreen(progress) {
     plot.control.dataset.hover = '';
     const building = scene.buildings[plot.id];
     tooltip.textContent = building ? BUILDINGS[building.kind].name
-      : 'Пустой участок · ' + Object.values(BUILDINGS).map(({ name }) => name).join(', ');
+      : plot.kind ? 'Построить: ' + BUILDINGS[plot.kind].name : reserved;
     tooltip.style.left = plot.x + '%';
     tooltip.style.top = plot.y + '%';
   }
@@ -162,35 +171,38 @@ export function createBaseScreen(progress) {
         element('p', null, 'Ежедневные задания — скоро' + (slots ? ' · Слотов: ' + slots : '')));
       return;
     }
-    title.textContent = 'Пустой участок';
-    const list = element('ul', 'base-buildings');
-    for (const [kind, definition] of Object.entries(BUILDINGS)) {
-      const item = element('li', 'base-build-option');
-      const cost = Object.entries(definition.cost).map(([key, price]) => `${labels[key]} ${price}`).join(' · ');
-      const shortage = constructionShortages(definition.cost, gold, scene.materials);
-      const plot = selected;
-      const build = button('Построить', async () => {
-        if (busy) return;
-        busy = true;
-        build.disabled = true;
-        const outcome = await progress.build(plot, kind);
-        busy = false;
-        if (selected === plot) status.textContent = {
-          done: 'Таверна построена.',
-          occupied: 'Участок уже занят.',
-          unaffordable: 'Не хватает ресурсов.',
-          unavailable: 'Не удалось сохранить постройку.',
-        }[outcome] ?? '';
-        update();
-        if (details.open) details.querySelector('.chrome-button').focus({ preventScroll: true });
-      }, 'button primary');
-      build.disabled = busy || shortage.length > 0;
-      item.append(element('strong', null, definition.name), element('p', null, cost), build);
-      if (shortage.length) item.append(element('p', 'base-shortage',
-        'Не хватает · ' + shortage.map(([key, amount]) => `${labels[key]} ${amount}`).join(' · ')));
-      list.append(item);
+    const kind = BUILDING_BY_PLOT[selected];
+    if (!kind) {
+      title.textContent = reserved;
+      body.replaceChildren();
+      return;
     }
-    body.replaceChildren(list);
+    const definition = BUILDINGS[kind];
+    title.textContent = definition.name;
+    const item = element('div', 'base-build-option');
+    const cost = Object.entries(definition.cost).map(([key, price]) => `${labels[key]} ${price}`).join(' · ');
+    const shortage = constructionShortages(definition.cost, gold, scene.materials);
+    const plot = selected;
+    const build = button('Построить', async () => {
+      if (busy) return;
+      busy = true;
+      build.disabled = true;
+      const outcome = await progress.build(plot, kind);
+      busy = false;
+      if (selected === plot) status.textContent = {
+        done: 'Постройка завершена.',
+        occupied: 'Участок уже занят.',
+        unaffordable: 'Не хватает ресурсов.',
+        unavailable: 'Не удалось сохранить постройку.',
+      }[outcome] ?? '';
+      update();
+      if (details.open) details.querySelector('.chrome-button').focus({ preventScroll: true });
+    }, 'button primary');
+    build.disabled = busy || shortage.length > 0;
+    item.append(element('p', null, definition.description), element('p', null, cost), build);
+    if (shortage.length) item.append(element('p', 'base-shortage',
+      'Не хватает · ' + shortage.map(([key, amount]) => `${labels[key]} ${amount}`).join(' · ')));
+    body.replaceChildren(item);
   }
 
   function update() {
@@ -198,13 +210,13 @@ export function createBaseScreen(progress) {
     const { gold } = progress.inventory();
     const values = { gold, ...scene.materials };
     for (const { key, count } of figures) count.textContent = values[key];
-    for (const { id, control, sprite } of plots) {
+    for (const { id, control, sprite, kind } of plots) {
       const building = scene.buildings[id];
-      sprite.hidden = !building;
+      if (sprite) sprite.hidden = !building;
       control.classList.toggle('is-built', Boolean(building));
       control.setAttribute('aria-label', building
         ? `Участок ${id} · ${BUILDINGS[building.kind].name} · Уровень ${building.level}`
-        : `Участок ${id} · Пустой участок`);
+        : `Участок ${id} · ${kind ? BUILDINGS[kind].name : reserved}`);
     }
     renderDetails(gold);
   }

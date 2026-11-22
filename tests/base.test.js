@@ -14,21 +14,44 @@ function storageWithGold() {
   } };
 }
 
-test('Tavern construction on any free plot spends from the shared wallet and persists', async () => {
-  for (const plot of BASE_PLOTS) {
-    const storage = storageWithGold();
-    const wallet = createRewardProgress(storage);
-    assert.deepEqual(wallet.base(), { materials: STARTING_MATERIALS, buildings: {} });
-    assert.equal(wallet.inventory().gold, 365);
-    assert.equal(await wallet.build(plot, 'tavern'), 'done');
-    const reopened = createRewardProgress(storage);
-    assert.equal(reopened.inventory().gold, 65);
-    assert.deepEqual(reopened.base(), {
-      materials: { steel: 50, energyCells: 50, gateShards: 5 },
-      buildings: { [plot]: { kind: 'tavern', level: 1 } },
-    });
-    assert.equal(await reopened.buyPack('protectorate'), 'unaffordable');
+test('the Tavern only builds on the right-front plot and spends once', async () => {
+  const storage = storageWithGold();
+  const wallet = createRewardProgress(storage);
+  for (const plot of BASE_PLOTS.filter((plot) => plot !== '5')) {
+    assert.equal(await wallet.build(plot, 'tavern'), 'unknown');
   }
+  assert.deepEqual(wallet.base(), { materials: STARTING_MATERIALS, buildings: {} });
+  assert.equal(wallet.inventory().gold, 365);
+  assert.equal(await wallet.build('5', 'tavern'), 'done');
+  const reopened = createRewardProgress(storage);
+  assert.equal(reopened.inventory().gold, 65);
+  assert.deepEqual(reopened.base(), {
+    materials: { steel: 50, energyCells: 50, gateShards: 5 },
+    buildings: { 5: { kind: 'tavern', level: 1 } },
+  });
+  assert.equal(await reopened.buyPack('protectorate'), 'unaffordable');
+});
+
+test('legacy Taverns move to the right-front plot without any change to the wallet', async () => {
+  const storage = storageWithGold();
+  storage.setItem(REWARD_STORAGE_KEY, JSON.stringify({
+    ...JSON.parse(storage.getItem(REWARD_STORAGE_KEY)),
+    goldSpent: 300,
+    base: {
+      materials: { steel: 50, energyCells: 50, gateShards: 5 },
+      buildings: { 4: { kind: 'tavern', level: 3 }, 5: { kind: 'tavern', level: 1 } },
+    },
+  }));
+  const wallet = createRewardProgress(storage);
+  assert.deepEqual(wallet.base(), {
+    materials: { steel: 50, energyCells: 50, gateShards: 5 },
+    buildings: { 5: { kind: 'tavern', level: 3 } },
+  });
+  assert.equal(wallet.inventory().gold, 65);
+  assert.equal(await wallet.build('5', 'tavern'), 'occupied');
+  await wallet.grantMaterials({ gateShards: 1 });
+  assert.deepEqual(JSON.parse(storage.getItem(REWARD_STORAGE_KEY)).base.buildings,
+    { 5: { kind: 'tavern', level: 3 } });
 });
 
 test('concurrent construction only spends once on an occupied plot', async () => {
@@ -37,7 +60,7 @@ test('concurrent construction only spends once on an occupied plot', async () =>
   const locks = { request: (_key, run) => (queue = queue.then(run)) };
   const a = createRewardProgress(storage, locks);
   const b = createRewardProgress(storage, locks);
-  assert.deepEqual(await Promise.all([a.build('1', 'tavern'), b.build('1', 'tavern')]), ['done', 'occupied']);
+  assert.deepEqual(await Promise.all([a.build('5', 'tavern'), b.build('5', 'tavern')]), ['done', 'occupied']);
   assert.equal(b.inventory().gold, 65);
   assert.equal(b.base().materials.steel, 50);
 });
@@ -55,7 +78,7 @@ test('failed and unaffordable builds keep their materials, and material grants p
   assert.deepEqual(before.materials, { steel: 225, energyCells: 100, gateShards: 7 });
   assert.equal(await reopened.grantMaterials({ steel: -100 }), 'unknown');
   storage.setItem = () => { throw new Error('quota'); };
-  assert.equal(await reopened.build('1', 'tavern'), 'unavailable');
+  assert.equal(await reopened.build('5', 'tavern'), 'unavailable');
   assert.deepEqual(reopened.base(), before);
   assert.equal(reopened.inventory().gold, 365);
 });

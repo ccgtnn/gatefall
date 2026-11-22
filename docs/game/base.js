@@ -1,4 +1,5 @@
 export const BASE_PLOTS = Object.freeze(['1', '2', '3', '4', '5', '6']);
+export const BUILDING_BY_PLOT = Object.freeze({ '5': 'tavern' });
 export const MATERIALS = Object.freeze({
   steel: 'Сталь',
   energyCells: 'Энергоячейки',
@@ -8,6 +9,8 @@ export const STARTING_MATERIALS = Object.freeze({ steel: 200, energyCells: 100, 
 export const BUILDINGS = Object.freeze({
   tavern: Object.freeze({
     name: 'Таверна',
+    art: './art/base-tavern.webp?v=home-base-1',
+    placement: Object.freeze({ x: 62, y: 89, originX: 55.2, width: 103 }),
     description: 'Место встречи командиров и наёмников. На первом уровне открывает один слот ежедневных заданий.',
     cost: Object.freeze({ gold: 300, steel: 150, energyCells: 50 }),
     dailySlots: Object.freeze([1]),
@@ -22,11 +25,13 @@ export function readBase(saved) {
     return [key, amount(value) ? value : initial];
   }));
   const buildings = {};
-  for (const plot of BASE_PLOTS) {
-    const building = saved?.buildings?.[plot];
-    if (Object.hasOwn(BUILDINGS, building?.kind) && amount(building.level) && building.level > 0) {
-      buildings[plot] = { kind: building.kind, level: building.level };
-    }
+  for (const [plot, kind] of Object.entries(BUILDING_BY_PLOT)) {
+    // Legacy saves can contain the same building on several lots. Keep its highest level.
+    const levels = BASE_PLOTS.map((id) => saved?.buildings?.[id])
+      .filter((building) => building?.kind === kind && amount(building.level))
+      .map(({ level }) => level);
+    const level = Math.max(0, ...levels);
+    if (level > 0) buildings[plot] = { kind, level };
   }
   return { materials, buildings };
 }

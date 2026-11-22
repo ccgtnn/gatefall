@@ -127,9 +127,9 @@ body:has(.is-deck-home) {
   padding: clamp(.65rem, 1.7vw, 1.25rem) 0 0;
 }
 .is-deck-home .deck-home h2 { margin-right: .3rem; font-size: 1.25rem; }
-.is-deck-home .deck-list-group h3 { margin: 0; color: #d3e2f1; font-size: .95rem; }
-.is-deck-home .deck-list { gap: .65rem; }
-.is-deck-home .deck-list-item {
+.all-decks .deck-list-group h3 { margin: 0; color: #d3e2f1; font-size: .95rem; }
+:is(.deck-home, .all-decks) .deck-list { gap: .65rem; }
+:is(.deck-home, .all-decks) .deck-list-item {
   padding: .85rem;
   gap: .45rem;
   background: linear-gradient(136deg, #203149ed, #101a29f7 80%);
@@ -137,8 +137,8 @@ body:has(.is-deck-home) {
   border-radius: .55rem;
   box-shadow: inset 0 1px #afc9e522;
 }
-.is-deck-home .deck-list-item h4 { margin: 0; font-size: 1.05rem; }
-.is-deck-home .deck-list-item .muted { color: #bdd0e6; font-size: .83rem; }
+:is(.deck-home, .all-decks) .deck-list-item h4 { margin: 0; font-size: 1.05rem; }
+:is(.deck-home, .all-decks) .deck-list-item .muted { color: #bdd0e6; font-size: .83rem; }
 .is-deck-home .button {
   border-color: #587592;
   border-radius: .35rem;
@@ -160,20 +160,62 @@ body:has(.is-deck-home) {
   .deck-home { gap: .9rem; }
 }
 
-.campaigns {
+.home-block, .campaigns, .all-decks {
   display: grid;
-  gap: .55rem;
+  min-width: 0;
+  gap: .75rem;
+}
+.all-decks-toolbar, .home-decks-toolbar { justify-content: space-between; }
+.all-decks :is(.deck-list-item, .deck-list)[hidden] { display: none; }
+.home-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: .65rem;
+}
+.is-deck-home .home-tile {
+  min-height: 3.5rem;
+  padding: .6rem 1rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  background: linear-gradient(136deg, #253a57, #152337 80%);
 }
 .campaign-slots {
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(.35rem, 1.3vw, .8rem);
+  grid-auto-flow: column;
+  grid-auto-columns: clamp(9.5rem, 34%, 18rem);
+  gap: clamp(.4rem, 1.3vw, .8rem);
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+}
+.campaign-slots::-webkit-scrollbar { display: none; }
+@media (pointer: fine) {
+  .campaign-slots { cursor: grab; user-select: none; }
+  .campaign-slots:active { cursor: grabbing; }
 }
 .campaign-slot {
-  min-height: 3rem;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: .3rem;
+  min-height: 3.7rem;
+  padding: .5rem;
   aspect-ratio: 2.8 / 1;
   border: 1px dashed #6887a977;
   border-radius: .55rem;
-  background: linear-gradient(155deg, #2537509c, #0b1623c7);
+  background: linear-gradient(155deg, #253750, #0b1623);
+  color: #ecf3ff;
   box-shadow: inset 0 1px #adc5e111;
+  text-align: center;
+}
+.campaign-slot[data-completed] { opacity: .7; filter: saturate(.55); }
+.campaign-complete { color: #a9e2be; font-size: .9rem; }
+
+@media (max-height: 540px) and (orientation: landscape) {
+  #app.is-deck-home { padding-block-start: var(--section-content-top); }
+  .is-deck-home .brand-logo { width: min(37vw, 20rem); }
+  .deck-home { gap: .85rem; }
+  .campaign-slot { aspect-ratio: 3.9 / 1; }
+  .is-deck-home .home-tile { min-height: 3rem; }
 }

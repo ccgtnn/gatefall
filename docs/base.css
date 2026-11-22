@@ -11,6 +11,7 @@
 }
 .base-stage {
   position: absolute;
+  isolation: isolate;
   background: url('./art/base-landscape.webp') center / 100% 100% no-repeat;
 }
 .base-materials {
@@ -87,14 +88,21 @@
   box-shadow: 0 0 14px #92defd;
 }
 .base-plot.is-built .base-pad { visibility: hidden; }
+.base-plot.is-reserved .base-pad::after { content: none; }
+.base-plot.is-built::before {
+  content: '';
+  position: absolute;
+  inset: 24% 6% 3%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #0a121bab 18%, #0a121b70 58%, transparent 76%);
+}
 .base-building {
   position: absolute;
-  left: 50%;
-  bottom: 16%;
-  width: 90%;
+  left: var(--building-x);
+  top: var(--building-y);
+  width: var(--building-width);
   height: auto;
-  transform: translateX(-50%);
-  filter: drop-shadow(3px 5px 5px #0b1016aa);
+  transform: translate(calc(-1 * var(--building-originX)), -100%);
 }
 .base-plot[data-hover] .base-building, .base-plot:focus-visible .base-building {
   filter: brightness(1.13) drop-shadow(0 0 3px #cbeeff) drop-shadow(0 0 8px #79d1ff);
@@ -125,7 +133,6 @@
 }
 .base-details::backdrop { background: #0c142760; }
 .base-details-content { display: grid; gap: .5rem; }
-.base-buildings { margin: 0; padding: 0; list-style: none; }
 .base-build-option { display: grid; gap: .5rem; }
 .base-build-option .button { justify-self: start; }
 .base-shortage, .base-status { color: #ffd49b; font-size: .84rem; }

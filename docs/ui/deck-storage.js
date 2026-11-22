@@ -1,4 +1,13 @@
+import { inspectDeck, PRESETS } from '../game/decks.js?v=flagship-art-2';
+
 const STORAGE_KEY = 'gatefall.decks';
+const RECENT_KEY = 'gatefall.recent-decks';
+
+function recentPlayableDecks(decks, played, owned) {
+  const all = new Map([...PRESETS, ...decks].map((deck) => [deck.id, deck]));
+  const candidates = played.length ? played.map(({ id }) => all.get(id)).filter(Boolean) : PRESETS;
+  return candidates.filter((deck) => inspectDeck(deck, owned).valid).slice(0, 4);
+}
 
 export function createDeckStorage(storage) {
   let decks = [];
@@ -11,7 +20,20 @@ export function createDeckStorage(storage) {
     }
   } catch {}
 
+  let played = [];
+  try {
+    const stored = JSON.parse(storage.getItem(RECENT_KEY));
+    if (Array.isArray(stored)) {
+      played = stored.filter((entry) => typeof entry?.id === 'string' && Number.isFinite(entry.at));
+    }
+  } catch {}
+
   return {
+    recent(owned) { return recentPlayableDecks(decks, [...played].sort((a, b) => b.at - a.at), owned); },
+    recordPlay(id, at = Date.now()) {
+      played = [{ id, at }, ...played.filter((entry) => entry.id !== id)];
+      try { storage?.setItem(RECENT_KEY, JSON.stringify(played)); } catch {}
+    },
     list() { return structuredClone(decks); },
     save(deck) {
       if (deck.id.startsWith('preset-')) return false;
