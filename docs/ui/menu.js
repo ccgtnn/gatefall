@@ -1,7 +1,7 @@
 import { dialogClose } from './resources.js?v=interface-polish-1';
 import { button, element, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROW_LABELS } from '../game/cards.js?v=orbital-art-2';
-import { cardButton, showCard } from './cards.js?v=orbital-art-2';
+import { ROW_LABELS } from '../game/cards.js?v=flagship-art-2';
+import { cardButton, showCard } from './cards.js?v=flagship-art-2';
 
 export function roundText(event) {
   const { scores, winner } = event;

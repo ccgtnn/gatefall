@@ -1,5 +1,5 @@
-import { recordCategoryPlay, spendResilience } from './game/board.js?v=orbital-art-2';
-import { ROWS } from './game/cards.js?v=orbital-art-2';
+import { recordCategoryPlay, spendResilience } from './game/board.js?v=flagship-art-2';
+import { ROWS } from './game/cards.js?v=flagship-art-2';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;

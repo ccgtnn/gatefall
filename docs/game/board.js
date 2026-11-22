@@ -1,4 +1,4 @@
-import { ROWS } from './cards.js?v=orbital-art-2';
+import { ROWS } from './cards.js?v=flagship-art-2';
 import { emit } from './events.js?v=orbital-strike-1';
 
 export const ROW_LIMIT = 9;

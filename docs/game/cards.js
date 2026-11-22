@@ -183,11 +183,11 @@ const protectorateExtras = [
     }, keywords: ['Цель', 'Тяжёлый корабль', 'Силовой щит', 'Урон'] }],
   ['aurelian', 'Флагман «Аврелиан»', 11, 6,
     'Орбита, при розыгрыше: усили себя на 2 за каждый вражеский отряд, впервые отмеченный тобой Целью за матч. Поверхность: без эффекта.',
-    { art: 'flagship-aurelian.webp', ...ship, rarity: 'gold', deploy: onRow('orbit', ability([action('boost', self, { markedThisMatch: 2 })])),
+    { art: 'flagship-aurelian.webp?v=flagship-art-2', ...ship, rarity: 'gold', deploy: onRow('orbit', ability([action('boost', self, { markedThisMatch: 2 })])),
       keywords: ['Цель', 'Тяжёлый корабль', 'Усиление'] }],
   ['tiberius', 'Флагман «Тиберий»', 10, 4,
     'Орбита, при розыгрыше: отметь Целью все отряды в выбранном вражеском ряду. Поверхность: без эффекта.',
-    { art: 'flagship-tiberius.webp', ...ship, rarity: 'gold', deploy: onRow('orbit', ability([
+    { art: 'flagship-tiberius.webp?v=flagship-art-2', ...ship, rarity: 'gold', deploy: onRow('orbit', ability([
       { action: 'select-row', ref: 'row', filter: 'units', prompt: 'Выбери вражеский ряд для меток Цель.' },
       mark({ ...unmarkedEnemy, rowRef: 'row' }),
     ])), keywords: ['Цель', 'Тяжёлый корабль'] }],

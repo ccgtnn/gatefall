@@ -1,8 +1,8 @@
-import { FACTIONS, ROWS } from './cards.js?v=orbital-art-2';
-import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=orbital-art-2';
-import { collection, copyLimit } from './decks.js?v=orbital-art-2';
-import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=orbital-art-2';
-import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=orbital-art-2';
+import { FACTIONS, ROWS } from './cards.js?v=flagship-art-2';
+import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=flagship-art-2';
+import { collection, copyLimit } from './decks.js?v=flagship-art-2';
+import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=flagship-art-2';
+import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=flagship-art-2';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };

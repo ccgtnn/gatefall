@@ -1,10 +1,10 @@
 import { emit } from './events.js?v=orbital-strike-1';
-import { ROWS, ROW_LABELS } from './cards.js?v=orbital-art-2';
+import { ROWS, ROW_LABELS } from './cards.js?v=flagship-art-2';
 import {
   activeOrder, announcePlay, applyStatus, availableRows, basePower, boost, cardType, consume, createCard, damage, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, ROW_LIMIT,
   setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, units,
-} from './board.js?v=orbital-art-2';
+} from './board.js?v=flagship-art-2';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);

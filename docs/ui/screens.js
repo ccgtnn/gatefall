@@ -1,12 +1,12 @@
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
-import { createCard } from '../game/board.js?v=orbital-art-2';
-import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=orbital-art-2';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=orbital-art-2';
-import { logView, roundText } from './menu.js?v=orbital-art-2';
+import { createCard } from '../game/board.js?v=flagship-art-2';
+import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=flagship-art-2';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=flagship-art-2';
+import { logView, roundText } from './menu.js?v=flagship-art-2';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=collection-2';
 import { factionFilters } from './faction-filters.js?v=1';
-import { copyLimit } from '../game/decks.js?v=orbital-art-2';
-import { craftPrice, dismantleValue } from '../game/rewards.js?v=orbital-art-2';
+import { copyLimit } from '../game/decks.js?v=flagship-art-2';
+import { craftPrice, dismantleValue } from '../game/rewards.js?v=flagship-art-2';
 import { resourceIcon } from './resource-icon.js?v=1';
 import { sectionBack } from './resources.js?v=interface-polish-1';
 

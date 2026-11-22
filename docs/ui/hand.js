@@ -1,7 +1,7 @@
 import { button, element } from './dom.js?v=opponent-reveal-1';
-import { cardType, placementSide } from '../game/board.js?v=orbital-art-2';
-import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=orbital-art-2';
-import { cardButton, showCard } from './cards.js?v=orbital-art-2';
+import { cardType, placementSide } from '../game/board.js?v=flagship-art-2';
+import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=flagship-art-2';
+import { cardButton, showCard } from './cards.js?v=flagship-art-2';
 
 export function updatePlacementSelection(screen, match, selectedCardId) {
   const card = match.players.human.hand.find(({ id }) => id === selectedCardId);

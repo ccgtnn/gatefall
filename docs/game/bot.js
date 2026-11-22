@@ -1,9 +1,9 @@
-import { ROWS } from './cards.js?v=orbital-art-2';
-import { cardType, findUnit, isUnit, neighbors, statusCount, units } from './board.js?v=orbital-art-2';
-import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue, rowScatterValue } from './effects.js?v=orbital-art-2';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=orbital-art-2';
+import { ROWS } from './cards.js?v=flagship-art-2';
+import { cardType, findUnit, isUnit, neighbors, statusCount, units } from './board.js?v=flagship-art-2';
+import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue, rowScatterValue } from './effects.js?v=flagship-art-2';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=flagship-art-2';
 
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=orbital-art-2';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=flagship-art-2';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
