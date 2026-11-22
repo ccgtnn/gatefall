@@ -55,6 +55,7 @@
 .base-resource[data-material="steel"] svg { color: #aec9df; }
 .base-resource[data-material="energyCells"] svg { color: #82ecd2; }
 .base-resource[data-material="gateShards"] svg { color: #d3adff; }
+.base-lot { position: absolute; inset: 0; isolation: isolate; pointer-events: none; }
 .base-plot {
   position: absolute;
   top: var(--plot-y);
@@ -83,30 +84,20 @@
   font-size: clamp(.76rem, 1.9vw, 1.5rem);
   text-shadow: 0 1px 4px #0d1824;
 }
-.base-plot[data-hover] .base-pad, .base-plot:focus-visible .base-pad {
+.base-lot[data-hover] .base-pad, .base-plot:focus-visible .base-pad {
   background: #a1dcff60;
   box-shadow: 0 0 14px #92defd;
 }
 .base-plot.is-built .base-pad { visibility: hidden; }
+.base-plot.is-built:focus-visible { outline: none; }
 .base-plot.is-reserved .base-pad::after { content: none; }
-.base-plot.is-built::before {
-  content: '';
-  position: absolute;
-  inset: 24% 6% 3%;
-  border-radius: 50%;
-  background: radial-gradient(ellipse, #0a121bab 18%, #0a121b70 58%, transparent 76%);
+.base-overlay { position: absolute; }
+.base-overlay > img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.base-overlay-silhouette {
+  opacity: 0;
+  filter: drop-shadow(0 0 2px #d1efff) drop-shadow(0 0 6px #79d1ff);
 }
-.base-building {
-  position: absolute;
-  left: var(--building-x);
-  top: var(--building-y);
-  width: var(--building-width);
-  height: auto;
-  transform: translate(calc(-1 * var(--building-originX)), -100%);
-}
-.base-plot[data-hover] .base-building, .base-plot:focus-visible .base-building {
-  filter: brightness(1.13) drop-shadow(0 0 3px #cbeeff) drop-shadow(0 0 8px #79d1ff);
-}
+.base-lot:is([data-hover], :has(.base-plot:focus-visible)) .base-overlay-silhouette { opacity: .26; }
 .base-stage:has([data-hover]) { cursor: pointer; }
 .base-tooltip {
   position: absolute;
@@ -121,7 +112,7 @@
   pointer-events: none;
   font-size: .78rem;
 }
-.base-plot.is-built[data-hover] ~ .base-tooltip { translate: 0 1.3rem; }
+.base-lot[data-hover]:has(.base-plot.is-built) ~ .base-tooltip { translate: 0 1.3rem; }
 .base-details {
   width: min(25rem, calc(100% - 1.5rem));
   max-height: calc(100dvh - 1.5rem);

@@ -1,5 +1,5 @@
-import { BASE_POSITIONS, baseLayout } from './base-layout.js?v=base-layout-2';
-import { BASE_PLOTS, BUILDING_BY_PLOT, BUILDINGS, MATERIALS, constructionShortages } from '../game/base.js?v=home-base-1';
+import { BASE_OVERLAYS, BASE_POSITIONS, baseLayout, overlayStyle } from './base-layout.js?v=tavern-overlay-1';
+import { BASE_PLOTS, BUILDING_BY_PLOT, BUILDINGS, MATERIALS, constructionShortages } from '../game/base.js?v=tavern-overlay-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { dialogClose, sectionDialog } from './resources.js?v=interface-polish-1';
 import { resourceIcon } from './resource-icon.js?v=1';
@@ -90,6 +90,7 @@ export function createBaseScreen(progress) {
   let scene = progress.base();
   const plots = BASE_PLOTS.map((id, index) => {
     const [x, y, width, height] = BASE_POSITIONS[index];
+    const lot = element('div', 'base-lot');
     const control = button(undefined, () => openPlot(id), 'base-plot');
     control.setAttribute('aria-haspopup', 'dialog');
     control.style.setProperty('--plot-x', x + '%');
@@ -98,41 +99,46 @@ export function createBaseScreen(progress) {
     control.style.setProperty('--plot-height', height + '%');
     const pad = element('span', 'base-pad');
     if (!BUILDING_BY_PLOT[id]) control.classList.add('is-reserved');
-    const view = { id, x, y, control, pad, kind: BUILDING_BY_PLOT[id] };
+    const view = { id, x, y, lot, control, pad, kind: BUILDING_BY_PLOT[id] };
     control.append(pad);
-    if (view.kind) {
-      const { art, placement } = BUILDINGS[view.kind];
-      const sprite = element('img', 'base-building');
-      sprite.alt = '';
-      sprite.draggable = false;
-      sprite.hidden = true;
-      sprite.src = art;
-      for (const [key, value] of Object.entries(placement)) {
-        sprite.style.setProperty('--building-' + key, value + '%');
+    const overlay = BASE_OVERLAYS[id];
+    if (overlay) {
+      const layer = element('div', 'base-overlay');
+      layer.hidden = true;
+      Object.assign(layer.style, overlayStyle(overlay.rect));
+      for (const [role, source] of [['art', overlay.image], ['silhouette', overlay.silhouette]]) {
+        const image = element('img', 'base-overlay-' + role);
+        image.alt = '';
+        image.draggable = false;
+        image.src = source;
+        layer.append(image);
+        if (role === 'silhouette') {
+          image.decode().then(() => { view.mask = makeMask(image); }).catch(() => {});
+        }
       }
-      sprite.decode().then(() => { view.mask = makeMask(sprite); }).catch(() => {});
-      view.sprite = sprite;
-      control.append(sprite);
+      view.layer = layer;
+      lot.append(layer);
     }
-    stage.append(control);
+    lot.append(control);
+    stage.append(lot);
     return view;
   });
   stage.append(tooltip);
 
   function plotAt(event) {
     const { clientX: x, clientY: y } = event;
-    return plots.findLast(({ id, sprite, pad, mask }) => scene.buildings[id]
-      ? mask && contains(sprite.getBoundingClientRect(), x, y, mask)
+    return plots.findLast(({ id, layer, pad, mask }) => scene.buildings[id]
+      ? mask && contains(layer.getBoundingClientRect(), x, y, mask)
       : contains(pad.getBoundingClientRect(), x, y));
   }
 
   function highlight(plot) {
     if (plot === hovered) return;
-    hovered?.control.removeAttribute('data-hover');
+    hovered?.lot.removeAttribute('data-hover');
     hovered = plot;
     tooltip.hidden = !plot || !matchMedia('(hover: hover)').matches;
     if (!plot) return;
-    plot.control.dataset.hover = '';
+    plot.lot.dataset.hover = '';
     const building = scene.buildings[plot.id];
     tooltip.textContent = building ? BUILDINGS[building.kind].name
       : plot.kind ? 'Построить: ' + BUILDINGS[plot.kind].name : reserved;
@@ -210,9 +216,9 @@ export function createBaseScreen(progress) {
     const { gold } = progress.inventory();
     const values = { gold, ...scene.materials };
     for (const { key, count } of figures) count.textContent = values[key];
-    for (const { id, control, sprite, kind } of plots) {
+    for (const { id, control, layer, kind } of plots) {
       const building = scene.buildings[id];
-      if (sprite) sprite.hidden = !building;
+      if (layer) layer.hidden = !building;
       control.classList.toggle('is-built', Boolean(building));
       control.setAttribute('aria-label', building
         ? `Участок ${id} · ${BUILDINGS[building.kind].name} · Уровень ${building.level}`

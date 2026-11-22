@@ -9,8 +9,6 @@ export const STARTING_MATERIALS = Object.freeze({ steel: 200, energyCells: 100, 
 export const BUILDINGS = Object.freeze({
   tavern: Object.freeze({
     name: 'Таверна',
-    art: './art/base-tavern.webp?v=home-base-1',
-    placement: Object.freeze({ x: 62, y: 89, originX: 55.2, width: 103 }),
     description: 'Место встречи командиров и наёмников. На первом уровне открывает один слот ежедневных заданий.',
     cost: Object.freeze({ gold: 300, steel: 150, energyCells: 50 }),
     dailySlots: Object.freeze([1]),

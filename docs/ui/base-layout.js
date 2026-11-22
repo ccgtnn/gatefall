@@ -6,6 +6,24 @@ export const BASE_POSITIONS = [
 
 const artworkWidth = 1536;
 const artworkHeight = 858;
+// Overlay and silhouette share this rectangle in original artwork pixels.
+export const BASE_OVERLAYS = {
+  5: {
+    image: './art/base-tavern-overlay.webp',
+    silhouette: './art/base-tavern-silhouette.webp',
+    rect: [936, 254, 496, 428],
+  },
+};
+
+export function overlayStyle([x, y, width, height]) {
+  return {
+    left: x / artworkWidth * 100 + '%',
+    top: y / artworkHeight * 100 + '%',
+    width: width / artworkWidth * 100 + '%',
+    height: height / artworkHeight * 100 + '%',
+  };
+}
+
 const foundationLeft = Math.min(...BASE_POSITIONS.map(([x, , width]) => x - width / 2)) / 100;
 const foundationRight = Math.max(...BASE_POSITIONS.map(([x, , width]) => x + width / 2)) / 100;
 const foundationBottom = Math.max(...BASE_POSITIONS.map(([, y, , height]) => y + height / 2)) / 100;
