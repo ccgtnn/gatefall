@@ -142,18 +142,9 @@
 }
 
 #base-screen.base-screen-grid {
-  isolation: isolate;
-  background: #101925;
+  background: linear-gradient(#0e172474, #0e1724a8), url('./art/base-landscape.webp') center / cover #101925;
+  background-attachment: fixed;
   scroll-padding-block-start: var(--section-content-top);
-}
-.base-screen-grid::before {
-  content: '';
-  position: fixed;
-  z-index: -1;
-  inset: 0;
-  background: linear-gradient(#0e172484, #0e1724c9), url('./art/base-landscape.webp') center / cover;
-  filter: blur(3px);
-  pointer-events: none;
 }
 #base-screen.base-screen-grid .reward-shell {
   width: min(100%, 90rem);
