@@ -1,4 +1,4 @@
-import { button, element } from './dom.js?v=opponent-reveal-1';
+import { button, element, iconButton } from './dom.js?v=opponent-reveal-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 
 const resources = [
@@ -7,6 +7,22 @@ const resources = [
   ['essence', 'essence', 'Эссенция', 'Все карты'],
   ['packCount', 'booster', 'Бустеры', 'Открытие бустеров'],
 ];
+
+export function sectionBack(onBack) {
+  return iconButton('←', 'Назад', onBack, 'section-back');
+}
+
+export function sectionDialog(id, title, className = '') {
+  const dialog = element('dialog', ('reward-book ' + className).trim());
+  dialog.id = id;
+  dialog.setAttribute('aria-label', title);
+  const back = sectionBack(() => dialog.close());
+  back.autofocus = true;
+  const shell = element('div', 'reward-shell');
+  dialog.append(back, shell);
+  document.body.append(dialog);
+  return { dialog, shell };
+}
 
 export function createResourceBar(home, settings, progress, routes) {
   const bar = element('nav', 'resource-bar');
@@ -21,7 +37,7 @@ export function createResourceBar(home, settings, progress, routes) {
     else opener = document.activeElement;
     active = next;
     next.prepare?.();
-    next.header.append(bar);
+    next.dialog.querySelector('.section-back').after(bar);
     next.dialog.showModal();
     update();
   }

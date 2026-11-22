@@ -8,6 +8,7 @@ import { factionFilters } from './faction-filters.js?v=1';
 import { copyLimit } from '../game/decks.js?v=reward-routes-1';
 import { craftPrice, dismantleValue } from '../game/rewards.js?v=reward-routes-1';
 import { resourceIcon } from './resource-icon.js?v=1';
+import { sectionBack } from './resources.js?v=compact-nav-1';
 
 const catalogCards = [...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool)];
 const catalogFactions = [['', 'Все фракции'], [NEUTRAL, 'Нейтральные'],
@@ -158,8 +159,7 @@ export function leaderScreen(phaseLabel, factionId, start, back) {
   const faction = FACTIONS[factionId];
   phaseLabel.textContent = '';
   const panel = element('section', 'intro');
-  const heading = element('h2', null, 'Выбери лидера · ' + faction.name);
-  heading.tabIndex = -1;
+  panel.setAttribute('aria-label', 'Выбери лидера · ' + faction.name);
   const choices = element('div', 'leader-choices');
   for (const leader of faction.leaders) {
     const choice = button(undefined, () => start(factionId, leader.id), 'button leader-choice');
@@ -169,7 +169,7 @@ export function leaderScreen(phaseLabel, factionId, start, back) {
     choice.append(element('strong', null, leader.name + ' (+' + leader.provisionBonus + ')'), element('span', 'leader-description', leader.text));
     choices.append(choice);
   }
-  panel.append(heading, choices, button('Назад', back));
+  panel.append(sectionBack(back), choices);
   return panel;
 }
 

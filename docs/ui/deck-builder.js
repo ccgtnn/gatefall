@@ -5,6 +5,7 @@ import { addCardCrop, cardButton } from './cards.js?v=reward-routes-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { factionFilters } from './faction-filters.js?v=1';
 import { availabilityOptions, matchesAvailability } from './catalog-cards.js?v=collection-2';
+import { sectionBack } from './resources.js?v=compact-nav-1';
 
 const byProvision = (a, b) => b.provision - a.provision || a.name.localeCompare(b.name, 'ru');
 
@@ -104,7 +105,7 @@ export function deckListScreen(phaseLabel, decks, stats, actions, inventory) {
 export function factionPicker(phaseLabel, select, back) {
   phaseLabel.textContent = '';
   const screen = element('section', 'intro');
-  screen.append(viewHeading('Выбери фракцию'));
+  screen.setAttribute('aria-label', 'Выбери фракцию');
   const options = element('div', 'deck-choices');
   for (const [id, faction] of Object.entries(FACTIONS)) {
     const choice = button(undefined, () => select(id), 'button deck-choice');
@@ -113,14 +114,15 @@ export function factionPicker(phaseLabel, select, back) {
     choice.append(element('strong', null, faction.name), element('span', 'muted', faction.strategy));
     options.append(choice);
   }
-  screen.append(options, button('К колодам', back));
+  screen.append(sectionBack(back), options);
   return screen;
 }
 
 export function deckEditor(phaseLabel, deck, { save, play, back, inventory }) {
   phaseLabel.textContent = '';
   const screen = element('section', 'deck-editor');
-  const toolbar = element('header', 'deck-toolbar deck-editor-toolbar');
+  screen.setAttribute('aria-label', 'Редактор колоды');
+  const actions = element('div', 'deck-toolbar deck-editor-actions');
   const columns = element('div', 'deck-editor-columns');
   const left = element('section', 'panel deck-editor-panel deck-editor-owned');
   const right = element('section', 'panel deck-editor-panel deck-editor-collection');
@@ -149,14 +151,14 @@ export function deckEditor(phaseLabel, deck, { save, play, back, inventory }) {
     status.textContent = save(deck) ? 'Колода сохранена.' : 'Колода доступна до закрытия страницы. Браузер не сохранил данные.';
   });
   let dirty = false;
-  const backButton = button('Назад', () => {
+  const backButton = sectionBack(() => {
     if (dirty) save(deck);
     back();
   });
-  toolbar.append(backButton, viewHeading('Редактор колоды'), saveButton, playButton, status);
-  left.append(nameField, leader.field, totals, errors, owned);
+  actions.append(saveButton, playButton);
+  left.append(nameField, leader.field, actions, status, totals, errors, owned);
   columns.append(left, right);
-  screen.append(toolbar, columns);
+  screen.append(backButton, columns);
 
   const pool = collection(deck.factionId).toSorted(byProvision);
   const searchField = element('label', 'deck-field');

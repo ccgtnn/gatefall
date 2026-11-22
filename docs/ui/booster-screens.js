@@ -4,26 +4,16 @@ import { BOOSTER_FACTIONS, BOOSTER_PRICE } from '../game/rewards.js?v=reward-rou
 import { cardButton, showCard } from './cards.js?v=reward-routes-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { resourceIcon } from './resource-icon.js?v=1';
+import { sectionDialog } from './resources.js?v=compact-nav-1';
 
 const definitions = new Map([...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool)]
   .map((card) => [card.id, card]));
 
 export function economyDialog(id, title) {
-  const dialog = element('dialog', 'reward-book economy-page');
-  dialog.id = id;
-  dialog.setAttribute('aria-labelledby', id + '-title');
-  const shell = element('div', 'reward-shell');
-  const header = element('header', 'reward-header');
-  const heading = element('h2', null, title);
-  heading.id = id + '-title';
-  heading.tabIndex = -1;
-  heading.autofocus = true;
-  header.append(button('Назад', () => dialog.close(), 'button reward-back'), heading);
+  const { dialog, shell } = sectionDialog(id, title, 'economy-page');
   const body = element('div', 'economy-content');
-  shell.append(header, body);
-  dialog.append(shell);
-  document.body.append(dialog);
-  return { dialog, header, body };
+  shell.append(body);
+  return { dialog, body };
 }
 
 function capsule(page) {

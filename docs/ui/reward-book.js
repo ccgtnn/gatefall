@@ -1,6 +1,7 @@
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { REWARD_SECTIONS, rewardState } from '../game/rewards.js?v=reward-routes-1';
 import { resourceIcon } from './resource-icon.js?v=1';
+import { sectionDialog } from './resources.js?v=compact-nav-1';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const rewardKinds = {
@@ -23,17 +24,7 @@ function keyAmount(className) {
 }
 
 export function createRewardBook(progress) {
-  const book = element('dialog', 'reward-book');
-  book.id = 'reward-book';
-  book.setAttribute('aria-labelledby', 'reward-book-title');
-  const shell = element('div', 'reward-shell');
-  const header = element('header', 'reward-header');
-  const heading = element('h2', null, 'Книга наград');
-  heading.id = 'reward-book-title';
-  heading.tabIndex = -1;
-  heading.autofocus = true;
-  header.append(button('Назад', () => book.close(), 'button reward-back'), heading);
-
+  const { dialog: book, shell } = sectionDialog('reward-book', 'Книга наград');
   const content = element('section', 'reward-chapter');
   const sections = element('div', 'reward-sections');
   sections.setAttribute('role', 'group');
@@ -45,9 +36,7 @@ export function createRewardBook(progress) {
   content.append(sections, tabs, current);
   const message = element('p', 'visually-hidden');
   message.setAttribute('role', 'status');
-  shell.append(header, content, message);
-  book.append(shell);
-  document.body.append(book);
+  shell.append(content, message);
 
   let activeSection = REWARD_SECTIONS[0];
   const selectedChapters = new Map(REWARD_SECTIONS.map((section) => [section.id, section.chapters[0]]));
@@ -115,7 +104,6 @@ export function createRewardBook(progress) {
     message.textContent = '';
     selected = undefined;
     current.dataset.faction = faction;
-    const pageHeading = element('h3', 'reward-page-title', title);
     const chart = element('div', 'reward-chart');
     chart.tabIndex = 0;
     chart.setAttribute('role', 'region');
@@ -166,7 +154,7 @@ export function createRewardBook(progress) {
     });
     chart.append(plot);
 
-    current.replaceChildren(pageHeading, tip, chart);
+    current.replaceChildren(tip, chart);
     refresh(state);
   }
 
@@ -227,5 +215,5 @@ export function createRewardBook(progress) {
   }
 
   progress.subscribe(() => { if (book.open) refresh(); });
-  return { dialog: book, header, prepare: drawSection };
+  return { dialog: book, prepare: drawSection };
 }
