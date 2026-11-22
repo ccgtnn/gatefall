@@ -1,8 +1,8 @@
-import { FACTIONS, ROWS } from './cards.js?v=frontier-routes-1';
-import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=frontier-routes-1';
-import { collection, copyLimit } from './decks.js?v=frontier-routes-1';
-import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=frontier-routes-1';
-import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=frontier-routes-1';
+import { FACTIONS, ROWS } from './cards.js?v=orbital-strike-1';
+import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=orbital-strike-1';
+import { collection, copyLimit } from './decks.js?v=orbital-strike-1';
+import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=orbital-strike-1';
+import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=orbital-strike-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -112,7 +112,9 @@ function fastPlays(match, side) {
     }
     const recipient = match.players[placementSide(side, card)];
     let choice;
-    for (const row of ROWS) {
+    const preferred = def.preferredRow;
+    const rows = preferred && recipient.board[preferred].length < ROW_LIMIT ? [preferred] : ROWS;
+    for (const row of rows) {
       const line = recipient.board[row];
       if (line.length >= ROW_LIMIT) continue;
       for (let position = 0; position <= line.length; position++) {
@@ -120,9 +122,10 @@ function fastPlays(match, side) {
         if (!choice || value > choice.value) choice = { row, position, value };
       }
     }
-    const infection = def.deploy?.steps.some((step) => step.status === 'infection');
-    const removal = (def.removalReserve || infection || def.scenario ||
-      def.deploy?.steps.some((step) => step.target?.infected || step.amount?.count || step.action === 'replace-leader'))
+    const statusDeploy = def.deploy?.steps.some(({ status }) => status === 'infection' || status === 'target');
+    const removal = (!def.deploy?.sourceRow || def.deploy.sourceRow === choice.row) &&
+      (def.removalReserve || statusDeploy || def.scenario ||
+      def.deploy?.steps.some((step) => step.target?.infected || step.amount?.count || step.amount?.markedThisMatch || step.action === 'replace-leader'))
       ? effectSwing(match, side, card) : 0;
     const scenario = def.scenario ? Math.min(def.scenario.chapters.length,
       player.hand.filter((entry) => entry.definition.categories?.includes(def.scenario.category)).length) * 2 : 0;

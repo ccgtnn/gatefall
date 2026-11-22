@@ -1,8 +1,8 @@
-import { compareRollouts } from './bot-rollouts.js?v=frontier-routes-1';
-import { ROWS } from './cards.js?v=frontier-routes-1';
-import { cardType, opponent, placementSide, units } from './board.js?v=frontier-routes-1';
-import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=frontier-routes-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=frontier-routes-1';
+import { compareRollouts } from './bot-rollouts.js?v=orbital-strike-1';
+import { ROWS } from './cards.js?v=orbital-strike-1';
+import { activeOrder, cardType, opponent, placementSide, statusCount, units } from './board.js?v=orbital-strike-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=orbital-strike-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=orbital-strike-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -45,11 +45,15 @@ function boardValue(state, side) {
     const effect = enemy.rowEffects?.[row];
     return sum + (effect?.type === 'rot' ? rowEffectValue(enemy, row, effect.remaining, false) : 0);
   }, 0);
-  return units(state, side).reduce((sum, { card }) => {
+  const exposed = units(state, opponent(side)).filter(({ card }) => statusCount(card, 'target')).length;
+  const plans = player.hand.some(({ definition }) => definition.keywords?.includes('Цель'));
+  return units(state, side).reduce((sum, unit) => {
+    const { card, row } = unit;
     const { definition, power, armor, counter, timer } = card;
     return sum + (armor ?? 0) * .12 + (definition.id === 'larva' ? .12 : 0)
-      + (ready.has(card.id) ? 1.15 : definition.order ? .35 : 0)
-      + (definition.endTurn ? (timer === undefined ? 1.25 : .5 * Math.min(timer, 3)) : 0)
+      + (ready.has(card.id) ? 1.15 : activeOrder(unit) ? .35 : 0)
+      + (row === 'orbit' && definition.fieldEvents?.['target-marked'] ? 1.25 : 0)
+      + (definition.endTurn && (definition.id !== 'spear-battery' || exposed) ? (timer === undefined ? 1.25 : .5 * Math.min(timer, 3)) : 0)
       + (counter > 0 && player.deck.length ? 1.6 / counter : 0)
       + (card.resilient && state.round < 3 ? (power ?? 0) * .4 : 0)
       + (definition.scenario ? Math.min(definition.scenario.chapters.length - (card.chapter ?? 0),
@@ -57,7 +61,7 @@ function boardValue(state, side) {
       + (definition.fieldEvents?.death && ROWS.some((row) =>
         enemy.board[row].some((entry) => entry.statuses?.infection)) ? 1.25 : 0)
       - .72 * Math.min(power ?? 0, card.statuses?.infection ?? 0);
-  }, (player.leader?.charges ?? 0) * .9 + rot);
+  }, (player.leader?.charges ?? 0) * .9 + rot + (plans ? exposed * .65 : 0));
 }
 
 function value(state, round) {
@@ -86,6 +90,8 @@ function positions(player, row, card) {
 
 function placements(state, side, card, rows = ROWS) {
   const player = state.players[placementSide(side, card)];
+  const preferred = card.definition.preferredRow;
+  if (rows.includes(preferred) && player.board[preferred].length < ROW_LIMIT) rows = [preferred];
   return rows.flatMap((row) => player.board[row].length >= ROW_LIMIT ? [] : positions(player, row, card)
     .map((position) => ({ row, position })));
 }

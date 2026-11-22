@@ -60,4 +60,9 @@
     <path d="m10 1.6 8.4 8.4-8.4 8.4L1.6 10Z" fill="#101d2e" stroke="#cea874" stroke-width="1.6"/>
     <path d="m10 5.4 4.6 4.6-4.6 4.6L5.4 10Z" fill="none" stroke="#5984a8" stroke-width="1"/>
   </symbol>
+  <symbol id="target" viewBox="0 0 40 40">
+    <circle cx="20" cy="20" r="16" fill="#2f1116" fill-opacity=".94" stroke="#fb8168" stroke-width="2"/>
+    <circle cx="20" cy="20" r="8" fill="none" stroke="#ffd0a5" stroke-width="2"/>
+    <path d="M20 7v8m0 10v8M7 20h8m10 0h8" fill="none" stroke="#ffd0a5" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
 </svg>

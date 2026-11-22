@@ -43,6 +43,12 @@
   left: 50%;
   transform: translateX(-50%);
 }
+.stat-badge-target {
+  top: 1px;
+  left: 50%;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 0 3px #f46c54cc);
+}
 .stat-order-control {
   --badge-size: clamp(14px, 3.3dvh, 24px);
   width: var(--badge-size);

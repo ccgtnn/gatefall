@@ -1,7 +1,7 @@
 import { dialogClose } from './resources.js?v=interface-polish-1';
 import { button, element, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROW_LABELS } from '../game/cards.js?v=frontier-routes-1';
-import { cardButton, showCard } from './cards.js?v=interface-polish-1';
+import { ROW_LABELS } from '../game/cards.js?v=orbital-strike-1';
+import { cardButton, showCard } from './cards.js?v=orbital-strike-1';
 
 export function roundText(event) {
   const { scores, winner } = event;
@@ -37,6 +37,7 @@ export function eventText(event) {
       if (event.status === 'shield') return event.count
         ? `«${event.name}»: силовой щит восстановлен.`
         : `«${event.name}»: силовой щит ${event.blockedDamage ? `поглотил ${event.blockedDamage} урона и ` : ''}погас.`;
+      if (event.status === 'target') return `«${event.name}»: отмечен Целью.`;
       if (event.status === 'infection') return event.tick
         ? `«${event.name}»: Заражение снимает 1 силу${event.count ? ' · осталось ' + event.count : ' и заканчивается'}.`
         : `«${event.name}»: Заражение ${event.count}.`;
@@ -47,7 +48,9 @@ export function eventText(event) {
     case 'scenario-chapter': return `«${event.name}»: глава ${event.chapter}.`;
     case 'base-power': return `${side}: базовая сила карты — ${event.basePower}.`;
     case 'heal': return `${side}: сила карты восстановлена до ${event.power}.`;
-    case 'order-ready': return `Приказ карты «${event.name}» готов.`;
+    case 'order-ready': return event.cooldown
+      ? `Приказ карты «${event.name}»: перезарядка сокращена.`
+      : `Приказ карты «${event.name}» готов.`;
     case 'armor': return `${side}, «${event.name}»: броня ${event.amount > 0 ? '+' : '−'}${Math.abs(event.amount)}.`;
     case 'boost': return `${side}, «${event.name}»: усиление +${event.amount}.`;
     case 'damage': return `${side}, «${event.name}»: урон ${event.amount}, броня поглотила ${event.absorbed}, потеря силы ${event.lost}.`;

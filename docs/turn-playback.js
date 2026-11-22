@@ -1,5 +1,5 @@
-import { recordCategoryPlay, spendResilience } from './game/board.js?v=frontier-routes-1';
-import { ROWS } from './game/cards.js?v=frontier-routes-1';
+import { recordCategoryPlay, spendResilience } from './game/board.js?v=orbital-strike-1';
+import { ROWS } from './game/cards.js?v=orbital-strike-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;
@@ -79,6 +79,10 @@ export function applyJournalEvent(state, event) {
     }
     player.board[row].splice(event.position, 0, ...event.cards.map((card) => ({ ...card })));
     return;
+  }
+  if (type === 'status' && event.firstTarget) {
+    const attacker = state.players[event.attacker];
+    attacker.markedTargets = [...(attacker.markedTargets ?? []), cardId];
   }
   if (type === 'consume-group') {
     for (const id of event.cardIds) state.hiddenDuringPlayback.add(id);

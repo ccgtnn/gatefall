@@ -1,11 +1,15 @@
-import { ROWS } from './cards.js?v=frontier-routes-1';
-import { emit } from './events.js?v=golem-trio-1';
+import { ROWS } from './cards.js?v=orbital-strike-1';
+import { emit } from './events.js?v=orbital-strike-1';
 
 export const ROW_LIMIT = 9;
 export const HAND_LIMIT = 10;
 export const opponent = (side) => side === 'human' ? 'bot' : 'human';
 
 export const cardType = ({ definition }) => definition.type ?? 'unit';
+export const activeOrder = ({ card, row }) => {
+  const { order } = card.definition;
+  return order && (!order.sourceRow || order.sourceRow === row) ? order : undefined;
+};
 export const isUnit = (card) => cardType(card) === 'unit';
 export const basePower = (card) => card.basePower ?? card.definition.power;
 export const placementSide = (side, card) => card.definition.enemySide ? opponent(side) : side;
@@ -127,6 +131,7 @@ const STATUS_RULES = Object.freeze({
     next: (_current, amount) => Number(amount > 0) },
   shield: { read: (card) => Number(card.statuses?.shield ?? card.definition.shield ?? false),
     next: (_current, amount) => Number(amount > 0), unit: true },
+  target: { read: (card) => card.statuses?.target ?? 0, next: (current, amount) => Math.max(current, Number(amount > 0)), unit: true },
   infection: { read: (card) => card.statuses?.infection ?? 0,
     next: (current, amount) => amount < 0 ? Math.max(0, current + amount) : Math.max(current, amount),
     unit: true, turnEnd: 'infection-tick' },
@@ -145,6 +150,7 @@ export function applyStatus(match, unit, status, amount, extra) {
   const rule = STATUS_RULES[status];
   if (!unit || !rule || (rule.unit && !isUnit(unit.card)) || !Number.isInteger(amount)) return 0;
   const { card, side } = unit;
+  if (status === 'target' && extra?.attacker !== opponent(side)) return 0;
   const before = rule.read(card);
   const count = rule.next(before, amount);
   if (count === before) return 0;
@@ -162,6 +168,14 @@ export function applyStatus(match, unit, status, amount, extra) {
   const event = { type: status === 'armor' ? 'armor' : 'status', status, count,
     side, name: card.definition.name, cardId: card.id, amount: count - before, ...extra };
   if (status === 'armor') event.armor = count;
+  if (status === 'target') {
+    const attacker = match.players[extra.attacker];
+    const marked = attacker.markedTargets ?? [];
+    if (!marked.includes(card.id)) {
+      attacker.markedTargets = [...marked, card.id];
+      event.firstTarget = true;
+    }
+  }
   const context = { source: card, neighbors: neighbors(match, unit) };
   const effects = emit(match, event, context);
   if (status === 'armor' && before > 0 && count === 0) {
@@ -169,6 +183,9 @@ export function applyStatus(match, unit, status, amount, extra) {
   }
   if (status === 'infection' && before === 0 && count > 0) {
     effects.push(...emit(match, { ...event, type: 'first-infection' }, { ...context, journal: false }));
+  }
+  if (status === 'target') {
+    effects.push(...emit(match, { ...event, type: 'target-marked', side: extra.attacker }, { journal: false }));
   }
   match.effects.unshift(...effects);
   return before - count;

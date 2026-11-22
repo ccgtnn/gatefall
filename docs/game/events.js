@@ -1,7 +1,7 @@
 const sides = ['human', 'bot'];
 
 function watches(match, event, played) {
-  if (!['play', 'death', 'first-infection'].includes(event.type)) return [];
+  if (!['play', 'death', 'first-infection', 'target-marked'].includes(event.type)) return [];
   const jobs = [];
   for (const side of sides) {
     const player = match.players[side];

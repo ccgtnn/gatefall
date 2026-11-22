@@ -1,9 +1,9 @@
 import { dialogClose } from './resources.js?v=interface-polish-1';
 import { button, element, setCardRarity } from './dom.js?v=opponent-reveal-1';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=frontier-routes-1';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=frontier-routes-1';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=orbital-strike-1';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=orbital-strike-1';
 
-import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=opponent-reveal-1';
+import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=orbital-strike-1';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';
@@ -41,6 +41,8 @@ export function showCard(card, { leader = false, legacy = false,
   const stats = [];
   if (definition.scenario) stats.push(`Главы ${card.chapter ?? 0}/${definition.scenario.chapters.length}`);
   const infection = statusCount(card, 'infection');
+  const marked = statusCount(card, 'target');
+  if (marked) stats.push('Цель');
   if (infection) stats.push('Заражение ' + infection);
   const hasShield = statusCount(card, 'shield');
   if (hasShield || card.statuses?.shield === 0) {
@@ -64,6 +66,7 @@ export function showCard(card, { leader = false, legacy = false,
   if (stats.length) body.append(element('p', 'preview-stats', stats.join(' · ')));
   body.append(element('p', null, definition.text ?? 'Без эффекта.'));
   const glossaryWords = new Set(definition.keywords);
+  if (marked) glossaryWords.add('Цель');
   if (infection || definition.id === 'carrier') glossaryWords.add('Заражение');
   if (definition.endTurn) glossaryWords.add('Конец хода');
   if (glossaryWords.size) {
@@ -197,6 +200,7 @@ export function decorateCard(node, card, player, { orderOnField = false, legacy 
   node.setAttribute('aria-label', cardLabel(card, legacy || showProvision));
   if (legacy) legacyBadges(node, card, orderOnField);
   else liveBadges(node, card, { orderOnField, showProvision, orderReady, orderCooldown });
+  if (statusCount(card, 'target')) node.append(statBadge('target', 'Отмечен Целью'));
   if (definition.categories?.length) node.append(element('span', 'card-category', definition.categories.join(' · ')));
   addCardCrop(node, definition, { fullArt });
   if (!definition.art) node.append(element('span', 'card-art-placeholder', definition.name));
@@ -279,6 +283,7 @@ function cardLabel(card, showProvision) {
   if (armor) details.push(`броня ${armor}`);
   if (definition.rarity) details.push(RARITY_LABELS[definition.rarity]);
   if (showProvision && definition.provision !== undefined) details.push(`провизия ${definition.provision}`);
+  if (statusCount(card, 'target')) details.push('Отмечен Целью');
   if (statusCount(card, 'doomed')) details.push('Обречённая');
   const infection = statusCount(card, 'infection');
   if (infection) details.push('Заражение ' + infection);

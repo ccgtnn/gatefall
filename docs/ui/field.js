@@ -1,13 +1,13 @@
-import { createCard, opponent, statusCount } from '../game/board.js?v=frontier-routes-1';
+import { activeOrder, createCard, opponent, statusCount } from '../game/board.js?v=orbital-strike-1';
 import { insertionPoint } from '../card-placement.js?v=opponent-reveal-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=frontier-routes-1';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=interface-polish-1';
-import { playerHand } from './hand.js?v=interface-polish-1';
-import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=frontier-routes-1';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=frontier-routes-1';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=orbital-strike-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=orbital-strike-1';
+import { playerHand } from './hand.js?v=orbital-strike-1';
+import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=orbital-strike-1';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=orbital-strike-1';
 
-import { orderBadge } from './stat-badges.js?v=opponent-reveal-1';
+import { orderBadge } from './stat-badges.js?v=orbital-strike-1';
 
 export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, isMulliganFieldVisible, setMulliganField,
   playHuman, humanCanAct, placeSelected, settingsButton, showDrawer, selectCard, mulliganScreen }) {
@@ -47,9 +47,10 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       label.classList.add('effect-target');
       label.setAttribute('aria-label', armorTarget
         ? `Снять броню с ряда «${ROW_LABELS[row]}» · броня ${rowArmor(player, row)}`
-        : pending.kind === 'row-effect' ? `Наложить Гниение на ряд «${ROW_LABELS[row]}»`
-        : side === 'bot' ? `Нанести урон во вражеском ряду «${ROW_LABELS[row]}»`
-          : `Породить личинки в ряду «${ROW_LABELS[row]}»`);
+        : pending.kind === 'mark-row' ? `Отметить отряды ряда «${ROW_LABELS[row]}»`
+          : pending.kind === 'row-effect' ? `Наложить Гниение на ряд «${ROW_LABELS[row]}»`
+          : side === 'bot' ? `Нанести урон во вражеском ряду «${ROW_LABELS[row]}»`
+            : `Породить личинки в ряду «${ROW_LABELS[row]}»`);
     }
     const slots = element('div', 'row-line');
     slots.dataset.castZone = '';
@@ -90,7 +91,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
         face.setAttribute('aria-label', face.getAttribute('aria-label') + ' · Силовой щит активен');
         slot.append(halo);
       }
-      if (card.definition.order) {
+      if (activeOrder({ card, row })) {
         const label = 'Приказ · ' + (ready ? 'готов' : cooldown ? 'осталось ходов: ' + cooldown : 'нет цели');
         const order = side === 'human'
           ? button(undefined, () => playHuman({ type: 'order', cardId: card.id }), 'unit-order stat-order-control')

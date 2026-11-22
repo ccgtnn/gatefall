@@ -1,4 +1,4 @@
-import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=frontier-routes-1';
+import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=orbital-strike-1';
 
 export const MIN_CARDS = 25;
 export const MIN_UNITS = 13;
@@ -32,7 +32,18 @@ const plaguePreset = Object.freeze({
   ]),
 });
 
-export const PRESETS = Object.freeze([...factionPresets, plaguePreset]);
+export const ORBITAL_STRIKE_PRESET = Object.freeze({
+  id: 'preset-protectorate-orbital', name: 'Протекторат · Орбитальный удар',
+  factionId: 'protectorate', leaderId: 'fleet-admiral',
+  cardIds: Object.freeze([
+    'spotter', 'spotter', 'fleet-gunner', 'fleet-gunner', 'scout-frigate', 'scout-frigate',
+    'spear-battery', 'spear-battery', 'destruction-protocol', 'aggressor', 'aurelian', 'tiberius',
+    'assault', 'assault', 'engineer', 'engineer', 'warden', 'warden', 'orbital-salvo', 'orbital-salvo',
+    'anvil', 'commander', 'bastion', 'colonel', 'orbital-shield',
+  ]),
+});
+
+export const PRESETS = Object.freeze([...factionPresets, plaguePreset, ORBITAL_STRIKE_PRESET]);
 
 export function inspectDeck(deck, owned) {
   const faction = groups.get(deck?.factionId);

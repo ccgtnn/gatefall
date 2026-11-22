@@ -1,10 +1,10 @@
-import { emit } from './events.js?v=golem-trio-1';
-import { ROWS, ROW_LABELS } from './cards.js?v=frontier-routes-1';
+import { emit } from './events.js?v=orbital-strike-1';
+import { ROWS, ROW_LABELS } from './cards.js?v=orbital-strike-1';
 import {
-  announcePlay, applyStatus, availableRows, basePower, boost, cardType, consume, createCard, damage, findUnit,
+  activeOrder, announcePlay, applyStatus, availableRows, basePower, boost, cardType, consume, createCard, damage, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, ROW_LIMIT,
   setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, units,
-} from './board.js?v=frontier-routes-1';
+} from './board.js?v=orbital-strike-1';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);
@@ -32,6 +32,7 @@ function targets(match, job, query) {
     (!query.unitOrOrder || isUnit(unit.card) || unit.card.definition.order) &&
     (!query.token || unit.card.definition.token) &&
     (query.infected === undefined || Boolean(statusCount(unit.card, 'infection')) === query.infected) &&
+    (query.marked === undefined || Boolean(statusCount(unit.card, 'target')) === query.marked) &&
     (!query.definitionId || unit.card.definition.id === query.definitionId) &&
     (!query.exclude || unit.card.id !== reference(match, job, query.exclude)?.card.id) &&
     (query.armorAtLeast === undefined || (unit.card.armor ?? 0) >= query.armorAtLeast) &&
@@ -158,8 +159,11 @@ export function orderAbility(order) {
 
 export function availableOrders(match, side) {
   const player = match.players[side];
-  return units(match, side).filter(({ card }) => card.definition.order && card.readyAt <= player.turns &&
-    canStart(match, { ability: orderAbility(card.definition.order), side, sourceId: card.id }));
+  return units(match, side).filter((unit) => {
+    const order = activeOrder(unit);
+    return order && unit.card.readyAt <= player.turns &&
+      canStart(match, { ability: orderAbility(order), side, sourceId: unit.card.id });
+  });
 }
 
 export function enqueueCardEffect(match, side, card, timing, requiredSource = true, priorCategoryPlays) {
@@ -176,6 +180,7 @@ function valueOf(match, job, expression, target) {
     const plays = job.priorCategoryPlays ?? match.players[job.side].categoryPlays;
     return Math.max(0, expression.base + (plays?.[expression.playedCategory] ?? 0) * expression.scale);
   }
+  if (expression?.markedThisMatch) return (match.players[job.side].markedTargets?.length ?? 0) * expression.markedThisMatch;
   if (expression?.count) return targets(match, job, expression.count).length * (expression.scale ?? 1);
   if (expression?.status) return target ? statusCount(target.card, expression.status) * (expression.scale ?? 1) : 0;
   if (expression?.row) return target?.row === expression.row ? expression.then : expression.otherwise;
@@ -387,6 +392,14 @@ function tickTimer(match, { card, side }) {
   return card.timer === 0;
 }
 
+function reduceOrderCooldown(match, unit, amount) {
+  const { card, side } = unit;
+  if (!activeOrder(unit) || card.readyAt <= match.players[side].turns) return;
+  card.readyAt = Math.max(match.players[side].turns, card.readyAt - amount);
+  match.log.push({ type: 'order-ready', side, cardId: card.id, name: card.definition.name, readyAt: card.readyAt,
+    cooldown: card.readyAt - match.players[side].turns });
+}
+
 const operations = {
   'base-power': changeBasePower,
   heal,
@@ -400,11 +413,8 @@ const operations = {
   },
   armor: (match, target, amount, sourceDefinitionId) => applyStatus(match, target, 'armor', amount, { sourceDefinitionId }),
   'infection-tick': tickInfection,
-  'ready-order': (match, { card, side }) => {
-    if (!card.definition.order || card.readyAt <= match.players[side].turns) return;
-    card.readyAt = match.players[side].turns;
-    match.log.push({ type: 'order-ready', side, cardId: card.id, name: card.definition.name, readyAt: card.readyAt });
-  },
+  'ready-order': (match, target) => reduceOrderCooldown(match, target, Infinity),
+  'reduce-order-cooldown': reduceOrderCooldown,
   boost,
   damage,
   break: (match, target) => removeUnit(match, target, 'timer'),
@@ -425,7 +435,8 @@ export function runEffect(match, job, random) {
     return;
   }
   if (!job.started) {
-    if (job.requiredSource && !reference(match, job)) return;
+    const source = job.requiredSource || job.ability.sourceRow ? reference(match, job) : undefined;
+    if ((job.requiredSource && !source) || (job.ability.sourceRow && source?.row !== job.ability.sourceRow)) return;
     if (job.deathwish && !job.announced) {
       match.log.push({ type: 'deathwish', side: job.side, name: job.deathwish });
       job.announced = true;
@@ -440,12 +451,30 @@ export function runEffect(match, job, random) {
 
   const step = job.ability.steps[job.index];
   if (!step) return;
+  if ((step.sourceRow && reference(match, job)?.row !== step.sourceRow) ||
+      (step.when && !targets(match, job, step.when.targets).length)) {
+    job.index += 1;
+    match.effects.unshift(job);
+    return;
+  }
+  if (step.status === 'target') {
+    const reactions = [];
+    const queued = match.effects.length;
+    for (const unit of targets(match, job, step.target)) {
+      applyStatus(match, unit, 'target', 1, { attacker: job.side, sourceDefinitionId: job.sourceDefinitionId });
+      reactions.push(...match.effects.splice(0, match.effects.length - queued));
+    }
+    job.index += 1;
+    match.effects.unshift(...reactions, job);
+    return;
+  }
   if (step.action === 'select-row') {
     if (!job.refs[step.ref]) {
       const selectionSide = rowSide(job.side, step);
       const rows = eligibleRows(match.players[selectionSide], step.filter);
       if (rows.length) {
-        const kind = { space: 'spawn-row', armor: 'armor-row', units: 'enemy-row', any: 'row-effect' }[step.filter];
+        const markRow = job.ability.steps.some((part) => part.status === 'target' && part.target?.rowRef === step.ref);
+        const kind = markRow ? 'mark-row' : { space: 'spawn-row', armor: 'armor-row', units: 'enemy-row', any: 'row-effect' }[step.filter];
         const damage = job.ability.steps.find((part) => part.action === 'damage' && part.target?.rowRef === step.ref);
         const armor = job.ability.steps.find((part) => part.action === 'armor' && part.target?.rowRef === step.ref);
         const scatter = job.ability.steps.find((part) => part.action === 'scatter' && part.rowRef === step.ref);
@@ -621,7 +650,7 @@ export function effectSwing(match, side, card) {
       const values = ROWS.map((row) => rowEffectValue(defender, row, step.amount));
       swing += step.row === 'all' ? values.reduce((sum, value) => sum + value, 0) : Math.max(...values);
     }
-    if (step.action === 'boost' && step.amount?.count) swing += valueOf(match, job, step.amount);
+    if (step.action === 'boost' && (step.amount?.count || step.amount?.markedThisMatch)) swing += valueOf(match, job, step.amount);
     if (step.action === 'consume') swing += step.extra ?? 0;
     if (step.action === 'play-from-deck') {
       if (step.fullDeck) {
@@ -664,6 +693,11 @@ export function effectSwing(match, side, card) {
       const turns = Math.max(1, enemy.hand.length);
       swing += Math.max(0, ...candidates.map(({ card }) => infectionGain(card, step.amount, turns))) * .75;
     }
+    if (step.status === 'target') {
+      const candidates = units(match, opponent(side)).filter(({ card }) => isUnit(card) && !statusCount(card, 'target'));
+      swing += step.target.rowRef ? Math.max(...ROWS.map((row) => candidates.filter((unit) => unit.row === row).length)) * 1.3
+        : Number(candidates.length > 0) * 1.3;
+    }
     if (step.action !== 'damage') continue;
     if (step.target.scope === 'source') {
       if (!statusCount(card, 'shield')) swing -= Math.min(card.power ?? 0,
@@ -683,7 +717,7 @@ export function effectSwing(match, side, card) {
     const points = options.map(({ card, side: targetSide }, index) =>
       statusCount(card, 'shield') || (step.amount?.row && amounts[index] !== highest) ? 0
         : (targetSide === side ? -1 : 1) * Math.min(card.power, Math.max(0, amounts[index] - (stripArmor ? 0 : card.armor ?? 0))));
-    swing += step.target.infected && !step.mode ? points.reduce((sum, value) => sum + value, 0)
+    swing += (step.target.infected || step.target.marked) && !step.mode ? points.reduce((sum, value) => sum + value, 0)
       : points.length ? Math.max(...points) : 0;
   }
   return swing;

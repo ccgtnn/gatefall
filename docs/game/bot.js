@@ -1,9 +1,9 @@
-import { ROWS } from './cards.js?v=frontier-routes-1';
-import { cardType, findUnit, isUnit, neighbors, statusCount, units } from './board.js?v=frontier-routes-1';
-import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue, rowScatterValue } from './effects.js?v=frontier-routes-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=frontier-routes-1';
+import { ROWS } from './cards.js?v=orbital-strike-1';
+import { cardType, findUnit, isUnit, neighbors, statusCount, units } from './board.js?v=orbital-strike-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue, rowScatterValue } from './effects.js?v=orbital-strike-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=orbital-strike-1';
 
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=frontier-routes-1';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=orbital-strike-1';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
@@ -19,6 +19,12 @@ export function createBotView(match) {
         return { ...card, preferredRow, destinationLengths: lengths, swing: -(card.power ?? 0) };
       }
       if (cardType(card) === 'effect') return { ...card, swing: effectSwing(match, 'bot', card) };
+      const rowPreference = card.definition.preferredRow;
+      if (rowPreference || card.definition.deploy?.steps.some(({ status }) => status === 'target')) {
+        const row = rowPreference && bot.board[rowPreference].length < ROW_LIMIT ? rowPreference : undefined;
+        const swing = card.definition.deploy?.sourceRow && !row ? 0 : effectSwing(match, 'bot', card);
+        return { ...card, preferredRow: row, swing: (card.power ?? 0) + swing };
+      }
       if (card.definition.deploy?.steps.some((step) => step.amount?.playedCategory)) {
         return { ...card, swing: (card.power ?? 0) + effectSwing(match, 'bot', card) };
       }
@@ -143,6 +149,11 @@ export function pickBotTarget(match) {
     const enemy = match.players[match.pending.selectionSide];
     return { type: 'target', cardId: bestTarget(options, (row) => rowEffectValue(enemy, row, amount)) };
   }
+  if (kind === 'mark-row') {
+    const enemy = match.players[match.pending.selectionSide];
+    const count = (row) => enemy.board[row].filter((card) => isUnit(card) && !statusCount(card, 'target')).length;
+    return { type: 'target', cardId: bestTarget(options, count) };
+  }
   if (kind === 'enemy-row') {
     const enemy = match.players[match.pending.selectionSide];
     const row = bestTarget(options, (row) => scatter
@@ -161,7 +172,9 @@ export function pickBotTarget(match) {
   }
   if (kind === 'deck-placement') {
     const recipient = match.players[match.pending.selectionSide ?? match.pending.side];
-    const row = bestTarget(options, (row) => -recipient.board[row].length);
+    const card = player[match.pending.pile ?? 'deck'].find(({ id }) => id === match.pending.cardId);
+    const preferred = card?.definition.preferredRow;
+    const row = options.includes(preferred) ? preferred : bestTarget(options, (row) => -recipient.board[row].length);
     return { type: 'place', row, position: recipient.board[row].length };
   }
   const optionsWithUnits = options.map((id) => findUnit(match, id));
@@ -187,6 +200,7 @@ export function pickBotTarget(match) {
     'infection-target': ({ card }) => infectionGain(card, amount, Math.max(1, match.players[match.pending.side === 'human' ? 'bot' : 'human'].hand.length)),
     infection: (unit) => [unit, ...neighbors(match, unit)].reduce((sum, { card }) =>
       sum + Math.max(0, Math.min(3, card.power ?? 0) - (card.statuses?.infection ?? 0)), 0),
+    'target-mark': ({ card }) => Math.min(3, card.power) - (card.armor ?? 0) * .3 - statusCount(card, 'shield') * 2,
     marshal: (unit) => neighbors(match, unit).length * 100 + unit.card.power,
   };
   const target = bestTarget(lethal.length ? lethal : candidates, priorities[kind] ?? (({ card }) => card.power));
@@ -242,8 +256,8 @@ export function chooseBotTurn(match, difficulty = 'easy', options = {}) {
     const { bot, human } = match.players;
     const [card] = playableCards(match, 'bot');
     if (card && (totalScore(bot) <= totalScore(human) || (!human.passed && human.hand.length))) {
-      const row = ROWS.find((name) => bot.board[name].length < ROW_LIMIT);
-      action = { type: 'play', cardId: card.id, ...(row && { row, position: bot.board[row].length }) };
+      const view = createBotView(match);
+      action = playCard(view.cards.find(({ id }) => id === card.id) ?? card, view);
       decision = { reason: 'В решающем раунде продолжаю играть, пока соперник может ответить или ведёт по очкам.' };
     }
   }

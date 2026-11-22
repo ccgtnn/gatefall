@@ -31,6 +31,8 @@ export const KEYWORDS = Object.freeze({
   'Стойкость': 'Карта один раз остаётся в своём ряду до следующего раунда и сохраняет состояние.',
   'Сценарий': 'Пролог срабатывает при розыгрыше. Условие карты открывает по одной главе. После последней главы сценарий остаётся на поле до конца раунда. Стойкость может перенести его в следующий раунд.',
   'Конец хода': 'Эффект срабатывает в конце хода владельца карты, в том числе после паса.',
+  'Цель': 'Постоянная метка на вражеском отряде. Удары её не снимают, повторная метка не складывается.',
+  'Тяжёлый корабль': 'Особые способности Тяжёлых кораблей действуют только на Орбите.',
   'Таймер': 'Считается в конце твоего хода, включая ход розыгрыша и пас.',
 });
 
@@ -130,6 +132,19 @@ const protectorate = [
     ]), keywords: ['Броня', 'Урон'] }],
 ];
 
+const heavyShip = 'Тяжёлый корабль';
+const markedEnemy = { ...enemies, marked: true };
+const unmarkedEnemy = { ...enemies, marked: false };
+const mark = (target) => ({ ...action('status', target, 1), status: 'target' });
+const markEnemy = ability([mark(chosen('enemy'))], [
+  choice('enemy', unmarkedEnemy, 'Отметь вражеский отряд Целью.', { kind: 'target-mark' }),
+]);
+const onRow = (sourceRow, effect) => ({ ...effect, sourceRow });
+const ship = { categories: [heavyShip], preferredRow: 'orbit' };
+const shipPlay = (row, effect) => ({ friendly: true, category: heavyShip, ability: onRow(row, effect) });
+const randomHit = (target, amount) => ({ ...action('damage', target, amount), mode: 'random' });
+const aggressorFire = ability([randomHit(enemies, 1)]);
+
 const protectorateExtras = [
   ['imperial-golem', 'Статуя Императора', 9, 6,
     'Броня 2. При розыгрыше: дай каждому соседнему отряду по 1 брони и 1 силы. Увеличь оба бонуса на 1 за каждого Голема, которого ты разыграл ранее в этом матче.', {
@@ -137,6 +152,46 @@ const protectorateExtras = [
       deploy: ability([action('armor', adjacent, emperorStatueBonus), action('boost', adjacent, emperorStatueBonus)]),
       keywords: ['Броня', 'Усиление', 'Соседи'],
   }],
+  ['spotter', 'Корректировщик', 4, 4, 'При розыгрыше: отметь вражеский отряд Целью.',
+    { rarity: 'bronze', deploy: markEnemy, keywords: ['Цель'] }],
+  ['fleet-gunner', 'Канонир флота', 5, 3,
+    'Поверхность: Рвение. Приказ: нанеси 3 урона Цели. Перезарядка: 2 хода. Орбита: без эффекта.',
+    { rarity: 'bronze', preferredRow: 'surface', zeal: true,
+      order: onRow('surface', { ...ability([action('damage', chosen('enemy'), 3)], [
+        choice('enemy', markedEnemy, 'Выбери Цель для 3 урона.', { kind: 'damage', amount: 3 }),
+      ]), cooldown: 2 }), keywords: ['Цель', 'Рвение', 'Приказ', 'Урон'] }],
+  ['scout-frigate', 'Разведфрегат', 5, 1,
+    'Силовой щит. Поверхность: Рвение. Приказ: отметь вражеский отряд Целью. Перезарядка: 3 хода. Когда ты играешь Тяжёлый корабль, сократи текущую перезарядку на 1. Орбита: только Силовой щит.',
+    { rarity: 'bronze', preferredRow: 'surface', shield: true, zeal: true,
+      order: onRow('surface', { ...markEnemy, cooldown: 3 }),
+      fieldEvents: { play: shipPlay('surface', ability([action('reduce-order-cooldown', self, 1)])) },
+      keywords: ['Цель', 'Тяжёлый корабль', 'Силовой щит', 'Рвение', 'Приказ'] }],
+  ['spear-battery', 'Батарея «Копьё»', 6, null,
+    'Поверхность: в конце хода нанеси 2 урона случайной Цели. Орбита: в конце хода усили случайный свой отряд на 2, если у противника есть Цель.',
+    { rarity: 'bronze', type: 'artifact', endTurn: ability([
+      onRow('surface', randomHit(markedEnemy, 2)),
+      onRow('orbit', { ...action('boost', allies, 2), mode: 'random', when: { targets: markedEnemy } }),
+    ]), keywords: ['Цель', 'Урон', 'Усиление'] }],
+  ['destruction-protocol', 'Протокол уничтожения', 9, null, 'Нанеси 3 урона каждой Цели.',
+    { rarity: 'epic', type: 'effect', deploy: { ...ability([action('damage', markedEnemy, 3)]),
+      when: { targets: markedEnemy } }, keywords: ['Цель', 'Урон'] }],
+  ['aggressor', 'Агрессор', 8, 5,
+    'Силовой щит. Орбита: нанеси 1 урон случайному врагу каждый раз, когда ты играешь Тяжёлый корабль или ставишь новую метку Цель. Поверхность: только Силовой щит.',
+    { ...ship, rarity: 'epic', shield: true, fieldEvents: {
+      play: shipPlay('orbit', aggressorFire),
+      'target-marked': { friendly: true, ability: onRow('orbit', aggressorFire) },
+    }, keywords: ['Цель', 'Тяжёлый корабль', 'Силовой щит', 'Урон'] }],
+  ['aurelian', 'Флагман «Аврелиан»', 11, 6,
+    'Орбита, при розыгрыше: усили себя на 2 за каждый вражеский отряд, впервые отмеченный тобой Целью за матч. Поверхность: без эффекта.',
+    { ...ship, rarity: 'gold', deploy: onRow('orbit', ability([action('boost', self, { markedThisMatch: 2 })])),
+      keywords: ['Цель', 'Тяжёлый корабль', 'Усиление'] }],
+  ['tiberius', 'Флагман «Тиберий»', 10, 4,
+    'Орбита, при розыгрыше: отметь Целью все отряды в выбранном вражеском ряду. Поверхность: без эффекта.',
+    { ...ship, rarity: 'gold', deploy: onRow('orbit', ability([
+      { action: 'select-row', ref: 'row', filter: 'units', prompt: 'Выбери вражеский ряд для меток Цель.' },
+      mark({ ...unmarkedEnemy, rowRef: 'row' }),
+    ])), keywords: ['Цель', 'Тяжёлый корабль'] }],
+
 ];
 
 const growth = [

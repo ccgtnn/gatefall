@@ -1,9 +1,9 @@
-import { inspectDeck } from './decks.js?v=frontier-routes-1';
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=frontier-routes-1';
-import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, spendResilience, statusCount, takeCards } from './board.js?v=frontier-routes-1';
-import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=frontier-routes-1';
+import { inspectDeck, ORBITAL_STRIKE_PRESET } from './decks.js?v=orbital-strike-1';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=orbital-strike-1';
+import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, spendResilience, statusCount, takeCards } from './board.js?v=orbital-strike-1';
+import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=orbital-strike-1';
 
-export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=frontier-routes-1';
+export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=orbital-strike-1';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;
@@ -52,7 +52,7 @@ function createPlayer(side, definitions, random, factionId, leader, charges) {
   };
 }
 
-export function createMatch({ decks, humanFaction = decks ? undefined : 'protectorate', humanLeader, random = Math.random, rules = MATCH_RULES } = {}) {
+export function createMatch({ decks, humanFaction = decks ? undefined : 'protectorate', humanLeader, botLeader, random = Math.random, rules = MATCH_RULES } = {}) {
   const settings = { ...MATCH_RULES, ...rules };
   const human = FACTIONS[humanFaction];
   const botFaction = human ? (humanFaction === 'growth' ? 'protectorate' : 'growth') : undefined;
@@ -64,7 +64,10 @@ export function createMatch({ decks, humanFaction = decks ? undefined : 'protect
     bot: createPlayer('bot', selectedDecks.bot, random, botFaction, undefined, settings.leaderCharges),
   };
   const starter = random() < 0.5 ? 'human' : 'bot';
-  if (bot) players.bot.leader = { ...bot.leaders[Math.floor(random() * bot.leaders.length)], charges: settings.leaderCharges };
+  if (bot) {
+    const leader = bot.leaders.find(({ id }) => id === botLeader) ?? bot.leaders[Math.floor(random() * bot.leaders.length)];
+    players.bot.leader = { ...leader, charges: settings.leaderCharges };
+  }
   return {
     rules: settings,
     players,
@@ -87,10 +90,13 @@ export function createDeckMatch(deck, options = {}) {
   const result = inspectDeck(deck);
   if (!result.valid) return null;
   const botFaction = deck.factionId === 'growth' ? 'protectorate' : 'growth';
+  const random = options.random ?? Math.random;
+  const orbital = botFaction === 'protectorate' && random() < .5 ? inspectDeck(ORBITAL_STRIKE_PRESET) : null;
   return createMatch({
-    random: options.random,
+    random,
     rules: options.rules,
-    decks: { human: result.cards, bot: FACTIONS[botFaction].deck },
+    decks: { human: result.cards, bot: orbital?.cards ?? FACTIONS[botFaction].deck },
+    botLeader: orbital?.leader.id,
     humanFaction: deck.factionId,
     humanLeader: result.leader.id,
   });
