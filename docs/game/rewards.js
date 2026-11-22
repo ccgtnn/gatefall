@@ -1,5 +1,5 @@
-import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=emperor-statue-1';
-import { copyLimit, PRESETS } from './decks.js?v=emperor-statue-1';
+import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=reward-routes-1';
+import { copyLimit, PRESETS } from './decks.js?v=reward-routes-1';
 
 export const STARTING_KEYS = 25;
 export const STARTING_ESSENCE = 800;
@@ -21,29 +21,29 @@ export function dismantleValue(card) {
 
 export const REWARD_STORAGE_KEY = 'gatefall.reward-book';
 
-// The first eleven stops retain their saved IDs, prerequisites, and prices.
-const route = [
-  ['signal', null, 7, 50, 1],
-  ['supply', 'signal', 17, 50, 2],
-  ['junction', 'supply', 27, 50, 2],
-  ['upper-cache', 'junction', 38, 26, 2],
-  ['upper-relay', 'upper-cache', 49, 22, 3],
-  ['upper-vault', 'upper-relay', 63, 13, 4],
-  ['upper-finish', 'upper-vault', 77, 13, 6],
-  ['lower-cache', 'junction', 38, 74, 2],
-  ['lower-relay', 'lower-cache', 49, 78, 3],
-  ['lower-vault', 'lower-relay', 63, 87, 4],
-  ['lower-finish', 'lower-vault', 77, 87, 6],
-  ['upper-conduit', 'upper-relay', 58, 36, 1],
-  ['upper-watch', 'upper-conduit', 68, 42, 2],
-  ['upper-depot', 'upper-watch', 78, 37, 2],
-  ['upper-beacon', 'upper-depot', 88, 28, 3],
-  ['upper-horizon', 'upper-beacon', 94, 16, 5],
-  ['lower-conduit', 'lower-relay', 58, 64, 1],
-  ['lower-watch', 'lower-conduit', 68, 58, 2],
-  ['lower-depot', 'lower-watch', 78, 63, 2],
-  ['lower-beacon', 'lower-depot', 88, 72, 3],
-  ['lower-horizon', 'lower-beacon', 94, 84, 5],
+// Preserve reward IDs, prices, and the original prerequisites for saved purchases.
+const stops = [
+  ['signal', null, 1],
+  ['supply', 'signal', 2],
+  ['junction', 'supply', 2],
+  ['upper-cache', 'junction', 2],
+  ['upper-relay', 'upper-cache', 3],
+  ['upper-vault', 'upper-relay', 4],
+  ['upper-finish', 'upper-vault', 6],
+  ['lower-cache', 'junction', 2],
+  ['lower-relay', 'lower-cache', 3],
+  ['lower-vault', 'lower-relay', 4],
+  ['lower-finish', 'lower-vault', 6],
+  ['upper-conduit', 'upper-relay', 1],
+  ['upper-watch', 'upper-conduit', 2],
+  ['upper-depot', 'upper-watch', 2],
+  ['upper-beacon', 'upper-depot', 3],
+  ['upper-horizon', 'upper-beacon', 5],
+  ['lower-conduit', 'lower-relay', 1],
+  ['lower-watch', 'lower-conduit', 2],
+  ['lower-depot', 'lower-watch', 2],
+  ['lower-beacon', 'lower-depot', 3],
+  ['lower-horizon', 'lower-beacon', 5],
 ];
 
 export const BOOSTER_FACTIONS = [
@@ -52,14 +52,62 @@ export const BOOSTER_FACTIONS = [
   { id: NEUTRAL, name: 'Нейтральные', image: 'world-gates.webp' },
 ];
 
+// Columns run from entry to finale. A null leaves a gap between lanes.
+const layouts = {
+  protectorate: {
+    columns: [[0], [1], [2], [3, 7], [4, 8], [5, 11, 16, 9], [6, 12, 17, 10],
+      [null, 13, 18, null], [null, 14, 19, null], [15, 20]],
+    paths: [[0, 1, 2, 3, 4, 5, 6, 15], [4, 11, 12, 13, 14, 15],
+      [2, 7, 8, 9, 10, 20], [8, 16, 17, 18, 19, 20]],
+  },
+  growth: {
+    columns: [[0], [1, 7], [2, 8], [3, 9], [4, 10], [5, 11, 16], [6, 12, 17],
+      [null, 13, 18], [null, 14, 19], [15, 20, null]],
+    paths: [[0, 1, 2, 3, 4, 5, 6, 15, 20], [3, 11, 12, 13, 14, 20],
+      [0, 7, 8, 9, 10, 16, 17, 18, 19, 20]],
+  },
+  neutral: {
+    columns: [[0], [1], [2, 3, 7], [11, 4, 8], [12, 5, 9], [13, 6, 10],
+      [14, 16, 17], [null, 18, 19], [15, null, 20]],
+    paths: [[0, 1, 2, 11, 12, 13, 14, 15], [1, 3, 4, 5, 6, 16, 18, 15],
+      [1, 7, 8, 9, 10, 17, 19, 20], [7, 8, 16, 18, 20]],
+  },
+  'debris-belt': {
+    columns: [[0], [1], [2], [3, 7], [4, 8], [5, 9], [6, 16, 11, 10],
+      [12, 13, 17, 18], [14, 15, 19, null], [null, null, 20]],
+    paths: [[0, 1, 2, 3, 4, 5, 6, 12, 14, 20], [4, 11, 13, 15, 20],
+      [2, 7, 8, 9, 10, 17, 19, 20], [8, 16, 18, 20]],
+  },
+  'border-station': {
+    columns: [[0], [1, 7], [2, 8], [3, 9], [4, 10, 16], [5, 11, 17],
+      [6, 12, 18], [13, 14, 19], [15, 20]],
+    paths: [[0, 1, 2, 3, 4, 5, 6, 13, 15], [3, 11, 12, 14, 15],
+      [0, 7, 8, 9, 10, 11], [9, 16, 17, 18, 19, 20], [12, 20]],
+  },
+};
+
 function chapter(id, title, faction, rewards, image = faction.image) {
-  return {
-    id, title, faction: faction.id, image,
-    nodes: route.map(([stop, parent, x, y, cost], index) => {
-      const [label, kind, value] = rewards[index];
-      return { id: id + ':' + stop, parent: parent ? id + ':' + parent : null, x, y, cost, label, kind, value };
-    }),
-  };
+  const { columns, paths } = layouts[id];
+  const fullId = (index) => id + ':' + stops[index][0];
+  const nodes = stops.map(([stop, legacyParent, cost], index) => {
+    const [label, kind, value] = rewards[index];
+    return { id: id + ':' + stop, legacyParent: legacyParent ? id + ':' + legacyParent : null,
+      parents: [], finale: true, cost, label, kind, value };
+  });
+  columns.forEach((column, x) => column.forEach((index, y) => {
+    if (index === null) return;
+    nodes[index].x = 6 + 88 * x / (columns.length - 1);
+    nodes[index].y = 12 + 76 * (y + .5) / column.length;
+  }));
+  for (const path of paths) {
+    for (let index = 1; index < path.length; index++) {
+      const parent = path[index - 1];
+      const child = nodes[path[index]];
+      if (!child.parents.includes(fullId(parent))) child.parents.push(fullId(parent));
+      nodes[parent].finale = false;
+    }
+  }
+  return { id, title, faction: faction.id, image, nodes };
 }
 
 const [protectorate, growth, neutral] = BOOSTER_FACTIONS;
@@ -195,13 +243,15 @@ export const REWARD_SECTIONS = [
 const chapters = REWARD_SECTIONS.flatMap((section) => section.chapters);
 const nodesById = new Map(chapters.flatMap(({ nodes }) => nodes.map((node) => [node.id, node])));
 
+const routeOpen = (node, unlocked) => !node.parents.length || node.parents.some((parent) => unlocked.has(parent));
+
 function readProgress(ids) {
   const unlocked = new Set();
   let keys = STARTING_KEYS;
   if (Array.isArray(ids)) {
     for (const id of ids) {
       const node = nodesById.get(id);
-      if (!node || unlocked.has(id) || node.cost > keys || (node.parent && !unlocked.has(node.parent))) continue;
+      if (!node || unlocked.has(id) || node.cost > keys || (!routeOpen(node, unlocked) && !unlocked.has(node.legacyParent))) continue;
       unlocked.add(id);
       keys -= node.cost;
     }
@@ -211,7 +261,7 @@ function readProgress(ids) {
 
 export function rewardState(node, { keys, unlocked }) {
   if (unlocked.has(node.id)) return 'unlocked';
-  if (node.parent && !unlocked.has(node.parent)) return 'locked';
+  if (!routeOpen(node, unlocked)) return 'locked';
   return keys >= node.cost ? 'available' : 'unaffordable';
 }
 

@@ -52,14 +52,14 @@ function events(match, type) {
   return match.log.filter((event) => event.type === type);
 }
 
-test('each selectable deck has unique instances and legal bronze and gold quantities', () => {
+test('each selectable deck has unique instances and legal card quantities', () => {
   for (const [key, faction] of Object.entries(FACTIONS)) {
     const match = fixture({ faction: key, charges: 2 });
     const cards = [...match.players.human.hand, ...match.players.human.deck];
     assert.equal(cards.length, faction.deck.length);
     assert.equal(new Set(cards.map(({ id }) => id)).size, cards.length);
     assert.equal(cards.filter(({ definition }) => definition.faction === NEUTRAL).length, key === 'protectorate' ? 6 : 5);
-    assert.equal(cards.filter(({ definition }) => definition.rarity === 'gold').length, key === 'protectorate' ? 8 : 7);
+    assert.equal(cards.filter(({ definition }) => definition.rarity === 'gold').length, key === 'protectorate' ? 6 : 7);
     for (const { definition } of cards) {
       assert.equal('row' in definition, false);
       assert.ok(definition.provision >= 4);
@@ -580,9 +580,9 @@ test('Broodlord groups only larvae in its row and doubles their current power', 
 test('printed stats, titles and rarity match the approved balance', () => {
   const all = [...Object.values(FACTIONS).flatMap(({ pool }) => pool), ...NEUTRAL_CARDS];
   const expected = {
-    smelter: { power: 2 }, warden: { armor: 3 }, anvil: { rarity: 'gold', provision: 8 },
+    smelter: { power: 2 }, warden: { armor: 3 }, anvil: { rarity: 'epic', provision: 8 },
     colonel: { name: 'Октавиан Рейн', rarity: 'gold', provision: 10 },
-    commander: { name: 'Кассия Фульмина', rarity: 'gold', provision: 8 },
+    commander: { name: 'Кассия Фульмина', rarity: 'epic', provision: 8 },
     'shield-overload': { provision: 12 }, cocoon: { power: 3 }, 'spore-sac': { provision: 4, power: 4 },
     scavenger: { power: 3, zeal: true }, gulper: { power: 4 }, ravager: { provision: 9 },
     colossus: { power: 5 }, 'recon-drone': { power: 4 }, 'gate-guardian': { armor: 4 },

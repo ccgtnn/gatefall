@@ -1,8 +1,8 @@
-import { compareRollouts } from './bot-rollouts.js?v=emperor-statue-1';
-import { ROWS } from './cards.js?v=emperor-statue-1';
-import { cardType, opponent, placementSide, units } from './board.js?v=emperor-statue-1';
-import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=emperor-statue-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=emperor-statue-1';
+import { compareRollouts } from './bot-rollouts.js?v=reward-routes-1';
+import { ROWS } from './cards.js?v=reward-routes-1';
+import { cardType, opponent, placementSide, units } from './board.js?v=reward-routes-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=reward-routes-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=reward-routes-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };

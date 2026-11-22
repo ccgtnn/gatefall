@@ -81,12 +81,6 @@
 .reward-page { display: grid; gap: .55rem; }
 .reward-page-title { margin: .15rem 0; font-size: clamp(1.13rem, 2.55vw, 1.7rem); color: var(--faction-light); }
 .reward-scroll-tip { display: none; font-size: .78rem; color: #adc5db; }
-.reward-page-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(13rem, 19%);
-  gap: .72rem;
-  align-items: start;
-}
 .reward-chart {
   min-width: 0;
   overflow: auto;
@@ -144,7 +138,7 @@
 .reward-node[data-state="locked"], .reward-node[data-state="unaffordable"] { color: #a0aec4; background: #172334; }
 .reward-node[data-state="available"] { border-color: #a6ddff; box-shadow: 0 0 14px #73c7ff55, inset 0 0 10px #7fceff29; }
 .reward-node[data-state="unlocked"] { border-color: #dcb670; color: var(--reward-tone); }
-.reward-node:hover, .reward-node[aria-pressed="true"] { outline: 2px solid #e5f5ff; outline-offset: 3px; }
+.reward-node:hover, .reward-node:focus-visible { outline: 2px solid #e5f5ff; outline-offset: 3px; }
 .reward-node:is([data-kind="battlefield"], [data-kind="card-back"]) { border-style: double; border-width: 3px; }
 .reward-node-price {
   position: absolute;
@@ -177,8 +171,22 @@
 }
 .reward-node[data-state="unlocked"] .reward-node-check { display: block; }
 
-.reward-details {
+.reward-node[data-finale] {
+  z-index: 1;
+  border: 2px solid #ffcd78;
+  background: #30243c;
+  color: #ffe3a9;
+  box-shadow: 0 0 0 3px #ebbb6b4d, 0 0 16px #edb76f56;
+}
+.reward-details[open] {
+  position: fixed;
+  inset: 0;
   display: grid;
+  width: min(26rem, calc(100% - 2rem));
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  overflow: auto;
+  color: #e8eff5;
   align-content: start;
   gap: .48rem;
   padding: clamp(.7rem, 1.5vw, 1.1rem);
@@ -186,6 +194,8 @@
   border-radius: .8rem;
   background: linear-gradient(160deg, #192838, #111c29 77%);
 }
+.reward-details::backdrop { background: #03090dbb; }
+.reward-details-close { position: absolute; top: .7rem; right: .7rem; min-height: 2.25rem; }
 .reward-emblem {
   display: grid;
   place-items: center;
@@ -220,26 +230,6 @@
 @media (max-width: 1270px) {
   .reward-scroll-tip { display: block; }
 }
-@media (max-width: 800px) {
-  .reward-page-grid { grid-template-columns: minmax(0, 1fr); }
-  .reward-details {
-    position: sticky;
-    z-index: 2;
-    inset-block-end: .45rem;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "kind action" "label action" "value action" "description description" "status status";
-    align-items: center;
-    gap: .2rem .5rem;
-    box-shadow: 0 3px 15px #0008;
-  }
-  .reward-emblem { display: none; }
-  .reward-kind { grid-area: kind; }
-  .reward-label { grid-area: label; }
-  .reward-value { grid-area: value; font-size: 1.08rem; }
-  .reward-description { grid-area: description; }
-  .reward-status { grid-area: status; }
-  .reward-action { grid-area: action; padding-inline: .65rem; }
-}
 @media (max-width: 520px) {
   .reward-header { gap: .36rem; }
   .reward-back { min-height: 2.1rem; padding: .3rem .55rem; }
@@ -250,7 +240,6 @@
 }
 
 @media (max-width: 760px), (max-width: 1050px) and (max-height: 550px) {
-  .reward-page-grid { grid-template-columns: minmax(0, 1fr); }
   .reward-scroll-tip { display: none; }
   .reward-plot {
     min-width: 0;
@@ -269,7 +258,7 @@
     font-size: .63rem;
   }
   .reward-node-price > svg, .reward-node-check { width: .65rem; height: .65rem; }
-  .reward-node:hover, .reward-node[aria-pressed="true"] { outline-offset: 1px; }
+  .reward-node:hover, .reward-node:focus-visible { outline-offset: 1px; }
 }
 
 @media (orientation: landscape) and (max-width: 1050px) and (max-height: 550px) {

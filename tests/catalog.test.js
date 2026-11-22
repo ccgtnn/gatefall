@@ -14,8 +14,8 @@ test('catalog searches both name and card text, ignoring case and ё spelling', 
   assert.deepEqual(ids({ query: 'неттакойкарты' }), []);
 });
 
-test('all 25 gold cards are included and catalog filters combine across factions', () => {
-  assert.equal(ids({ rarity: 'gold' }).length, 25);
+test('all 23 gold cards are included and catalog filters combine across factions', () => {
+  assert.equal(ids({ rarity: 'gold' }).length, 23);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'artifact', category: 'Пустота', provision: '19' }),
     ['falura']);
   assert.deepEqual(ids({ faction: 'growth', rarity: 'gold', type: 'artifact', category: 'Пустота', provision: '19' }), []);

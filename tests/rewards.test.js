@@ -20,19 +20,23 @@ test('the book has two sections, five 21-node chapters and reachable rare reward
   assert.deepEqual(REWARD_SECTIONS.map(({ chapters }) => chapters.length), [3, 2]);
   assert.deepEqual(BOOSTER_FACTIONS.map(({ id }) => id), ['protectorate', 'growth', 'neutral']);
   assert.equal(new Set(chapters.flatMap(({ nodes }) => nodes.map(({ id }) => id))).size, 105);
+  const layouts = new Set();
   for (const { nodes } of chapters) {
     assert.equal(nodes.length, 21);
-    const paths = new Map();
-    for (const { id, parent, cost } of nodes) {
-      const prefix = parent === null ? [] : paths.get(parent);
-      assert.ok(prefix, 'parent comes before its child');
-      paths.set(id, [...prefix, cost]);
+    const layout = nodes.map(({ x, y }) => [x, y]);
+    assert.equal(new Set(layout.map(String)).size, nodes.length);
+    layouts.add(JSON.stringify(layout));
+    const costs = new Map();
+    for (const { id, parents, cost } of [...nodes].sort((a, b) => a.x - b.x || a.y - b.y)) {
+      assert.ok(parents.every((parent) => costs.has(parent)), 'the map runs from entry to finale');
+      costs.set(id, cost + (parents.length ? Math.min(...parents.map((parent) => costs.get(parent))) : 0));
     }
-    const terminals = nodes.filter(({ id }) => !nodes.some(({ parent }) => parent === id));
-    assert.deepEqual(terminals.map(({ kind }) => kind), ['card-back', 'battlefield', 'card-back', 'battlefield']);
-    assert.deepEqual(terminals.map(({ id }) => paths.get(id).length), [7, 7, 10, 10]);
-    assert.ok(terminals.every(({ id }) => paths.get(id).reduce((a, b) => a + b, 0) <= 25));
+    const terminals = nodes.filter(({ id }) => !nodes.some(({ parents }) => parents.includes(id)));
+    assert.deepEqual(nodes.filter(({ finale }) => finale), terminals);
+    assert.ok(terminals.every(({ id, kind }) => ['card-back', 'battlefield'].includes(kind) && costs.get(id) <= 25));
   }
+  assert.equal(layouts.size, chapters.length);
+  assert.deepEqual(chapters.map(({ nodes }) => nodes.filter(({ finale }) => finale).length), [2, 1, 2, 1, 2]);
 });
 
 test('spending needs an unlocked parent and persists across pages and reloads', async () => {
@@ -210,10 +214,11 @@ test('legacy rare rewards and balances survive the expanded book', async () => {
   assert.deepEqual(wallet.get(), { keys: 5, unlocked: new Set(oldRoute) });
   assert.equal(wallet.inventory().gold, 365);
   assert.equal(wallet.inventory().boosters.protectorate, 2);
-  assert.equal(await wallet.unlock('protectorate:upper-horizon'), 'locked');
+  assert.equal(rewardState(chapters[0].nodes[15], wallet.get()), 'available');
   assert.equal(await wallet.unlock('protectorate:upper-conduit'), 'opened');
   assert.ok(wallet.get().unlocked.has('protectorate:upper-finish'));
   assert.equal(wallet.inventory().essence, 855);
+  assert.equal(await createRewardProgress(storage).unlock('protectorate:upper-finish'), 'unlocked');
 });
 
 test('booster rewards in two chapters share the same faction inventory', async () => {
