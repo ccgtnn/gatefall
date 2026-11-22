@@ -1,5 +1,5 @@
 import { button, element } from './dom.js?v=opponent-reveal-1';
-import { REWARD_SECTIONS, rewardState } from '../game/rewards.js?v=base-1';
+import { REWARD_SECTIONS, rewardState } from '../game/rewards.js?v=base-layout-2';
 import { resourceIcon } from './resource-icon.js?v=1';
 import { dialogClose, sectionDialog } from './resources.js?v=interface-polish-1';
 
@@ -15,6 +15,14 @@ const rewardKinds = {
 const stateLabels = {
   available: 'Доступно', unlocked: 'Открыто', locked: 'Закрыто', unaffordable: 'Не хватает ключей',
 };
+
+function rewardNotice(node) {
+  const amount = {
+    gold: 'золота', 'gold-stack': 'золота', essence: 'эссенции', booster: 'буст.',
+  }[node.kind];
+  const reward = amount ? `+${node.value} ${amount}` : node.label;
+  return node.keyReward ? `${reward} · +${node.keyReward} ключей` : reward;
+}
 
 function keyAmount(className) {
   const node = element('span', className);
@@ -200,17 +208,37 @@ export function createRewardBook(progress) {
     actionPrice.textContent = availability === 'unlocked' ? 'Открыто' : `Открыть за ${selected.cost}`;
   }
 
+  function showNotice(node, control) {
+    if (!control?.isConnected || !book.open) return;
+    const notice = element('span', 'reward-notice', rewardNotice(node));
+    notice.setAttribute('aria-hidden', 'true');
+    control.append(notice);
+    const plot = control.parentElement.getBoundingClientRect();
+    const buttonRect = control.getBoundingClientRect();
+    const middle = buttonRect.left + buttonRect.width / 2;
+    const half = notice.offsetWidth / 2;
+    const center = Math.max(plot.left + half + 4, Math.min(plot.right - half - 4, middle));
+    notice.style.marginInlineStart = (center - middle) + 'px';
+    setTimeout(() => notice.remove(), 1800);
+  }
+
   async function openNode() {
     if (busy || !selected) return;
     const node = selected;
+    const control = nodeViews.find((view) => view.node === node)?.control;
     busy = true;
     action.disabled = true;
     const outcome = await progress.unlock(node.id);
     busy = false;
+    if (outcome === 'opened') {
+      if (node === selected && panel.open) panel.close();
+      showNotice(node, control);
+      message.textContent = `Награда получена. ${rewardNotice(node)}. Потрачено ключей: ${node.cost}.`;
+    } else {
+      message.textContent = outcome === 'unavailable'
+        ? 'Не удалось сохранить открытие. Ключи не потрачены.' : stateLabels[outcome] ?? '';
+    }
     refresh();
-    message.textContent = outcome === 'opened' ? `Открыто: ${node.label}. Потрачено ключей: ${node.cost}.`
-      + (node.keyReward ? ` Получено ключей: ${node.keyReward}.` : '')
-      : outcome === 'unavailable' ? 'Не удалось сохранить открытие. Ключи не потрачены.' : stateLabels[outcome] ?? '';
     if (outcome === 'unavailable' && node === selected) status.textContent = message.textContent;
   }
 

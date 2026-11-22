@@ -40,6 +40,7 @@ function boot(storage) {
 test('reset restores the first-launch inventory, rewards, decks, stats, and preferences', async () => {
   const storage = memoryStorage();
   const initial = boot(storage);
+  assert.equal(initial.inventory.gold, 1000);
   const deck = { id: 'custom', name: 'Проверка', factionId: 'protectorate', leaderId: 'marshal', cardIds: ['old-golem'] };
   assert.equal(createDeckStorage(storage).save(deck), true);
   createFactionStats(['protectorate'], storage).record('protectorate', 'win');

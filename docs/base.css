@@ -1,31 +1,17 @@
 .base-screen {
   background: #121d2b;
 }
-.base-screen .reward-shell {
+#base-screen .reward-shell {
   position: relative;
   width: 100%;
   height: 100dvh;
-  min-height: 17rem;
   margin: 0;
   padding: 0;
   overflow: clip;
 }
 .base-stage {
   position: absolute;
-  inset-inline: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  aspect-ratio: 1536 / 858;
   background: url('./art/base-landscape.webp') center / 100% 100% no-repeat;
-}
-.base-heading {
-  position: absolute;
-  top: calc(var(--resource-top) + var(--resource-frame));
-  left: calc(var(--resource-left) + var(--resource-control-size) + .75rem);
-  display: flex;
-  align-items: center;
-  min-height: var(--resource-control-size);
-  text-shadow: 0 2px 8px #121c29;
 }
 .base-materials {
   position: absolute;
@@ -146,7 +132,6 @@
 .base-status:not(:empty) { margin-top: .65rem; }
 
 @media (max-width: 550px) {
-  .base-heading { display: none; }
   .base-materials { max-width: calc(100% - 4.5rem); gap: .14rem; }
   .base-resource { gap: .14rem; padding-inline: .2rem; }
   .base-resource-label {
@@ -156,8 +141,4 @@
     clip-path: inset(50%);
     overflow: hidden;
   }
-}
-
-@media (min-aspect-ratio: 2 / 1) {
-  .base-stage { top: 50%; transform: translateY(-57%); }
 }

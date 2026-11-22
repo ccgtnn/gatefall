@@ -43,7 +43,7 @@ test('concurrent construction only spends once on an occupied plot', async () =>
 });
 
 test('failed and unaffordable builds keep their materials, and material grants persist', async () => {
-  const wallet = createRewardProgress();
+  const wallet = createRewardProgress({ getItem: () => '{"unlocked":[]}' });
   assert.equal(await wallet.build('5', 'tavern'), 'unaffordable');
   assert.equal(await wallet.build('7', 'tavern'), 'unknown');
   assert.deepEqual(wallet.base(), { materials: STARTING_MATERIALS, buildings: {} });

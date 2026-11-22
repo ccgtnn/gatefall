@@ -1,13 +1,9 @@
+import { BASE_POSITIONS, baseLayout } from './base-layout.js?v=base-layout-2';
 import { BASE_PLOTS, BUILDINGS, MATERIALS, constructionShortages } from '../game/base.js?v=base-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { dialogClose, sectionDialog } from './resources.js?v=interface-polish-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 
-// Bottom-center anchors, ordered from the horizon toward the viewer.
-const positions = [
-  [52.8, 51.9, 12, 4.3], [68.8, 56.3, 20, 7.2], [37, 57.1, 20, 7.2],
-  [58.8, 62.2, 15, 6.3], [77, 67.8, 23, 9.8], [27.4, 71.5, 25, 11.3],
-];
 const labels = { gold: 'Золото', ...MATERIALS };
 const iconPath = {
   steel: 'm4 11 12-6 12 6-12 6Zm0 5 12 6 12-6M4 21l12 6 12-6',
@@ -55,7 +51,6 @@ export function createBaseScreen(progress) {
   const stage = element('div', 'base-stage');
   const materials = element('div', 'base-materials');
   materials.setAttribute('aria-label', 'Ресурсы базы');
-  const heading = element('h2', 'base-heading', 'База');
   const tooltip = element('span', 'base-tooltip');
   tooltip.hidden = true;
   const figures = Object.keys(labels).map((key) => {
@@ -67,7 +62,15 @@ export function createBaseScreen(progress) {
     materials.append(resource);
     return { key, count };
   });
-  shell.append(stage, heading, materials);
+  shell.append(stage, materials);
+
+  function resizeStage({ width, height }) {
+    if (!width || !height) return;
+    for (const [key, value] of Object.entries(baseLayout(width, height))) {
+      stage.style[key] = value + 'px';
+    }
+  }
+  new ResizeObserver(([entry]) => resizeStage(entry.contentRect)).observe(shell);
 
   const details = element('dialog', 'panel base-details');
   details.setAttribute('aria-labelledby', 'base-details-title');
@@ -87,7 +90,7 @@ export function createBaseScreen(progress) {
   let mask;
   let scene = progress.base();
   const plots = BASE_PLOTS.map((id, index) => {
-    const [x, y, width, height] = positions[index];
+    const [x, y, width, height] = BASE_POSITIONS[index];
     const control = button(undefined, () => openPlot(id), 'base-plot');
     control.setAttribute('aria-haspopup', 'dialog');
     control.style.setProperty('--plot-x', x + '%');
@@ -215,5 +218,6 @@ export function createBaseScreen(progress) {
   return () => {
     update();
     dialog.showModal();
+    resizeStage(shell.getBoundingClientRect());
   };
 }

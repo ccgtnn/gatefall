@@ -3,6 +3,7 @@ import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=flagship-art-2';
 import { copyLimit, PRESETS } from './decks.js?v=flagship-art-2';
 
 export const STARTING_KEYS = 25;
+export const STARTING_GOLD = 1000;
 export const STARTING_ESSENCE = 800;
 export const BOOSTER_PRICE = 100;
 export const BOOSTER_SIZE = 5;
@@ -370,30 +371,32 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
   const listeners = new Set();
   const starter = starterCards(PRESETS);
   const legacy = starterCards(legacyDecks);
-  let saved = {};
+  let saved = null;
 
   function read() {
     if (storage) {
-      try { saved = JSON.parse(storage.getItem(REWARD_STORAGE_KEY)) ?? {}; } catch {}
+      try { saved = JSON.parse(storage.getItem(REWARD_STORAGE_KEY)); } catch {}
     }
+    const snapshot = saved ?? {};
     return {
-      progress: readProgress(saved.unlocked),
-      legacy: saved.legacy ?? legacy,
-      purchased: countsFor(pools.keys(), saved.purchased),
-      opened: countsFor(pools.keys(), saved.opened),
-      earnedCards: countsFor(definitions.keys(), saved.earnedCards),
-      dismantledCards: countsFor(definitions.keys(), saved.dismantledCards),
-      dismantlingEssence: count(saved.dismantlingEssence),
-      essenceSpent: count(saved.essenceSpent),
-      goldSpent: count(saved.goldSpent),
-      base: readBase(saved.base),
-      pendingPack: readPack(saved.pendingPack),
+      startingGold: saved === null ? STARTING_GOLD : count(snapshot.startingGold),
+      progress: readProgress(snapshot.unlocked),
+      legacy: snapshot.legacy ?? legacy,
+      purchased: countsFor(pools.keys(), snapshot.purchased),
+      opened: countsFor(pools.keys(), snapshot.opened),
+      earnedCards: countsFor(definitions.keys(), snapshot.earnedCards),
+      dismantledCards: countsFor(definitions.keys(), snapshot.dismantledCards),
+      dismantlingEssence: count(snapshot.dismantlingEssence),
+      essenceSpent: count(snapshot.essenceSpent),
+      goldSpent: count(snapshot.goldSpent),
+      base: readBase(snapshot.base),
+      pendingPack: readPack(snapshot.pendingPack),
     };
   }
 
   function balances({ progress, legacy, purchased, opened, earnedCards, dismantledCards, dismantlingEssence,
-    essenceSpent, goldSpent, pendingPack }) {
-    let gold = 0;
+    essenceSpent, goldSpent, startingGold, pendingPack }) {
+    let gold = startingGold;
     let essence = STARTING_ESSENCE + dismantlingEssence;
     const boosters = Object.fromEntries(BOOSTER_FACTIONS.map(({ id }) => [id, purchased[id] - opened[id]]));
     for (const { faction, nodes } of chapters) {

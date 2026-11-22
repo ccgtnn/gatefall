@@ -137,6 +137,14 @@ test('wallet instances share a lock and both openings survive concurrent writes'
   assert.deepEqual(first.get(), { keys: 23, unlocked: new Set(['growth:signal', 'neutral:signal']) });
 });
 
+test('a fresh wallet starts with 1000 gold and keeps its balance after spending and reopening', async () => {
+  const storage = localStorage();
+  const wallet = createRewardProgress(storage);
+  assert.equal(wallet.inventory().gold, 1000);
+  assert.equal(await wallet.buyPack('growth'), 'done');
+  assert.equal(createRewardProgress(storage).inventory().gold, 900);
+});
+
 test('already opened rewards fund the shop once and persist a faction booster purchase', async () => {
   const storage = localStorage();
   storage.setItem(REWARD_STORAGE_KEY, JSON.stringify({ unlocked: [
