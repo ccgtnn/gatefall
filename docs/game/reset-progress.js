@@ -1,4 +1,4 @@
-import { REWARD_STORAGE_KEY } from './rewards.js?v=orbital-strike-1';
+import { REWARD_STORAGE_KEY } from './rewards.js?v=orbital-art-1';
 
 export async function resetProgress(storage, locks) {
   function clearGameData() {

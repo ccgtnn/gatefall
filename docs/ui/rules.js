@@ -1,5 +1,5 @@
 import { dialogClose } from './resources.js?v=interface-polish-1';
-import { KEYWORDS } from '../game/cards.js?v=orbital-strike-1';
+import { KEYWORDS } from '../game/cards.js?v=orbital-art-1';
 import { element } from './dom.js?v=opponent-reveal-1';
 
 export function bindRulesMenu() {

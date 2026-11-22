@@ -1,5 +1,5 @@
-import { recordCategoryPlay, spendResilience } from './game/board.js?v=orbital-strike-1';
-import { ROWS } from './game/cards.js?v=orbital-strike-1';
+import { recordCategoryPlay, spendResilience } from './game/board.js?v=orbital-art-1';
+import { ROWS } from './game/cards.js?v=orbital-art-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;

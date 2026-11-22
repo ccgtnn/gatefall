@@ -1,4 +1,4 @@
-import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=orbital-strike-1';
+import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=orbital-art-1';
 
 export const MIN_CARDS = 25;
 export const MIN_UNITS = 13;
