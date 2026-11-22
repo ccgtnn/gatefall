@@ -105,23 +105,26 @@ test('the remaining Mystic Golem bolts dissipate when the chosen row is cleared'
   assert.equal(findUnit(result, 'other-row').card.power, 20);
 });
 
-test('Imperial Golem gains 5 plus its owner’s current match count when its last armor is lost', () => {
-  const attack = (id, amount) => createCard(id, { id, name: id, type: 'effect',
-    deploy: { steps: [{ action: 'damage', target: { scope: 'enemy', type: 'unit', definitionId: 'imperial-golem' }, amount }] } });
-  let match = fixture();
-  const imperial = FACTIONS.protectorate.pool.find(({ id }) => id === 'imperial-golem');
-  match.players.human.hand = [createCard('imperial-golem', imperial), card('old-golem')];
-  match.players.bot.hand = [attack('first-hit', 4), attack('second-hit', 1)];
-  match.players.bot.categoryPlays = { 'Голем': 8 };
+test('Statue of the Emperor grants both stats to adjacent units for prior friendly Golem plays', () => {
+  const statue = FACTIONS.protectorate.pool.find(({ id }) => id === 'imperial-golem');
+  for (const earlier of [0, 2]) {
+    const match = fixture();
+    match.players.human.hand = [createCard(statue.id, statue)];
+    match.players.human.categoryPlays = { 'Голем': earlier };
+    match.players.bot.categoryPlays = { 'Голем': 8 };
+    match.players.human.board.orbit = ['distant', 'left', 'right'].map((id) => createCard(id, sentinel));
+    match.players.human.board.surface = [createCard('other-row', sentinel)];
+    match.players.bot.board.orbit = [createCard('enemy', sentinel)];
 
-  match = finish(play(match, 'imperial-golem'), 'human');
-  assert.equal(findUnit(match, 'imperial-golem').card.armor, 5);
-  match = play(match, 'first-hit');
-  assert.equal(findUnit(match, 'imperial-golem').card.armor, 1);
-  assert.equal(findUnit(match, 'imperial-golem').card.power, 5);
-  match = finish(play(match, 'old-golem'), 'human');
-  match = play(match, 'second-hit');
-  assert.equal(findUnit(match, 'imperial-golem').card.armor, 0);
-  assert.equal(findUnit(match, 'imperial-golem').card.power, 12);
-  assert.equal(match.log.findLast(({ type, cardId }) => type === 'boost' && cardId === 'imperial-golem').amount, 7);
+    const result = applyAction(match, 'human', { type: 'play', cardId: statue.id, row: 'orbit', position: 2 });
+    const stats = (id) => {
+      const { power, armor } = findUnit(result, id).card;
+      return [power, armor];
+    };
+    assert.deepEqual(stats(statue.id), [6, 2]);
+    assert.deepEqual(stats('left'), [21 + earlier, 1 + earlier]);
+    assert.deepEqual(stats('right'), [21 + earlier, 1 + earlier]);
+    for (const id of ['distant', 'other-row', 'enemy']) assert.deepEqual(stats(id), [20, 0]);
+    assert.equal(result.players.human.categoryPlays['Голем'], earlier + 1);
+  }
 });

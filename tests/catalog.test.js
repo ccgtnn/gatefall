@@ -14,8 +14,8 @@ test('catalog searches both name and card text, ignoring case and ё spelling', 
   assert.deepEqual(ids({ query: 'неттакойкарты' }), []);
 });
 
-test('all 24 gold cards are included and catalog filters combine across factions', () => {
-  assert.equal(ids({ rarity: 'gold' }).length, 24);
+test('all 25 gold cards are included and catalog filters combine across factions', () => {
+  assert.equal(ids({ rarity: 'gold' }).length, 25);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'artifact', category: 'Пустота', provision: '19' }),
     ['falura']);
   assert.deepEqual(ids({ faction: 'growth', rarity: 'gold', type: 'artifact', category: 'Пустота', provision: '19' }), []);
@@ -28,7 +28,8 @@ test('all 24 gold cards are included and catalog filters combine across factions
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'epic', type: 'unit', category: 'Голем', provision: '9' }),
     ['fire-golem', 'sleeping-mountain', 'old-golem']);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', category: 'Голем', provision: '10' }), ['mystic-golem']);
-  assert.deepEqual(ids({ faction: 'protectorate', rarity: 'epic', category: 'Голем', provision: '8' }), ['imperial-golem']);
+  assert.deepEqual(ids({ faction: 'protectorate', rarity: 'gold', category: 'Голем', provision: '9' }), ['imperial-golem']);
+  assert.deepEqual(ids({ query: 'Статуя Императора' }), ['imperial-golem']);
 });
 
 test('catalog sorts by increasing provision, alphabetically, or by decreasing printed power', () => {

@@ -63,7 +63,7 @@ const armorRemoved = { result: 'armor' };
 const victimPower = { stat: 'power', ref: 'victim' };
 const salvoDamage = { row: 'surface', then: 5, otherwise: 3 };
 const golemDamage = { playedCategory: 'Голем', base: 4, scale: 1 };
-const imperialGolemBoost = { playedCategory: 'Голем', base: 5, scale: 1 };
+const emperorStatueBonus = { playedCategory: 'Голем', base: 1, scale: 1 };
 const mountainDamage = { playedCategory: 'Голем', base: 10, scale: -1 };
 
 export const FIRST_SIGNAL = Object.freeze({
@@ -131,11 +131,11 @@ const protectorate = [
 ];
 
 const protectorateExtras = [
-  ['imperial-golem', 'Имперский голем', 8, 5,
-    'Броня 5. Уязвимость: усили себя на 5 и ещё на 1 за каждого Голема, которого ты уже разыграл в этом матче, включая эту карту.', {
-      rarity: 'epic', categories: ['Голем'], art: 'imperial-golem.webp', armor: 5,
-      events: { 'armor-break': ability([action('boost', self, imperialGolemBoost)]) },
-      keywords: ['Броня', 'Уязвимость', 'Усиление'],
+  ['imperial-golem', 'Статуя Императора', 9, 6,
+    'Броня 2. При розыгрыше: дай каждому соседнему отряду по 1 брони и 1 силы. Увеличь оба бонуса на 1 за каждого Голема, которого ты разыграл ранее в этом матче.', {
+      rarity: 'gold', categories: ['Голем'], art: 'imperial-golem.webp?v=emperor-statue-1', armor: 2,
+      deploy: ability([action('armor', adjacent, emperorStatueBonus), action('boost', adjacent, emperorStatueBonus)]),
+      keywords: ['Броня', 'Усиление', 'Соседи'],
   }],
 ];
 

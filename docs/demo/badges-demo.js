@@ -1,6 +1,6 @@
-import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=golem-reinforcements-1';
-import { basePower, createCard, isUnit, statusCount } from '../game/board.js?v=golem-reinforcements-1';
-import { cardArt, decorateCard, showCard } from '../ui/cards.js?v=golem-reinforcements-1';
+import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=emperor-statue-1';
+import { basePower, createCard, isUnit, statusCount } from '../game/board.js?v=emperor-statue-1';
+import { cardArt, decorateCard, showCard } from '../ui/cards.js?v=emperor-statue-1';
 import { button, element, setCardRarity } from '../ui/dom.js?v=opponent-reveal-1';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';

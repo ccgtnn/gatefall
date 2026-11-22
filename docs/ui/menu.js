@@ -1,6 +1,6 @@
 import { button, element, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROW_LABELS } from '../game/cards.js?v=golem-reinforcements-1';
-import { cardButton, showCard } from './cards.js?v=golem-reinforcements-1';
+import { ROW_LABELS } from '../game/cards.js?v=emperor-statue-1';
+import { cardButton, showCard } from './cards.js?v=emperor-statue-1';
 
 export function roundText(event) {
   const { scores, winner } = event;

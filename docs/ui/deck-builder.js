@@ -1,7 +1,7 @@
-import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=golem-reinforcements-1';
-import { createCard } from '../game/board.js?v=golem-reinforcements-1';
-import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=golem-reinforcements-1';
-import { addCardCrop, cardButton } from './cards.js?v=golem-reinforcements-1';
+import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=emperor-statue-1';
+import { createCard } from '../game/board.js?v=emperor-statue-1';
+import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=emperor-statue-1';
+import { addCardCrop, cardButton } from './cards.js?v=emperor-statue-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { factionFilters } from './faction-filters.js?v=1';
 import { availabilityOptions, matchesAvailability } from './catalog-cards.js?v=collection-2';

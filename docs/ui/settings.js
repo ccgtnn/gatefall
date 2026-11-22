@@ -1,6 +1,6 @@
-import { bindRulesMenu } from './rules.js?v=golem-reinforcements-1';
+import { bindRulesMenu } from './rules.js?v=emperor-statue-1';
 import { createSoundEffects, DEFAULT_VOLUME } from '../sound.js?v=step-10-volume';
-import { motionDuration } from '../turn-playback.js?v=golem-reinforcements-1';
+import { motionDuration } from '../turn-playback.js?v=emperor-statue-1';
 
 export function createSettings(app, onLeave) {
   const settings = document.querySelector('#settings');
