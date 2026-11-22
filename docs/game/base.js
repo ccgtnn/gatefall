@@ -1,5 +1,6 @@
+// Plot order is also the drawing order, from farthest to nearest.
 export const BASE_PLOTS = Object.freeze(['1', '2', '3', '4', '5', '6']);
-export const BUILDING_BY_PLOT = Object.freeze({ '5': 'tavern' });
+export const BUILDING_BY_PLOT = Object.freeze({ '2': 'mine', '5': 'tavern' });
 export const MATERIALS = Object.freeze({
   steel: 'Сталь',
   energyCells: 'Энергоячейки',
@@ -7,6 +8,12 @@ export const MATERIALS = Object.freeze({
 });
 export const STARTING_MATERIALS = Object.freeze({ steel: 200, energyCells: 100, gateShards: 5 });
 export const BUILDINGS = Object.freeze({
+  mine: Object.freeze({
+    name: 'Шахта',
+    description: 'Подъёмник доставляет руду из глубины ущелья.',
+    cost: Object.freeze({ gold: 400, steel: 100, energyCells: 50 }),
+    effect: 'Добыча Стали — скоро',
+  }),
   tavern: Object.freeze({
     name: 'Таверна',
     description: 'Место встречи командиров и наёмников. На первом уровне открывает один слот ежедневных заданий.',

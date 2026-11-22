@@ -1,5 +1,5 @@
-import { BASE_OVERLAYS, BASE_POSITIONS, baseLayout, overlayStyle } from './base-layout.js?v=tavern-overlay-1';
-import { BASE_PLOTS, BUILDING_BY_PLOT, BUILDINGS, MATERIALS, constructionShortages } from '../game/base.js?v=tavern-overlay-1';
+import { BASE_OVERLAYS, BASE_POSITIONS, baseLayout, overlayStyle } from './base-layout.js?v=base-mine-1';
+import { BASE_PLOTS, BUILDING_BY_PLOT, BUILDINGS, MATERIALS, constructionShortages } from '../game/base.js?v=base-mine-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { dialogClose, sectionDialog } from './resources.js?v=interface-polish-1';
 import { resourceIcon } from './resource-icon.js?v=1';
@@ -171,10 +171,10 @@ export function createBaseScreen(progress) {
     if (building) {
       const definition = BUILDINGS[building.kind];
       title.textContent = definition.name;
-      const slots = definition.dailySlots[building.level - 1];
+      const slots = definition.dailySlots?.[building.level - 1];
       body.replaceChildren(element('strong', null, 'Уровень ' + building.level),
         element('p', null, definition.description),
-        element('p', null, 'Ежедневные задания — скоро' + (slots ? ' · Слотов: ' + slots : '')));
+        element('p', null, definition.effect ?? ('Ежедневные задания — скоро' + (slots ? ' · Слотов: ' + slots : ''))));
       return;
     }
     const kind = BUILDING_BY_PLOT[selected];

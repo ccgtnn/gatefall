@@ -1,4 +1,4 @@
-import { BUILDING_BY_PLOT, BUILDINGS, constructionShortages, creditMaterials, readBase } from './base.js?v=tavern-overlay-1';
+import { BUILDING_BY_PLOT, BUILDINGS, constructionShortages, creditMaterials, readBase } from './base.js?v=base-mine-1';
 import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=flagship-art-2';
 import { copyLimit, PRESETS } from './decks.js?v=flagship-art-2';
 

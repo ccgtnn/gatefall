@@ -22,15 +22,16 @@ for (const [viewportWidth, viewportHeight] of [
   });
 }
 
-test('the Tavern patch and hit mask use the same artwork coordinates at any scale', () => {
-  const { rect } = BASE_OVERLAYS[5];
-  const style = overlayStyle(rect);
-  for (const [viewportWidth, viewportHeight] of [[1920, 1080], [844, 390], [390, 844]]) {
-    const { width, height } = baseLayout(viewportWidth, viewportHeight);
-    const pixels = [style.left, style.top, style.width, style.height]
-      .map((percent, index) => parseFloat(percent) / 100 * (index % 2 ? height : width));
-    for (const [index, value] of pixels.entries()) {
-      assert.ok(Math.abs(value - rect[index] * width / 1536) < .001);
+for (const [plot, { rect }] of Object.entries(BASE_OVERLAYS)) {
+  test(`plot ${plot} art and hit mask use the same coordinates at any scale`, () => {
+    const style = overlayStyle(rect);
+    for (const [viewportWidth, viewportHeight] of [[1920, 1080], [844, 390], [390, 844]]) {
+      const { width, height } = baseLayout(viewportWidth, viewportHeight);
+      const pixels = [style.left, style.top, style.width, style.height]
+        .map((percent, index) => parseFloat(percent) / 100 * (index % 2 ? height : width));
+      for (const [index, value] of pixels.entries()) {
+        assert.ok(Math.abs(value - rect[index] * width / 1536) < .001);
+      }
     }
-  }
-});
+  });
+}

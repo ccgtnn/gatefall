@@ -8,8 +8,13 @@ const artworkWidth = 1536;
 const artworkHeight = 858;
 // Overlay and silhouette share this rectangle in original artwork pixels.
 export const BASE_OVERLAYS = {
+  2: {
+    image: './art/base-mine-overlay.webp',
+    silhouette: './art/base-mine-silhouette.webp',
+    rect: [925, 105, 340, 413],
+  },
   5: {
-    image: './art/base-tavern-overlay.webp',
+    image: './art/base-tavern-overlay.webp?v=base-mine-1',
     silhouette: './art/base-tavern-silhouette.webp',
     rect: [936, 254, 496, 428],
   },

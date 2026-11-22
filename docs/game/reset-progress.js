@@ -1,4 +1,4 @@
-import { REWARD_STORAGE_KEY } from './rewards.js?v=tavern-overlay-1';
+import { REWARD_STORAGE_KEY } from './rewards.js?v=base-mine-1';
 
 export async function resetProgress(storage, locks) {
   function clearGameData() {
