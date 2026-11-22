@@ -1,5 +1,5 @@
-import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=reward-routes-1';
-import { copyLimit, PRESETS } from './decks.js?v=reward-routes-1';
+import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=frontier-routes-1';
+import { copyLimit, PRESETS } from './decks.js?v=frontier-routes-1';
 
 export const STARTING_KEYS = 25;
 export const STARTING_ESSENCE = 800;
@@ -87,14 +87,63 @@ const layouts = {
   },
 };
 
+// The longer chapters award some keys along the way to fund later stops.
+const frontier = {
+  'debris-belt': {
+    columns: [[0], [null, 21], [1], [22, null], [2], [3, null, null, 7],
+      [null, 23, null, 25], [4, null, 8, null], [null, 24, null, 9],
+      [5, null, 26, null], [6, null, null, 10], [27], [null, 11, null, 16],
+      [12, null, 17, null], [13, null, null, 18], [null, 14, 19, null],
+      [15, null, null, 28], [20]],
+    paths: [[0, 21, 1, 22, 2, 3, 23, 4, 24, 5, 6, 27, 11, 12, 13, 14, 15, 20],
+      [2, 7, 25, 8, 9, 26, 10, 27, 16, 17, 18, 19, 28, 20], [4, 9], [12, 18]],
+    rewards: [
+      ['drift-cache', 1, 'Тайник в обшивке', 'gold', 45, 8],
+      ['scrap-bin', 1, 'Кладовая сборщиков', 'essence', 35],
+      ['rescue-locker', 2, 'Шкаф спасателей', 'booster', 1, 6],
+      ['lost-manifest', 3, 'Утерянная ведомость', 'gold-stack', 150],
+      ['smuggler-cache', 2, 'Тайник контрабандистов', 'essence', 50, 6],
+      ['silent-beacon', 3, 'Безмолвный маяк', 'booster', 1],
+      ['salvage-hub', 5, 'Биржа обломков', 'gold-stack', 240, 18],
+      ['drift-banner', 5, 'Знамя пустотников', 'card-back', 'Знамя пустотников'],
+    ],
+  },
+  'border-station': {
+    columns: [[0], [21, null], [null, 1], [2], [null, 22], [3, null, 7],
+      [null, 4, null, 8], [23, null, 9, null], [5, null, null, 24],
+      [null, 6, 10, null], [null, 11], [25], [12, null], [13, null, null, 16],
+      [null, 26, 17, null], [null, 14, null, 18], [27, null, 19], [15, null, 20]],
+    paths: [[0, 21, 1, 2, 22, 3, 4, 23, 5, 6, 11, 25, 12, 13, 26, 14, 27, 15],
+      [22, 7, 8, 9, 24, 10, 11], [12, 16, 17, 18, 19, 20], [4, 9], [26, 18]],
+    rewards: [
+      ['recon-cache', 1, 'Запас разведчиков', 'gold', 50, 8],
+      ['escort-dock', 2, 'Шлюз эскорта', 'booster', 1, 5],
+      ['encrypted-log', 2, 'Шифрованный журнал', 'essence', 50],
+      ['reserve-warehouse', 3, 'Резервный склад', 'gold-stack', 150],
+      ['dispatch-center', 4, 'Диспетчерский узел', 'booster', 2, 19],
+      ['customs-lockbox', 4, 'Сейф таможни', 'essence', 75],
+      ['bastion-deck', 5, 'Палуба бастиона', 'battlefield', 'Палуба бастиона'],
+    ],
+  },
+};
+
 function chapter(id, title, faction, rewards, image = faction.image) {
-  const { columns, paths } = layouts[id];
-  const fullId = (index) => id + ':' + stops[index][0];
+  const extension = frontier[id];
+  const { columns, paths } = extension ?? layouts[id];
+  const fullId = (stop) => id + ':' + stop;
   const nodes = stops.map(([stop, legacyParent, cost], index) => {
     const [label, kind, value] = rewards[index];
-    return { id: id + ':' + stop, legacyParent: legacyParent ? id + ':' + legacyParent : null,
+    return { id: fullId(stop), legacyParents: legacyParent ? [fullId(legacyParent)] : [],
       parents: [], finale: true, cost, label, kind, value };
   });
+  if (extension) {
+    for (const path of layouts[id].paths) {
+      for (let i = 1; i < path.length; i++) nodes[path[i]].legacyParents.push(nodes[path[i - 1]].id);
+    }
+    for (const [stop, cost, label, kind, value, keyReward = 0] of extension.rewards) {
+      nodes.push({ id: fullId(stop), legacyParents: [], parents: [], finale: true, cost, label, kind, value, keyReward });
+    }
+  }
   columns.forEach((column, x) => column.forEach((index, y) => {
     if (index === null) return;
     nodes[index].x = 6 + 88 * x / (columns.length - 1);
@@ -102,13 +151,13 @@ function chapter(id, title, faction, rewards, image = faction.image) {
   }));
   for (const path of paths) {
     for (let index = 1; index < path.length; index++) {
-      const parent = path[index - 1];
+      const parent = nodes[path[index - 1]];
       const child = nodes[path[index]];
-      if (!child.parents.includes(fullId(parent))) child.parents.push(fullId(parent));
-      nodes[parent].finale = false;
+      if (!child.parents.includes(parent.id)) child.parents.push(parent.id);
+      parent.finale = false;
     }
   }
-  return { id, title, faction: faction.id, image, nodes };
+  return { id, title, faction: faction.id, image, nodes, tall: Boolean(extension) };
 }
 
 const [protectorate, growth, neutral] = BOOSTER_FACTIONS;
@@ -252,9 +301,9 @@ function readProgress(ids) {
   if (Array.isArray(ids)) {
     for (const id of ids) {
       const node = nodesById.get(id);
-      if (!node || unlocked.has(id) || node.cost > keys || (!routeOpen(node, unlocked) && !unlocked.has(node.legacyParent))) continue;
+      if (!node || unlocked.has(id) || node.cost > keys || (!routeOpen(node, unlocked) && !node.legacyParents.some((parent) => unlocked.has(parent)))) continue;
       unlocked.add(id);
-      keys -= node.cost;
+      keys += (node.keyReward ?? 0) - node.cost;
     }
   }
   return { keys, unlocked };

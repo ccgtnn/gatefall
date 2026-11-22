@@ -1,4 +1,4 @@
-import { KEYWORDS } from '../game/cards.js?v=reward-routes-1';
+import { KEYWORDS } from '../game/cards.js?v=frontier-routes-1';
 import { element } from './dom.js?v=opponent-reveal-1';
 
 export function bindRulesMenu() {

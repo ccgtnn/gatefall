@@ -1,5 +1,5 @@
-import { recordCategoryPlay, spendResilience } from './game/board.js?v=reward-routes-1';
-import { ROWS } from './game/cards.js?v=reward-routes-1';
+import { recordCategoryPlay, spendResilience } from './game/board.js?v=frontier-routes-1';
+import { ROWS } from './game/cards.js?v=frontier-routes-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;

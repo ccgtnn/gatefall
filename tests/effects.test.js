@@ -59,7 +59,7 @@ test('each selectable deck has unique instances and legal card quantities', () =
     assert.equal(cards.length, faction.deck.length);
     assert.equal(new Set(cards.map(({ id }) => id)).size, cards.length);
     assert.equal(cards.filter(({ definition }) => definition.faction === NEUTRAL).length, key === 'protectorate' ? 6 : 5);
-    assert.equal(cards.filter(({ definition }) => definition.rarity === 'gold').length, key === 'protectorate' ? 6 : 7);
+    assert.equal(cards.filter(({ definition }) => definition.rarity === 'gold').length, key === 'protectorate' ? 6 : 5);
     for (const { definition } of cards) {
       assert.equal('row' in definition, false);
       assert.ok(definition.provision >= 4);
@@ -584,7 +584,8 @@ test('printed stats, titles and rarity match the approved balance', () => {
     colonel: { name: 'Октавиан Рейн', rarity: 'gold', provision: 10 },
     commander: { name: 'Кассия Фульмина', rarity: 'epic', provision: 8 },
     'shield-overload': { provision: 12 }, cocoon: { power: 3 }, 'spore-sac': { provision: 4, power: 4 },
-    scavenger: { power: 3, zeal: true }, gulper: { power: 4 }, ravager: { provision: 9 },
+    scavenger: { power: 3, zeal: true }, gulper: { power: 4 }, ravager: { provision: 9, power: 4, rarity: 'epic' },
+    nest: { provision: 9, power: 3, rarity: 'epic' },
     colossus: { power: 5 }, 'recon-drone': { power: 4 }, 'gate-guardian': { armor: 4 },
     'gravity-pulse': { provision: 7 },
   };

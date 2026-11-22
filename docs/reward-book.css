@@ -248,3 +248,7 @@
 @media (orientation: landscape) and (max-width: 1050px) and (max-height: 550px) {
   .reward-plot { height: clamp(14rem, 65dvh, 20rem); }
 }
+
+.reward-page-tall .reward-scroll-tip { display: block; }
+.reward-page-tall .reward-chart { max-height: clamp(11rem, 60dvh, 38rem); }
+.reward-page-tall .reward-plot { min-width: 76rem; height: 42rem; }

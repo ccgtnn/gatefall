@@ -178,11 +178,11 @@ const growth = [
     { art: 'swarm-call.webp', categories: ['Выводок'], type: 'effect', deploy: ability([{ action: 'play-from-deck',
       filter: { rarity: 'bronze', faction: 'growth' }, after: spawn('right') }]), keywords: ['Порождение'] }],
   ['nest', 'Гнездо-мать', 9, 3, 'В конце хода: породить по личинке в каждом своём ряду.',
-    { art: 'nest.webp?v=art-25', categories: ['Выводок'], endTurn: ability([spawn('right', 'all')]), keywords: ['Порождение'] }],
+    { rarity: 'epic', art: 'nest.webp?v=art-25', categories: ['Выводок'], endTurn: ability([spawn('right', 'all')]), keywords: ['Порождение'] }],
   ['colossus', 'Колосс', 11, 5, 'При розыгрыше: поглотить всех своих соседей.',
     { art: 'colossus.webp?v=art-25', categories: ['Выводок'], deploy: ability([absorb(adjacent)]), keywords: ['Соседи', 'Поглощение'] }],
   ['ravager', 'Выводок-разоритель', 9, 4, 'При розыгрыше: поглотить свой отряд и нанести урон врагу в размере силы жертвы.',
-    { art: 'ravager.webp?v=art-25', categories: ['Выводок'], deploy: ability([
+    { rarity: 'epic', art: 'ravager.webp?v=art-25', categories: ['Выводок'], deploy: ability([
       absorb(chosen('victim'), { multiplier: 0, save: 'strength' }),
       action('damage', chosen('enemy'), { result: 'strength' }),
     ], [

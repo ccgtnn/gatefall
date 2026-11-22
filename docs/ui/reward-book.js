@@ -1,5 +1,5 @@
 import { button, element } from './dom.js?v=opponent-reveal-1';
-import { REWARD_SECTIONS, rewardState } from '../game/rewards.js?v=booster-rarity-1';
+import { REWARD_SECTIONS, rewardState } from '../game/rewards.js?v=frontier-routes-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 import { sectionDialog } from './resources.js?v=compact-nav-1';
 
@@ -100,15 +100,16 @@ export function createRewardBook(progress) {
 
   function drawPage() {
     const state = progress.get();
-    const { faction, title, image, nodes } = activeChapter;
+    const { faction, title, image, nodes, tall } = activeChapter;
     message.textContent = '';
     selected = undefined;
     current.dataset.faction = faction;
+    current.classList.toggle('reward-page-tall', tall);
     const chart = element('div', 'reward-chart');
     chart.tabIndex = 0;
     chart.setAttribute('role', 'region');
     chart.setAttribute('aria-label', 'Маршруты · ' + title);
-    const tip = element('p', 'reward-scroll-tip', 'Карту можно листать в стороны.');
+    const tip = element('p', 'reward-scroll-tip', tall ? 'Карту можно двигать в стороны и вверх-вниз.' : 'Карту можно листать в стороны.');
     tip.id = 'reward-scroll-tip';
     chart.setAttribute('aria-describedby', tip.id);
     const plot = element('div', 'reward-plot');
@@ -191,7 +192,7 @@ export function createRewardBook(progress) {
     kind.textContent = selected.finale ? 'Главная награда · ' + kindLabel : kindLabel;
     label.textContent = selected.label;
     value.textContent = typeof selected.value === 'string' ? '' : '×' + selected.value;
-    description.textContent = descriptionText;
+    description.textContent = selected.keyReward ? `${descriptionText} Бонус: +${selected.keyReward} ключей.` : descriptionText;
     const requirements = activeChapter.nodes.filter((node) => selected.parents.includes(node.id));
     const names = requirements.map((node) => `«${node.label}»`).join(' или ');
     status.textContent = availability === 'locked' ? `Сначала открой ${names}.`
@@ -210,6 +211,7 @@ export function createRewardBook(progress) {
     busy = false;
     refresh();
     message.textContent = outcome === 'opened' ? `Открыто: ${node.label}. Потрачено ключей: ${node.cost}.`
+      + (node.keyReward ? ` Получено ключей: ${node.keyReward}.` : '')
       : outcome === 'unavailable' ? 'Не удалось сохранить открытие. Ключи не потрачены.' : stateLabels[outcome] ?? '';
     if (outcome === 'unavailable' && node === selected) status.textContent = message.textContent;
   }
