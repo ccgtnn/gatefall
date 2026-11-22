@@ -222,8 +222,8 @@ const growth = [
       ...ability([absorb(chosen('victim'))],
         [choice('victim', otherAlly, 'Выбери другой свой отряд для поглощения.', { kind: 'consume' })]),
     }, keywords: ['Рвение', 'Приказ', 'Поглощение'] }],
-  ['gulper', 'Глотатель', 6, 4, 'При розыгрыше: поглотить все личинки в своём ряду.',
-    { art: 'gulper.webp?v=3', categories: ['Выводок'], deploy: ability([absorb({ ...larvae, row: 'source' })]), keywords: ['Поглощение'] }],
+  ['gulper', 'Пожиратель личинок', 6, 4, 'При розыгрыше: поглотить все личинки в своём ряду.',
+    { art: 'gulper.webp?v=larva-devourer-1', categories: ['Выводок'], deploy: ability([absorb({ ...larvae, row: 'source' })]), keywords: ['Поглощение'] }],
   ['spitter', 'Кислотный плевун', 5, 3, 'При розыгрыше: поглотить свою личинку и наложить Заражение 3 на выбранный вражеский отряд. Приказ: наложить Заражение 3 на выбранный вражеский отряд. Перезарядка: 2 хода.',
     { art: 'spitter.webp?v=3', categories: ['Гниль'], deploy: ability([absorb(chosen('victim')), infect(chosen('enemy'), 3)], [
       choice('victim', larvae, 'Выбери личинку для поглощения.', { kind: 'consume' }), infectionChoice(3),

@@ -1,4 +1,4 @@
-import { inspectDeck, PRESETS } from '../game/decks.js?v=rebirth-1';
+import { inspectDeck, PRESETS } from '../game/decks.js?v=larva-devourer-1';
 
 const STORAGE_KEY = 'gatefall.decks';
 const RECENT_KEY = 'gatefall.recent-decks';

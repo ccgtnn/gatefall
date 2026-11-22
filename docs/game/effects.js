@@ -1,10 +1,10 @@
 import { deathwishDefinitions, deathwishJobs, emit } from './events.js?v=rebirth-1';
-import { ROWS, ROW_LABELS } from './cards.js?v=rebirth-1';
+import { ROWS, ROW_LABELS } from './cards.js?v=larva-devourer-1';
 import {
   activeOrder, announcePlay, applyStatus, availableRows, boost, cardType, consume, damage, damageOverflow, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, restoreCard, ROW_LIMIT,
   setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, infectionDamage, units,
-} from './board.js?v=rebirth-1';
+} from './board.js?v=larva-devourer-1';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);

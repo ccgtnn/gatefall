@@ -1,7 +1,7 @@
-import { createCard } from '../game/board.js?v=rebirth-1';
-import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=rebirth-1';
-import { BOOSTER_FACTIONS, BOOSTER_PRICE } from '../game/rewards.js?v=rebirth-1';
-import { cardButton, showCard } from './cards.js?v=rebirth-1';
+import { createCard } from '../game/board.js?v=larva-devourer-1';
+import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=larva-devourer-1';
+import { BOOSTER_FACTIONS, BOOSTER_PRICE } from '../game/rewards.js?v=larva-devourer-1';
+import { cardButton, showCard } from './cards.js?v=larva-devourer-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 import { sectionDialog } from './resources.js?v=interface-polish-1';

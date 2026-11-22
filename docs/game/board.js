@@ -1,4 +1,4 @@
-import { ROWS } from './cards.js?v=rebirth-1';
+import { ROWS } from './cards.js?v=larva-devourer-1';
 import { emit } from './events.js?v=rebirth-1';
 
 export const ROW_LIMIT = 9;
