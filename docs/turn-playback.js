@@ -1,5 +1,5 @@
-import { recordCardPlay, spendResilience } from './game/board.js?v=helper-robot-1';
-import { ROWS } from './game/cards.js?v=helper-robot-1';
+import { recordCardPlay, spendResilience } from './game/board.js?v=robot-violet-1';
+import { ROWS } from './game/cards.js?v=robot-violet-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;
