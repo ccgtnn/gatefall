@@ -5,7 +5,7 @@ import { dialogClose } from './resources.js?v=interface-polish-1';
 
 export function createBaseGrid(shell, progress, labels, materialIcon) {
   const toolbar = element('div', 'base-production-toolbar');
-  const collectAll = button('Собрать всё', () => collect(), 'button primary');
+  const collectAll = button('Собрать всё', () => collect());
   toolbar.append(collectAll);
   const grid = element('section', 'base-grid');
   grid.setAttribute('aria-label', 'Здания');
@@ -146,7 +146,7 @@ export function createBaseGrid(shell, progress, labels, materialIcon) {
       const bundle = element('p', 'base-production-output');
       const cooldown = element('p', 'base-production-output');
       const claimButton = button('Получить', () => claim(() => progress.claimOutpost(),
-        'Еженедельный бонус получен.', 'Еженедельный бонус пока недоступен.'), 'button');
+        'Еженедельный бонус получен.', 'Еженедельный бонус пока недоступен.'), 'button primary');
       const hour = 3_600_000;
       panel.append(title, bundle, cooldown, claimButton);
       info.append(panel);

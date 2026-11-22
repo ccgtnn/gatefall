@@ -142,15 +142,16 @@
 }
 
 #base-screen.base-screen-grid {
+  --base-grid-top: calc(var(--section-content-top) + .9rem);
   background: linear-gradient(#0e172474, #0e1724a8), url('./art/base-landscape.webp') center / cover #101925;
   background-attachment: fixed;
-  scroll-padding-block-start: var(--section-content-top);
+  scroll-padding-block-start: var(--base-grid-top);
 }
 #base-screen.base-screen-grid .reward-shell {
   width: min(100%, 90rem);
   height: auto;
   min-height: 100%;
-  padding: var(--section-content-top) max(.75rem, env(safe-area-inset-right))
+  padding: var(--base-grid-top) max(.75rem, env(safe-area-inset-right))
     max(1.5rem, env(safe-area-inset-bottom)) max(.75rem, env(safe-area-inset-left));
   margin-inline: auto;
   overflow: visible;
@@ -208,7 +209,7 @@
 .base-card-price li { display: flex; gap: .15rem; align-items: center; font-size: .85rem; }
 .base-card-price svg { width: 1rem; height: 1rem; color: #bad5f1; fill: none; stroke: currentColor; stroke-width: 1.65; }
 .base-card-actions { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: auto; padding-top: .2rem; }
-.base-card-actions .button { min-height: 2.25rem; padding: .35rem .55rem; }
+.base-card-actions .button { padding: .35rem .55rem; }
 .base-card [hidden] { display: none; }
 
 @media (max-height: 540px) and (orientation: landscape) {

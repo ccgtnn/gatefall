@@ -60,10 +60,8 @@ button:not(:disabled) { cursor: pointer; }
   font-weight: 650;
 }
 
-.button:not(:disabled):hover { background: #464646; }
+.button:is(.deck-choice, .leader-choice):not(:disabled):hover { background: #464646; }
 .button:disabled { opacity: .55; }
-.button.primary { background: #dedede; border-color: #dedede; color: #171717; }
-.button.primary:hover { background: #fff; }
 .panel { background: var(--panel); border: 1px solid var(--edge); border-radius: 5px; }
 .game { display: grid; gap: .65rem; }
 .mulligan, .hand, .finish, .journal { padding: .8rem; }
@@ -710,10 +708,7 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   display: inline-flex;
   align-items: center;
   gap: .33rem;
-  min-height: 2.25rem;
   padding: .32rem .65rem;
-  border-color: #4c5965;
-  background: #222b35;
   font-size: .85rem;
 }
 .faction-filter > svg {
@@ -721,12 +716,6 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   width: 1.18rem;
   height: 1.18rem;
   color: var(--faction-edge, #c2d9ee);
-}
-.faction-filter[aria-pressed="true"], .faction-filter[aria-pressed="true"]:hover {
-  color: var(--faction-light, #eef6ff);
-  border-color: var(--faction-edge, #c2d9ee);
-  background: var(--faction-face, #334a60);
-  box-shadow: inset 0 0 0 1px var(--faction-edge, #c2d9ee);
 }
 .catalog-filters {
   display: grid;
@@ -803,7 +792,7 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 
 #app:has(.deck-editor) { width: calc(100% - clamp(.75rem, 2vw, 2rem)); }
 .deck-editor { display: grid; gap: .5rem; }
-.deck-editor-actions > .button { min-height: 2.25rem; padding: .32rem .65rem; }
+.deck-editor-actions > .button { padding: .32rem .65rem; }
 .deck-editor-columns {
   display: grid;
   grid-template-columns: minmax(14rem, min(30%, 25rem)) minmax(0, 1fr);

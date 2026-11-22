@@ -1,0 +1,124 @@
+:root {
+  --action-duration: 170ms;
+  --action-press: 1px;
+}
+body:has(#app[data-animation-speed="fast"]) { --action-duration: 82ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  body:has(#app[data-animation-speed]) { --action-duration: 0ms; --action-press: 0px; }
+}
+
+.button:not(:where(.deck-choice, .leader-choice, .field-action)) {
+  --rim: linear-gradient(155deg, #e1c28d, #80633c 32%, #cfab6b 57%, #695134 83%, #c3a271);
+  --face: linear-gradient(180deg, #23415e, #142a45 49%, #102035 51%, #152a42);
+  --edge-light: #8edbff5c;
+  --idle-light: transparent;
+  --hover-light: #65caff9c;
+  --text: #edf6ff;
+  --corner: 8px;
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  max-inline-size: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+  filter: drop-shadow(0 0 3px var(--idle-light));
+  transition: filter var(--action-duration) ease, translate var(--action-duration) ease;
+}
+
+.button:not(:where(.deck-choice, .leader-choice, .field-action))::before,
+.button:not(:where(.deck-choice, .leader-choice, .field-action))::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  clip-path: polygon(var(--corner) 0, calc(100% - var(--corner)) 0, 100% var(--corner),
+    100% calc(100% - var(--corner)), calc(100% - var(--corner)) 100%, var(--corner) 100%,
+    0 calc(100% - var(--corner)), 0 var(--corner));
+  background: var(--rim);
+}
+.button:not(:where(.deck-choice, .leader-choice, .field-action))::after {
+  inset: 1.5px;
+  --corner: 7px;
+  background: var(--face);
+  box-shadow: inset 0 0 0 1px var(--edge-light), inset 0 0 10px #070f1870;
+  transition: box-shadow var(--action-duration) ease;
+}
+
+.button.primary:not(:where(.destructive, .field-action)) {
+  --rim: linear-gradient(135deg, #7b5025 3%, #fff2bc 20%, #9c6a33 30%, #fff1b4 47%,
+    #a2743c 64%, #f5d792 82%, #78502a);
+  --face: linear-gradient(150deg, #ffffff00 23%, #fff3ae50 42%, #fff5c080 49%, #ffffff00 68%),
+    linear-gradient(#efce85, #ddb573 48%, #ce9c56 50%, #dbb36f);
+  --edge-light: #fff3b5b5;
+  --idle-light: #ffc16455;
+  --hover-light: #ffcc67aa;
+  --text: #241605;
+}
+.button.primary:not(:where(.destructive, .field-action))::after {
+  inset: 2.5px;
+  --corner: 6px;
+}
+.button.destructive {
+  --rim: linear-gradient(150deg, #fbb1aa, #712934 55%, #e3787d);
+  --face: linear-gradient(#8d3542, #541d2b);
+  --edge-light: #ff8a8a55;
+  --hover-light: #ff777c9c;
+  --text: #fff1ed;
+}
+
+/* Reserved for the Gate challenge. The SVG is only the corner ornament. */
+.button.gate-challenge {
+  --face: url('./art/button-gate-rune.svg') 4px 4px / 10px 10px no-repeat,
+    url('./art/button-gate-rune.svg') calc(100% - 4px) 4px / 10px 10px no-repeat,
+    url('./art/button-gate-rune.svg') 4px calc(100% - 4px) / 10px 10px no-repeat,
+    url('./art/button-gate-rune.svg') calc(100% - 4px) calc(100% - 4px) / 10px 10px no-repeat,
+    repeating-linear-gradient(118deg, #eef7ff08 0 1px, transparent 1px 7px),
+    linear-gradient(155deg, #404c56, #1a2530 60%, #273746);
+  --edge-light: #7fb3e073;
+  padding-inline: 1.25rem;
+}
+
+.button[aria-pressed="true"]:not(:disabled) {
+  --edge-light: #9fdcffcf;
+  --idle-light: #73caff65;
+}
+.button:not(:where(.deck-choice, .leader-choice, .field-action, :disabled)):is(:active, :focus-visible) {
+  filter: brightness(1.14) drop-shadow(0 0 6px var(--hover-light));
+}
+.button:not(:where(.deck-choice, .leader-choice, .field-action, :disabled)):is(:active, :focus-visible)::after {
+  box-shadow: inset 0 0 0 1px var(--edge-light), inset 0 0 10px var(--hover-light);
+}
+.button:not(:where(.deck-choice, .leader-choice, .field-action, :disabled)):active {
+  translate: 0 var(--action-press);
+}
+@media (hover: hover) {
+  .button:not(:where(.deck-choice, .leader-choice, .field-action, :disabled)):hover {
+    filter: brightness(1.14) drop-shadow(0 0 6px var(--hover-light));
+  }
+  .button:not(:where(.deck-choice, .leader-choice, .field-action, :disabled)):hover::after {
+    box-shadow: inset 0 0 0 1px var(--edge-light), inset 0 0 10px var(--hover-light);
+  }
+}
+.button:not(:where(.deck-choice, .leader-choice, .field-action)):disabled {
+  filter: saturate(.25);
+  opacity: .55;
+}
+
+:is(.catalog-field, .deck-field) select {
+  border-color: #a38355;
+  background: linear-gradient(#213a55, #13253a);
+  color: #edf6ff;
+}
+:is(.catalog-field, .deck-field) select:is(:hover, :focus-visible) { border-color: #86d9ff; }
+:is(.catalog-field, .deck-field) select option { background: #13253a; }
+
+@media (any-pointer: coarse), (max-width: 950px) {
+  .button, .deck-remove, :is(.catalog-field, .deck-field) select { min-block-size: 44px; }
+  .button:not(.field-action) { min-inline-size: 44px; }
+}

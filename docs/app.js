@@ -1,4 +1,4 @@
-import { createBaseScreen } from './ui/base-screen.js?v=base-outpost-1';
+import { createBaseScreen } from './ui/base-screen.js?v=action-buttons-1';
 import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=home-base-1';
 import { createDeckStorage } from './ui/deck-storage.js?v=home-base-1';
 import { bindCardPlacement } from './card-placement.js?v=opponent-reveal-1';
@@ -16,12 +16,12 @@ import { createBattlefield } from './ui/field.js?v=flagship-art-2';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=flagship-art-2';
 import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=flagship-art-2';
 import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=base-outpost-1';
-import { createSettings } from './ui/settings.js?v=flagship-art-2';
+import { createSettings } from './ui/settings.js?v=action-buttons-1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
 import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=base-outpost-1';
-import { createRewardBook } from './ui/reward-book.js?v=base-outpost-1';
-import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=base-outpost-1';
+import { createRewardBook } from './ui/reward-book.js?v=action-buttons-1';
+import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=action-buttons-1';
 import { createResourceBar } from './ui/resources.js?v=interface-polish-1';
 import { resetProgress } from './game/reset-progress.js?v=base-outpost-1';
 

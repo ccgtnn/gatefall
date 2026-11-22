@@ -63,7 +63,7 @@ export function createRewardBook(progress) {
   const description = element('p', 'reward-description');
   const status = element('p', 'reward-status');
   status.setAttribute('role', 'status');
-  const action = button(undefined, openNode, 'button reward-action');
+  const action = button(undefined, openNode, 'button primary reward-action');
   const actionPrice = element('span');
   action.append(resourceIcon('key'), actionPrice);
   const close = dialogClose(panel, 'reward-details-close');

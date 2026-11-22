@@ -58,7 +58,7 @@ export function createBoosterShop(progress, openPacks) {
       status.textContent = outcome === 'done' ? `Куплен бустер «${page.name}».`
         : outcome === 'unaffordable' ? 'Нужно 100 золота.' : 'Не удалось сохранить покупку.';
       if (!buy.disabled && view.dialog.open) buy.focus({ preventScroll: true });
-    }, 'button booster-price');
+    }, 'button primary booster-price');
     buy.setAttribute('aria-label', `Купить бустер «${page.name}» за ${BOOSTER_PRICE} золота`);
     buy.append(resourceIcon('gold'), element('span', null, BOOSTER_PRICE));
     item.append(balance, buy);
@@ -99,7 +99,7 @@ export function createBoosterOpening(progress, openShop) {
   let animateNext = false;
   const choices = packOptions('booster-inventory-option').map(({ page, item }) => {
     const quantity = element('p', 'booster-quantity');
-    const open = button('Открыть', async () => {
+    const open = button('Открыть бустер', async () => {
       if (busy) return;
       busy = true;
       animateNext = true;
@@ -113,7 +113,7 @@ export function createBoosterOpening(progress, openShop) {
       }
       update();
       if (view.dialog.open) stage.querySelector('.booster-stage-title')?.focus();
-    }, 'button booster-open-button');
+    }, 'button primary');
     open.setAttribute('aria-label', 'Открыть бустер «' + page.name + '»');
     item.append(quantity, open);
     inventory.append(item);

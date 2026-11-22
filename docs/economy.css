@@ -83,13 +83,6 @@ body:has(#app[data-animation-speed="fast"]) { --pack-pace: .48; }
   inset-block-start: calc(var(--resource-top) + var(--resource-frame));
   inset-inline-start: var(--resource-left);
 }
-.button.destructive {
-  border-color: #f59898;
-  background: #ab303b;
-  color: #fff;
-}
-.button.destructive:not(:disabled):hover { background: #c3434d; }
-
 body:has(.reward-book[open]) { overflow: hidden; }
 .economy-content { display: grid; gap: 1rem; }
 .economy-description, .booster-quantity, .catalog-quantity { color: #bed0e0; }
@@ -130,9 +123,6 @@ body:has(.reward-book[open]) { overflow: hidden; }
   justify-content: center;
   gap: .35rem;
   padding-inline: .55rem;
-  color: var(--resource-tint);
-  border-color: #7d775d;
-  background: #172536;
   font-variant-numeric: tabular-nums;
 }
 .booster-price { width: min(100%, 9rem); }
@@ -169,7 +159,6 @@ body:has(.reward-book[open]) { overflow: hidden; }
   background: var(--faction-edge);
   box-shadow: 0 0 .6rem var(--faction-edge);
 }
-.booster-open-button { border-color: var(--faction-edge); background: #122134; }
 .booster-stage {
   position: relative;
   display: grid;
@@ -259,7 +248,7 @@ body:has(.reward-book[open]) { overflow: hidden; }
   border-block-start: 1px solid #637b8e59;
 }
 .card-trade-actions { display: flex; flex-wrap: wrap; gap: .45rem; }
-.craft-button { min-height: 2.35rem; padding: .25rem .55rem; font-size: .85rem; }
+.craft-button { padding: .25rem .55rem; font-size: .85rem; }
 .card-trade-value { display: inline-flex; gap: .12rem; align-items: center; white-space: nowrap; }
 .card-trade-value > svg { width: 1rem; height: 1rem; }
 @media (min-width: 1050px) {

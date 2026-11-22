@@ -226,11 +226,7 @@
   justify-content: center;
   gap: .45rem;
   margin-block: .3rem;
-  border-color: #d2a65f;
-  background: linear-gradient(120deg, #f1c478, #ffdca0);
-  color: #231a13;
 }
-.reward-action:not(:disabled):hover { background: #ffe6b3; }
 .reward-action > svg { width: 1.25rem; height: 1.25rem; }
 
 @media (max-width: 520px) {

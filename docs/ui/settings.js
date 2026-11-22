@@ -157,6 +157,7 @@ export function createSettings(app, onLeave, onReset) {
       const confirm = leaveDialog.querySelector('#leave-confirm');
       confirm.textContent = label;
       confirm.value = id === 'surrender' ? 'surrender' : 'leave';
+      confirm.classList.toggle('destructive', id === 'surrender');
       leaveDialog.returnValue = '';
       leaveDialog.showModal();
     });

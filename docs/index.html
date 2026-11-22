@@ -8,13 +8,14 @@
   <title>Gatefall — Угасшие врата</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./style.css?v=interface-polish-1">
+  <link rel="stylesheet" href="./style.css?v=action-buttons-1">
   <link rel="stylesheet" href="./field.css?v=golem-1">
-  <link rel="stylesheet" href="./live-badges-home.css?v=home-base-1">
-  <link rel="stylesheet" href="./reward-book.css?v=base-layout-2">
-  <link rel="stylesheet" href="./economy.css?v=interface-polish-1">
-  <link rel="stylesheet" href="./base.css?v=base-production-1">
-  <script type="module" src="./app.js?v=base-outpost-1"></script>
+  <link rel="stylesheet" href="./live-badges-home.css?v=action-buttons-1">
+  <link rel="stylesheet" href="./reward-book.css?v=action-buttons-1">
+  <link rel="stylesheet" href="./economy.css?v=action-buttons-1">
+  <link rel="stylesheet" href="./base.css?v=action-buttons-1">
+  <link rel="stylesheet" href="./action-buttons.css?v=action-buttons-1">
+  <script type="module" src="./app.js?v=action-buttons-1"></script>
 </head>
 <body>
   <div id="app">
@@ -65,11 +66,11 @@
     </div>
     <button id="open-rules" type="button" class="button">Правила</button>
     <button id="fullscreen" type="button" class="button">На весь экран</button>
-    <button id="reset-progress" type="button" class="button">Сбросить весь прогресс</button>
+    <button id="reset-progress" type="button" class="button destructive">Сбросить весь прогресс</button>
     <p id="fullscreen-status" class="muted" role="status"></p>
     <div id="match-menu" class="settings-actions" hidden>
       <button id="new-game" type="button" class="button">Новая партия</button>
-      <button id="surrender" type="button" class="button">Сдаться</button>
+      <button id="surrender" type="button" class="button destructive">Сдаться</button>
     </div>
   </dialog>
   <dialog id="leave-match" class="panel settings-dialog" aria-labelledby="leave-title" aria-describedby="leave-description">

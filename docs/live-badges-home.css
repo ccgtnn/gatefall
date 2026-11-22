@@ -139,19 +139,6 @@ body:has(.is-deck-home) {
 }
 :is(.deck-home, .all-decks) .deck-list-item h4 { margin: 0; font-size: 1.05rem; }
 :is(.deck-home, .all-decks) .deck-list-item .muted { color: #bdd0e6; font-size: .83rem; }
-.is-deck-home .button {
-  border-color: #587592;
-  border-radius: .35rem;
-  background: #1a2b41;
-  color: #edf5ff;
-}
-.is-deck-home .button:not(:disabled):hover { background: #28415f; }
-.is-deck-home .button.primary {
-  border-color: #d8b77b;
-  color: #161c24;
-  background: #dfc08b;
-}
-.is-deck-home .button.primary:not(:disabled):hover { background: #ffe0a5; }
 @media (max-width: 500px) {
   #app.is-deck-home { width: calc(100% - 1.2rem); }
   body:has(.is-deck-home) { background-position: center top, 65% top; }
@@ -177,7 +164,6 @@ body:has(.is-deck-home) {
   padding: .6rem 1rem;
   font-size: 1.05rem;
   font-weight: 700;
-  background: linear-gradient(136deg, #253a57, #152337 80%);
 }
 .campaign-slots {
   position: relative;
