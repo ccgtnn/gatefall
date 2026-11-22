@@ -1,6 +1,6 @@
 const sides = ['human', 'bot'];
 
-function watches(match, event, played) {
+function watches(match, event, played, firstLegendary) {
   if (!['play', 'death', 'first-infection', 'target-marked'].includes(event.type)) return [];
   const jobs = [];
   for (const side of sides) {
@@ -25,9 +25,10 @@ function watches(match, event, played) {
     for (const pile of ['hand', 'deck']) {
       for (const card of player[pile]) {
         const rule = card.definition.pileEvents?.[event.type];
-        if (rule && (!rule.enemy || event.side !== side)) {
+        if (rule && (!rule.enemy || event.side !== side) && (!rule.friendly || event.side === side) &&
+            (!rule.pile || rule.pile === pile) && (!rule.firstLegendary || firstLegendary)) {
           jobs.push({ ability: rule.ability, side, sourceId: card.id, sourceDefinitionId: card.definition.id,
-            piles: ['hand', 'deck'], requiredSource: true });
+            piles: rule.pile ? [rule.pile] : ['hand', 'deck'], requiredSource: true });
         }
       }
     }
@@ -49,7 +50,7 @@ export function deathwishJobs(card, context) {
 }
 
 // The journal is also the ordered event stream consumed by playback.
-export function emit(match, event, { source, neighbors = [], death, journal = true, side = event.side, played } = {}) {
+export function emit(match, event, { source, neighbors = [], death, journal = true, side = event.side, played, firstLegendary } = {}) {
   if (journal) match.log.push(event);
   const jobs = [];
   if (death) jobs.push(...deathwishJobs(source, { side: event.side, ...death }));
@@ -59,6 +60,6 @@ export function emit(match, event, { source, neighbors = [], death, journal = tr
     const ability = card.definition.neighborEvents?.[event.type];
     if (ability) jobs.push({ ability, sourceId: card.id, side, requiredSource: true });
   }
-  jobs.push(...watches(match, event, played));
+  jobs.push(...watches(match, event, played, firstLegendary));
   return jobs;
 }

@@ -1,5 +1,5 @@
-import { ROWS } from './cards.js?v=growth-balance-1';
-import { emit } from './events.js?v=rebirth-1';
+import { ROWS } from './cards.js?v=helper-robot-1';
+import { emit } from './events.js?v=helper-robot-1';
 
 export const ROW_LIMIT = 9;
 export const HAND_LIMIT = 10;
@@ -55,20 +55,24 @@ export function availableRows(player) {
   return ROWS.filter((row) => player.board[row].length < ROW_LIMIT);
 }
 
-export function recordCategoryPlay(player, card) {
+export function recordCardPlay(player, card) {
   const categories = card?.definition.categories;
-  if (!categories?.length) return;
-  const counts = { ...player.categoryPlays };
-  for (const category of new Set(categories)) counts[category] = (counts[category] ?? 0) + 1;
-  player.categoryPlays = counts;
+  if (categories?.length) {
+    const counts = { ...player.categoryPlays };
+    for (const category of new Set(categories)) counts[category] = (counts[category] ?? 0) + 1;
+    player.categoryPlays = counts;
+  }
+  const firstLegendary = card?.definition.rarity === 'gold' && !player.playedLegendary;
+  if (firstLegendary) player.playedLegendary = true;
+  return firstLegendary;
 }
 
 export function announcePlay(match, side, card, destination, extra) {
-  recordCategoryPlay(match.players[side], card);
+  const firstLegendary = recordCardPlay(match.players[side], card);
   const boardSide = destination && placementSide(side, card);
   const reactions = emit(match, { type: 'play', side, ...(boardSide && boardSide !== side && { boardSide }), row: destination?.row, name: card.definition.name,
     power: card.power, cardType: cardType(card), cardId: card.id,
-    card: { ...card }, position: destination?.position, ...extra }, { played: card });
+    card: { ...card }, position: destination?.position, ...extra }, { played: card, firstLegendary });
   if (card.armor) emit(match, { type: 'armor', side: boardSide ?? side, name: card.definition.name, cardId: card.id,
     armor: card.armor, amount: card.armor });
   return reactions;
