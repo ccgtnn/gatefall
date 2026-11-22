@@ -1,5 +1,5 @@
-import { recordCategoryPlay, spendResilience } from './game/board.js?v=growth-balance-1';
-import { ROWS } from './game/cards.js?v=growth-balance-1';
+import { recordCardPlay, spendResilience } from './game/board.js?v=helper-robot-1';
+import { ROWS } from './game/cards.js?v=helper-robot-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;
@@ -61,7 +61,7 @@ export function applyJournalEvent(state, event) {
     return;
   }
   if (type === 'play') {
-    recordCategoryPlay(player, event.card);
+    recordCardPlay(player, event.card);
     const pile = event.from ?? 'hand';
     player[pile] = player[pile].filter(({ id }) => id !== cardId);
     if (row) state.players[event.boardSide ?? side].board[row].splice(event.position, 0, { ...event.card });

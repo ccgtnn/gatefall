@@ -31,6 +31,7 @@ test('all 25 gold cards are included and catalog filters combine across factions
   assert.deepEqual(ids({ faction: 'protectorate', rarity: 'gold', category: 'Голем', provision: '9' }), ['imperial-golem']);
   assert.deepEqual(ids({ query: 'Статуя Императора' }), ['imperial-golem']);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', category: 'Зверь', provision: '11' }), ['carrion-devourer']);
+  assert.deepEqual(ids({ faction: 'neutral', rarity: 'epic', type: 'unit', category: 'Робот', provision: '8' }), ['helper-robot']);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'bronze', type: 'effect', provision: '6', query: 'Расправа' }), ['armor-piercing-shot']);
 });
 

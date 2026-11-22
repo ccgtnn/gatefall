@@ -19,8 +19,8 @@ test('the five immutable presets fit the provision cap and have enough units', (
       'preset-protectorate-orbital': 163, 'preset-growth-rebirth': 160,
     })[preset.id]);
     assert.ok(Object.isFrozen(preset.cardIds));
-    assert.equal(collection(preset.factionId).length, preset.factionId === 'growth' ? 52 : 46);
-    assert.equal(collection(preset.factionId).filter(({ faction }) => faction === 'neutral').length, 22);
+    assert.equal(collection(preset.factionId).length, preset.factionId === 'growth' ? 53 : 47);
+    assert.equal(collection(preset.factionId).filter(({ faction }) => faction === 'neutral').length, 23);
   }
 });
 

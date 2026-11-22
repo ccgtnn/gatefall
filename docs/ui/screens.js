@@ -1,12 +1,12 @@
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
-import { createCard } from '../game/board.js?v=growth-balance-1';
-import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=growth-balance-1';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=growth-balance-1';
-import { logView, roundText } from './menu.js?v=growth-balance-1';
+import { createCard } from '../game/board.js?v=helper-robot-1';
+import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=helper-robot-1';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=helper-robot-1';
+import { logView, roundText } from './menu.js?v=helper-robot-1';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=collection-2';
 import { factionFilters } from './faction-filters.js?v=1';
-import { copyLimit } from '../game/decks.js?v=growth-balance-1';
-import { craftPrice, dismantleValue } from '../game/rewards.js?v=growth-balance-1';
+import { copyLimit } from '../game/decks.js?v=helper-robot-1';
+import { craftPrice, dismantleValue } from '../game/rewards.js?v=helper-robot-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 import { sectionBack } from './resources.js?v=interface-polish-1';
 

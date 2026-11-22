@@ -1,10 +1,10 @@
-import { deathwishDefinitions, deathwishJobs, emit } from './events.js?v=rebirth-1';
-import { ROWS, ROW_LABELS } from './cards.js?v=growth-balance-1';
+import { deathwishDefinitions, deathwishJobs, emit } from './events.js?v=helper-robot-1';
+import { ROWS, ROW_LABELS } from './cards.js?v=helper-robot-1';
 import {
   activeOrder, announcePlay, applyStatus, availableRows, boost, cardType, consume, damage, damageOverflow, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, restoreCard, ROW_LIMIT,
   setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, infectionDamage, units,
-} from './board.js?v=growth-balance-1';
+} from './board.js?v=helper-robot-1';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);
@@ -304,6 +304,15 @@ function playFromPile(match, job, step, random) {
 
 function summonFromDeck(match, job, step, random) {
   const source = reference(match, job);
+  if (step.row === 'random') {
+    if (source?.pile !== 'deck') return;
+    const player = match.players[job.side];
+    const rows = availableRows(player);
+    if (!rows.length) return;
+    const row = rows.length === 1 ? rows[0] : rows[Math.floor(random() * rows.length)];
+    placeSummonedCard(match, job.side, row, player.board[row].length, source.card);
+    return;
+  }
   const location = source ?? (step.position === 'death' ? job : undefined);
   if (!location?.row) return;
   const { side, row, position } = location;
@@ -314,6 +323,11 @@ function summonFromDeck(match, job, step, random) {
   const candidates = pileCandidates(player.deck, step.filter);
   if (!candidates.length) return;
   const selected = candidates[Math.floor(random() * candidates.length)];
+  placeSummonedCard(match, side, row, index, selected);
+}
+
+function placeSummonedCard(match, side, row, index, selected) {
+  const player = match.players[side];
   const [card] = player.deck.splice(player.deck.indexOf(selected), 1);
   placeCards(player, row, index, [card]);
   match.log.push({ type: 'spawn', from: 'deck', side, row, position: index,

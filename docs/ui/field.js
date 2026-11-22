@@ -1,11 +1,11 @@
-import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js?v=growth-balance-1';
+import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js?v=helper-robot-1';
 import { insertionPoint, placementEffectRows } from '../card-placement.js?v=row-placement-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=growth-balance-1';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=growth-balance-1';
-import { playerHand } from './hand.js?v=row-placement-1';
-import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=growth-balance-1';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=growth-balance-1';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=helper-robot-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=helper-robot-1';
+import { playerHand } from './hand.js?v=helper-robot-1';
+import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=helper-robot-1';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=helper-robot-1';
 
 import { orderBadge } from './stat-badges.js?v=orbital-strike-1';
 

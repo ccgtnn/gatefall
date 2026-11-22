@@ -1,8 +1,8 @@
 import { placementEffectRows } from '../card-placement.js?v=row-placement-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
-import { cardType, placementSide } from '../game/board.js?v=growth-balance-1';
-import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=growth-balance-1';
-import { cardButton, showCard } from './cards.js?v=growth-balance-1';
+import { cardType, placementSide } from '../game/board.js?v=helper-robot-1';
+import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=helper-robot-1';
+import { cardButton, showCard } from './cards.js?v=helper-robot-1';
 
 export function updatePlacementSelection(screen, match, selectedCardId) {
   const card = match.players.human.hand.find(({ id }) => id === selectedCardId);
