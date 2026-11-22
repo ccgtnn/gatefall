@@ -1,5 +1,5 @@
 :root {
-  --resource-control-size: 2.75rem;
+  --resource-control-size: max(44px, 2.75rem);
   --resource-frame: calc(.22rem + 1px);
   --resource-height: calc(var(--resource-control-size) + 2 * var(--resource-frame) + .4rem);
   --section-content-top: calc(var(--resource-height) + var(--resource-top));
@@ -31,7 +31,7 @@ body:has(#app[data-animation-speed="fast"]) { --pack-pace: .48; }
   background: linear-gradient(160deg, #26384b, #111c29);
   box-shadow: 0 2px 15px #050b15b3;
 }
-.resource-button, .resource-bar #start-settings, .section-back {
+.resource-button, .resource-bar #start-settings, .chrome-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -41,12 +41,12 @@ body:has(#app[data-animation-speed="fast"]) { --pack-pace: .48; }
   margin: 0;
   padding: .28rem .48rem;
   color: #dde9f4;
-  border: 1px solid #68809a80;
+  border: 1px solid #68809a;
   border-radius: .42rem;
-  background: #09131f80;
+  background: linear-gradient(160deg, #25394d, #111e2b);
   font-variant-numeric: tabular-nums;
 }
-.resource-button:hover, .resource-button[aria-current="page"], .resource-bar #start-settings:hover, .section-back:hover {
+.resource-button:hover, .resource-button[aria-current="page"], .resource-bar #start-settings:hover, .chrome-button:hover {
   border-color: var(--resource-tint, #b5d5f6);
   background: #2e465c;
 }
@@ -61,18 +61,34 @@ body:has(#app[data-animation-speed="fast"]) { --pack-pace: .48; }
   color: var(--resource-tint);
 }
 
+.chrome-button {
+  flex: none;
+  width: var(--resource-control-size);
+  height: var(--resource-control-size);
+  padding: 0;
+  border-radius: 50%;
+}
+.chrome-button > svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .section-back {
   position: fixed;
   z-index: 6;
   inset-block-start: calc(var(--resource-top) + var(--resource-frame));
   inset-inline-start: var(--resource-left);
-  width: var(--resource-control-size);
-  height: var(--resource-control-size);
-  padding: 0;
-  border-radius: 50%;
-  font-size: 1.6rem;
-  line-height: 1;
 }
+.button.destructive {
+  border-color: #f59898;
+  background: #ab303b;
+  color: #fff;
+}
+.button.destructive:not(:disabled):hover { background: #c3434d; }
 
 body:has(.reward-book[open]) { overflow: hidden; }
 .economy-content { display: grid; gap: 1rem; }

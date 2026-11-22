@@ -1,11 +1,40 @@
-import { bindRulesMenu } from './rules.js?v=frontier-routes-1';
+import { dialogClose } from './resources.js?v=interface-polish-1';
+import { bindRulesMenu } from './rules.js?v=interface-polish-1';
 import { createSoundEffects, DEFAULT_VOLUME } from '../sound.js?v=step-10-volume';
 import { motionDuration } from '../turn-playback.js?v=frontier-routes-1';
 
-export function createSettings(app, onLeave) {
+export function createSettings(app, onLeave, onReset) {
   const settings = document.querySelector('#settings');
   const matchMenu = document.querySelector('#match-menu');
   const leaveDialog = document.querySelector('#leave-match');
+  const resetDialog = document.querySelector('#reset-progress-dialog');
+  for (const dialog of [settings, leaveDialog, resetDialog]) {
+    dialog.querySelector('.drawer-header').append(dialogClose(dialog));
+  }
+  const resetStatus = resetDialog.querySelector('#reset-progress-status');
+  const resetConfirm = resetDialog.querySelector('#reset-progress-confirm');
+  document.querySelector('#reset-progress').addEventListener('click', () => {
+    resetStatus.textContent = '';
+    resetDialog.showModal();
+  });
+  const resetCancel = resetDialog.querySelector('#reset-progress-cancel');
+  const resetClose = resetDialog.querySelector('.chrome-button');
+  resetCancel.addEventListener('click', () => resetDialog.close('cancel'));
+  resetDialog.addEventListener('cancel', (event) => {
+    if (resetConfirm.disabled) event.preventDefault();
+  });
+  resetDialog.querySelector('form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (resetConfirm.disabled) return;
+    resetConfirm.disabled = resetCancel.disabled = resetClose.disabled = true;
+    try {
+      await onReset();
+    } catch {
+      resetConfirm.disabled = resetCancel.disabled = resetClose.disabled = false;
+      resetStatus.textContent = 'Не удалось сбросить прогресс.';
+    }
+  });
+
   const fullscreenButton = document.querySelector('#fullscreen');
   const fullscreenStatus = document.querySelector('#fullscreen-status');
   const fullscreenMode = matchMedia('(display-mode: fullscreen)');

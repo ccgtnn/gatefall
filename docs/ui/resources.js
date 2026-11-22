@@ -8,8 +8,25 @@ const resources = [
   ['packCount', 'booster', 'Бустеры', 'Открытие бустеров'],
 ];
 
+function chromeButton(label, outline, handler, className) {
+  const control = iconButton(undefined, label, handler, 'chrome-button ' + className);
+  const namespace = 'http://www.w3.org/2000/svg';
+  const icon = document.createElementNS(namespace, 'svg');
+  icon.setAttribute('viewBox', '0 0 24 24');
+  icon.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS(namespace, 'path');
+  path.setAttribute('d', outline);
+  icon.append(path);
+  control.append(icon);
+  return control;
+}
+
 export function sectionBack(onBack) {
-  return iconButton('←', 'Назад', onBack, 'section-back');
+  return chromeButton('Назад', 'M19 12H5m6-6-6 6 6 6', onBack, 'section-back');
+}
+
+export function dialogClose(dialog, className = '') {
+  return chromeButton('Закрыть', 'm6 6 12 12M18 6 6 18', () => dialog.close('cancel'), className);
 }
 
 export function sectionDialog(id, title, className = '') {

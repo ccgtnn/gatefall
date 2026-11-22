@@ -8,12 +8,12 @@
   <title>Gatefall — Угасшие врата</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./style.css?v=compact-nav-1">
+  <link rel="stylesheet" href="./style.css?v=interface-polish-1">
   <link rel="stylesheet" href="./field.css?v=golem-1">
   <link rel="stylesheet" href="./live-badges-home.css?v=golem-1">
-  <link rel="stylesheet" href="./reward-book.css?v=frontier-routes-1">
-  <link rel="stylesheet" href="./economy.css?v=booster-rarity-1">
-  <script type="module" src="./app.js?v=frontier-routes-1"></script>
+  <link rel="stylesheet" href="./reward-book.css?v=interface-polish-1">
+  <link rel="stylesheet" href="./economy.css?v=interface-polish-1">
+  <script type="module" src="./app.js?v=interface-polish-1"></script>
 </head>
 <body>
   <div id="app">
@@ -37,7 +37,6 @@
   <dialog id="settings" class="panel settings-dialog" aria-labelledby="settings-title">
     <div class="drawer-header">
       <h2 id="settings-title">Настройки</h2>
-      <form method="dialog"><button type="submit" class="icon-button" aria-label="Закрыть" title="Закрыть">×</button></form>
     </div>
     <label class="motion-setting">
       <span>Анимации</span>
@@ -65,6 +64,7 @@
     </div>
     <button id="open-rules" type="button" class="button">Правила</button>
     <button id="fullscreen" type="button" class="button">На весь экран</button>
+    <button id="reset-progress" type="button" class="button">Сбросить весь прогресс</button>
     <p id="fullscreen-status" class="muted" role="status"></p>
     <div id="match-menu" class="settings-actions" hidden>
       <button id="new-game" type="button" class="button">Новая партия</button>
@@ -72,17 +72,25 @@
     </div>
   </dialog>
   <dialog id="leave-match" class="panel settings-dialog" aria-labelledby="leave-title" aria-describedby="leave-description">
-    <h2 id="leave-title"></h2>
+    <header class="drawer-header"><h2 id="leave-title"></h2></header>
     <p id="leave-description">Текущий матч закончится. Ты вернёшься к выбору колоды.</p>
     <form method="dialog" class="settings-actions">
       <button value="cancel" class="button" autofocus>Отмена</button>
       <button id="leave-confirm" value="leave" class="button primary"></button>
     </form>
   </dialog>
+  <dialog id="reset-progress-dialog" class="panel settings-dialog" aria-labelledby="reset-progress-title" aria-describedby="reset-progress-description">
+    <header class="drawer-header"><h2 id="reset-progress-title">Удалить весь прогресс?</h2></header>
+    <p id="reset-progress-description">Это нельзя отменить.</p>
+    <p id="reset-progress-status" role="status"></p>
+    <form class="settings-actions">
+      <button id="reset-progress-cancel" type="button" class="button" autofocus>Отмена</button>
+      <button id="reset-progress-confirm" type="submit" class="button destructive">Удалить</button>
+    </form>
+  </dialog>
   <dialog id="rules-dialog" class="panel rules-dialog" aria-labelledby="rules-title">
     <header class="drawer-header">
       <h2 id="rules-title">Правила</h2>
-      <form method="dialog"><button type="submit" class="icon-button" aria-label="Закрыть" title="Закрыть">×</button></form>
     </header>
     <ul>
       <li>У каждого игрока две жизни и до 10 карт в руке. На Орбите и Поверхности помещается до 9 карт на ряд.</li>

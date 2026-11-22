@@ -1,3 +1,4 @@
+import { dialogClose } from './resources.js?v=interface-polish-1';
 import { button, element, setCardRarity } from './dom.js?v=opponent-reveal-1';
 import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=frontier-routes-1';
 import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=frontier-routes-1';
@@ -55,10 +56,11 @@ export function showCard(card, { leader = false, legacy = false,
   title.id = 'preview-title';
   title.tabIndex = -1;
   title.autofocus = true;
-  const close = button('Закрыть', () => preview.close());
+  const heading = element('div', 'preview-heading');
+  heading.append(title, dialogClose(preview));
   const body = element('div', 'preview-body');
   if (definition.accent) body.dataset.accent = definition.accent;
-  body.append(title, element('p', 'muted', details.join(' · ')));
+  body.append(heading, element('p', 'muted', details.join(' · ')));
   if (stats.length) body.append(element('p', 'preview-stats', stats.join(' · ')));
   body.append(element('p', null, definition.text ?? 'Без эффекта.'));
   const glossaryWords = new Set(definition.keywords);
@@ -72,7 +74,6 @@ export function showCard(card, { leader = false, legacy = false,
     body.append(glossary);
   }
   if (actions) body.append(actions);
-  body.append(close);
   if (definition.art || (!leader && !legacy)) {
     const layout = element('div', 'preview-layout');
     let art;

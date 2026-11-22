@@ -2,8 +2,8 @@ import { createCard, opponent, statusCount } from '../game/board.js?v=frontier-r
 import { insertionPoint } from '../card-placement.js?v=opponent-reveal-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
 import { ROWS, ROW_LABELS } from '../game/cards.js?v=frontier-routes-1';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=frontier-routes-1';
-import { playerHand } from './hand.js?v=frontier-routes-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=interface-polish-1';
+import { playerHand } from './hand.js?v=interface-polish-1';
 import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=frontier-routes-1';
 import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=frontier-routes-1';
 

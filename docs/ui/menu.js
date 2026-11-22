@@ -1,6 +1,7 @@
+import { dialogClose } from './resources.js?v=interface-polish-1';
 import { button, element, sideLabel } from './dom.js?v=opponent-reveal-1';
 import { ROW_LABELS } from '../game/cards.js?v=frontier-routes-1';
-import { cardButton, showCard } from './cards.js?v=frontier-routes-1';
+import { cardButton, showCard } from './cards.js?v=interface-polish-1';
 
 export function roundText(event) {
   const { scores, winner } = event;
@@ -131,7 +132,7 @@ export function createMatchMenu(getMatch, showThoughts) {
       : pile === 'deck' ? 'Твоя колода' : 'Сброс · ' + player.faction);
     title.id = 'drawer-title';
     const header = element('header', 'drawer-header');
-    header.append(title, button('Закрыть', () => drawer.close()));
+    header.append(title, dialogClose(drawer));
     if (journal) {
       drawer.replaceChildren(header, logView(match, showThoughts()).querySelector('ol'));
       return;

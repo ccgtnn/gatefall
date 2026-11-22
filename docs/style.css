@@ -381,6 +381,7 @@ dialog.card-preview {
   border-color: var(--rarity-border-color, #8897a9);
 }
 dialog.card-preview::backdrop { background: #0d1119cc; }
+.preview-heading { display: flex; align-items: start; justify-content: space-between; gap: .6rem; }
 .preview-body { display: grid; gap: .7rem; padding: 1rem; }
 .preview-body h2 { font-size: 1.45rem; }
 .preview-stats { font-weight: 700; }
@@ -946,7 +947,7 @@ ul.deck-invalid { padding-inline-start: 1.1rem; margin: 0; font-size: .8rem; }
 }
 .catalog-category { color: #b4c8cb; font-size: .72rem; }
 
-[data-rarity] { border: 1px solid var(--rarity-border-color, #96aab6); }
+:is([data-rarity='bronze'], [data-rarity='epic'], [data-rarity='gold']):not(.card-preview) { border: 0; }
 [data-rarity="bronze"] {
   --rarity-border-color: #a76747;
   --rarity-frame: url('./art/rarity-frame-bronze.png');

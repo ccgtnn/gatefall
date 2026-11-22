@@ -1,7 +1,7 @@
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { REWARD_SECTIONS, rewardState } from '../game/rewards.js?v=frontier-routes-1';
 import { resourceIcon } from './resource-icon.js?v=1';
-import { sectionDialog } from './resources.js?v=compact-nav-1';
+import { dialogClose, sectionDialog } from './resources.js?v=interface-polish-1';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const rewardKinds = {
@@ -58,7 +58,7 @@ export function createRewardBook(progress) {
   const action = button(undefined, openNode, 'button reward-action');
   const actionPrice = element('span');
   action.append(resourceIcon('key'), actionPrice);
-  const close = button('Закрыть', () => panel.close(), 'button reward-details-close');
+  const close = dialogClose(panel, 'reward-details-close');
   close.autofocus = true;
   panel.append(close, emblem, kind, label, value, description, status, action);
   panel.addEventListener('click', (event) => {
@@ -106,12 +106,8 @@ export function createRewardBook(progress) {
     current.dataset.faction = faction;
     current.classList.toggle('reward-page-tall', tall);
     const chart = element('div', 'reward-chart');
-    chart.tabIndex = 0;
     chart.setAttribute('role', 'region');
     chart.setAttribute('aria-label', 'Маршруты · ' + title);
-    const tip = element('p', 'reward-scroll-tip', tall ? 'Карту можно двигать в стороны и вверх-вниз.' : 'Карту можно листать в стороны.');
-    tip.id = 'reward-scroll-tip';
-    chart.setAttribute('aria-describedby', tip.id);
     const plot = element('div', 'reward-plot');
     plot.style.setProperty('--reward-map-image', `url('./art/${image}')`);
     const edges = document.createElementNS(svgNamespace, 'svg');
@@ -119,6 +115,8 @@ export function createRewardBook(progress) {
     edges.setAttribute('viewBox', '0 0 100 100');
     edges.setAttribute('preserveAspectRatio', 'none');
     edges.setAttribute('aria-hidden', 'true');
+    const routes = document.createElementNS(svgNamespace, 'g');
+    edges.append(routes);
     plot.append(edges);
     const nodesById = new Map(nodes.map((node) => [node.id, node]));
     nodeViews = nodes.map((node) => {
@@ -130,7 +128,7 @@ export function createRewardBook(progress) {
         edge.setAttribute('x2', node.x);
         edge.setAttribute('y2', node.y);
         edge.setAttribute('vector-effect', 'non-scaling-stroke');
-        edges.append(edge);
+        routes.append(edge);
         return { edge, parent };
       });
       const control = button(undefined, () => {
@@ -155,7 +153,7 @@ export function createRewardBook(progress) {
     });
     chart.append(plot);
 
-    current.replaceChildren(tip, chart);
+    current.replaceChildren(chart);
     refresh(state);
   }
 

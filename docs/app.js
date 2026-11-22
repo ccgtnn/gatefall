@@ -1,4 +1,4 @@
-import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=frontier-routes-1';
+import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=interface-polish-1';
 import { createDeckStorage } from './ui/deck-storage.js?v=step-16';
 import { bindCardPlacement } from './card-placement.js?v=opponent-reveal-1';
 import { animateCoin, animateHandTurn, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=frontier-routes-1';
@@ -10,18 +10,19 @@ import { FACTIONS } from './game/cards.js?v=frontier-routes-1';
 import { inspectDeck } from './game/decks.js?v=frontier-routes-1';
 import { applyAction, createDeckMatch } from './game/match.js?v=frontier-routes-1';
 import { element, iconButton } from './ui/dom.js?v=opponent-reveal-1';
-import { preview, showCard } from './ui/cards.js?v=frontier-routes-1';
-import { createBattlefield } from './ui/field.js?v=frontier-routes-1';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=frontier-routes-1';
-import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=frontier-routes-1';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=frontier-routes-1';
-import { createSettings } from './ui/settings.js?v=frontier-routes-1';
+import { preview, showCard } from './ui/cards.js?v=interface-polish-1';
+import { createBattlefield } from './ui/field.js?v=interface-polish-1';
+import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=interface-polish-1';
+import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=interface-polish-1';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=interface-polish-1';
+import { createSettings } from './ui/settings.js?v=interface-polish-1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
 import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=frontier-routes-1';
-import { createRewardBook } from './ui/reward-book.js?v=frontier-routes-1';
-import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=frontier-routes-1';
-import { createResourceBar } from './ui/resources.js?v=compact-nav-1';
+import { createRewardBook } from './ui/reward-book.js?v=interface-polish-1';
+import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=interface-polish-1';
+import { createResourceBar } from './ui/resources.js?v=interface-polish-1';
+import { resetProgress } from './game/reset-progress.js?v=interface-polish-1';
 
 const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
@@ -46,7 +47,10 @@ let storage;
 try { storage = window.localStorage; } catch {}
 const deckStore = createDeckStorage(storage);
 const stats = createFactionStats(Object.keys(FACTIONS), storage);
-const settings = createSettings(app, leaveMatch);
+const settings = createSettings(app, leaveMatch, async () => {
+  await resetProgress(storage, navigator.locks);
+  window.location.reload();
+});
 const progress = createRewardProgress(storage, navigator.locks, { legacyDecks: deckStore.list() });
 const catalog = economyDialog('card-collection', 'Все карты');
 catalog.body.append(catalogScreen(progress));
@@ -58,7 +62,8 @@ const openResources = createResourceBar(app.querySelector('.masthead'), document
 });
 progress.subscribe(() => screen.querySelector('.deck-editor, .deck-home, .finish')?.dispatchEvent(new Event('collection-change')));
 window.addEventListener('storage', (event) => {
-  if (event.key === REWARD_STORAGE_KEY || event.key === null) progress.refresh();
+  if (event.key?.startsWith('gatefall.') && event.newValue === null) window.location.reload();
+  else if (event.key === REWARD_STORAGE_KEY || event.key === null) progress.refresh();
 });
 const menu = createMatchMenu(() => match, () => settings.showBotThoughts());
 const { drawer } = menu;

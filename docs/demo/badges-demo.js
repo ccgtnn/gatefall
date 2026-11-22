@@ -1,6 +1,7 @@
+import { dialogClose } from '../ui/resources.js?v=interface-polish-1';
 import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=frontier-routes-1';
 import { basePower, createCard, isUnit, statusCount } from '../game/board.js?v=frontier-routes-1';
-import { cardArt, decorateCard, showCard } from '../ui/cards.js?v=frontier-routes-1';
+import { cardArt, decorateCard, showCard } from '../ui/cards.js?v=interface-polish-1';
 import { button, element, setCardRarity } from '../ui/dom.js?v=opponent-reveal-1';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
@@ -115,7 +116,7 @@ document.body.append(proposedPreview);
 function showProposed(card, sample) {
   const title = element('h2', null, card.definition.name);
   title.id = 'demo-preview-title';
-  const close = button('Закрыть', () => proposedPreview.close());
+  const close = dialogClose(proposedPreview);
   close.autofocus = true;
   const content = element('div', 'preview-body');
   content.append(title, element('p', null, card.definition.text), close);

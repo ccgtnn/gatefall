@@ -1,10 +1,10 @@
 import { createCard } from '../game/board.js?v=frontier-routes-1';
 import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=frontier-routes-1';
 import { BOOSTER_FACTIONS, BOOSTER_PRICE } from '../game/rewards.js?v=frontier-routes-1';
-import { cardButton, showCard } from './cards.js?v=frontier-routes-1';
+import { cardButton, showCard } from './cards.js?v=interface-polish-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { resourceIcon } from './resource-icon.js?v=1';
-import { sectionDialog } from './resources.js?v=compact-nav-1';
+import { sectionDialog } from './resources.js?v=interface-polish-1';
 
 const definitions = new Map([...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool)]
   .map((card) => [card.id, card]));

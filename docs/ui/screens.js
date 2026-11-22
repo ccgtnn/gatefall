@@ -1,14 +1,14 @@
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { createCard } from '../game/board.js?v=frontier-routes-1';
 import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=frontier-routes-1';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=frontier-routes-1';
-import { logView, roundText } from './menu.js?v=frontier-routes-1';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=interface-polish-1';
+import { logView, roundText } from './menu.js?v=interface-polish-1';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=collection-2';
 import { factionFilters } from './faction-filters.js?v=1';
 import { copyLimit } from '../game/decks.js?v=frontier-routes-1';
 import { craftPrice, dismantleValue } from '../game/rewards.js?v=frontier-routes-1';
 import { resourceIcon } from './resource-icon.js?v=1';
-import { sectionBack } from './resources.js?v=compact-nav-1';
+import { sectionBack } from './resources.js?v=interface-polish-1';
 
 const catalogCards = [...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool)];
 const catalogFactions = [['', 'Все фракции'], [NEUTRAL, 'Нейтральные'],
