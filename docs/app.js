@@ -1,29 +1,30 @@
 import { createBaseScreen } from './ui/base-screen.js?v=action-buttons-1';
-import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=home-base-1';
-import { createDeckStorage } from './ui/deck-storage.js?v=home-base-1';
+import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=targeting-1';
+import { createDeckStorage } from './ui/deck-storage.js?v=targeting-1';
 import { bindCardPlacement } from './card-placement.js?v=opponent-reveal-1';
-import { animateCoin, animateHandTurn, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=flagship-art-2';
+import { animateCoin, animateHandTurn, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=targeting-1';
 import { clearParticles } from './particles.js?v=step-14';
-import { playJournal } from './turn-playback.js?v=flagship-art-2';
-import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=flagship-art-2';
-import { placementSide } from './game/board.js?v=flagship-art-2';
-import { FACTIONS } from './game/cards.js?v=flagship-art-2';
-import { inspectDeck } from './game/decks.js?v=flagship-art-2';
-import { applyAction, createDeckMatch } from './game/match.js?v=flagship-art-2';
+import { playJournal } from './turn-playback.js?v=targeting-1';
+import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=targeting-1';
+import { findInPiles, placementSide } from './game/board.js?v=targeting-1';
+import { FACTIONS } from './game/cards.js?v=targeting-1';
+import { inspectDeck } from './game/decks.js?v=targeting-1';
+import { applyAction, createDeckMatch } from './game/match.js?v=targeting-1';
 import { element, iconButton } from './ui/dom.js?v=opponent-reveal-1';
-import { preview, showCard } from './ui/cards.js?v=flagship-art-2';
-import { createBattlefield } from './ui/field.js?v=flagship-art-2';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=flagship-art-2';
-import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=flagship-art-2';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=base-outpost-1';
-import { createSettings } from './ui/settings.js?v=action-buttons-1';
+import { cardArt, preview, showCard } from './ui/cards.js?v=targeting-1';
+import { createBattlefield } from './ui/field.js?v=targeting-1';
+import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=targeting-1';
+import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=targeting-1';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=targeting-1';
+import { createSettings } from './ui/settings.js?v=targeting-1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
-import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=base-outpost-1';
-import { createRewardBook } from './ui/reward-book.js?v=action-buttons-1';
-import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=action-buttons-1';
+import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=targeting-1';
+import { createRewardBook } from './ui/reward-book.js?v=targeting-1';
+import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=targeting-1';
 import { createResourceBar } from './ui/resources.js?v=interface-polish-1';
-import { resetProgress } from './game/reset-progress.js?v=base-outpost-1';
+import { aimAnchor, aimTone, bindTargeting } from './ui/targeting.js?v=targeting-1';
+import { resetProgress } from './game/reset-progress.js?v=targeting-1';
 
 const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
@@ -44,6 +45,10 @@ let matchRewardId;
 let timer;
 let selectedCardId;
 let replaying = false;
+let targetAction;
+let confirmingTarget = false;
+let retryRolls = [];
+const aim = bindTargeting(screen, cancelTargeting);
 let mulliganFieldVisible = false;
 let storage;
 try { storage = window.localStorage; } catch {}
@@ -164,6 +169,8 @@ function start(deck) {
   deckStore.recordPlay(deck.id);
   matchDeck = structuredClone(deck);
   match = next;
+  targetAction = undefined;
+  retryRolls = [];
   matchRewardId = globalThis.crypto?.randomUUID?.() ?? `match-${Date.now()}-${Math.random()}`;
   selectedFaction = undefined;
   editedDeck = undefined;
@@ -194,6 +201,8 @@ function leaveMatch(surrender = false) {
   hideNotice(turnNotice);
   hideNotice(roundNotice);
   match = undefined;
+  targetAction = undefined;
+  retryRolls = [];
   matchDeck = undefined;
   menuView = 'decks';
   replaying = false;
@@ -256,6 +265,24 @@ function render() {
   app.classList.toggle('is-deck-home', content.classList.contains('deck-home'));
   screen.replaceChildren(content);
   menu.refresh(match, replaying);
+  const pending = !replaying && match?.pending?.side === 'human' ? match.pending : null;
+  const sourceId = pending?.job?.sourceId ?? targetAction?.cardId;
+  let source;
+  if (pending) {
+    source = sourceId
+      ? screen.querySelector(`[data-board-card="${CSS.escape(sourceId)}"] .unit-face`)
+      : screen.querySelector('[data-aim-leader="human"]');
+    if (!source) {
+      const card = match.effects.find(({ discard }) => discard?.id === sourceId)?.discard ??
+        findInPiles(targetAction?.before ?? match, pending.side, sourceId, ['hand', 'discard', 'deck'])?.card;
+      const prompt = screen.querySelector('.target-prompt, #deck-choice-title');
+      if (card?.definition.art && prompt) {
+        source = cardArt(card.definition, 'aim-source-art');
+        prompt.prepend(source);
+      }
+    }
+  }
+  aim.update(pending ? aimAnchor(source) ?? targetAction?.origin : undefined, aimTone(pending?.kind, pending?.selectionSide));
 }
 
 function renderPlayback(state) {
@@ -293,6 +320,7 @@ function playBotTurn() {
 
 async function updateMatch(next) {
   if (replaying || next === match) return;
+  aim.update();
   const session = matchSession;
   clearTimeout(timer);
   const before = match;
@@ -355,10 +383,48 @@ async function updateMatch(next) {
   }
 }
 
+function cancelTargeting() {
+  if (!targetAction || !match?.pending || replaying) return false;
+  const { before, rolls, cardId, type } = targetAction;
+  retryRolls = [...rolls, ...retryRolls];
+  targetAction = undefined;
+  match = before;
+  render();
+  const source = cardId && CSS.escape(cardId);
+  const selector = type === 'leader' ? '[data-aim-leader="human"] ~ .leader-power'
+    : type === 'order' ? `[data-board-card="${source}"] .unit-order`
+      : `.hand [data-card-id="${source}"]`;
+  screen.querySelector(selector)?.focus({ preventScroll: true });
+  announcement.textContent = 'Выбор цели отменён.';
+  return true;
+}
+
 async function playHuman(action) {
-  if (!match || replaying) return;
+  if (!match || replaying || confirmingTarget) return;
+  const before = match;
   const session = matchSession;
-  await updateMatch(applyAction(match, 'human', action));
+  const rolls = targetAction?.rolls ?? [];
+  const next = applyAction(before, 'human', action, { random: () => {
+    const roll = retryRolls.shift() ?? Math.random();
+    rolls.push(roll);
+    return roll;
+  } });
+  if (next === before) return;
+  if (!targetAction && next.pending?.side === 'human') {
+    const { cardId, type } = action;
+    const node = type === 'leader' ? screen.querySelector('[data-aim-leader="human"]')
+      : screen.querySelector(`[data-card-id="${CSS.escape(cardId ?? '')}"], [data-board-card="${CSS.escape(cardId ?? '')}"]`);
+    const point = aimAnchor(node)?.();
+    targetAction = { before, rolls, cardId, type, origin: () => point };
+  }
+  if (before.pending && aim.showTap()) {
+    confirmingTarget = true;
+    await new Promise((resolve) => setTimeout(resolve, settings.motion() ? 180 : 90));
+    confirmingTarget = false;
+    if (match !== before || session !== matchSession) return;
+  }
+  if (next.pending?.side !== 'human') targetAction = undefined;
+  await updateMatch(next);
   if (session === matchSession && match && humanCanAct()) screen.querySelector('#pass-button:enabled')?.focus({ preventScroll: true });
 }
 

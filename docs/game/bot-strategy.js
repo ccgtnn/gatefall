@@ -1,8 +1,8 @@
-import { compareRollouts } from './bot-rollouts.js?v=flagship-art-2';
-import { ROWS } from './cards.js?v=flagship-art-2';
-import { activeOrder, cardType, opponent, placementSide, statusCount, units } from './board.js?v=flagship-art-2';
-import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=flagship-art-2';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=flagship-art-2';
+import { compareRollouts } from './bot-rollouts.js?v=targeting-1';
+import { ROWS } from './cards.js?v=targeting-1';
+import { activeOrder, cardType, infectionDamage, opponent, placementSide, statusCount, units } from './board.js?v=targeting-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=targeting-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=targeting-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -60,7 +60,7 @@ function boardValue(state, side) {
         player.hand.filter((entry) => entry.definition.categories?.includes(definition.scenario.category)).length) * 2.5 : 0)
       + (definition.fieldEvents?.death && ROWS.some((row) =>
         enemy.board[row].some((entry) => entry.statuses?.infection)) ? 1.25 : 0)
-      - .72 * Math.min(power ?? 0, card.statuses?.infection ?? 0);
+      - .72 * infectionDamage(card);
   }, (player.leader?.charges ?? 0) * .9 + rot + (plans ? exposed * .65 : 0));
 }
 

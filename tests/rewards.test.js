@@ -280,7 +280,7 @@ test('dismantling pays per copy, persists starter losses and supports crafting t
     [1, 2, base.essence + 220 - 900]);
 });
 
-test('extra copies pay 20/100/200 once when a pack is opened and survive a reload', async () => {
+test('extra copies pay on reveal and close exactly once across reloads', async () => {
   const storage = localStorage();
   const common = NEUTRAL_CARDS.find(({ rarity }) => rarity === 'bronze');
   const epic = NEUTRAL_CARDS.find(({ rarity }) => rarity === 'epic');
@@ -301,12 +301,19 @@ test('extra copies pay 20/100/200 once when a pack is opened and survive a reloa
     assert.equal(after.pendingPack.essenceByCard[card.id], essence);
   }
   const paid = Object.values(after.pendingPack.essenceByCard).reduce((sum, value) => sum + value, 0);
-  assert.equal(after.essence, before.essence + paid);
+  assert.equal(after.essence, before.essence);
+  const id = after.pendingPack.id;
   assert.equal(await reloaded.openPack('neutral'), 'pending');
-  assert.deepEqual(reloaded.inventory(), after);
-  assert.equal(await reloaded.finishPack(after.pendingPack.id), 'done');
+  assert.equal(await reloaded.revealPack(id, 'unknown-card'), 'unknown');
+  assert.equal(await reloaded.revealPack(id, common.id), 'done');
+  const resumed = createRewardProgress(storage);
+  assert.deepEqual(resumed.inventory().pendingPack.revealed, [common.id]);
+  assert.equal(resumed.inventory().essence, before.essence + 20);
+  assert.equal(await resumed.revealPack(id, common.id), 'revealed');
+  assert.equal(await resumed.finishPack(id), 'done');
+  assert.equal(await reloaded.revealPack(id, epic.id), 'unknown');
   const finished = createRewardProgress(storage).inventory();
-  assert.deepEqual(finished, { ...after, pendingPack: null });
+  assert.deepEqual(finished, { ...after, essence: before.essence + paid, pendingPack: null });
 });
 
 test('failed pack writes leave boosters, cards and auto-dismantle essence intact', async () => {
@@ -326,12 +333,15 @@ test('a pre-update pending pack keeps already granted cards and can finish witho
   storage.setItem(REWARD_STORAGE_KEY, JSON.stringify({
     opened: { neutral: 1 },
     earnedCards: Object.fromEntries(cards.map((id) => [id, 1])),
-    pendingPack: { id: 1, faction: 'neutral', cards },
+    dismantlingEssence: 20,
+    pendingPack: { id: 1, faction: 'neutral', cards, essenceByCard: { [cards[0]]: 20 } },
   }));
   const wallet = createRewardProgress(storage);
   const before = wallet.inventory();
   assert.deepEqual(before.pendingPack.cards, cards);
-  assert.ok(Object.values(before.pendingPack.essenceByCard).every((value) => value === 0));
+  assert.equal(before.pendingPack.essenceByCard[cards[0]], 20);
+  assert.equal(await wallet.revealPack(1), 'done');
+  assert.equal(wallet.inventory().essence, before.essence);
   assert.equal(await wallet.finishPack(1), 'done');
   assert.deepEqual(wallet.inventory(), { ...before, pendingPack: null });
 });

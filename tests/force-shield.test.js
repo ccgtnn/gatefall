@@ -36,11 +36,16 @@ test('the Old Golem blocks a complete hit before armor, then takes normal damage
   assert.equal(golem.card.power, 8);
 });
 
-test('infection bypasses the shield and leaves it for the next hit', () => {
+test('shield blocks the final infection tick and playback preserves power', () => {
   const match = deployedGolem();
   const golem = findUnit(match, 'golem');
   applyStatus(match, golem, 'infection', 1);
+  const playback = createPlaybackState(match);
   tickInfection(match, golem);
-  assert.equal(golem.card.power, 9);
-  assert.equal(statusCount(golem.card, 'shield'), 1);
+  assert.equal(golem.card.power, 10);
+  assert.equal(statusCount(golem.card, 'shield'), 0);
+  assert.equal(statusCount(golem.card, 'infection'), 0);
+  match.log.slice(-2).forEach((event) => applyJournalEvent(playback, event));
+  assert.equal(findUnit(playback, 'golem').card.power, 10);
+  assert.equal(statusCount(findUnit(playback, 'golem').card, 'shield'), 0);
 });

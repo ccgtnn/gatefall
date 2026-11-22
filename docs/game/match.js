@@ -1,9 +1,9 @@
-import { inspectDeck, ORBITAL_STRIKE_PRESET } from './decks.js?v=flagship-art-2';
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=flagship-art-2';
-import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, spendResilience, statusCount, takeCards } from './board.js?v=flagship-art-2';
-import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=flagship-art-2';
+import { inspectDeck, ORBITAL_STRIKE_PRESET } from './decks.js?v=targeting-1';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=targeting-1';
+import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, spendResilience, statusCount, takeCards } from './board.js?v=targeting-1';
+import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=targeting-1';
 
-export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=flagship-art-2';
+export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=targeting-1';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;

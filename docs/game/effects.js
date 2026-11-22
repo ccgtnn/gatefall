@@ -1,10 +1,10 @@
 import { emit } from './events.js?v=orbital-strike-1';
-import { ROWS, ROW_LABELS } from './cards.js?v=flagship-art-2';
+import { ROWS, ROW_LABELS } from './cards.js?v=targeting-1';
 import {
   activeOrder, announcePlay, applyStatus, availableRows, basePower, boost, cardType, consume, createCard, damage, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, ROW_LIMIT,
-  setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, units,
-} from './board.js?v=flagship-art-2';
+  setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, infectionDamage, units,
+} from './board.js?v=targeting-1';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);
@@ -72,8 +72,8 @@ export function rowScatterValue(player, row, amount) {
 }
 
 export function infectionGain(card, amount, turns = amount) {
-  return Math.max(0, Math.min(card.power, amount, turns) -
-    Math.min(card.power, card.statuses?.infection ?? 0, turns));
+  return Math.max(0, infectionDamage(card, Math.min(amount, turns)) -
+    infectionDamage(card, Math.min(statusCount(card, 'infection'), turns)));
 }
 
 export function rowArmor(player, row) {

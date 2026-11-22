@@ -1,5 +1,5 @@
 import { setCardRarity } from './ui/dom.js?v=opponent-reveal-1';
-import { NEUTRAL } from './game/cards.js?v=flagship-art-2';
+import { NEUTRAL } from './game/cards.js?v=targeting-1';
 import { burstParticles } from './particles.js?v=step-14';
 
 const VISUAL_EVENTS = new Set([
@@ -470,7 +470,7 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
           { opacity: .9, transform: 'translate(-50%, -50%) scale(1)', offset: .4 },
           { opacity: 0, transform: 'translate(-50%, -50%) scale(1.12)' },
         ], duration));
-        if (event.tick) motions.push(...floatingNumber(screen, entry, '−1', 'poison', duration));
+        if (event.tick && !event.blocked) motions.push(...floatingNumber(screen, entry, '−1', 'poison', duration));
       }
       break;
     case 'damage':

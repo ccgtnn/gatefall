@@ -1,4 +1,4 @@
-import { ROWS } from './cards.js?v=flagship-art-2';
+import { ROWS } from './cards.js?v=targeting-1';
 import { emit } from './events.js?v=orbital-strike-1';
 
 export const ROW_LIMIT = 9;
@@ -191,14 +191,19 @@ export function applyStatus(match, unit, status, amount, extra) {
   return before - count;
 }
 
+export function infectionDamage(card, ticks = statusCount(card, 'infection')) {
+  return Math.min(card.power ?? 0, Math.max(0, ticks - statusCount(card, 'shield')));
+}
+
 export function tickInfection(match, unit) {
   if (!statusCount(unit.card, 'infection')) return;
   const { card } = unit;
-  card.power -= 1;
   const infection = statusCount(card, 'infection');
   const cause = card.infectionSource;
-  applyStatus(match, unit, 'infection', -1, { ...cause, tick: true, power: card.power });
-  if (!statusCount(card, 'infection')) delete card.infectionSource;
+  const blocked = Boolean(statusCount(card, 'shield'));
+  if (blocked) applyStatus(match, unit, 'shield', -1, { ...cause, blockedDamage: 1 });
+  else card.power -= 1;
+  applyStatus(match, unit, 'infection', -1, { ...cause, tick: true, blocked, power: card.power });
   if (card.power === 0) removeUnit(match, unit, 'infection', undefined, { infection, ...cause });
 }
 

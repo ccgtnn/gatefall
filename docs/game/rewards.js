@@ -1,8 +1,8 @@
 import { victoryGold, weeklyReward } from './outpost.js?v=base-outpost-1';
 import { advanceProduction, productionView, readProduction, takeProduction } from './base-production.js?v=base-outpost-1';
 import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=base-outpost-1';
-import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=flagship-art-2';
-import { copyLimit, PRESETS } from './decks.js?v=flagship-art-2';
+import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=targeting-1';
+import { copyLimit, PRESETS } from './decks.js?v=targeting-1';
 
 export const STARTING_KEYS = 1000;
 export const STARTING_GOLD = 1000;
@@ -367,7 +367,17 @@ function readPack(pack) {
       new Set(pack.cards).size !== BOOSTER_SIZE ||
       !pack.cards.every((id) => definitions.get(id)?.faction === pack.faction)) return null;
   const { id, cards } = pack;
-  return { id, faction: pack.faction, cards, essenceByCard: countsFor(cards, pack.essenceByCard) };
+  const revealed = Array.isArray(pack.revealed) ? cards.filter((card) => pack.revealed.includes(card)) : [];
+  // Packs started with the old rules already paid their entire dismantling reward.
+  const prepaid = pack.prepaid === true || !Array.isArray(pack.revealed);
+  return { id, faction: pack.faction, cards, essenceByCard: countsFor(cards, pack.essenceByCard), revealed, prepaid };
+}
+
+function revealPackCard(state, cardId) {
+  const pack = state.pendingPack;
+  if (pack.revealed.includes(cardId)) return;
+  if (!pack.prepaid) state.dismantlingEssence += pack.essenceByCard[cardId];
+  pack.revealed.push(cardId);
 }
 
 export function createRewardProgress(storage, locks, { legacyDecks = [], random = Math.random, now = Date.now } = {}) {
@@ -589,20 +599,27 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
         state.opened[id] += 1;
         for (const card of cards) {
           if (owned[card.id] < copyLimit(card)) state.earnedCards[card.id] += 1;
-          else {
-            const essence = dismantleValue(card);
-            state.dismantlingEssence += essence;
-            essenceByCard[card.id] = essence;
-          }
+          else essenceByCard[card.id] = dismantleValue(card);
         }
         const number = Object.values(state.opened).reduce((sum, value) => sum + value, 0);
-        state.pendingPack = { id: number, faction: id, cards: cards.map((card) => card.id), essenceByCard };
+        state.pendingPack = { id: number, faction: id, cards: cards.map((card) => card.id), essenceByCard, revealed: [] };
+        return 'done';
+      });
+    },
+    revealPack(id, cardId) {
+      return transact((state) => {
+        const pack = state.pendingPack;
+        if (pack?.id !== id || (cardId !== undefined && !pack.cards.includes(cardId))) return 'unknown';
+        const cards = cardId === undefined ? pack.cards : [cardId];
+        if (cards.every((card) => pack.revealed.includes(card))) return 'revealed';
+        for (const card of cards) revealPackCard(state, card);
         return 'done';
       });
     },
     finishPack(id) {
       return transact((state) => {
         if (state.pendingPack?.id !== id) return 'unknown';
+        for (const card of state.pendingPack.cards) revealPackCard(state, card);
         state.pendingPack = null;
         return 'done';
       });

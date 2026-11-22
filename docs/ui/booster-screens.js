@@ -1,7 +1,7 @@
-import { createCard } from '../game/board.js?v=flagship-art-2';
-import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=flagship-art-2';
-import { BOOSTER_FACTIONS, BOOSTER_PRICE } from '../game/rewards.js?v=base-outpost-1';
-import { cardButton, showCard } from './cards.js?v=flagship-art-2';
+import { createCard } from '../game/board.js?v=targeting-1';
+import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=targeting-1';
+import { BOOSTER_FACTIONS, BOOSTER_PRICE } from '../game/rewards.js?v=targeting-1';
+import { cardButton, showCard } from './cards.js?v=targeting-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 import { sectionDialog } from './resources.js?v=interface-polish-1';
@@ -96,6 +96,7 @@ export function createBoosterOpening(progress, openShop) {
 
   let busy = false;
   let shownPack;
+  let showRevealed;
   let animateNext = false;
   const choices = packOptions('booster-inventory-option').map(({ page, item }) => {
     const quantity = element('p', 'booster-quantity');
@@ -107,6 +108,7 @@ export function createBoosterOpening(progress, openShop) {
       const outcome = await progress.openPack(page.id);
       busy = false;
       animateNext = false;
+      if (outcome === 'done' && !view.dialog.open) await finish(progress.inventory().pendingPack?.id);
       if (outcome !== 'done') {
         status.textContent = outcome === 'empty' ? 'Этот бустер уже открыт.'
           : outcome === 'pending' ? 'Заверши открытие текущего бустера.' : 'Не удалось сохранить открытие.';
@@ -120,9 +122,21 @@ export function createBoosterOpening(progress, openShop) {
     return { page, item, quantity, open };
   });
 
+  async function finish(id) {
+    if (id === undefined) return;
+    const outcome = await progress.finishPack(id);
+    if (outcome === 'unavailable') status.textContent = 'Не удалось завершить открытие.';
+    return outcome;
+  }
+
+  view.dialog.addEventListener('close', () => {
+    if (!view.dialog.open) void finish(shownPack);
+  });
+
   function renderPack(pack) {
     stage.replaceChildren();
     shownPack = pack?.id;
+    showRevealed = undefined;
     if (!pack) return;
     const page = BOOSTER_FACTIONS.find(({ id }) => id === pack.faction);
     stage.dataset.faction = pack.faction;
@@ -135,14 +149,21 @@ export function createBoosterOpening(progress, openShop) {
     line.setAttribute('aria-label', 'Карты из бустера');
     const actions = element('div', 'booster-reveal-actions');
     const revealed = new Set();
-    const all = button('Перевернуть все', () => {
-      cards.forEach(({ flip }) => flip(false));
-      done.focus({ preventScroll: true });
-    });
+    let flipping = false;
+    async function reveal(id, focus) {
+      if (flipping) return;
+      flipping = true;
+      const outcome = await progress.revealPack(pack.id, id);
+      flipping = false;
+      update();
+      if (outcome === 'unavailable') status.textContent = 'Не удалось сохранить переворот карты.';
+      if ((outcome === 'done' || outcome === 'revealed') && view.dialog.open) focus();
+    }
+    const all = button('Перевернуть все', () => reveal(undefined, () => done.focus({ preventScroll: true })));
     const done = button('Готово', async () => {
       if (done.disabled) return;
       done.disabled = true;
-      const outcome = await progress.finishPack(pack.id);
+      const outcome = await finish(pack.id);
       if (outcome === 'done') {
         const next = choices.find(({ item }) => !item.hidden)?.open ?? footer.querySelector('button');
         next.focus({ preventScroll: true });
@@ -160,7 +181,7 @@ export function createBoosterOpening(progress, openShop) {
       item.style.setProperty('--card-index', index);
       item.style.setProperty('--card-travel', (2 - index) * 110 + '%');
       item.style.setProperty('--card-angle', (2 - index) * 12 + 'deg');
-      const cover = button(undefined, () => flip(true), 'booster-reveal-card');
+      const cover = button(undefined, () => reveal(id, () => face.focus({ preventScroll: true })), 'booster-reveal-card');
       cover.setAttribute('aria-label', `Перевернуть карту ${index + 1} из ${pack.cards.length}`);
       cover.append(resourceIcon(pack.faction, true));
       const card = createCard(def.id, def);
@@ -179,7 +200,7 @@ export function createBoosterOpening(progress, openShop) {
       }
       item.append(face, cover, name);
 
-      function flip(focus) {
+      function flip() {
         if (revealed.has(index)) return;
         revealed.add(index);
         item.classList.add('is-revealed');
@@ -189,16 +210,18 @@ export function createBoosterOpening(progress, openShop) {
         face.tabIndex = 0;
         face.removeAttribute('aria-hidden');
         name.hidden = false;
-        if (focus) face.focus({ preventScroll: true });
         if (revealed.size === pack.cards.length) {
           all.disabled = true;
           done.disabled = false;
         }
       }
       line.append(item);
-      return { flip };
+      return { id, flip };
     });
 
+    showRevealed = (ids) => {
+      for (const { id, flip } of cards) if (ids.includes(id)) flip();
+    };
     actions.append(all, done);
     stage.append(heading, burst, line, actions);
   }
@@ -214,6 +237,7 @@ export function createBoosterOpening(progress, openShop) {
       open.disabled = busy;
     }
     if (shownPack !== pendingPack?.id) renderPack(pendingPack);
+    if (pendingPack) showRevealed?.(pendingPack.revealed);
   }
 
   progress.subscribe(update);

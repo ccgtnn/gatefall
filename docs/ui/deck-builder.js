@@ -1,7 +1,7 @@
-import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=flagship-art-2';
-import { createCard } from '../game/board.js?v=flagship-art-2';
-import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=flagship-art-2';
-import { addCardCrop, cardButton } from './cards.js?v=flagship-art-2';
+import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=targeting-1';
+import { createCard } from '../game/board.js?v=targeting-1';
+import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=targeting-1';
+import { addCardCrop, cardButton } from './cards.js?v=targeting-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { factionFilters } from './faction-filters.js?v=1';
 import { availabilityOptions, matchesAvailability } from './catalog-cards.js?v=collection-2';

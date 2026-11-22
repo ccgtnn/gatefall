@@ -1,8 +1,8 @@
-import { FACTIONS, ROWS } from './cards.js?v=flagship-art-2';
-import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=flagship-art-2';
-import { collection, copyLimit } from './decks.js?v=flagship-art-2';
-import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=flagship-art-2';
-import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=flagship-art-2';
+import { FACTIONS, ROWS } from './cards.js?v=targeting-1';
+import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=targeting-1';
+import { collection, copyLimit } from './decks.js?v=targeting-1';
+import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=targeting-1';
+import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=targeting-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };

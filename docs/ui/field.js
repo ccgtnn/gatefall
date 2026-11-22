@@ -1,11 +1,11 @@
-import { activeOrder, createCard, opponent, statusCount } from '../game/board.js?v=flagship-art-2';
+import { activeOrder, createCard, opponent, statusCount } from '../game/board.js?v=targeting-1';
 import { insertionPoint } from '../card-placement.js?v=opponent-reveal-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=flagship-art-2';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=flagship-art-2';
-import { playerHand } from './hand.js?v=flagship-art-2';
-import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=flagship-art-2';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=flagship-art-2';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=targeting-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=targeting-1';
+import { playerHand } from './hand.js?v=targeting-1';
+import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=targeting-1';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=targeting-1';
 
 import { orderBadge } from './stat-badges.js?v=orbital-strike-1';
 
@@ -45,6 +45,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     }
     if (rowTarget) {
       label.classList.add('effect-target');
+      label.dataset.aimTarget = row;
       label.setAttribute('aria-label', armorTarget
         ? `Снять броню с ряда «${ROW_LABELS[row]}» · броня ${rowArmor(player, row)}`
         : pending.kind === 'mark-row' ? `Отметить отряды ряда «${ROW_LABELS[row]}»`
@@ -54,6 +55,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     }
     const slots = element('div', 'row-line');
     slots.dataset.castZone = '';
+    if (rowTarget) slots.dataset.aimTarget = row;
     slots.dataset.row = row;
     const cards = player.board[row];
     slots.classList.toggle('is-selectable', Boolean(rowTarget || deckPlacement));
@@ -78,10 +80,13 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       const inspect = () => showCard(card, { orderReady: ready, orderCooldown: cooldown });
       const face = button(undefined, () => {
         if (target) playHuman({ type: 'target', cardId: card.id });
-        else if (!rowTarget && !deckPlacement && !isReplaying() && getSelectedCardId() === undefined) inspect();
+        else if (!pending && !isReplaying() && getSelectedCardId() === undefined) inspect();
       }, 'unit-face');
       decorateCard(face, card, player, { orderOnField: Boolean(card.definition.order) });
-      if (target) face.classList.add('effect-target');
+      if (target) {
+        face.classList.add('effect-target');
+        face.dataset.aimTarget = card.id;
+      }
       if (statusCount(card, 'doomed')) face.classList.add('is-doomed');
       cardInspection(face, card, false, inspect);
       slot.append(face);
@@ -115,6 +120,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       const choices = element('div', 'placement-choices');
       for (let index = 0; index <= cards.length; index += 1) {
         const node = button(index + 1, () => place(index), 'placement-choice effect-target');
+        node.dataset.aimTarget = row;
         node.setAttribute('aria-label', ROW_LABELS[row] + ' · позиция ' + (index + 1));
         choices.append(node);
       }
@@ -150,6 +156,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     panel.dataset.faction = player.factionId ?? '';
     if (!leader) return panel;
     const portrait = button(undefined, () => showCard({ definition: leader }, { leader: true }), 'leader-portrait');
+    portrait.dataset.aimLeader = side;
     portrait.setAttribute('aria-label', 'Лидер · ' + leader.name);
     portrait.title = leader.name;
     if (leader.art) portrait.append(cardArt(leader, 'leader-image'));
@@ -234,6 +241,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       const node = cardButton(card, () => playHuman({ type: 'target', cardId: card.id }), human);
       node.disabled = !options.has(card.id);
       node.classList.toggle('effect-target', !node.disabled);
+      if (!node.disabled) node.dataset.aimTarget = card.id;
       node.append(element('span', 'deck-choice-name', card.definition.name));
       choices.append(node);
     }

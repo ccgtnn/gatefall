@@ -1,5 +1,5 @@
-import { recordCategoryPlay, spendResilience } from './game/board.js?v=flagship-art-2';
-import { ROWS } from './game/cards.js?v=flagship-art-2';
+import { recordCategoryPlay, spendResilience } from './game/board.js?v=targeting-1';
+import { ROWS } from './game/cards.js?v=targeting-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { applyStatus, createCard, findUnit, removeUnit, statusCount } from '../docs/game/board.js';
+import { infectionGain } from '../docs/game/effects.js';
 import { applyAction, confirmMulligan, createMatch } from '../docs/game/match.js';
 
 const unit = (id, power = 4) => createCard(id, { id, name: id, type: 'unit', power, armor: 3 });
@@ -50,4 +51,25 @@ test('lethal infection emits death and triggers deathwish on a pass', () => {
   assert.equal(findUnit(next, 'infected'), undefined);
   assert.deepEqual(next.log.slice(-4).map(({ type }) => type), ['pass', 'status', 'death', 'deathwish']);
   assert.equal(next.players.human.discard.find(({ id }) => id === 'infected').armor, 3);
+});
+
+test('a shield blocks one infection tick, leaving armor intact and subsequent ticks active', () => {
+  let match = fixture();
+  applyStatus(match, findUnit(match, 'infected'), 'shield', 1);
+  const { card } = findUnit(match, 'infected');
+  assert.equal(infectionGain(card, 1), 0);
+  assert.equal(infectionGain(card, 2), 1);
+
+  applyStatus(match, findUnit(match, 'infected'), 'infection', 2);
+  for (const remaining of [1, 0]) {
+    match.playedCard = true;
+    match = applyAction(match, 'human', { type: 'end-turn' });
+    const { card: infected } = findUnit(match, 'infected');
+    assert.equal(statusCount(infected, 'shield'), 0);
+    assert.equal(statusCount(infected, 'infection'), remaining);
+    assert.equal(infected.power, 3 + remaining);
+    assert.equal(infected.armor, 3);
+  }
+  assert.deepEqual(match.log.filter(({ tick }) => tick).map(({ blocked, power }) => [blocked, power]),
+    [[true, 4], [false, 3]]);
 });
