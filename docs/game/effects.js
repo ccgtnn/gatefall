@@ -1,10 +1,10 @@
 import { deathwishDefinitions, deathwishJobs, emit } from './events.js?v=rebirth-1';
-import { ROWS, ROW_LABELS } from './cards.js?v=larva-devourer-1';
+import { ROWS, ROW_LABELS } from './cards.js?v=growth-balance-1';
 import {
   activeOrder, announcePlay, applyStatus, availableRows, boost, cardType, consume, damage, damageOverflow, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, restoreCard, ROW_LIMIT,
   setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, infectionDamage, units,
-} from './board.js?v=larva-devourer-1';
+} from './board.js?v=growth-balance-1';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);
@@ -74,9 +74,10 @@ export function rowScatterValue(player, row, amount) {
     Math.min(card.power, Math.max(0, perUnit - (card.armor ?? 0) - statusCount(card, 'shield'))), 0);
 }
 
-export function infectionGain(card, amount, turns = amount) {
-  return Math.max(0, infectionDamage(card, Math.min(amount, turns)) -
-    infectionDamage(card, Math.min(statusCount(card, 'infection'), turns)));
+export function infectionGain(card, amount, turns = Infinity) {
+  const current = statusCount(card, 'infection');
+  return Math.max(0, infectionDamage(card, Math.min(current + amount, turns)) -
+    infectionDamage(card, Math.min(current, turns)));
 }
 
 export function rowArmor(player, row) {
@@ -721,6 +722,10 @@ export function effectSwing(match, side, card) {
       const deck = pileCandidates(player.deck, step.filter);
       swing += deck.reduce((sum, candidate) => sum + candidate.power, 0) / Math.max(1, deck.length);
     }
+    if (step.action === 'spawn' && step.rowRef) {
+      const free = ROW_LIMIT - Math.min(...ROWS.map((row) => player.board[row].length));
+      swing += Math.min(step.amount, free) * step.card.power;
+    }
     if (step.action === 'spawn' && step.overflow) {
       const free = ROWS.reduce((sum, row) => sum + ROW_LIMIT - player.board[row].length, 0) - 1;
       swing += Math.min(step.amount, Math.max(0, free)) * step.card.power;
@@ -737,12 +742,14 @@ export function effectSwing(match, side, card) {
       }
     }
     if (step.action === 'status' && step.status === 'infection' && applyInfection) {
-      const enemy = match.players[opponent(side)];
-      if (enemy.passed) continue;
       const selection = ability.select?.find(({ ref }) => ref === step.target.ref);
       const candidates = targets(match, job, selection?.targets ?? step.target, Boolean(selection && selection.mode !== 'random'));
-      const turns = Math.max(1, enemy.hand.length);
-      swing += Math.max(0, ...candidates.map(({ card }) => infectionGain(card, step.amount, turns))) * .75;
+      const gains = candidates.map((target) => {
+        const player = match.players[target.side];
+        return player.passed ? 0 : (target.side === side ? -1 : 1) *
+          infectionGain(target.card, valueOf(match, job, step.amount, target), Math.max(1, player.hand.length));
+      });
+      swing += (selection ? Math.max(0, ...gains) : gains.reduce((sum, gain) => sum + gain, 0)) * .75;
     }
     if (step.status === 'target') {
       const candidates = units(match, opponent(side)).filter(({ card }) => isUnit(card) && !statusCount(card, 'target'));

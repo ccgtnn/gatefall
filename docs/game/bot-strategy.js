@@ -1,8 +1,8 @@
-import { compareRollouts } from './bot-rollouts.js?v=larva-devourer-1';
-import { ROWS } from './cards.js?v=larva-devourer-1';
-import { activeOrder, cardType, infectionDamage, opponent, placementSide, statusCount, units } from './board.js?v=larva-devourer-1';
-import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=larva-devourer-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=larva-devourer-1';
+import { compareRollouts } from './bot-rollouts.js?v=growth-balance-1';
+import { ROWS } from './cards.js?v=growth-balance-1';
+import { activeOrder, cardType, infectionDamage, opponent, placementSide, statusCount, units } from './board.js?v=growth-balance-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=growth-balance-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=growth-balance-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };

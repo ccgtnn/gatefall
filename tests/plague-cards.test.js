@@ -30,12 +30,12 @@ test('the Plague preset is legal, has Carrier, and uses all nine new cards with 
   assert.deepEqual(protectorate.cardIds, FACTIONS.protectorate.deck.map(({ id }) => id));
   assert.deepEqual(original.cardIds, FACTIONS.growth.deck.map(({ id }) => id));
   const { valid, cost, units, leader } = inspectDeck(plague);
-  assert.deepEqual([valid, cost, units, leader.id], [true, 164, 19, 'carrier']);
+  assert.deepEqual([valid, cost, units, leader.id], [true, 151, 19, 'carrier']);
   assert.equal(createDeckMatch(plague, { random }).players.human.leader.id, 'carrier');
   for (const [id, provision, power, type = 'unit', rarity = 'bronze'] of [
-    ['rot-midge',4,3], ['plague-carrier',5,1], ['rot-scavenger',6,3], ['boil',4,3], ['rot',5,undefined,'effect'],
-    ['rot-giant',11,3,'unit','gold'], ['pestilence',11,undefined,'effect','gold'],
-    ['plague-burst',9,undefined,'effect','gold'], ['spore-season',12,undefined,'artifact','gold'],
+    ['rot-midge',4,3], ['plague-carrier',5,1], ['rot-scavenger',4,3], ['boil',4,3], ['rot',4,undefined,'effect'],
+    ['rot-giant',11,3,'unit','gold'], ['pestilence',9,undefined,'effect','gold'],
+    ['plague-burst',7,undefined,'effect','epic'], ['spore-season',12,undefined,'artifact','gold'],
   ]) {
     const def = definitions.get(id);
     assert.deepEqual([def.provision, def.power, def.type, def.rarity], [provision,power,type,rarity]);
@@ -57,12 +57,12 @@ test('Rot Midge can order immediately and waits two owner turns to use the order
   assert.equal(match.players.human.turns, 1);
 });
 
-test('the carrier infects both neighbors in the middle; a hard bot picks a legal enemy slot', () => {
+test('the carrier infects itself and both neighbors; a hard bot picks a legal enemy slot', () => {
   let match = fixture('plague-carrier');
   match.players.bot.board.orbit = [unit('left'), unit('right')];
   match = act(match, 'play', 'plague-carrier', 1);
   assert.deepEqual(match.players.bot.board.orbit.map(({ id }) => id), ['left','plague-carrier','right']);
-  assert.deepEqual(['left','right','plague-carrier'].map((id) => infection(match,id)), [3,3,0]);
+  assert.deepEqual(['left','right','plague-carrier'].map((id) => infection(match,id)), [3,3,1]);
 
   match = fixture();
   match.turn = 'bot';
@@ -122,16 +122,33 @@ test('Rot Giant gains base power in the pile and damages all infected opponents 
   assert.equal(infection(match,'infected'), 2);
 });
 
-test('Plague Burst deals damage by infection counters and cleanses surviving targets, respecting armor', () => {
+test('Plague Burst adds two ticks to existing infections on both sides and leaves clean units alone', () => {
   let match = fixture('plague-burst');
-  match.players.bot.board.orbit = [unit('armored', 8, 2),unit('weak', 2),unit('clean')];
+  match.players.human.board.surface = [unit('ally', 8, 2)];
+  match.players.bot.board.orbit = [unit('armored', 8, 2), unit('weak', 2), unit('clean')];
+  applyStatus(match, findUnit(match, 'ally'), 'infection', 1);
   applyStatus(match, findUnit(match, 'armored'), 'infection', 5);
   applyStatus(match, findUnit(match, 'weak'), 'infection', 3);
   match = act(match, 'play', 'plague-burst');
-  assert.equal(findUnit(match, 'armored').card.power, 5);
-  assert.equal(infection(match,'armored'), 0);
-  assert.equal(findUnit(match,'weak'), undefined);
-  assert.equal(findUnit(match,'clean').card.power, 5);
+  const actions = match.log.filter(({ type, sourceDefinitionId }) => type === 'status' && sourceDefinitionId === 'plague-burst');
+  assert.deepEqual(actions.filter(({ tick }) => !tick).map(({ cardId, count }) => [cardId, count]),
+    [['ally', 3], ['armored', 7], ['weak', 5]]);
+  assert.equal(infection(match, 'ally'), 2); // Its owner completed the turn.
+  assert.equal(findUnit(match, 'armored').card.armor, 2);
+  assert.equal(findUnit(match, 'weak').card.power, 2);
+  assert.equal(infection(match, 'clean'), 0);
+});
+
+test('Incubator is a seven-provision epic and spends Resilience at round cleanup', () => {
+  let match = fixture('incubator');
+  const incubator = match.players.human.hand[0];
+  assert.equal(incubator.definition.rarity, 'epic');
+  assert.equal(incubator.definition.provision, 7);
+  match = act(match, 'play', 'incubator');
+  assert.equal(findUnit(match, 'incubator').card.resilient, true);
+  match = act(match, 'pass');
+  assert.equal(match.phase, 'mulligan');
+  assert.equal(findUnit(match, 'incubator').card.resilient, false);
 });
 
 test('Spore Season opens each chapter from actual Rot plays, chooses the strongest row and remains on the field', () => {

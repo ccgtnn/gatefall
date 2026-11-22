@@ -14,7 +14,10 @@ test('the five immutable presets fit the provision cap and have enough units', (
     assert.equal(result.cards.length, index === 1 ? 27 : 25);
     assert.ok(result.units >= 13);
     assert.equal(result.budget, 165);
-    assert.equal(result.cost, ({ 'preset-protectorate-orbital': 163, 'preset-growth-rebirth': 165 })[preset.id] ?? 164);
+    assert.equal(result.cost, ({
+      'preset-protectorate': 164, 'preset-growth': 160, 'preset-growth-plague': 151,
+      'preset-protectorate-orbital': 163, 'preset-growth-rebirth': 160,
+    })[preset.id]);
     assert.ok(Object.isFrozen(preset.cardIds));
     assert.equal(collection(preset.factionId).length, preset.factionId === 'growth' ? 52 : 46);
     assert.equal(collection(preset.factionId).filter(({ faction }) => faction === 'neutral').length, 22);

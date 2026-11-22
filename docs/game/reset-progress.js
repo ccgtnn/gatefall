@@ -1,4 +1,4 @@
-import { REWARD_STORAGE_KEY } from './rewards.js?v=larva-devourer-1';
+import { REWARD_STORAGE_KEY } from './rewards.js?v=growth-balance-1';
 
 export async function resetProgress(storage, locks) {
   function clearGameData() {

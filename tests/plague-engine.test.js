@@ -30,9 +30,9 @@ test('categories cover the existing Growth pool and identify the Void neutrals',
   const categories = Object.groupBy([...FACTIONS.growth.pool, LARVA], (def) => def.categories?.[0]);
   assert.deepEqual(categories['Выводок'].map(({ id }) => id).sort(),
     ['broodlord','cocoon','colossus','feast','gulper','incubator','larva','nest','ravager','scavenger','swarm-call']);
-  assert.deepEqual(categories['Росток'].map(({ id }) => id).sort(), ['acid-capsule', 'bioreactor', 'genome-keeper', 'predator', 'spore-sac', 'synaptic-parasite', 'thorn-screecher', 'vine', 'xylaris-bloom']);
+  assert.deepEqual(categories['Росток'].map(({ id }) => id).sort(), ['acid-capsule', 'bioreactor', 'predator', 'spore-sac', 'synaptic-parasite', 'thorn-screecher', 'vine', 'xylaris-bloom']);
   assert.deepEqual(categories['Гниль'].slice(0, 2).map(({ id }) => id), ['acid-gland','spitter']);
-  assert.equal(categories.undefined?.some((card) => !card.scenario) ?? false, false);
+  assert.equal(categories.undefined?.some((card) => !card.scenario && card.id !== 'genome-keeper') ?? false, false);
   assert.deepEqual(FACTIONS.protectorate.pool.filter((card) => card.categories).map(({ id, categories }) => [id, categories]),
     [['imperial-golem', ['Голем']], ['aggressor', ['Тяжёлый корабль']],
       ['aurelian', ['Тяжёлый корабль']], ['tiberius', ['Тяжёлый корабль']]]);
@@ -137,7 +137,7 @@ test('pile passives trigger on the first infection and after expiry, in both dec
   applyStatus(match, enemy, 'infection', 1);
   applyStatus(match, enemy, 'infection', 2);
   applyStatus(match, findUnit(match, 'field'), 'infection', 2);
-  applyStatus(match, enemy, 'infection', -2);
+  applyStatus(match, enemy, 'infection', -3);
   applyStatus(match, enemy, 'infection', 1);
   match = step(match, 'human', play('human-spare', 1));
   assert.equal(basePower(match.players.human.hand.find(({ id }) => id === 'hand')), 7);

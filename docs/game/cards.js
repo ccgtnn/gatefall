@@ -23,7 +23,7 @@ export const KEYWORDS = Object.freeze({
   'Неуязвимость': 'Этот отряд нельзя выбрать целью любого игрока. Случайные и массовые эффекты действуют на него как обычно.',
   'Расправа': 'Дополнительный эффект срабатывает, если отряд погиб от этого удара.',
   'Завещание': 'Срабатывает при гибели от урона, поглощения, Заражения или таймера.',
-  'Заражение': 'В конце хода владельца отряд теряет 1 силу в обход брони. Силовой щит поглощает один тик и исчезает. После каждого тика счётчик уменьшается на 1.',
+  'Заражение': 'В конце хода владельца отряд теряет 1 силу в обход брони. Силовой щит поглощает один тик и исчезает. При повторном наложении счётчики складываются. После каждого тика счётчик уменьшается на 1.',
   'Обречённость': 'При гибели карта уходит из игры, а её Завещание срабатывает.',
   'Приказ': 'Готов со следующего хода владельца. После применения в этом ходу нельзя пасовать.',
   'Рвение': 'Приказ готов сразу после появления карты на поле.',
@@ -200,20 +200,18 @@ const growth = [
   ['cocoon', 'Кокон', 4, 3, 'При розыгрыше: породить по личинке с каждой стороны. Завещание: усилить поглотившего на 2.',
     { art: 'cocoon.webp?v=3', categories: ['Выводок'], deploy: ability([spawn('left'), spawn('right')]),
       deathwish: ability([action('boost', chosen('consumer'), 2)]), keywords: ['Порождение', 'Завещание', 'Поглощение'] }],
-  ['feast', 'Пиршество', 4, null, 'Выбранный свой отряд поглощает одну другую свою личинку и получает ещё +4 силы.',
+  ['feast', 'Пиршество', 4, null, 'Породи 4 личинки в выбранном своём ряду.',
     { art: 'feast.webp', categories: ['Выводок'], type: 'effect', deploy: ability([
-      absorb(chosen('victim'), { receiver: chosen('ally'), extra: 4 }),
-    ], [
-      choice('ally', allies, 'Выбери свой отряд для Пиршества.', { kind: 'boost' }),
-      choice('victim', { ...larvae, exclude: 'ally' }, 'Выбери личинку для поглощения.', { kind: 'consume' }),
-    ]), keywords: ['Поглощение', 'Усиление'] }],
+      { action: 'select-row', ref: 'row', filter: 'space', prompt: 'Выбери свой ряд для четырёх личинок.' },
+      { ...spawn('right', undefined, 4), rowRef: 'row' },
+    ]), keywords: ['Порождение'] }],
   ['vine', 'Ползучая лоза', 4, 2, 'При розыгрыше: породить личинку на Орбите. Завещание: наложить Заражение 1 на три случайных вражеских отряда.',
     { art: 'vine.webp?v=art-27', categories: ['Росток'], deploy: ability([spawn('right', 'orbit')]),
       deathwish: ability([{ ...infect(enemies, 1), mode: 'random', count: 3 }]), keywords: ['Порождение', 'Завещание', 'Заражение'] }],
   ['spore-sac', 'Споровый мешок', 4, 4, 'Завещание: породить 3 личинки на месте погибшей карты.',
     { art: 'spore-sac.webp?v=3', categories: ['Росток'], deathwish: ability([spawn('death', 'death', 3)]), keywords: ['Завещание', 'Порождение'] }],
-  ['incubator', 'Инкубатор', 6, null, 'В конце хода: породить личинку справа.',
-    { type: 'artifact', art: 'incubator.webp?v=art-27', categories: ['Выводок'], endTurn: ability([spawn('right')]), keywords: ['Порождение', 'Конец хода'] }],
+  ['incubator', 'Инкубатор', 7, null, 'Стойкость. В конце хода: породить личинку справа.',
+    { type: 'artifact', rarity: 'epic', resilience: true, art: 'incubator.webp?v=art-27', categories: ['Выводок'], endTurn: ability([spawn('right')]), keywords: ['Стойкость', 'Порождение', 'Конец хода'] }],
   ['acid-gland', 'Кислотная железа', 4, 3, 'Завещание: наложить Заражение 4 на сильнейший вражеский отряд.',
     { art: 'acid-gland.webp?v=art-27', categories: ['Гниль'], deathwish: ability([{ ...infect({ ...enemies, strongest: true }, 4), mode: 'random' }]), keywords: ['Завещание', 'Заражение'] }],
   ['scavenger', 'Трупоед', 5, 3, 'Рвение. Приказ: поглотить другой свой отряд. Перезарядка: 2 хода.',
@@ -236,7 +234,7 @@ const growth = [
       filter: { rarity: 'bronze', faction: 'growth' }, after: spawn('right') }]), keywords: ['Порождение'] }],
   ['nest', 'Гнездо-мать', 9, 3, 'В конце хода: породить по личинке в каждом своём ряду.',
     { rarity: 'epic', art: 'nest.webp?v=art-25', categories: ['Выводок'], endTurn: ability([spawn('right', 'all')]), keywords: ['Порождение'] }],
-  ['colossus', 'Колосс', 11, 5, 'При розыгрыше: поглотить всех своих соседей.',
+  ['colossus', 'Колосс', 8, 5, 'При розыгрыше: поглотить всех своих соседей.',
     { art: 'colossus.webp?v=art-25', categories: ['Выводок'], deploy: ability([absorb(adjacent)]), keywords: ['Соседи', 'Поглощение'] }],
   ['ravager', 'Выводок-разоритель', 9, 4, 'При розыгрыше: поглотить свой отряд и нанести урон врагу в размере силы жертвы.',
     { rarity: 'epic', art: 'ravager.webp?v=art-25', categories: ['Выводок'], deploy: ability([
@@ -245,7 +243,7 @@ const growth = [
     ], [
       choice('victim', otherAlly, 'Выбери отряд для поглощения.', { kind: 'consume' }), enemyChoice(victimPower),
     ]), keywords: ['Поглощение', 'Урон'] }],
-  ['broodlord', 'Владыка выводка', 11, 4, 'При розыгрыше: поглоти всех личинок в своём ряду и получи удвоенную их силу.',
+  ['broodlord', 'Владыка выводка', 9, 4, 'При розыгрыше: поглоти всех личинок в своём ряду и получи удвоенную их силу.',
     { art: 'broodlord.webp', categories: ['Выводок'], deploy: ability([absorb({ ...allies, row: 'source', definitionId: LARVA.id }, { multiplier: 2, grouped: true })]),
       keywords: ['Поглощение'] }],
 ];
@@ -430,11 +428,11 @@ const plague = [
     order: { cooldown: 2, ...ability([infect(chosen('enemy'), 1)], [infectionChoice(1)]) },
     keywords: ['Рвение', 'Приказ', 'Заражение'],
   }],
-  ['plague-carrier', 'Разносчик', 5, 1, 'Играется на сторону противника. При розыгрыше: наложить Заражение 3 на своих соседей.', {
+  ['plague-carrier', 'Разносчик', 5, 1, 'Играется на сторону противника. При розыгрыше: наложи Заражение 3 на своих соседей и Заражение 1 на себя.', {
     art: 'plague-carrier.webp?v=plague-art-2',
-    enemySide: true, deploy: ability([infect(adjacent, 3)]), keywords: ['Соседи', 'Заражение'],
+    enemySide: true, deploy: ability([infect(adjacent, 3), infect(self, 1)]), keywords: ['Соседи', 'Заражение'],
   }],
-  ['rot-scavenger', 'Падальщик гнили', 6, 3, 'При розыгрыше: усилить себя на 1 за каждый заражённый вражеский отряд.', {
+  ['rot-scavenger', 'Падальщик гнили', 4, 3, 'При розыгрыше: усилить себя на 1 за каждый заражённый вражеский отряд.', {
     art: 'rot-scavenger.webp?v=plague-art-1',
     deploy: ability([action('boost', self, { count: infectedEnemies })]), keywords: ['Усиление', 'Заражение'],
   }],
@@ -443,7 +441,7 @@ const plague = [
     fieldEvents: { death: { enemy: true, infected: true, ability: ability([action('boost', self, 2)]) } },
     keywords: ['Усиление', 'Заражение'],
   }],
-  ['rot', 'Гниение', 5, null, 'Наложить Гниение на выбранный вражеский ряд на 3 хода.', {
+  ['rot', 'Гниение', 4, null, 'Наложить Гниение на выбранный вражеский ряд на 3 хода.', {
     art: 'rot.webp?v=plague-art-1',
     type: 'effect', deploy: ability([
       { action: 'select-row', ref: 'rotRow', filter: 'any', side: 'enemy', prompt: 'Выбери вражеский ряд для Гниения.' },
@@ -456,16 +454,14 @@ const plague = [
     pileEvents: { 'first-infection': { enemy: true, ability: ability([action('base-power', self, 1)]) } },
     deploy: ability([action('damage', infectedEnemies, 1)]), keywords: ['Заражение', 'Урон'],
   }],
-  ['pestilence', 'Мор', 11, null, 'Наложить Гниение на оба вражеских ряда на 3 хода.', {
+  ['pestilence', 'Мор', 9, null, 'Наложить Гниение на оба вражеских ряда на 3 хода.', {
     art: 'pestilence.webp?v=plague-art-1',
     rarity: 'gold', type: 'effect', deploy: ability([rot('all', 3)]), keywords: ['Гниение'],
   }],
-  ['plague-burst', 'Чумной всплеск', 9, null, 'Нанести каждому заражённому вражескому отряду урон по его счётчику Заражения, затем снять с них Заражение.', {
+  ['plague-burst', 'Чумной всплеск', 7, null, 'Увеличь Заражение на 2 у всех уже заражённых отрядов на обеих сторонах поля.', {
     art: 'plague-burst.webp?v=plague-art-2',
-    rarity: 'gold', type: 'effect', deploy: ability([
-      { ...action('damage', infectedEnemies, { status: 'infection' }), saveTargets: 'infected' },
-      infect({ scope: 'ref-set', ref: 'infected' }, { status: 'infection', scale: -1 }),
-    ]), keywords: ['Заражение', 'Урон'],
+    rarity: 'epic', type: 'effect',
+    deploy: ability([infect({ scope: 'field', type: 'unit', infected: true }, 2)]), keywords: ['Заражение'],
   }],
   ['spore-season', 'Сезон спор', 12, null, 'Стойкость. Главы открываются по одной, когда ты разыгрываешь карту категории Гниль. Пролог: Заражение 2 случайному вражескому отряду. Глава 1: Заражение 2 двум случайным незаражённым вражеским отрядам. Глава 2: Гниение на сильнейший вражеский ряд на 2 хода. Глава 3: 2 урона всем заражённым вражеским отрядам.', {
     art: 'spore-season.webp?v=plague-art-2',
@@ -488,7 +484,7 @@ const rebirth = [
     art: 'thorn-screecher.webp',
     deathwish: ability([{ action: 'summon-from-deck', position: 'death', filter: { definitionId: 'thorn-screecher' } }]),
   }],
-  ['synaptic-parasite', 'Синаптический паразит', 5, 2,
+  ['synaptic-parasite', 'Синаптический паразит', 5, 4,
     'При розыгрыше: выбери свою обычную карту с Завещанием на поле и активируй её Завещание. Карта остаётся на поле.', {
       art: 'synaptic-parasite.webp', keywords: ['Завещание'],
       deploy: ability([action('activate-deathwish', chosen('ally'))],
@@ -513,7 +509,7 @@ const rebirth = [
     })),
   }],
   ['genome-keeper', 'Хранитель генома', 13, 1, 'При розыгрыше: получи все уникальные Завещания обычных карт из своего сброса.', {
-    art: 'genome-keeper.webp', rarity: 'gold', keywords: ['Завещание'],
+    art: 'genome-keeper.webp', categories: [], rarity: 'gold', keywords: ['Завещание'],
     deploy: ability([{ action: 'inherit-deathwishes' }]),
   }],
 ].map(([id, name, provision, power, text, rules]) =>

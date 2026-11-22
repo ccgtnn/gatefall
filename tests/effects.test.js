@@ -444,21 +444,25 @@ test('Incubator spawns from deployment and persists beyond three owner turns', (
   assert.equal(events(match, 'death').length, 0);
 });
 
-test('Feast selects a different larva across rows, boosts the recipient and keeps uncastable effects in hand', () => {
-  let match = fixture({ faction: 'growth' });
-  hand(match, unit('feast', 'feast'));
-  board(match, 'human', 'surface', unit('eater', 'gulper'));
-  const larva = createCard('larva', LARVA);
-  assert.strictEqual(play(match, 'feast'), match);
-  board(match, 'human', 'orbit', larva, unit('structure', 'incubator'));
-  match = play(match, 'feast');
-  assert.deepEqual(match.pending.options, ['eater']);
-  match = target(match, 'eater');
-  assert.deepEqual(match.pending.options, ['larva']);
-  match = target(match, 'larva');
-  assert.equal(match.players.human.board.surface[0].power, 9);
-  assert.equal(match.players.human.discard[0].id, 'feast');
-  assert.equal(match.players.human.exile[0].id, 'larva');
+test('Feast spawns four larvae in one chosen allied row and fills only the slots available', () => {
+  for (const occupied of [0, 7, ROW_LIMIT]) {
+    let match = fixture({ faction: 'growth' });
+    hand(match, unit('feast', 'feast'));
+    board(match, 'human', 'surface', ...Array.from({ length: ROW_LIMIT }, (_, i) => createCard('surface-' + i, basic)));
+    board(match, 'human', 'orbit', ...Array.from({ length: occupied }, (_, i) => createCard('orbit-' + i, basic)));
+    const pending = play(match, 'feast');
+    if (occupied === ROW_LIMIT) {
+      assert.strictEqual(pending, match);
+      continue;
+    }
+    assert.equal(pending.pending.selectionSide, 'human');
+    assert.deepEqual(pending.pending.options, ['orbit']);
+    match = target(pending, 'orbit');
+    assert.equal(match.players.human.board.orbit.filter(({ definition }) => definition.id === LARVA.id).length,
+      Math.min(4, ROW_LIMIT - occupied));
+    assert.equal(match.players.bot.board.orbit.length, 0);
+    assert.equal(match.players.human.discard[0].id, 'feast');
+  }
 });
 
 test('a new Order can declare a condition and work without the Commander’s armor or enemy requirements', () => {

@@ -1,4 +1,4 @@
-import { ROWS } from './cards.js?v=larva-devourer-1';
+import { ROWS } from './cards.js?v=growth-balance-1';
 import { emit } from './events.js?v=rebirth-1';
 
 export const ROW_LIMIT = 9;
@@ -141,7 +141,7 @@ const STATUS_RULES = Object.freeze({
     next: (_current, amount) => Number(amount > 0), unit: true },
   target: { read: (card) => card.statuses?.target ?? 0, next: (current, amount) => Math.max(current, Number(amount > 0)), unit: true },
   infection: { read: (card) => card.statuses?.infection ?? 0,
-    next: (current, amount) => amount < 0 ? Math.max(0, current + amount) : Math.max(current, amount),
+    next: (current, amount) => Math.max(0, current + amount),
     unit: true, turnEnd: 'infection-tick' },
 });
 

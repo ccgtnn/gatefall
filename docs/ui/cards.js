@@ -1,7 +1,7 @@
 import { dialogClose } from './resources.js?v=interface-polish-1';
 import { button, element, setCardRarity } from './dom.js?v=opponent-reveal-1';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=larva-devourer-1';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=larva-devourer-1';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=growth-balance-1';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=growth-balance-1';
 
 import { deathwishDefinitions } from '../game/events.js?v=rebirth-1';
 import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=orbital-strike-1';
@@ -180,6 +180,24 @@ function keywordsFor(card) {
   return [...words].filter((word) => keywordIcons[word]);
 }
 
+function bottomStatus(card) {
+  if (deathwishDefinitions(card).length) return 'Завещание';
+  if (card.resilient) return 'Стойкость';
+  if (statusCount(card, 'immune')) return 'Неуязвимость';
+  if (statusCount(card, 'doomed')) return 'Обречённая';
+  if (card.definition.endTurn) return 'Конец хода';
+}
+
+function passiveBadge(card) {
+  const status = bottomStatus(card);
+  if (!status) return;
+  const badge = element('span', 'card-state', keywordIcons[status] ?? '○');
+  badge.title = status;
+  badge.setAttribute('role', 'img');
+  badge.setAttribute('aria-label', status);
+  return badge;
+}
+
 function cardStats(card) {
   const stats = element('span', 'card-stats');
   if (isUnit(card)) {
@@ -241,13 +259,8 @@ function liveBadges(node, card, { orderOnField, showProvision, orderReady, order
     const label = orderReady ? 'Приказ готов' : orderCooldown ? 'Перезарядка Приказа: ' + orderCooldown : 'Приказ';
     node.append(orderBadge(orderReady, orderCooldown, label));
   } else {
-    const word = card.resilient ? 'Стойкость' : statusCount(card, 'doomed') ? 'Обречённая'
-      : keywordsFor(card).find((keyword) => keyword !== 'Броня');
-    if (word) {
-      const mark = element('span', 'card-state', keywordIcons[word] ?? '○');
-      mark.title = word;
-      node.append(mark);
-    }
+    const badge = passiveBadge(card);
+    if (badge) node.append(badge);
   }
 }
 
@@ -264,13 +277,15 @@ function legacyBadges(node, card, orderOnField) {
     mark.title = complete ? 'Все главы сыграны' : scenario ? 'Главы сценария' : CARD_TYPES[type];
     node.append(mark);
   }
-  const word = card.resilient ? 'Стойкость' : definition.order ? 'Приказ' : deathwishDefinitions(card).length ? 'Завещание'
-    : statusCount(card, 'doomed') ? 'Обречённая' : keywordsFor(card).find((keyword) => keyword !== 'Броня');
-  if (!orderOnField && (counter > 0 || timer !== undefined || word)) {
-    const mark = element('span', 'card-state', counter > 0 ? counter : timer ?? keywordIcons[word] ?? '○');
-    mark.title = counter > 0 ? 'Счётчик ' + counter : timer !== undefined ? 'Таймер ' + timer : word;
-    if (word === 'Приказ' && timer === undefined) mark.classList.add('order-sleep');
-    node.append(mark);
+  if (!orderOnField) {
+    if (counter > 0 || timer !== undefined) {
+      node.append(statBadge('hourglass', (timer === undefined ? 'Счётчик ' : 'Таймер ') + (timer ?? counter), timer ?? counter));
+    } else if (definition.order) {
+      node.append(orderBadge(false, 0, 'Приказ'));
+    } else {
+      const badge = passiveBadge(card);
+      if (badge) node.append(badge);
+    }
   }
   const infection = statusCount(card, 'infection');
   if (infection) {

@@ -1,4 +1,4 @@
-import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=larva-devourer-1';
+import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=growth-balance-1';
 
 export const MIN_CARDS = 25;
 export const MIN_UNITS = 13;
