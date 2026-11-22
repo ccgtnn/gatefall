@@ -1,6 +1,7 @@
+import { FACTIONS } from '../docs/game/cards.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { bindCardPlacement, insertionPoint } from '../docs/card-placement.js';
+import { bindCardPlacement, insertionPoint, placementEffectRows } from '../docs/card-placement.js';
 
 const rowBounds = { left: 20, width: 200 };
 const cardBounds = [{ left: 80, right: 105 }, { left: 109, right: 134 }];
@@ -15,7 +16,7 @@ test('a populated row offers positions at both edges and between neighboring car
   assert.deepEqual(insertionPoint(rowBounds, cardBounds, 190), { position: 2, offset: 116 });
 });
 
-function placementFixture(pointerType, { isEffect = false, full = false, enemy = false, side = 'human' } = {}) {
+function placementFixture(pointerType, { isEffect = false, full = false, enemy = false, side = 'human', effectRows } = {}) {
   const played = [];
   const listeners = new Map();
   const ghost = {
@@ -24,7 +25,7 @@ function placementFixture(pointerType, { isEffect = false, full = false, enemy =
   const marker = { ...ghost, classList: { toggle() {} } };
   let captured = null;
   const card = {
-    dataset: { cardId: 'orbit-card', type: isEffect ? 'effect' : 'unit', ...(enemy && { enemySide: 'true' }) },
+    dataset: { cardId: 'orbit-card', type: isEffect ? 'effect' : 'unit', ...(enemy && { enemySide: 'true' }), effectRows },
     classList: { add() {}, remove() {} },
     getBoundingClientRect: () => ({ width: 32 }),
     cloneNode: () => ghost,
@@ -35,9 +36,14 @@ function placementFixture(pointerType, { isEffect = false, full = false, enemy =
     closest: () => card,
   };
   const slots = cardBounds.map((bounds) => ({ getBoundingClientRect: () => bounds }));
+  const classes = new Set();
   const row = {
     dataset: { playRow: 'orbit', full: String(full), side },
-    classList: { add() {}, remove() {}, toggle() {} },
+    classList: {
+      add: (value) => classes.add(value),
+      remove: (...values) => values.forEach((value) => classes.delete(value)),
+      toggle: (value, on) => on ? classes.add(value) : classes.delete(value),
+    },
     contains: (hit) => hit === row,
     getBoundingClientRect: () => rowBounds,
     querySelector: () => slots[0],
@@ -45,6 +51,7 @@ function placementFixture(pointerType, { isEffect = false, full = false, enemy =
     append() {},
   };
   const screen = {
+    classList: { add() {}, remove() {} },
     ownerDocument: {
       defaultView: { requestAnimationFrame: () => 1, cancelAnimationFrame() {} },
       elementFromPoint: (_x, y) => y === 40 ? row : y === 90 ? card : null,
@@ -63,7 +70,7 @@ function placementFixture(pointerType, { isEffect = false, full = false, enemy =
     });
   }
 
-  return { send, marker, played };
+  return { send, marker, played, classes };
 }
 
 for (const pointer of ['mouse', 'touch']) {
@@ -123,4 +130,33 @@ test('units played to the enemy side use its drop targets only', () => {
     send('pointerup', 106, 40);
     assert.equal(played.length, Number(side === 'bot'));
   }
+});
+
+
+test('placement hints reflect the rows actually used by deploy, orders, and ongoing abilities', () => {
+  const card = (id) => FACTIONS.protectorate.pool.find((card) => card.id === id);
+  for (const id of ['aurelian', 'tiberius', 'aggressor']) assert.deepEqual(placementEffectRows(card(id)), ['orbit']);
+  for (const id of ['fleet-gunner', 'scout-frigate']) assert.deepEqual(placementEffectRows(card(id)), ['surface']);
+  assert.deepEqual(new Set(placementEffectRows(card('spear-battery'))), new Set(['surface', 'orbit']));
+  assert.deepEqual(placementEffectRows(card('spotter')), []);
+  assert.deepEqual(placementEffectRows(card('orbital-salvo')), []);
+});
+
+test('the effect row lights up before reaching it and clears when the drag is cancelled', () => {
+  const { send, classes, played } = placementFixture('touch', { effectRows: 'orbit' });
+  send('pointerdown', 105, 90);
+  send('pointermove', 106, 65);
+  assert.ok(classes.has('is-drag-effect-row'));
+  send('pointercancel', 106, 65);
+  assert.ok(!classes.has('is-drag-effect-row'));
+  assert.deepEqual(played, []);
+});
+
+test('a card can still be dropped in a row without its ability', () => {
+  const { send, classes, played } = placementFixture('mouse', { effectRows: 'surface' });
+  send('pointerdown', 105, 90);
+  send('pointermove', 106, 40);
+  assert.ok(!classes.has('is-drag-effect-row'));
+  send('pointerup', 106, 40);
+  assert.equal(played[0].row, 'orbit');
 });

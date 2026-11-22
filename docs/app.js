@@ -1,7 +1,7 @@
 import { createBaseScreen } from './ui/base-screen.js?v=rebirth-1';
 import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=growth-balance-1';
 import { createDeckStorage } from './ui/deck-storage.js?v=growth-balance-1';
-import { bindCardPlacement } from './card-placement.js?v=opponent-reveal-1';
+import { bindCardPlacement } from './card-placement.js?v=row-placement-1';
 import { animateCoin, animateHandTurn, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=growth-balance-1';
 import { clearParticles } from './particles.js?v=step-14';
 import { playJournal } from './turn-playback.js?v=growth-balance-1';
@@ -12,8 +12,8 @@ import { inspectDeck } from './game/decks.js?v=growth-balance-1';
 import { applyAction, createDeckMatch } from './game/match.js?v=growth-balance-1';
 import { element, iconButton } from './ui/dom.js?v=opponent-reveal-1';
 import { cardArt, preview, showCard } from './ui/cards.js?v=growth-balance-1';
-import { createBattlefield } from './ui/field.js?v=growth-balance-1';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=growth-balance-1';
+import { createBattlefield } from './ui/field.js?v=row-placement-1';
+import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=row-placement-1';
 import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=growth-balance-1';
 import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=growth-balance-1';
 import { createSettings } from './ui/settings.js?v=growth-balance-1';
@@ -106,6 +106,12 @@ const cancelPlacement = bindCardPlacement(screen, (cardId, row, position) => {
 }, (node) => {
   const card = match.players.human.hand.find(({ id }) => id === node.dataset.cardId);
   if (card && !replaying) showCard(card);
+});
+
+screen.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape' || !selectedCardId || !humanCanAct()) return;
+  selectedCardId = undefined;
+  updatePlacementSelection(screen, match);
 });
 
 function settingsButton() {

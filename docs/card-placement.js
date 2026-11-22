@@ -1,6 +1,17 @@
 const DRAG_DISTANCE = 6;
 const INSPECT_DELAY = 450;
 
+export function placementEffectRows(definition) {
+  if (definition.type === 'effect') return [];
+  const abilities = [
+    definition.deploy, definition.initiative, definition.order, definition.endTurn,
+    definition.startTurn, definition.startTurnPulse, definition.scenario?.prologue,
+    ...Object.values(definition.fieldEvents ?? {}).map(({ ability }) => ability),
+  ];
+  return [...new Set(abilities.filter(Boolean).flatMap((ability) =>
+    ability.sourceRow ? [ability.sourceRow] : (ability.steps ?? []).map(({ sourceRow }) => sourceRow).filter(Boolean)))];
+}
+
 export function insertionPoint(row, cards, clientX) {
   if (cards.length === 0) return { position: 0, offset: row.width / 2 };
 
@@ -50,7 +61,12 @@ export function bindCardPlacement(screen, play, inspect) {
     active.ghost = ghost;
     doc.body.append(ghost);
     active.card.classList.add('is-dragged');
-    for (const row of active.rows) row.classList.add('is-available');
+    const effectRows = active.card.dataset.effectRows?.split(' ') ?? [];
+    screen.classList.add('is-dragging-card');
+    for (const row of active.rows) {
+      row.classList.add('is-available');
+      row.classList.toggle('is-drag-effect-row', effectRows.includes(row.dataset.playRow));
+    }
 
     const marker = doc.createElement('span');
     marker.className = 'drop-marker';
@@ -67,7 +83,8 @@ export function bindCardPlacement(screen, play, inspect) {
       active.ghost.remove();
       active.marker.remove();
       active.card.classList.remove('is-dragged');
-      for (const row of active.rows) row.classList.remove('is-available', 'is-cast-target');
+      screen.classList.remove('is-dragging-card');
+      for (const row of active.rows) row.classList.remove('is-available', 'is-cast-target', 'is-drag-effect-row');
     }
     if (active.card.hasPointerCapture(active.pointerId)) {
       active.card.releasePointerCapture(active.pointerId);

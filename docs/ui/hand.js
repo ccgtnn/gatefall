@@ -1,3 +1,4 @@
+import { placementEffectRows } from '../card-placement.js?v=row-placement-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { cardType, placementSide } from '../game/board.js?v=growth-balance-1';
 import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=growth-balance-1';
@@ -8,11 +9,17 @@ export function updatePlacementSelection(screen, match, selectedCardId) {
   for (const node of screen.querySelectorAll('.hand [data-card-id]')) {
     node.setAttribute('aria-pressed', String(node.dataset.cardId === selectedCardId));
   }
+  const effectRows = card ? placementEffectRows(card.definition) : [];
   for (const row of screen.querySelectorAll('[data-play-row]')) {
     const available = Boolean(card && placementSide('human', card) === row.dataset.side &&
       (cardType(card) === 'effect' || row.dataset.full !== 'true'));
     row.classList.toggle('is-selectable', available);
-    row.parentElement.querySelector('button.row-label').disabled = !available;
+    const activeEffect = available && effectRows.includes(row.dataset.playRow);
+    row.classList.toggle('is-placement-effect-row', activeEffect);
+    const label = row.parentElement.querySelector('button.row-label');
+    label.disabled = !available;
+    if (activeEffect) label.setAttribute('aria-description', 'В этом ряду действует способность выбранной карты.');
+    else label.removeAttribute('aria-description');
   }
 }
 
@@ -78,7 +85,11 @@ export function playerHand(match, active, selectCard, isReplaying) {
       }
       selectCard(card.id);
     }, human, available);
-    if (available) node.dataset.playCard = '';
+    if (available) {
+      node.dataset.playCard = '';
+      const effectRows = placementEffectRows(card.definition);
+      if (effectRows.length) node.dataset.effectRows = effectRows.join(' ');
+    }
     if (active && !available) node.classList.add('is-unavailable');
     cards.append(node);
   }

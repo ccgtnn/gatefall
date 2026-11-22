@@ -124,6 +124,17 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   background: color-mix(in srgb, var(--lane-dark) 76%, transparent);
 }
 .field-center .row-label:enabled { background: #263c40; }
+/* Gold signals that the card's ability uses this row. Teal remains the normal drop cue. */
+.field-center .board-row:has(.is-drag-effect-row),
+#screen:not(.is-dragging-card) .field-center .board-row:has(.is-placement-effect-row) {
+  --lane-line: #ebc578;
+  --lane-light: #ffdfa2;
+  box-shadow: inset 0 0 0 1px #ebc578, 0 0 .65rem #eec06885;
+}
+.field-center .board-row:has(.is-drag-effect-row) .row-label,
+#screen:not(.is-dragging-card) .field-center .board-row:has(.is-placement-effect-row) .row-label {
+  background: #514027;
+}
 .row-icon { font-size: clamp(9px, 2dvh, 16px); color: var(--lane-light); line-height: 1; }
 .field-row-name {
   color: var(--lane-light);
