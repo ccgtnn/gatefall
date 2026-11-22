@@ -232,6 +232,7 @@ body:has(.reward-book[open]) { overflow: hidden; }
 .booster-reveal-card > svg { width: 48%; height: auto; }
 .booster-reveal-card:hover { box-shadow: inset 0 0 1.2rem var(--faction-edge); }
 .booster-revealed-name { grid-area: 2 / 1; font-size: clamp(.67rem, 1.8vw, .92rem); overflow-wrap: anywhere; }
+.booster-dismantled { display: block; margin-block-start: .2rem; color: #93f5da; }
 .booster-reveal-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: .6rem; }
 .card-unavailable > .hand-card { opacity: .48; }
 .catalog-quantity { font-size: .72rem; }

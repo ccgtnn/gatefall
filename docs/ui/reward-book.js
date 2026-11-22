@@ -1,5 +1,5 @@
 import { button, element } from './dom.js?v=opponent-reveal-1';
-import { REWARD_SECTIONS, rewardState } from '../game/rewards.js?v=reward-routes-1';
+import { REWARD_SECTIONS, rewardState } from '../game/rewards.js?v=booster-rarity-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 import { sectionDialog } from './resources.js?v=compact-nav-1';
 

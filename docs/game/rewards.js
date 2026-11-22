@@ -5,6 +5,7 @@ export const STARTING_KEYS = 25;
 export const STARTING_ESSENCE = 800;
 export const BOOSTER_PRICE = 100;
 export const BOOSTER_SIZE = 5;
+export const BOOSTER_RARITY_WEIGHTS = Object.freeze({ bronze: 75, epic: 20, gold: 5 });
 
 const ESSENCE_COSTS = {
   bronze: { craft: 100, dismantle: 20 },
@@ -288,10 +289,22 @@ function starterCards(decks) {
   return cards;
 }
 
-function packCards(id, random) {
-  const pool = [...pools.get(id)];
-  return Array.from({ length: BOOSTER_SIZE }, () =>
-    pool.splice(Math.floor(random() * pool.length), 1)[0].id);
+export function drawBoosterCards(pool, random = Math.random) {
+  const available = Object.entries(BOOSTER_RARITY_WEIGHTS).map(([rarity, weight]) => ({
+    rarity, weight, cards: pool.filter((card) => card.rarity === rarity),
+  }));
+  const pack = [];
+  while (pack.length < BOOSTER_SIZE) {
+    const remaining = available.filter(({ cards }) => cards.length);
+    if (!remaining.length) break;
+    const needsRare = pack.length === BOOSTER_SIZE - 1 && pack.every(({ rarity }) => rarity === 'bronze');
+    const rare = needsRare ? remaining.filter(({ rarity }) => rarity !== 'bronze') : [];
+    const eligible = rare.length ? rare : remaining;
+    let roll = random() * eligible.reduce((total, { weight }) => total + weight, 0);
+    const { cards } = eligible.find(({ weight }) => (roll -= weight) < 0) ?? eligible[0];
+    pack.push(cards.splice(Math.floor(random() * cards.length), 1)[0]);
+  }
+  return pack;
 }
 
 function readPack(pack) {
@@ -299,7 +312,8 @@ function readPack(pack) {
   if (!faction || !count(pack.id) || !Array.isArray(pack.cards) || pack.cards.length !== BOOSTER_SIZE ||
       new Set(pack.cards).size !== BOOSTER_SIZE ||
       !pack.cards.every((id) => definitions.get(id)?.faction === pack.faction)) return null;
-  return pack;
+  const { id, cards } = pack;
+  return { id, faction: pack.faction, cards, essenceByCard: countsFor(cards, pack.essenceByCard) };
 }
 
 export function createRewardProgress(storage, locks, { legacyDecks = [], random = Math.random } = {}) {
@@ -405,12 +419,21 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
       if (!pools.has(id)) return Promise.resolve('unknown');
       return transact((state) => {
         if (state.pendingPack) return 'pending';
-        if (!balances(state).boosters[id]) return 'empty';
-        const cards = packCards(id, random);
+        const { boosters, owned } = balances(state);
+        if (!boosters[id]) return 'empty';
+        const cards = drawBoosterCards(pools.get(id), random);
+        const essenceByCard = {};
         state.opened[id] += 1;
-        for (const cardId of cards) state.earnedCards[cardId] += 1;
+        for (const card of cards) {
+          if (owned[card.id] < copyLimit(card)) state.earnedCards[card.id] += 1;
+          else {
+            const essence = dismantleValue(card);
+            state.dismantlingEssence += essence;
+            essenceByCard[card.id] = essence;
+          }
+        }
         const number = Object.values(state.opened).reduce((sum, value) => sum + value, 0);
-        state.pendingPack = { id: number, faction: id, cards };
+        state.pendingPack = { id: number, faction: id, cards: cards.map((card) => card.id), essenceByCard };
         return 'done';
       });
     },

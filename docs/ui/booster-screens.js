@@ -1,6 +1,6 @@
 import { createCard } from '../game/board.js?v=reward-routes-1';
 import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=reward-routes-1';
-import { BOOSTER_FACTIONS, BOOSTER_PRICE } from '../game/rewards.js?v=reward-routes-1';
+import { BOOSTER_FACTIONS, BOOSTER_PRICE } from '../game/rewards.js?v=booster-rarity-1';
 import { cardButton, showCard } from './cards.js?v=reward-routes-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { resourceIcon } from './resource-icon.js?v=1';
@@ -170,6 +170,13 @@ export function createBoosterOpening(progress, openShop) {
       face.setAttribute('aria-hidden', 'true');
       const name = element('p', 'booster-revealed-name', def.name);
       name.hidden = true;
+      const essence = pack.essenceByCard[id];
+      if (essence) {
+        const note = element('span', 'booster-dismantled', `Лишняя копия → +${essence} эссенции`);
+        note.id = `booster-dismantled-${index}`;
+        face.setAttribute('aria-describedby', note.id);
+        name.append(note);
+      }
       item.append(face, cover, name);
 
       function flip(focus) {

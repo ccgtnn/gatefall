@@ -14,13 +14,13 @@ import { preview, showCard } from './ui/cards.js?v=reward-routes-1';
 import { createBattlefield } from './ui/field.js?v=reward-routes-1';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=reward-routes-1';
 import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=reward-routes-1';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=compact-nav-1';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=booster-rarity-1';
 import { createSettings } from './ui/settings.js?v=reward-routes-1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
-import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=reward-routes-1';
-import { createRewardBook } from './ui/reward-book.js?v=compact-nav-1';
-import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=compact-nav-1';
+import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=booster-rarity-1';
+import { createRewardBook } from './ui/reward-book.js?v=booster-rarity-1';
+import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=booster-rarity-1';
 import { createResourceBar } from './ui/resources.js?v=compact-nav-1';
 
 const app = document.querySelector('#app');

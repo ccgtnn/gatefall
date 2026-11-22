@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { BOOSTER_FACTIONS, craftPrice, dismantleValue, createRewardProgress, REWARD_SECTIONS, REWARD_STORAGE_KEY, rewardState } from '../docs/game/rewards.js';
+import { BOOSTER_FACTIONS, craftPrice, dismantleValue, createRewardProgress, drawBoosterCards, REWARD_SECTIONS, REWARD_STORAGE_KEY, rewardState } from '../docs/game/rewards.js';
 import { copyLimit } from '../docs/game/decks.js';
-import { NEUTRAL_CARDS, RARITY_LABELS } from '../docs/game/cards.js';
+import { FACTIONS, NEUTRAL_CARDS, RARITY_LABELS } from '../docs/game/cards.js';
 
 function localStorage() {
   const values = new Map();
@@ -112,6 +112,39 @@ test('already opened rewards fund the shop once and persist a faction booster pu
   assert.equal(reloaded.inventory().gold, 30);
 });
 
+test('weighted booster slots preserve rarity odds, distinct cards and the rare guarantee', () => {
+  for (const pool of [NEUTRAL_CARDS, FACTIONS.protectorate.pool, FACTIONS.growth.pool]) {
+    let seed = 35491;
+    const random = () => {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      return seed / 2 ** 32;
+    };
+    const firstSlots = { bronze: 0, epic: 0, gold: 0 };
+    const packs = 20000;
+    for (let i = 0; i < packs; i++) {
+      const cards = drawBoosterCards(pool, random);
+      assert.equal(cards.length, 5);
+      assert.equal(new Set(cards.map(({ id }) => id)).size, 5);
+      assert.ok(cards.some(({ rarity }) => rarity !== 'bronze'));
+      for (const { rarity } of cards.slice(0, 4)) firstSlots[rarity]++;
+    }
+    const odds = pool === FACTIONS.growth.pool ? [0.9375, 0, 0.0625] : [0.75, 0.20, 0.05];
+    Object.values(firstSlots).forEach((total, index) => {
+      assert.ok(Math.abs(total / (packs * 4) - odds[index]) < 0.012);
+    });
+  }
+});
+
+test('last slot upgrades an all-common draw, and exhausted rarities fall back to available cards', () => {
+  const commons = NEUTRAL_CARDS.filter(({ rarity }) => rarity === 'bronze');
+  const epic = NEUTRAL_CARDS.find(({ rarity }) => rarity === 'epic');
+  const gold = NEUTRAL_CARDS.find(({ rarity }) => rarity === 'gold');
+  assert.deepEqual(drawBoosterCards([...commons, epic, gold], () => 0), [...commons.slice(0, 4), epic]);
+  assert.deepEqual(drawBoosterCards([...commons, gold], () => 0), [...commons.slice(0, 4), gold]);
+  const odds = [0.8, 0, 0.8, 0, 0, 0, 0, 0, 0, 0];
+  assert.deepEqual(drawBoosterCards([...commons, epic], () => odds.shift()), [epic, ...commons.slice(0, 4)]);
+});
+
 test('opening consumes one booster and grants five distinct faction cards before the reveal', async () => {
   const storage = localStorage();
   const wallet = createRewardProgress(storage, undefined, { random: () => 0 });
@@ -123,8 +156,13 @@ test('opening consumes one booster and grants five distinct faction cards before
   const reloaded = createRewardProgress(storage);
   const { pendingPack, boosters, owned } = reloaded.inventory();
   assert.equal(pendingPack.faction, 'neutral');
-  assert.deepEqual(pendingPack.cards, NEUTRAL_CARDS.slice(0, 5).map(({ id }) => id));
-  for (const id of pendingPack.cards) assert.equal(owned[id], before.owned[id] + 1);
+  const expected = drawBoosterCards(NEUTRAL_CARDS, () => 0);
+  assert.deepEqual(pendingPack.cards, expected.map(({ id }) => id));
+  for (const card of expected) {
+    const extra = before.owned[card.id] >= copyLimit(card);
+    assert.equal(owned[card.id], before.owned[card.id] + Number(!extra));
+    assert.equal(pendingPack.essenceByCard[card.id], extra ? dismantleValue(card) : 0);
+  }
   assert.equal(boosters.neutral, 0);
   assert.equal(await reloaded.openPack('neutral'), 'pending');
   assert.equal(await reloaded.finishPack(pendingPack.id), 'done');
@@ -189,20 +227,60 @@ test('dismantling pays per copy, persists starter losses and supports crafting t
     [1, 2, base.essence + 220 - 900]);
 });
 
-test('an extra booster copy can be dismantled and a failed save mutates neither cards nor essence', async () => {
+test('extra copies pay 20/100/200 once when a pack is opened and survive a reload', async () => {
   const storage = localStorage();
-  const wallet = createRewardProgress(storage, undefined, { random: () => 0 });
-  const first = NEUTRAL_CARDS[0].id;
-  const base = wallet.inventory().owned[first];
+  const common = NEUTRAL_CARDS.find(({ rarity }) => rarity === 'bronze');
+  const epic = NEUTRAL_CARDS.find(({ rarity }) => rarity === 'epic');
+  const gold = NEUTRAL_CARDS.find(({ rarity }) => rarity === 'gold');
+  const odds = [0, 0, 0.8, 0, 0.99, 0, 0, 0, 0, 0];
+  const wallet = createRewardProgress(storage, undefined, {
+    legacyDecks: [{ cardIds: [common.id, common.id, epic.id, gold.id] }],
+    random: () => odds.shift(),
+  });
   await wallet.unlock('neutral:signal');
   await wallet.unlock('neutral:supply');
+  const before = wallet.inventory();
   assert.equal(await wallet.openPack('neutral'), 'done');
-  assert.equal(wallet.inventory().owned[first], base + 1);
+  const reloaded = createRewardProgress(storage);
+  const after = reloaded.inventory();
+  for (const [card, essence] of [[common, 20], [epic, 100], [gold, 200]]) {
+    assert.equal(after.owned[card.id], before.owned[card.id]);
+    assert.equal(after.pendingPack.essenceByCard[card.id], essence);
+  }
+  const paid = Object.values(after.pendingPack.essenceByCard).reduce((sum, value) => sum + value, 0);
+  assert.equal(after.essence, before.essence + paid);
+  assert.equal(await reloaded.openPack('neutral'), 'pending');
+  assert.deepEqual(reloaded.inventory(), after);
+  assert.equal(await reloaded.finishPack(after.pendingPack.id), 'done');
+  const finished = createRewardProgress(storage).inventory();
+  assert.deepEqual(finished, { ...after, pendingPack: null });
+});
 
-  const beforeTrade = wallet.inventory();
+test('failed pack writes leave boosters, cards and auto-dismantle essence intact', async () => {
+  const storage = localStorage();
+  const wallet = createRewardProgress(storage, undefined, { random: () => 0.99 });
+  await wallet.unlock('neutral:signal');
+  await wallet.unlock('neutral:supply');
+  const before = wallet.inventory();
   storage.setItem = () => { throw new Error('quota'); };
-  assert.equal(await wallet.dismantle(first), 'unavailable');
-  assert.deepEqual(wallet.inventory(), beforeTrade);
+  assert.equal(await wallet.openPack('neutral'), 'unavailable');
+  assert.deepEqual(wallet.inventory(), before);
+});
+
+test('a pre-update pending pack keeps already granted cards and can finish without paying essence again', async () => {
+  const storage = localStorage();
+  const cards = NEUTRAL_CARDS.slice(0, 5).map(({ id }) => id);
+  storage.setItem(REWARD_STORAGE_KEY, JSON.stringify({
+    opened: { neutral: 1 },
+    earnedCards: Object.fromEntries(cards.map((id) => [id, 1])),
+    pendingPack: { id: 1, faction: 'neutral', cards },
+  }));
+  const wallet = createRewardProgress(storage);
+  const before = wallet.inventory();
+  assert.deepEqual(before.pendingPack.cards, cards);
+  assert.ok(Object.values(before.pendingPack.essenceByCard).every((value) => value === 0));
+  assert.equal(await wallet.finishPack(1), 'done');
+  assert.deepEqual(wallet.inventory(), { ...before, pendingPack: null });
 });
 
 test('legacy rare rewards and balances survive the expanded book', async () => {
