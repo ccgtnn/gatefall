@@ -1,5 +1,6 @@
+import { createBaseGrid } from './base-grid.js?v=building-grid-1';
 import { BASE_OVERLAYS, BASE_POSITIONS, baseLayout, overlayStyle } from './base-layout.js?v=base-mine-1';
-import { BASE_PLOTS, BUILDING_BY_PLOT, BUILDINGS, MATERIALS, constructionShortages } from '../game/base.js?v=starting-resources-1';
+import { BASE_PLOTS, BUILDING_BY_PLOT, BUILDINGS, MATERIALS, buildingEffect, constructionShortages } from '../game/base.js?v=building-grid-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { dialogClose, sectionDialog } from './resources.js?v=interface-polish-1';
 import { resourceIcon } from './resource-icon.js?v=1';
@@ -10,6 +11,7 @@ const iconPath = {
   energyCells: 'M10 6h12v23H10zM13 3h6v3m-1 4-4 8h4l-3 6',
   gateShards: 'm16 3 9 10-9 16-9-16zm0 0v26M7 13h18M4 7v4m-2-2h4m21 13v4m-2-2h4',
 };
+const USE_BASE_OVERLAYS = false;
 const reserved = 'Участок под будущую постройку';
 
 function materialIcon(key) {
@@ -48,11 +50,8 @@ function contains(rect, x, y, mask) {
 
 export function createBaseScreen(progress) {
   const { dialog, shell } = sectionDialog('base-screen', 'База', 'base-screen');
-  const stage = element('div', 'base-stage');
   const materials = element('div', 'base-materials');
   materials.setAttribute('aria-label', 'Ресурсы базы');
-  const tooltip = element('span', 'base-tooltip');
-  tooltip.hidden = true;
   const figures = Object.keys(labels).map((key) => {
     const resource = element('span', 'base-resource');
     resource.dataset.material = key;
@@ -62,7 +61,38 @@ export function createBaseScreen(progress) {
     materials.append(resource);
     return { key, count };
   });
-  shell.append(stage, materials);
+  function updateMaterials(scene, gold) {
+    const values = { gold, ...scene.materials };
+    for (const { key, count } of figures) count.textContent = values[key];
+  }
+
+  if (USE_BASE_OVERLAYS) {
+    shell.append(materials);
+    return createOverlayBaseScreen(progress, dialog, shell, updateMaterials);
+  }
+
+  dialog.classList.add('base-screen-grid');
+  dialog.querySelector('.section-back').after(materials);
+  const render = createBaseGrid(shell, progress, labels, materialIcon);
+  function update() {
+    const scene = progress.base();
+    const { gold } = progress.inventory();
+    updateMaterials(scene, gold);
+    render(scene, gold);
+  }
+  progress.subscribe(() => { if (dialog.open) update(); });
+  return () => {
+    update();
+    dialog.showModal();
+    dialog.scrollTop = 0;
+  };
+}
+
+function createOverlayBaseScreen(progress, dialog, shell, updateMaterials) {
+  const stage = element('div', 'base-stage');
+  const tooltip = element('span', 'base-tooltip');
+  tooltip.hidden = true;
+  shell.prepend(stage);
 
   function resizeStage({ width, height }) {
     if (!width || !height) return;
@@ -171,10 +201,8 @@ export function createBaseScreen(progress) {
     if (building) {
       const definition = BUILDINGS[building.kind];
       title.textContent = definition.name;
-      const slots = definition.dailySlots?.[building.level - 1];
       body.replaceChildren(element('strong', null, 'Уровень ' + building.level),
-        element('p', null, definition.description),
-        element('p', null, definition.effect ?? ('Ежедневные задания — скоро' + (slots ? ' · Слотов: ' + slots : ''))));
+        element('p', null, buildingEffect(building.kind, building.level)));
       return;
     }
     const kind = BUILDING_BY_PLOT[selected];
@@ -205,7 +233,7 @@ export function createBaseScreen(progress) {
       if (details.open) details.querySelector('.chrome-button').focus({ preventScroll: true });
     }, 'button primary');
     build.disabled = busy || shortage.length > 0;
-    item.append(element('p', null, definition.description), element('p', null, cost), build);
+    item.append(element('p', null, buildingEffect(kind)), element('p', null, cost), build);
     if (shortage.length) item.append(element('p', 'base-shortage',
       'Не хватает · ' + shortage.map(([key, amount]) => `${labels[key]} ${amount}`).join(' · ')));
     body.replaceChildren(item);
@@ -214,8 +242,7 @@ export function createBaseScreen(progress) {
   function update() {
     scene = progress.base();
     const { gold } = progress.inventory();
-    const values = { gold, ...scene.materials };
-    for (const { key, count } of figures) count.textContent = values[key];
+    updateMaterials(scene, gold);
     for (const { id, control, layer, kind } of plots) {
       const building = scene.buildings[id];
       if (layer) layer.hidden = !building;

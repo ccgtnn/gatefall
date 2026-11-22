@@ -42,7 +42,7 @@ test('reset restores the first-launch inventory, rewards, decks, stats, and pref
   const initial = boot(storage);
   const { gold, keys, essence, packCount } = initial.inventory;
   assert.deepEqual({ gold, keys, essence, packCount }, { gold: 1000, keys: 1000, essence: 1000, packCount: 0 });
-  assert.deepEqual(initial.base.materials, { steel: 1000, energyCells: 1000, gateShards: 1000 });
+  assert.deepEqual(initial.base.materials, { steel: 200, energyCells: 100, gateShards: 5 });
   const deck = { id: 'custom', name: 'Проверка', factionId: 'protectorate', leaderId: 'marshal', cardIds: ['old-golem'] };
   const deckStorage = createDeckStorage(storage);
   assert.equal(deckStorage.save(deck), true);
@@ -60,7 +60,8 @@ test('reset restores the first-launch inventory, rewards, decks, stats, and pref
   for (const stop of ['signal', 'supply', 'junction', 'upper-cache', 'upper-relay', 'upper-vault']) {
     assert.equal(await rewards.unlock('protectorate:' + stop), 'opened');
   }
-  assert.equal(await rewards.build('5', 'tavern'), 'done');
+  assert.equal(await rewards.build('warehouse', 'warehouse'), 'done');
+  assert.equal(await rewards.upgrade('warehouse', 1), 'done');
   assert.equal(await rewards.grantMaterials({ gateShards: 3 }), 'done');
   const before = boot(storage);
   assert.ok(before.inventory.pendingPack);

@@ -1,4 +1,4 @@
-import { BUILDING_BY_PLOT, BUILDINGS, constructionShortages, creditMaterials, readBase } from './base.js?v=starting-resources-1';
+import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=building-grid-1';
 import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=flagship-art-2';
 import { copyLimit, PRESETS } from './decks.js?v=flagship-art-2';
 
@@ -394,7 +394,7 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
       dismantlingEssence: count(snapshot.dismantlingEssence),
       essenceSpent: count(snapshot.essenceSpent),
       goldSpent: count(snapshot.goldSpent),
-      base: readBase(snapshot.base, { legacy: !fresh }),
+      base: readBase(snapshot.base),
       pendingPack: readPack(snapshot.pendingPack),
     };
   }
@@ -447,6 +447,24 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
     return outcome;
   }
 
+  function buildLevel(slot, kind, previousLevel) {
+    const level = previousLevel + 1;
+    const cost = buildingPrice(kind, level);
+    return transact((state) => {
+      const { materials, buildings } = state.base;
+      const currentLevel = buildings[slot]?.level ?? 0;
+      if (currentLevel !== previousLevel) return previousLevel ? 'stale' : 'occupied';
+      if (!cost) return 'max-level';
+      if (constructionShortages(cost, balances(state).gold, materials).length) return 'unaffordable';
+      state.goldSpent += cost.gold;
+      for (const [key, price] of Object.entries(cost)) {
+        if (key !== 'gold') materials[key] -= price;
+      }
+      buildings[slot] = { kind, level };
+      return 'done';
+    });
+  }
+
   return {
     get: () => read().progress,
     inventory: () => balances(read()),
@@ -469,20 +487,14 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
     grantMaterials(reward) {
       return transact(({ base }) => creditMaterials(base.materials, reward) ? 'done' : 'unknown');
     },
-    build(plot, kind) {
-      if (!Object.hasOwn(BUILDING_BY_PLOT, plot) || BUILDING_BY_PLOT[plot] !== kind) return Promise.resolve('unknown');
-      return transact((state) => {
-        const { materials, buildings } = state.base;
-        if (buildings[plot]) return 'occupied';
-        const { cost } = BUILDINGS[kind];
-        if (constructionShortages(cost, balances(state).gold, materials).length) return 'unaffordable';
-        state.goldSpent += cost.gold;
-        for (const [key, price] of Object.entries(cost)) {
-          if (key !== 'gold') materials[key] -= price;
-        }
-        buildings[plot] = { kind, level: 1 };
-        return 'done';
-      });
+    build(slot, kind) {
+      if (!slot || buildingSlot(kind) !== slot) return Promise.resolve('unknown');
+      return buildLevel(slot, kind, 0);
+    },
+    upgrade(kind, previousLevel) {
+      const slot = buildingSlot(kind);
+      if (!slot || !Number.isInteger(previousLevel) || previousLevel < 1) return Promise.resolve('unknown');
+      return buildLevel(slot, kind, previousLevel);
     },
     buyPack(id) {
       if (!pools.has(id)) return Promise.resolve('unknown');

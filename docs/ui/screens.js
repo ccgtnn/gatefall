@@ -6,7 +6,7 @@ import { logView, roundText } from './menu.js?v=flagship-art-2';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=collection-2';
 import { factionFilters } from './faction-filters.js?v=1';
 import { copyLimit } from '../game/decks.js?v=flagship-art-2';
-import { craftPrice, dismantleValue } from '../game/rewards.js?v=starting-resources-1';
+import { craftPrice, dismantleValue } from '../game/rewards.js?v=building-grid-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 import { sectionBack } from './resources.js?v=interface-polish-1';
 

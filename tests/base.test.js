@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { BASE_PLOTS } from '../docs/game/base.js';
+import { BASE_PLOTS, buildingEffect, buildingPrice } from '../docs/game/base.js';
 import { createRewardProgress, REWARD_STORAGE_KEY } from '../docs/game/rewards.js';
 
 function storageWithGold() {
@@ -91,11 +91,11 @@ test('the Mine builds only on the right-middle plot and deducts its price', asyn
   assert.equal(await wallet.build('2', 'mine'), 'done');
   assert.equal(wallet.inventory().gold, 600);
   assert.deepEqual(wallet.base(), {
-    materials: { steel: 900, energyCells: 950, gateShards: 1000 },
+    materials: { steel: 100, energyCells: 50, gateShards: 5 },
     buildings: { 2: { kind: 'mine', level: 1 } },
   });
   assert.equal(await wallet.build('2', 'mine'), 'occupied');
-  assert.equal(await wallet.build('5', 'tavern'), 'done');
+  assert.equal(await wallet.build('5', 'tavern'), 'unaffordable');
 });
 
 test('the Mine and the Tavern persist in back-to-front order regardless of construction order', async () => {
@@ -103,16 +103,54 @@ test('the Mine and the Tavern persist in back-to-front order regardless of const
     let save = null;
     const storage = { getItem: () => save, setItem: (_key, value) => { save = value; } };
     const wallet = createRewardProgress(storage);
+    assert.equal(await wallet.grantMaterials({ steel: 50 }), 'done');
     for (const kind of order) {
       assert.equal(await wallet.build(kind === 'mine' ? '2' : '5', kind), 'done');
     }
 
     const reopened = createRewardProgress(storage);
     const scene = reopened.base();
-    assert.deepEqual(scene.materials, { steel: 750, energyCells: 900, gateShards: 1000 });
+    assert.deepEqual(scene.materials, { steel: 0, energyCells: 0, gateShards: 5 });
     assert.equal(reopened.inventory().gold, 300);
     assert.deepEqual(BASE_PLOTS.flatMap((id) => scene.buildings[id]?.kind ?? []), ['mine', 'tavern']);
     assert.equal(scene.buildings['2'].level, 1);
     assert.equal(scene.buildings['5'].level, 1);
   }
+});
+
+test('new building prices, levels, affordability and the level cap survive reloads', async () => {
+  let saved = null;
+  const storage = { getItem: () => saved, setItem: (_key, value) => { saved = value; } };
+  const wallet = createRewardProgress(storage);
+  assert.equal(await wallet.upgrade('warehouse', 1), 'stale');
+  assert.equal(await wallet.build('warehouse', 'warehouse'), 'done');
+  assert.deepEqual(buildingPrice('warehouse', 2), { gold: 375, steel: 120, energyCells: 38 });
+  assert.deepEqual(buildingPrice('warehouse', 3), { gold: 563, steel: 180, energyCells: 57 });
+  assert.equal(await wallet.upgrade('warehouse', 1), 'done');
+  const again = createRewardProgress(storage);
+  assert.equal(again.base().buildings.warehouse.level, 2);
+  assert.equal(again.inventory().gold, 375);
+  assert.deepEqual(again.base().materials, { steel: 0, energyCells: 37, gateShards: 5 });
+  assert.equal(await again.upgrade('warehouse', 1), 'stale');
+  assert.equal(await again.upgrade('warehouse', 2), 'unaffordable');
+  const snapshot = JSON.parse(saved);
+  snapshot.base.buildings.warehouse.level = 5;
+  storage.setItem(REWARD_STORAGE_KEY, JSON.stringify(snapshot));
+  assert.equal(buildingPrice('warehouse', 6), undefined);
+  assert.equal(await again.upgrade('warehouse', 5), 'max-level');
+  assert.match(buildingEffect('tavern', 4), /слотов: 4/);
+});
+
+test('existing bases keep material balances and building levels from before the grid', () => {
+  const snapshot = {
+    startingGold: 1000,
+    goldSpent: 700,
+    base: {
+      materials: { steel: 750, energyCells: 900, gateShards: 1000 },
+      buildings: { 2: { kind: 'mine', level: 1 }, 5: { kind: 'tavern', level: 3 } },
+    },
+  };
+  const old = createRewardProgress({ getItem: () => JSON.stringify(snapshot) });
+  assert.deepEqual(old.base(), snapshot.base);
+  assert.equal(old.inventory().gold, 300);
 });
