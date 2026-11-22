@@ -1,11 +1,11 @@
-import { activeOrder, createCard, opponent, statusCount } from '../game/board.js?v=targeting-1';
+import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js?v=neutral-slay-1';
 import { insertionPoint } from '../card-placement.js?v=opponent-reveal-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=targeting-1';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=targeting-1';
-import { playerHand } from './hand.js?v=targeting-1';
-import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=targeting-1';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=targeting-1';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=neutral-slay-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=neutral-slay-1';
+import { playerHand } from './hand.js?v=neutral-slay-1';
+import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=neutral-slay-1';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=neutral-slay-1';
 
 import { orderBadge } from './stat-badges.js?v=orbital-strike-1';
 
@@ -237,7 +237,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       selectable.sort((a, b) => a.definition.name.localeCompare(b.definition.name, 'ru'));
     }
     for (const item of selectable) {
-      const card = pile === 'discard' ? createCard(item.id, item.definition) : item;
+      const card = pile === 'discard' ? restoreCard(item) : item;
       const node = cardButton(card, () => playHuman({ type: 'target', cardId: card.id }), human);
       node.disabled = !options.has(card.id);
       node.classList.toggle('effect-target', !node.disabled);

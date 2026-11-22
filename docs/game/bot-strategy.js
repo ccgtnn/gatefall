@@ -1,8 +1,8 @@
-import { compareRollouts } from './bot-rollouts.js?v=targeting-1';
-import { ROWS } from './cards.js?v=targeting-1';
-import { activeOrder, cardType, infectionDamage, opponent, placementSide, statusCount, units } from './board.js?v=targeting-1';
-import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=targeting-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=targeting-1';
+import { compareRollouts } from './bot-rollouts.js?v=neutral-slay-1';
+import { ROWS } from './cards.js?v=neutral-slay-1';
+import { activeOrder, cardType, infectionDamage, opponent, placementSide, statusCount, units } from './board.js?v=neutral-slay-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=neutral-slay-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=neutral-slay-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -68,7 +68,9 @@ function value(state, round) {
   const { human, bot } = state.players;
   const handWeight = round === 3 ? .13 : .28;
   const future = state.phase !== 'playing' || human.passed ? 0 : boardValue(state, 'bot') - boardValue(state, 'human');
-  return margin(state) + future + handWeight * bot.hand.reduce((sum, card) => sum + potential(card), 0);
+  const turnsToGrow = bot.passed || human.passed ? 0 : Math.min(4, Math.max(0, bot.hand.length - 1));
+  return margin(state) + future + handWeight * bot.hand.reduce((sum, card) =>
+    sum + potential(card) + turnsToGrow * (card.definition.startTurnGrowth ?? 0), 0);
 }
 
 function usesNeighbors(ability) {

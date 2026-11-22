@@ -1,4 +1,4 @@
-import { ROWS } from './cards.js?v=targeting-1';
+import { ROWS } from './cards.js?v=neutral-slay-1';
 import { emit } from './events.js?v=orbital-strike-1';
 
 export const ROW_LIMIT = 9;
@@ -21,6 +21,13 @@ export function createCard(id, definition) {
   if (definition.scenario) card.chapter = 0;
   if (definition.resilience) card.resilient = true;
   if (definition.counter) card.counter = definition.counter.amount;
+  return card;
+}
+
+export function restoreCard(previous) {
+  const card = createCard(previous.id, previous.definition);
+  if (previous.resilient === false) card.resilient = false;
+  if (isUnit(card)) card.power = card.basePower = basePower(previous);
   return card;
 }
 
@@ -225,6 +232,10 @@ export function removeUnit(match, unit, reason, consumerId, extra) {
 export function discardCard(match, side, card, exile = false) {
   const player = match.players[card.owner ?? side];
   player[exile ? 'exile' : 'discard'].push(card);
+}
+
+export function damageOverflow(card, amount) {
+  return statusCount(card, 'shield') ? 0 : Math.max(0, amount - (card.armor ?? 0) - card.power);
 }
 
 export function damage(match, unit, amount, sourceDefinitionId, extra) {

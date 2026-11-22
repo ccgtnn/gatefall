@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createCard } from '../docs/game/board.js';
+import { createCard, findUnit, statusCount } from '../docs/game/board.js';
 import { chooseBotTurn } from '../docs/game/bot.js';
 import { FACTIONS, FIRST_SIGNAL, NEUTRAL_CARDS } from '../docs/game/cards.js';
 import { availableOrders } from '../docs/game/effects.js';
@@ -22,9 +22,9 @@ function scenario(id) {
   return match;
 }
 
-test('all twenty neutrals are in the catalog and both preset neutral packages are legal', () => {
-  assert.equal(NEUTRAL_CARDS.length, 20);
-  assert.equal(new Set(NEUTRAL_CARDS.map(({ id }) => id)).size, 20);
+test('all twenty-two neutrals are in the catalog and both preset neutral packages are legal', () => {
+  assert.equal(NEUTRAL_CARDS.length, 22);
+  assert.equal(new Set(NEUTRAL_CARDS.map(({ id }) => id)).size, 22);
   const ids = ({ deck }) => deck.filter(({ faction }) => faction === 'neutral').map(({ id }) => id).sort();
   assert.deepEqual(ids(FACTIONS.protectorate),
     ['annihilation', 'gate-guardian', 'gate-relic', 'recon-drone', 'recon-drone', 'smuggler']);
@@ -208,4 +208,100 @@ test('strategic bot sees revived units and can choose an enemy row by simulated 
     const pending = play(match, 'gravity-pulse');
     assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'orbit' });
   }
+});
+
+test('Carrion Devourer grows in deck, hand, board and discard on owner turns only', () => {
+  for (const pile of ['deck', 'hand', 'board', 'discard']) {
+    let match = scenario('carrion-devourer');
+    const { human } = match.players;
+    const beast = human.hand.shift();
+    const locate = (owner) => pile === 'board' ? owner.board.orbit : owner[pile];
+    locate(human).push(beast);
+    human.hand.push(unit('second-spare'));
+    if (pile === 'board') beast.power += 3;
+    match = play(match, 'spare');
+    assert.equal(locate(match.players.human).find(({ id }) => id === beast.id).basePower, 1);
+    match = applyAction(match, 'bot', { type: 'pass' });
+    const grown = locate(match.players.human).find(({ id }) => id === beast.id);
+    assert.equal(grown.basePower, 2, pile);
+    assert.equal(grown.power, pile === 'board' ? 5 : 2, pile);
+  }
+});
+
+test('Carrion Devourer keeps its growth through a round and Resurrection, then stops growing in exile', () => {
+  let match = scenario('resurrection');
+  const { human, bot } = match.players;
+  const beast = card('carrion-devourer');
+  beast.basePower = 8;
+  beast.power = 3;
+  human.board.orbit.push(beast);
+  human.deck = [];
+  bot.board.surface = [];
+  bot.passed = true;
+  match = applyAction(match, 'human', { type: 'pass' });
+  assert.equal(match.round, 2);
+  assert.equal(match.players.human.discard[0].basePower, 8);
+  match = confirmMulligan(match);
+  assert.equal(match.players.human.discard[0].basePower, 9);
+  match = pick(play(match, 'resurrection'), beast.id);
+  match = applyAction(match, 'human', { type: 'place', row: 'orbit', position: 0 });
+  assert.equal(findUnit(match, beast.id).card.power, 9);
+
+  match.players.bot.hand = [card('annihilation'), unit('enemy')];
+  match = play(match, 'annihilation');
+  assert.equal(findUnit(match, beast.id), undefined);
+  assert.equal(match.turn, 'human');
+  assert.equal(match.players.human.exile[0].basePower, 9);
+  assert.equal(match.players.human.discard.some(({ id }) => id === beast.id), false);
+});
+
+test('Armor-Piercing Shot applies overflow after armor once to a different enemy', () => {
+  const match = scenario('armor-piercing-shot');
+  match.players.bot.board.surface = [unit('first', 2, { armor: 1 }), unit('last', 1), unit('other')];
+  const overflow = pick(play(match, 'armor-piercing-shot'), 'first');
+  assert.equal(overflow.pending.kind, 'damage');
+  assert.equal(overflow.pending.amount, 3);
+  assert.deepEqual(overflow.pending.options, ['last', 'other']);
+  assert.equal(findUnit(overflow, 'first'), undefined);
+  const finished = pick(overflow, 'last');
+  assert.equal(finished.pending, null);
+  assert.equal(findUnit(finished, 'last'), undefined);
+  assert.equal(findUnit(finished, 'other').card.power, 3);
+});
+
+test('Armor-Piercing Shot skips the follow-up after exact lethal, a shield or an empty enemy board', () => {
+  for (const [first, second, expectedPower] of [
+    [unit('first', 4, { armor: 2 }), true, undefined],
+    [unit('first', 2, { armor: 1, shield: true }), true, 2],
+    [unit('first', 2), false, undefined],
+    [unit('first', 4, { armor: 3 }), true, 1],
+  ]) {
+    const match = scenario('armor-piercing-shot');
+    match.players.bot.board.surface = second ? [first, unit('other')] : [first, createCard('artifact', FIRST_SIGNAL)];
+    const finished = pick(play(match, 'armor-piercing-shot'), 'first');
+    assert.equal(finished.pending, null);
+    const hit = findUnit(finished, 'first')?.card;
+    assert.equal(hit?.power, expectedPower);
+    if (hit) {
+      assert.equal(statusCount(hit, 'shield'), 0);
+      assert.equal(hit.armor, first.definition.shield ? 1 : 0);
+    }
+    if (second) assert.equal(findUnit(finished, 'other').card.power, 3);
+  }
+});
+
+test('the bot saves a growing unit while it has alternatives and values its resurrected base power', () => {
+  let match = scenario('resurrection');
+  match.turn = 'bot';
+  const growing = card('carrion-devourer');
+  match.players.bot.hand = [unit('small', 2), growing, unit('large', 5)];
+  assert.notEqual(chooseBotTurn(match, 'easy').cardId, growing.id);
+
+  growing.basePower = 8;
+  growing.power = 0;
+  match.players.bot.discard = [unit('ordinary', 5), growing];
+  match.players.bot.discard[0].definition.provision = 5;
+  match.players.bot.hand = [card('resurrection'), unit('spare')];
+  match = play(match, 'resurrection');
+  assert.equal(chooseBotTurn(match, 'easy').cardId, growing.id);
 });

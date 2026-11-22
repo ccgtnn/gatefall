@@ -16,8 +16,8 @@ test('the four immutable presets fit the provision cap and have enough units', (
     assert.equal(result.budget, 165);
     assert.equal(result.cost, preset.id === 'preset-protectorate-orbital' ? 163 : 164);
     assert.ok(Object.isFrozen(preset.cardIds));
-    assert.equal(collection(preset.factionId).length, 44);
-    assert.equal(collection(preset.factionId).filter(({ faction }) => faction === 'neutral').length, 20);
+    assert.equal(collection(preset.factionId).length, 46);
+    assert.equal(collection(preset.factionId).filter(({ faction }) => faction === 'neutral').length, 22);
   }
 });
 

@@ -1,8 +1,8 @@
 import { victoryGold, weeklyReward } from './outpost.js?v=base-outpost-1';
 import { advanceProduction, productionView, readProduction, takeProduction } from './base-production.js?v=base-outpost-1';
 import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=base-outpost-1';
-import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=targeting-1';
-import { copyLimit, PRESETS } from './decks.js?v=targeting-1';
+import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=neutral-slay-1';
+import { copyLimit, PRESETS } from './decks.js?v=neutral-slay-1';
 
 export const STARTING_KEYS = 1000;
 export const STARTING_GOLD = 1000;

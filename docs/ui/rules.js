@@ -1,5 +1,5 @@
 import { dialogClose } from './resources.js?v=interface-polish-1';
-import { KEYWORDS } from '../game/cards.js?v=targeting-1';
+import { KEYWORDS } from '../game/cards.js?v=neutral-slay-1';
 import { element } from './dom.js?v=opponent-reveal-1';
 
 export function bindRulesMenu() {

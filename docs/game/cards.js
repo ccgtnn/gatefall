@@ -20,6 +20,7 @@ export const KEYWORDS = Object.freeze({
   'Уязвимость': 'Эффект срабатывает, когда карта теряет последнюю единицу брони.',
   'Инициатива': 'Бонус, если розыгрыш этой карты — твоё первое действие в раунде. Лидер и Приказы тоже считаются действиями.',
   'Уничтожение': 'Удаляет карту из игры без Завещания.',
+  'Расправа': 'Дополнительный эффект срабатывает, если отряд погиб от этого удара.',
   'Завещание': 'Срабатывает при гибели от урона, поглощения, Заражения или таймера.',
   'Заражение': 'В конце хода владельца отряд теряет 1 силу в обход брони. Силовой щит поглощает один тик и исчезает. После каждого тика счётчик уменьшается на 1.',
   'Обречённость': 'При гибели карта уходит из игры, а её Завещание срабатывает.',
@@ -350,10 +351,10 @@ export const NEUTRAL_CARDS = Object.freeze([
       armor: 4, events: { 'armor-break': ability([action('discard', self)]) },
       keywords: ['Броня', 'Уязвимость'],
     }],
-    ['resurrection', 'Воскрешение', 'gold', 9, null, 'Выбери и сыграй карту из своего сброса с провизией 10 или меньше.', {
+    ['resurrection', 'Воскрешение', 'gold', 9, null, 'Выбери и сыграй карту из своего сброса с провизией 10 или меньше либо Пожирателя падали.', {
       type: 'effect', art: 'resurrection.webp',
-      deploy: ability([{ action: 'play-from-discard', filter: { anyType: true, maxProvision: 10 },
-        prompt: 'Выбери карту из своего сброса за 10 провизии или меньше.' }]),
+      deploy: ability([{ action: 'play-from-discard', filter: { anyType: true, maxProvision: 10, provisionException: 'carrion-devourer' },
+        prompt: 'Выбери карту из сброса за 10 провизии или меньше либо Пожирателя падали.' }]),
     }],
     ['forgotten-gates', 'Врата Забвения', 'gold', 10, null,
       'При розыгрыше: призови слева случайный отряд за 4 провизии из своей колоды. В начале твоего второго хода после розыгрыша призови справа ещё один такой отряд.', {
@@ -392,6 +393,23 @@ export const NEUTRAL_CARDS = Object.freeze([
           { action: 'scatter', rowRef: 'targetRow', amount: golemDamage, visual: 'lightning' },
         ]),
     }],
+    ['carrion-devourer', 'Пожиратель падали', 'gold', 11, 1,
+      'В начале каждого твоего хода увеличивает базовую силу на 1 в колоде, руке, на поле или в сбросе. Сохраняет её между раундами и при воскрешении.', {
+        art: 'carrion-devourer.webp', categories: ['Зверь'], startTurnGrowth: 1,
+      }],
+    ['armor-piercing-shot', 'Бронебойный выстрел', 'bronze', 6, null,
+      'Нанеси 6 урона вражескому отряду. Расправа: нанеси остаток урона другому вражескому отряду на твой выбор один раз.', {
+        type: 'effect', art: 'armor-piercing-shot.webp', removalReserve: 5, keywords: ['Урон', 'Расправа'],
+        deploy: ability([{
+          ...action('damage', chosen('enemy'), 6),
+          slay: {
+            ...ability([action('damage', chosen('enemy'), { result: 'overflow' })], [{
+              ...enemyChoice({ result: 'overflow' }), targets: { ...enemies, exclude: 'slain' },
+            }]),
+            requiresResult: 'overflow',
+          },
+        }], [enemyChoice(6)]),
+      }],
   ].map(([id, name, rarity, provision, power, text, rules]) => Object.freeze({
     id, name, rarity, faction: NEUTRAL, provision, type: 'unit', ...(power === null ? {} : { power }), text, ...rules,
   })),

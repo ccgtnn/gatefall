@@ -1,9 +1,9 @@
-import { ROWS } from './cards.js?v=targeting-1';
-import { cardType, findUnit, isUnit, neighbors, statusCount, units } from './board.js?v=targeting-1';
-import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue, rowScatterValue } from './effects.js?v=targeting-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=targeting-1';
+import { ROWS } from './cards.js?v=neutral-slay-1';
+import { cardType, findUnit, isUnit, neighbors, restoreCard, statusCount, units } from './board.js?v=neutral-slay-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue, rowScatterValue } from './effects.js?v=neutral-slay-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=neutral-slay-1';
 
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=targeting-1';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=neutral-slay-1';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
@@ -116,7 +116,9 @@ export function chooseBotAction(view, rules = BOT_RULES) {
   }
 
   if (!mustPlay && lives > 1 && lead >= rules.passLead) return pass;
-  const middle = ordered[Math.floor((ordered.length - 1) / 2)];
+  const ordinary = ordered.filter(({ definition }) => !definition.startTurnGrowth);
+  const playable = ordered.length >= 3 && ordinary.length ? ordinary : ordered;
+  const middle = playable[Math.floor((playable.length - 1) / 2)];
   return playCard(middle, view);
 }
 
@@ -164,6 +166,7 @@ export function pickBotTarget(match) {
     const optionsSet = new Set(options);
     const candidates = player[match.pending.pile ?? 'deck'].filter(({ id }) => optionsSet.has(id));
     const card = bestTarget(candidates, (card) => {
+      if (match.pending.pile === 'discard') return deckCardValue(match, match.pending.side, restoreCard(card));
       if (match.pending.fullDeck) return deckCardValue(match, match.pending.side, card);
       const { definition, power } = card;
       return (power ?? definition.power ?? definition.provision ?? 0) + (definition.armor ?? 0) * .15 + Number(Boolean(definition.deploy));
