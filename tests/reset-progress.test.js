@@ -30,6 +30,7 @@ function boot(storage) {
   return {
     decks,
     progress: rewards.get(),
+    base: rewards.base(),
     inventory: rewards.inventory(),
     stats: createFactionStats(['protectorate'], storage).get('protectorate'),
     preferences: Object.keys(preferences).map((key) => storage.getItem(key)),
@@ -51,9 +52,14 @@ test('reset restores the first-launch inventory, rewards, decks, stats, and pref
   }
   assert.equal(await rewards.buyPack('neutral'), 'done');
   assert.equal(await rewards.openPack('neutral'), 'done');
+  for (const stop of ['signal', 'supply', 'junction', 'upper-cache', 'upper-relay', 'upper-vault']) {
+    assert.equal(await rewards.unlock('protectorate:' + stop), 'opened');
+  }
+  assert.equal(await rewards.build('4', 'tavern'), 'done');
+  assert.equal(await rewards.grantMaterials({ gateShards: 3 }), 'done');
   const before = boot(storage);
   assert.ok(before.inventory.pendingPack);
-  assert.equal(before.inventory.packCount, 1);
+  assert.equal(before.inventory.packCount, 3);
   assert.notDeepEqual(before, initial);
 
   const locks = { request(key, action) {

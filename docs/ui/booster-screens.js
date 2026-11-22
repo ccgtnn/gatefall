@@ -1,6 +1,6 @@
 import { createCard } from '../game/board.js?v=flagship-art-2';
 import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=flagship-art-2';
-import { BOOSTER_FACTIONS, BOOSTER_PRICE } from '../game/rewards.js?v=flagship-art-2';
+import { BOOSTER_FACTIONS, BOOSTER_PRICE } from '../game/rewards.js?v=base-1';
 import { cardButton, showCard } from './cards.js?v=flagship-art-2';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { resourceIcon } from './resource-icon.js?v=1';

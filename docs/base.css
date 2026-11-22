@@ -1,0 +1,163 @@
+.base-screen {
+  background: #121d2b;
+}
+.base-screen .reward-shell {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  min-height: 17rem;
+  margin: 0;
+  padding: 0;
+  overflow: clip;
+}
+.base-stage {
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  aspect-ratio: 1536 / 858;
+  background: url('./art/base-landscape.webp') center / 100% 100% no-repeat;
+}
+.base-heading {
+  position: absolute;
+  top: calc(var(--resource-top) + var(--resource-frame));
+  left: calc(var(--resource-left) + var(--resource-control-size) + .75rem);
+  display: flex;
+  align-items: center;
+  min-height: var(--resource-control-size);
+  text-shadow: 0 2px 8px #121c29;
+}
+.base-materials {
+  position: absolute;
+  inset-block-start: var(--resource-top);
+  inset-inline-end: var(--resource-right);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: .3rem;
+  max-width: calc(100% - 8rem);
+  padding: .28rem;
+  border: 1px solid #68809a;
+  border-radius: .65rem;
+  background: linear-gradient(160deg, #26384bf5, #111c29f5);
+  box-shadow: 0 2px 15px #050b15b3;
+}
+.base-resource {
+  display: flex;
+  align-items: center;
+  gap: .28rem;
+  min-height: 2.2rem;
+  padding: .2rem .42rem;
+  border: 1px solid #58728a;
+  border-radius: .35rem;
+  color: #d9ebf8;
+  font-size: .8rem;
+  white-space: nowrap;
+}
+.base-resource svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.base-resource[data-material="gold"] svg { color: #ffcf83; }
+.base-resource[data-material="steel"] svg { color: #aec9df; }
+.base-resource[data-material="energyCells"] svg { color: #82ecd2; }
+.base-resource[data-material="gateShards"] svg { color: #d3adff; }
+.base-plot {
+  position: absolute;
+  top: var(--plot-y);
+  left: var(--plot-x);
+  width: var(--plot-size);
+  height: var(--plot-height);
+  padding: 0;
+  border: 0;
+  background: none;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.base-pad {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid #e6eff0a0;
+  border-radius: 50%;
+  background: #192c3b11;
+  color: #f4f3da;
+  transition: background-color .16s, box-shadow .16s;
+}
+.base-pad::after {
+  content: '+';
+  font-size: clamp(.76rem, 1.9vw, 1.5rem);
+  text-shadow: 0 1px 4px #0d1824;
+}
+.base-plot[data-hover] .base-pad, .base-plot:focus-visible .base-pad {
+  background: #a1dcff60;
+  box-shadow: 0 0 14px #92defd;
+}
+.base-plot.is-built .base-pad { visibility: hidden; }
+.base-building {
+  position: absolute;
+  left: 50%;
+  bottom: 16%;
+  width: 90%;
+  height: auto;
+  transform: translateX(-50%);
+  filter: drop-shadow(3px 5px 5px #0b1016aa);
+}
+.base-plot[data-hover] .base-building, .base-plot:focus-visible .base-building {
+  filter: brightness(1.13) drop-shadow(0 0 3px #cbeeff) drop-shadow(0 0 8px #79d1ff);
+}
+.base-stage:has([data-hover]) { cursor: pointer; }
+.base-tooltip {
+  position: absolute;
+  z-index: 1;
+  transform: translate(-50%, -50%);
+  padding: .3rem .5rem;
+  border: 1px solid #83a4be;
+  border-radius: .35rem;
+  background: #101d2ceb;
+  color: #eaf4fc;
+  white-space: nowrap;
+  pointer-events: none;
+  font-size: .78rem;
+}
+.base-plot.is-built[data-hover] ~ .base-tooltip { translate: 0 1.3rem; }
+.base-details {
+  width: min(25rem, calc(100% - 1.5rem));
+  max-height: calc(100dvh - 1.5rem);
+  margin: auto;
+  overflow: auto;
+  color: #edf5fb;
+  background: #142131;
+  border: 1px solid #7997b1;
+}
+.base-details::backdrop { background: #0c142760; }
+.base-details-content { display: grid; gap: .5rem; }
+.base-buildings { margin: 0; padding: 0; list-style: none; }
+.base-build-option { display: grid; gap: .5rem; }
+.base-build-option .button { justify-self: start; }
+.base-shortage, .base-status { color: #ffd49b; font-size: .84rem; }
+.base-status:not(:empty) { margin-top: .65rem; }
+
+@media (max-width: 550px) {
+  .base-heading { display: none; }
+  .base-materials { max-width: calc(100% - 4.5rem); gap: .14rem; }
+  .base-resource { gap: .14rem; padding-inline: .2rem; }
+  .base-resource-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    clip-path: inset(50%);
+    overflow: hidden;
+  }
+}
+
+@media (min-aspect-ratio: 2 / 1) {
+  .base-stage { top: 50%; transform: translateY(-57%); }
+}

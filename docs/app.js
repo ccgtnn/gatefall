@@ -1,4 +1,5 @@
-import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=flagship-art-2';
+import { createBaseScreen } from './ui/base-screen.js?v=base-1';
+import { deckEditor, deckListScreen, factionPicker } from './ui/deck-builder.js?v=base-1';
 import { createDeckStorage } from './ui/deck-storage.js?v=step-16';
 import { bindCardPlacement } from './card-placement.js?v=opponent-reveal-1';
 import { animateCoin, animateHandTurn, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=flagship-art-2';
@@ -14,15 +15,15 @@ import { preview, showCard } from './ui/cards.js?v=flagship-art-2';
 import { createBattlefield } from './ui/field.js?v=flagship-art-2';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=flagship-art-2';
 import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=flagship-art-2';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=flagship-art-2';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=base-1';
 import { createSettings } from './ui/settings.js?v=flagship-art-2';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
-import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=flagship-art-2';
-import { createRewardBook } from './ui/reward-book.js?v=flagship-art-2';
-import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=flagship-art-2';
+import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=base-1';
+import { createRewardBook } from './ui/reward-book.js?v=base-1';
+import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=base-1';
 import { createResourceBar } from './ui/resources.js?v=interface-polish-1';
-import { resetProgress } from './game/reset-progress.js?v=flagship-art-2';
+import { resetProgress } from './game/reset-progress.js?v=base-1';
 
 const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
@@ -52,6 +53,7 @@ const settings = createSettings(app, leaveMatch, async () => {
   window.location.reload();
 });
 const progress = createRewardProgress(storage, navigator.locks, { legacyDecks: deckStore.list() });
+const openBase = createBaseScreen(progress);
 const catalog = economyDialog('card-collection', 'Все карты');
 catalog.body.append(catalogScreen(progress));
 const openResources = createResourceBar(app.querySelector('.masthead'), document.querySelector('#start-settings'), progress, {
@@ -238,7 +240,7 @@ function render() {
         },
       }); break;
       default: content = deckListScreen(phaseLabel, deckStore.list(), stats, {
-        create: () => goTo('faction'), catalog: () => openResources('essence'), play: start, edit: editDeck,
+        base: openBase, create: () => goTo('faction'), catalog: () => openResources('essence'), play: start, edit: editDeck,
         copy: (deck) => makeDeck(deck.factionId, deck.leaderId, deck),
       }, progress.inventory);
     }

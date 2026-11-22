@@ -34,7 +34,7 @@ export function deckListScreen(phaseLabel, decks, stats, actions, inventory) {
   const screen = element('section', 'deck-home');
   const toolbar = element('div', 'deck-toolbar');
   toolbar.append(viewHeading('Колоды'), button('Новая колода', actions.create, 'button primary'),
-    button('Все карты', actions.catalog));
+    button('Все карты', actions.catalog), button('База', actions.base));
   screen.append(toolbar);
   const items = [];
 

@@ -1,3 +1,4 @@
+import { BASE_PLOTS, BUILDINGS, constructionShortages, creditMaterials, readBase } from './base.js?v=base-1';
 import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=flagship-art-2';
 import { copyLimit, PRESETS } from './decks.js?v=flagship-art-2';
 
@@ -385,6 +386,7 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
       dismantlingEssence: count(saved.dismantlingEssence),
       essenceSpent: count(saved.essenceSpent),
       goldSpent: count(saved.goldSpent),
+      base: readBase(saved.base),
       pendingPack: readPack(saved.pendingPack),
     };
   }
@@ -453,6 +455,25 @@ export function createRewardProgress(storage, locks, { legacyDecks = [], random 
         if (state !== 'available') return state;
         progress.unlocked.add(id);
         return 'opened';
+      });
+    },
+    base: () => read().base,
+    grantMaterials(reward) {
+      return transact(({ base }) => creditMaterials(base.materials, reward) ? 'done' : 'unknown');
+    },
+    build(plot, kind) {
+      if (!BASE_PLOTS.includes(plot) || !Object.hasOwn(BUILDINGS, kind)) return Promise.resolve('unknown');
+      return transact((state) => {
+        const { materials, buildings } = state.base;
+        if (buildings[plot]) return 'occupied';
+        const { cost } = BUILDINGS[kind];
+        if (constructionShortages(cost, balances(state).gold, materials).length) return 'unaffordable';
+        state.goldSpent += cost.gold;
+        for (const [key, price] of Object.entries(cost)) {
+          if (key !== 'gold') materials[key] -= price;
+        }
+        buildings[plot] = { kind, level: 1 };
+        return 'done';
       });
     },
     buyPack(id) {
