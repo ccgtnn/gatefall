@@ -1,5 +1,5 @@
-import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=orbital-art-1';
-import { copyLimit, PRESETS } from './decks.js?v=orbital-art-1';
+import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=orbital-art-2';
+import { copyLimit, PRESETS } from './decks.js?v=orbital-art-2';
 
 export const STARTING_KEYS = 25;
 export const STARTING_ESSENCE = 800;
