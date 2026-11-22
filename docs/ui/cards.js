@@ -1,7 +1,7 @@
 import { dialogClose } from './resources.js?v=interface-polish-1';
 import { button, element, setCardRarity } from './dom.js?v=opponent-reveal-1';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=helper-robot-1';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=helper-robot-1';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=robot-violet-1';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=robot-violet-1';
 
 import { deathwishDefinitions } from '../game/events.js?v=helper-robot-1';
 import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=orbital-strike-1';

@@ -1,9 +1,9 @@
-import { inspectDeck, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET } from './decks.js?v=helper-robot-1';
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=helper-robot-1';
-import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, spendResilience, statusCount, takeCards } from './board.js?v=helper-robot-1';
-import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=helper-robot-1';
+import { inspectDeck, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET } from './decks.js?v=robot-violet-1';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=robot-violet-1';
+import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, spendResilience, statusCount, takeCards } from './board.js?v=robot-violet-1';
+import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=robot-violet-1';
 
-export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=helper-robot-1';
+export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=robot-violet-1';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;

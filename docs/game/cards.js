@@ -411,7 +411,7 @@ export const NEUTRAL_CARDS = Object.freeze([
       }],
     ['helper-robot', 'Робот-помощник', 'epic', 8, 4,
       'Когда ты впервые за матч разыгрываешь легендарную карту, призови Робота-помощника из колоды в случайный свой ряд, где есть место.', {
-        art: 'helper-robot.webp', categories: ['Робот'], keywords: ['Призыв'],
+        art: 'helper-robot.webp?v=violet-1', categories: ['Робот'], keywords: ['Призыв'],
         pileEvents: { play: { friendly: true, pile: 'deck', firstLegendary: true,
           ability: ability([{ action: 'summon-from-deck', row: 'random' }]) } },
       }],

@@ -1,8 +1,8 @@
-import { compareRollouts } from './bot-rollouts.js?v=helper-robot-1';
-import { ROWS } from './cards.js?v=helper-robot-1';
-import { activeOrder, cardType, infectionDamage, opponent, placementSide, statusCount, units } from './board.js?v=helper-robot-1';
-import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=helper-robot-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=helper-robot-1';
+import { compareRollouts } from './bot-rollouts.js?v=robot-violet-1';
+import { ROWS } from './cards.js?v=robot-violet-1';
+import { activeOrder, cardType, infectionDamage, opponent, placementSide, statusCount, units } from './board.js?v=robot-violet-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=robot-violet-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=robot-violet-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
