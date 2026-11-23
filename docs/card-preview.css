@@ -2,9 +2,9 @@ dialog.card-preview {
   --preview-line: #677d9b66;
   width: min(calc(100% - 1.5rem), 78rem);
   max-height: calc(100dvh - 1.5rem);
-  background: radial-gradient(ellipse at top left, #23354a, #141d29 60%, #10151e);
-  border: 1px solid var(--preview-line);
-  border-radius: .9rem;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
   overflow: auto;
 }
 dialog.card-preview::backdrop {

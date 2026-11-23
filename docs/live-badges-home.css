@@ -37,12 +37,12 @@
   top: clamp(2px, calc(var(--corner-size) * .12), 5px);
   left: clamp(2px, calc(var(--corner-size) * .12), 5px);
   width: max-content;
-  min-width: calc(var(--corner-size) * 1.05);
-  height: calc(var(--corner-size) * .8);
-  padding-inline: .16em;
+  min-width: calc(var(--corner-size) * .78);
+  height: calc(var(--corner-size) * .9);
+  padding-inline: .12em;
   border: 1px solid var(--rarity-border-color, #a1b2c1);
   border-radius: clamp(2px, calc(var(--corner-size) * .12), 5px);
-  background: #111a26ec;
+  background: #111a26c4;
   box-shadow: 0 1px 3px #0008;
 }
 .stat-badge-power:not(.power-boosted, .power-damaged) > strong {
@@ -65,7 +65,7 @@
   height: calc(var(--corner-size) * 1.16);
   color: #ffe4a5;
 }
-.stat-badge-armor > strong { transform: translateY(-.16em); }
+.stat-badge-armor > strong { transform: translateY(-.105em); }
 .stat-badge-provision > strong { transform: translateY(-.08em); }
 .stat-badge-infection { color: #e0ffbd; filter: drop-shadow(0 0 2px #8ef75aa0); }
 .stat-badge-order > strong { transform: translate(.28em, .25em); font-size: .84em; }
