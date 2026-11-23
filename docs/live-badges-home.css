@@ -104,6 +104,8 @@
   --badge-size: clamp(37px, 9.5dvh, 72px);
   margin: clamp(3px, .65dvh, 6px);
 }
+[data-hud-trial] > .stat-badge-power > .stat-badge-number-art { filter: drop-shadow(0 0 2px #32d5f7a0); }
+[data-hud-trial] > .stat-badge-provision > .stat-badge-number-art { filter: drop-shadow(0 0 2px #ffbc5590); }
 .preview-card-face[data-hud-trial] > .stat-badge-armor { margin: clamp(3px, .65dvh, 6px); }
 
 /* Deck selection */

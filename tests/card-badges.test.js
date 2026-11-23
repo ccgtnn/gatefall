@@ -89,18 +89,26 @@ test('Orders keep their ready and cooldown states, with one overlay for the fiel
   assert.equal(cooldown.children[1].textContent, 2);
 });
 
-test('the two HUD trial cards layer numbers over raster badges', () => {
-  const artFor = (root, kind) => byClass(root, 'stat-badge-' + kind).children[0].src;
-  for (const id of ['helper-robot', 'imperial-golem']) {
-    const hand = drawable(id);
-    assert.match(artFor(hand, 'power'), /hud-power\.webp/);
-    assert.equal(byClass(hand, 'stat-badge-provision'), undefined);
-    const card = makeCard(id);
-    card.power += 2;
-    showCard(card);
-    assert.match(artFor(preview, 'power'), /hud-power\.webp/);
-    assert.match(artFor(preview, 'provision'), /hud-provision\.webp/);
-    assert.equal(byClass(preview, 'stat-badge-power').children[1].textContent, card.power);
-  }
+test('the Robot uses the supplied numbered art and keeps dynamic numbers for changed power', () => {
+  const hand = drawable('helper-robot');
+  const handPower = byClass(hand, 'stat-badge-power');
+  assert.match(handPower.children[0].src, /hud-power-4\.webp/);
+  assert.equal(handPower.children.length, 1);
+  assert.equal(byClass(hand, 'stat-badge-provision'), undefined);
+
+  const card = makeCard('helper-robot');
+  showCard(card);
+  const largePower = byClass(preview, 'stat-badge-power');
+  const provision = byClass(preview, 'stat-badge-provision');
+  assert.match(largePower.children[0].src, /hud-power-4-detail\.webp/);
+  assert.match(provision.children[0].src, /hud-provision-8\.webp/);
+  assert.equal(provision.children.length, 1);
+
+  card.power += 2;
+  showCard(card);
+  const boosted = byClass(preview, 'stat-badge-power');
+  assert.match(boosted.children[0].src, /hud-power\.webp/);
+  assert.equal(boosted.children[1].textContent, card.power);
+  assert.match(byClass(drawable('imperial-golem'), 'stat-badge-art').src, /hud-power\.webp/);
   assert.equal(byClass(drawable('bastion'), 'stat-badge-art'), undefined);
 });
