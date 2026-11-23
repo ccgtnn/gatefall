@@ -2,7 +2,7 @@ import { placementEffectRows } from '../card-placement.js?v=hounds-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { availableRows, cardType, placementSide } from '../game/board.js?v=hounds-1';
 import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=hounds-1';
-import { cardButton, showCard } from './cards.js?v=parasite-motion-1';
+import { cardButton, showCard } from './cards.js?v=premium-art-1';
 
 export function updatePlacementSelection(screen, match, selectedCardId) {
   const card = match.players.human.hand.find(({ id }) => id === selectedCardId);
@@ -104,7 +104,7 @@ export function playerHand(match, active, selectCard, isReplaying) {
         return;
       }
       selectCard(card.id);
-    }, human, available, { animation: 'hand' });
+    }, human, available);
     if (available) {
       node.dataset.playCard = '';
       if (card.definition.requiredRow) node.dataset.requiredRow = card.definition.requiredRow;
@@ -116,17 +116,4 @@ export function playerHand(match, active, selectCard, isReplaying) {
   }
   hand.append(cards);
   return hand;
-}
-
-export function keepHandVideos(current, next) {
-  const previousVideos = new Map(Array.from(current.querySelectorAll('.battle-hand .card-art-video'),
-    (video) => [video.parentElement.dataset.cardId, video]));
-  for (const replacement of next.querySelectorAll('.battle-hand .card-art-video')) {
-    const previous = previousVideos.get(replacement.parentElement.dataset.cardId);
-    if (!previous || previous.src !== replacement.src) continue;
-    replacement.replaceWith(previous);
-    queueMicrotask(() => {
-      if (previous.isConnected && previous.paused) previous.play().catch(() => {});
-    });
-  }
 }

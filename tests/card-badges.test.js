@@ -7,6 +7,7 @@ class TestElement {
   constructor(tag) {
     this.tag = tag;
     this.attributes = {};
+    this.listeners = {};
     this.children = [];
     this.dataset = {};
     this.className = '';
@@ -17,9 +18,14 @@ class TestElement {
   }
 
   setAttribute(key, value) { this.attributes[key] = value; }
-  addEventListener() {}
-  append(...children) { this.children.push(...children); }
-  prepend(child) { this.children.unshift(child); }
+  addEventListener(name, callback) { this.listeners[name] = callback; }
+  querySelectorAll(selector) { return selector === '[data-premium-card]' ? tree(this).filter(({ dataset }) => dataset.premiumCard) : []; }
+  replaceWith(node) { this.parent.children[this.parent.children.indexOf(this)] = node; node.parent = this.parent; }
+  append(...children) {
+    for (const child of children) child.parent = this;
+    this.children.push(...children);
+  }
+  prepend(child) { child.parent = this; this.children.unshift(child); }
   replaceChildren(...children) { this.children = children; }
   showModal() { this.open = true; }
   focus(options) { this.focusOptions = options; }
@@ -29,6 +35,7 @@ globalThis.document = {
   body: new TestElement('body'),
   createElement: (tag) => new TestElement(tag),
   createElementNS: (_, tag) => new TestElement(tag),
+  querySelectorAll: (selector) => document.body.querySelectorAll(selector),
 };
 const { decorateCard, preview, showCard } = await import('../docs/ui/cards.js');
 const { orderBadge } = await import('../docs/ui/stat-badges.js');
@@ -56,23 +63,47 @@ test('live battlefield and hand faces hide provision, while catalog and preview 
   assert.match(byClass(preview, 'muted').textContent, /Провизия 11/);
 });
 
-test('Synaptic Parasite uses separate silent loops in hand and preview with a still fallback', () => {
+test('premium selection updates existing copies and persists independently for both cards', async () => {
   const id = 'synaptic-parasite';
-  assert.equal(byClass(drawable(id), 'card-art-crop').tag, 'img');
-  const hand = byClass(drawable(id, { animation: 'hand' }), 'card-art-video');
-  assert.equal(hand.tag, 'video');
-  assert.equal(hand.src, './art/synaptic-parasite-hand.mp4');
-  assert.equal(hand.poster, './art/synaptic-parasite.webp');
-  assert.ok(hand.autoplay && hand.muted && hand.loop && hand.playsInline);
-  showCard(makeCard(id));
-  assert.equal(byClass(preview, 'card-art-video').src, './art/synaptic-parasite-preview.mp4');
-
-  globalThis.matchMedia = () => ({ matches: true });
+  const devourer = 'carrion-devourer';
+  const { PREMIUM_ART_KEY, selectPremiumArt } = await import('../docs/ui/card-art.js?v=premium-art-1');
+  const saved = new Map();
+  globalThis.localStorage = { getItem: (key) => saved.get(key), setItem: (key, value) => saved.set(key, value) };
+  const face = drawable(id);
+  const other = drawable(devourer);
+  document.body.append(face, other);
   try {
-    assert.equal(byClass(drawable(id, { animation: 'hand' }), 'card-art-crop').tag, 'img');
+    assert.equal(byClass(face, 'card-art-crop').tag, 'img');
     showCard(makeCard(id));
-    assert.equal(byClass(preview, 'card-art-video'), undefined);
+    const choice = tree(preview).find(({ tag }) => tag === 'select');
+    assert.equal(choice.value, 'regular');
+    choice.value = 'premium';
+    choice.listeners.change();
+    const video = byClass(face, 'card-art-video');
+    assert.equal(video.src, './art/synaptic-parasite-hand.mp4');
+    assert.equal(video.poster, './art/synaptic-parasite.webp');
+    assert.ok(video.autoplay && video.muted && video.loop && video.playsInline);
+    assert.equal(byClass(preview, 'card-art-video').src, './art/synaptic-parasite-preview.mp4');
+    assert.equal(byClass(other, 'card-art-crop').tag, 'img');
+    selectPremiumArt(devourer, true);
+    assert.equal(byClass(other, 'card-art-video').src, './art/carrion-devourer-card.mp4');
+    assert.deepEqual(JSON.parse(saved.get(PREMIUM_ART_KEY)), [id, devourer]);
+
+    const restored = await import('../docs/ui/card-art.js?test-reload');
+    assert.ok(restored.usesPremiumArt(id) && restored.usesPremiumArt(devourer));
+    globalThis.matchMedia = () => ({ matches: true });
+    assert.equal(byClass(drawable(id), 'card-art-crop').tag, 'img');
+    delete globalThis.matchMedia;
+    selectPremiumArt(id, false);
+    assert.equal(byClass(face, 'card-art-crop').tag, 'img');
+    assert.ok(byClass(other, 'card-art-video'));
+    showCard(makeCard('bastion'));
+    assert.equal(tree(preview).find(({ tag }) => tag === 'select'), undefined);
   } finally {
+    selectPremiumArt(id, false);
+    selectPremiumArt(devourer, false);
+    document.body.replaceChildren(preview);
+    delete globalThis.localStorage;
     delete globalThis.matchMedia;
   }
 });

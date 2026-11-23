@@ -1,4 +1,5 @@
 import { setCardRarity } from './ui/dom.js?v=opponent-reveal-1';
+import { cardArt } from './ui/card-art.js?v=premium-art-1';
 import { NEUTRAL } from './game/cards.js?v=hounds-1';
 import { burstParticles } from './particles.js?v=step-14';
 
@@ -61,12 +62,8 @@ function floatingCard(screen, event, className, destination, fullArt = false) {
   const card = floatNode(screen, className, art || fullArt ? '' : event.name, destination);
   setCardRarity(card, definition?.rarity);
   if (art) {
-    const image = screen.ownerDocument.createElement('img');
-    image.className = 'card-art-crop';
-    image.src = './art/' + art;
-    image.alt = '';
     card.classList.add('has-art');
-    card.append(image);
+    card.append(cardArt(definition, 'card-art-crop', { fullArt, doc: screen.ownerDocument }));
   }
   card.dataset.faction = definition?.faction === NEUTRAL ? NEUTRAL
     : screen.querySelector('[data-side="' + event.side + '"]')?.dataset.faction ?? '';

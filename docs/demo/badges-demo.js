@@ -1,7 +1,7 @@
 import { dialogClose } from '../ui/resources.js?v=interface-polish-1';
 import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=hounds-1';
 import { basePower, createCard, isUnit, statusCount } from '../game/board.js?v=hounds-1';
-import { cardArt, decorateCard, showCard } from '../ui/cards.js?v=parasite-motion-1';
+import { cardArt, decorateCard, showCard } from '../ui/cards.js?v=premium-art-1';
 import { button, element, setCardRarity } from '../ui/dom.js?v=opponent-reveal-1';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
