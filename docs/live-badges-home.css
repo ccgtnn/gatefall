@@ -27,8 +27,8 @@
   font-size: max(10px, calc(var(--corner-size) * .6));
 }
 .stat-badge:is(.stat-badge-power, .stat-badge-armor, .stat-badge-provision) > strong {
-  font-weight: 650;
-  -webkit-text-stroke: .35px #101722;
+  font-weight: 550;
+  -webkit-text-stroke: 0;
 }
 .stat-badge:is(.stat-badge-power, .stat-badge-armor, .stat-badge-provision) > .stat-badge-multiple-digits {
   letter-spacing: -.05em;
@@ -44,6 +44,9 @@
   border-radius: clamp(2px, calc(var(--corner-size) * .12), 5px);
   background: #111a26ec;
   box-shadow: 0 1px 3px #0008;
+}
+.stat-badge-power:not(.power-boosted, .power-damaged) > strong {
+  color: color-mix(in srgb, var(--rarity-border-color, #e7edf5) 76%, white);
 }
 .stat-badge.stat-badge-armor {
   top: var(--corner-inset);
@@ -62,6 +65,8 @@
   height: calc(var(--corner-size) * 1.16);
   color: #ffe4a5;
 }
+.stat-badge-armor > strong { transform: translateY(-.16em); }
+.stat-badge-provision > strong { transform: translateY(-.08em); }
 .stat-badge-infection { color: #e0ffbd; filter: drop-shadow(0 0 2px #8ef75aa0); }
 .stat-badge-order > strong { transform: translate(.28em, .25em); font-size: .84em; }
 .stat-badge-chapters { display: inline-flex; width: max-content; height: calc(var(--badge-size, var(--stat-size, 22px)) * .68); }
@@ -121,10 +126,13 @@
   .preview-card-face { width: min(100%, 31vh); }
 }
 
+[data-card-frame="protectorate-rampart"] {
+  clip-path: polygon(3% .45%, 97% .45%, 99.45% 2%, 99.45% 98%, 97.5% 99.55%, 3% 99.55%, .55% 98%, .55% 2%);
+}
 [data-card-frame="protectorate-rampart"][data-rarity]::before {
   border: 0;
   background: url('./art/frame-protectorate-rampart.webp') center / 100% 100% no-repeat;
-  filter: drop-shadow(0 1px clamp(1px, .48dvh, 4px) #03060cbf);
+  filter: drop-shadow(0 1px clamp(1px, .42dvh, 3px) #03060ca6);
 }
 
 /* Deck selection */
