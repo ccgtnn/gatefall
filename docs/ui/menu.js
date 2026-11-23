@@ -154,6 +154,7 @@ export function createMatchMenu(getMatch, showThoughts) {
   function showDrawer(pile) {
     if (pile.side === 'bot' && pile.pile === 'deck') return;
     openPile = pile;
+    drawer.classList.toggle('field-pile-drawer', pile !== 'journal');
     drawer.classList.toggle('field-deck-drawer', pile.pile === 'deck');
     fillDrawer();
     drawer.scrollTop = 0;
