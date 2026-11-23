@@ -89,26 +89,19 @@ test('Orders keep their ready and cooldown states, with one overlay for the fiel
   assert.equal(cooldown.children[1].textContent, 2);
 });
 
-test('the Robot uses the supplied numbered art and keeps dynamic numbers for changed power', () => {
-  const hand = drawable('helper-robot');
-  const handPower = byClass(hand, 'stat-badge-power');
-  assert.match(handPower.children[0].src, /hud-power-4\.webp/);
-  assert.equal(handPower.children.length, 1);
-  assert.equal(byClass(hand, 'stat-badge-provision'), undefined);
-
-  const card = makeCard('helper-robot');
-  showCard(card);
-  const largePower = byClass(preview, 'stat-badge-power');
-  const provision = byClass(preview, 'stat-badge-provision');
-  assert.match(largePower.children[0].src, /hud-power-4-detail\.webp/);
-  assert.match(provision.children[0].src, /hud-provision-8\.webp/);
-  assert.equal(provision.children.length, 1);
-
-  card.power += 2;
-  showCard(card);
-  const boosted = byClass(preview, 'stat-badge-power');
-  assert.match(boosted.children[0].src, /hud-power\.webp/);
-  assert.equal(boosted.children[1].textContent, card.power);
-  assert.match(byClass(drawable('imperial-golem'), 'stat-badge-art').src, /hud-power\.webp/);
-  assert.equal(byClass(drawable('bastion'), 'stat-badge-art'), undefined);
+test('all rarities use numeric power plates and the shared provision hexagon', () => {
+  for (const [id, rarity] of [['infantry', 'bronze'], ['helper-robot', 'epic'], ['imperial-golem', 'gold']]) {
+    const card = makeCard(id);
+    card.power += 2;
+    showCard(card);
+    const face = byClass(preview, 'preview-card-face');
+    const power = byClass(face, 'stat-badge-power');
+    const provision = byClass(face, 'stat-badge-provision');
+    assert.equal(face.dataset.rarity, rarity);
+    assert.deepEqual(power.children.map(({ tag }) => tag), ['strong']);
+    assert.equal(power.children[0].textContent, card.power);
+    assert.ok(byClass(power, 'power-boosted'));
+    assert.match(provision.children[0].children[0].attributes.href, /#provision$/);
+    assert.equal(provision.children[1].textContent, card.definition.provision);
+  }
 });

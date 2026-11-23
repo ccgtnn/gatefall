@@ -11,30 +11,13 @@ function symbol(name, size = 40) {
   return icon;
 }
 
-const badgeArt = {
-  'hud-power': { file: 'hud-power.webp' },
-  'hud-provision': { file: 'hud-provision.webp' },
-  'hud-power-4': { file: 'hud-power-4.webp', numbered: true },
-  'hud-power-4-detail': { file: 'hud-power-4-detail.webp', numbered: true },
-  'hud-provision-8': { file: 'hud-provision-8.webp', numbered: true },
-};
-
 export function statBadge(kind, label, value, variant = kind) {
   const node = element('span', 'stat-badge stat-badge-' + kind);
   node.title = label;
   node.setAttribute('aria-label', label);
   node.setAttribute('role', 'img');
-  const art = Object.hasOwn(badgeArt, variant) ? badgeArt[variant] : undefined;
-  if (art) {
-    const image = element('img', art.numbered ? 'stat-badge-art stat-badge-number-art' : 'stat-badge-art');
-    image.src = './art/' + art.file;
-    image.alt = '';
-    image.draggable = false;
-    node.append(image);
-  } else {
-    node.append(symbol(variant));
-  }
-  if (value !== undefined && !art?.numbered) node.append(element('strong', null, value));
+  if (kind !== 'power') node.append(symbol(variant));
+  if (value !== undefined) node.append(element('strong', null, value));
   return node;
 }
 
