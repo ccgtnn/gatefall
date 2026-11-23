@@ -77,16 +77,29 @@
     padding: 0;
     background: #171e25 url('./art/battlefield-metal.webp?v=2') center / 100% 100% no-repeat;
   }
-  :where([data-battlefield-choice="metal"]) .field-center .board-row {
-    grid-template-columns: 9.5% minmax(0, 1fr);
+  :where([data-battlefield-choice="new-year"]) .match-board {
+    --row-label-width: 9.7%;
+    --row-overlay: linear-gradient(#09142050, #09142050);
+    grid-template: ". . . ." 8.9% "left center hand right" minmax(0, 1fr) ". . . ." 7.4% /
+      5.25% minmax(0, 1fr) 22.7% 7.1%;
+    column-gap: .45%;
+    row-gap: 0;
+    padding: 0;
+    background: #101c2c url('./art/battlefield-new-year.webp') center / 100% 100% no-repeat;
+  }
+  :where([data-battlefield-choice="metal"], [data-battlefield-choice="new-year"]) .field-center .board-row {
+    --label-end: var(--row-label-width, 9.5%);
+    grid-template-columns: var(--label-end) minmax(0, 1fr);
     --lane-line: transparent;
-    background: linear-gradient(90deg, transparent 9.5%, color-mix(in srgb, var(--lane-tint) 9%, transparent) 9.5%);
+    background: linear-gradient(90deg, transparent var(--label-end),
+      color-mix(in srgb, var(--lane-tint) 9%, transparent) var(--label-end)),
+      var(--row-overlay, transparent);
     box-shadow: none;
   }
-  :where([data-battlefield-choice="metal"]) .field-center .row-label:not(:enabled) {
+  :where([data-battlefield-choice="metal"], [data-battlefield-choice="new-year"]) .field-center .row-label:not(:enabled) {
     background: #0c141e65;
   }
-  :where([data-battlefield-choice="metal"]) :is(.field-rail, .battle-hand) {
+  :where([data-battlefield-choice="metal"], [data-battlefield-choice="new-year"]) :is(.field-rail, .battle-hand) {
     border-color: transparent;
     background: #0c141e40;
     box-shadow: none;
