@@ -18,19 +18,19 @@ test('all 31 characters have ranked places, eight occasions, and legal decks', (
   assert.deepEqual(LEAGUE_CHARACTERS.filter(({ telepathic }) => telepathic).map(({ name }) => name),
     ['Сестра Безмолвие', 'Первый Голос']);
   for (const [tier, { bots }] of LEAGUES.entries()) {
-    const originals = bots.filter(({ skillTier }) => skillTier === undefined);
-    assert.deepEqual(originals.map(({ strength }) => strength).sort(), [1, 2, 3, 4, 5, 6, 7]);
+    assert.deepEqual(bots.map(({ strength }) => strength).sort(), Array.from({ length: tier ? 8 : 7 }, (_, i) => i + 1));
     for (const bot of bots) {
       assert.ok(bot.name && bot.character && bot.initials);
       assert.ok('avatar' in bot);
-      assert.equal(Boolean(bot.uniqueAbility), tier === 3 && bot.skillTier === undefined);
+      assert.equal(bot.strengthScale, bots.length);
+      assert.equal(Boolean(bot.uniqueAbility), tier === 3);
       assert.deepEqual(Object.keys(bot.lines), reasons);
       assert.ok(Object.values(bot.lines).every((lines) => new Set(lines).size === 2));
       assert.ok(inspectDeck(bot.deck).valid, bot.name);
     }
-    const difficulty = originals.slice().sort((a, b) => a.strength - b.strength).map((bot) => bot.difficulty);
+    const difficulty = bots.slice().sort((a, b) => a.strength - b.strength).map((bot) => bot.difficulty);
     const [low, high] = [['easy', 'normal'], ['normal', 'hard'], ['hard', 'hard'], ['hard', 'hard']][tier];
-    assert.deepEqual(difficulty, [...Array(4).fill(low), ...Array(3).fill(high)]);
+    assert.deepEqual(difficulty, [...Array(4).fill(low), ...Array(tier ? 4 : 3).fill(high)]);
   }
 });
 
@@ -41,9 +41,9 @@ test('future factions use temporary decks until their own deck is registered', (
     assert.ok(bots.length);
     for (const character of bots) {
       const fallback = leagueDeckFor(character);
-      assert.equal(fallback.factionId, 'protectorate');
+      assert.equal(fallback.factionId, character.id === 'frontier-rookie-2' ? 'growth' : 'protectorate');
       assert.equal(leagueDeckFor(character, { [loreFaction]: deck }), deck);
-      if (loreFaction === 'void') assert.ok(fallback.cardIds.includes('falura'));
+      if (character.id === 'bot-3-6') assert.ok(fallback.cardIds.includes('falura'));
     }
   }
   const mira = LEAGUE_CHARACTERS.find(({ name }) => name === 'Доктор Мира Холт');

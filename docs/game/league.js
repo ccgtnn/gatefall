@@ -1,4 +1,4 @@
-import { LEAGUE_CHARACTERS } from './league-characters.js?v=league-promotion-1';
+import { LEAGUE_CHARACTERS } from './league-characters.js?v=league-roster-1';
 import { leagueDeckFor } from './league-decks.js?v=league-characters-1';
 
 export const LEAGUE_RULES = Object.freeze({
@@ -18,8 +18,8 @@ const leagueRewards = [
 export const LEAGUE_DIFFICULTIES = Object.freeze([
   { upperRank: 4, lower: 'easy', upper: 'normal' },
   { upperRank: 4, lower: 'normal', upper: 'hard' },
-  { upperRank: 7, lower: 'hard', upper: 'hard' },
-  { upperRank: 7, lower: 'hard', upper: 'hard' },
+  { upperRank: 8, lower: 'hard', upper: 'hard' },
+  { upperRank: 8, lower: 'hard', upper: 'hard' },
 ]);
 
 export function leagueDifficulty(tier, strength) {
@@ -28,12 +28,13 @@ export function leagueDifficulty(tier, strength) {
 }
 
 export const LEAGUE_BOTS = new Map(LEAGUE_CHARACTERS.map((character) => {
-  const skillTier = character.skillTier ?? character.tier;
+  const { tier, strength } = character;
   return [character.id, {
     ...character,
     deck: leagueDeckFor(character),
-    difficulty: leagueDifficulty(skillTier, character.strength),
-    simulationStrength: character.strength + skillTier * LEAGUE_RULES.simulationTierStep,
+    difficulty: leagueDifficulty(tier, strength),
+    strengthScale: LEAGUE_CHARACTERS.filter((bot) => bot.tier === tier).length,
+    simulationStrength: strength + tier * LEAGUE_RULES.simulationTierStep,
   }];
 }));
 

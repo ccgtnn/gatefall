@@ -25,10 +25,10 @@ export function leagueProfile(bot, score, encounters, play) {
   const strength = element('span', 'league-strength');
   strength.setAttribute('aria-hidden', 'true');
   strength.append(element('span', null, '★'.repeat(bot.strength)),
-    element('span', 'muted', '☆'.repeat(7 - bot.strength)));
+    element('span', 'muted', '☆'.repeat(bot.strengthScale - bot.strength)));
   const meetings = (encounters?.wins ?? 0) + (encounters?.draws ?? 0) + (encounters?.losses ?? 0);
   const entries = [
-    ['Сила', [strength, ` ${bot.strength}/7`]],
+    ['Сила', [strength, ` ${bot.strength}/${bot.strengthScale}`]],
     ['Уровень бота', [LEAGUE_DIFFICULTY_LABELS[bot.difficulty]]],
     ['Колода сейчас', [bot.deck.name]],
     ['Сезон · П–Н–П', [`${leagueRecord(score)} · Очки: ${score.points}`]],

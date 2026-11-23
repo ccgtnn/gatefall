@@ -253,7 +253,7 @@ test('all divisions exchange exactly their top and bottom pairs and reset simult
     assert.equal(visitor.difficulty, visitor.strength <= 4 ? 'easy' : 'normal');
     assert.equal(visitor.deck.factionId, visitor.loreFaction === 'growth' ? 'growth' : 'protectorate');
   }
-  assert.equal(LEAGUE_BOTS.get('frontier-rookie-3').difficulty, 'easy');
+  assert.equal(LEAGUE_BOTS.get('frontier-rookie-3').difficulty, 'hard');
 });
 
 test('a player finishing in the bottom two is relegated but keeps the weekly peak', () => {

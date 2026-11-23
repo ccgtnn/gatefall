@@ -115,7 +115,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-1-0', name: "Сержант Брам Кольт", tier: 1, loreFaction: 'protectorate', deckNow: 'protectorate',
-    strength: 3, initials: "БК", avatar: 'league/bram-colt.webp',
+    strength: 4, initials: "БК", avatar: 'league/bram-colt.webp',
     character: "Ворчливый строевой сержант, тот самый, которого зовёт Тоби. Под суровостью — забота о своих.",
     uniqueAbility: null,
     lines: {
@@ -131,7 +131,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-1-1', name: "Кайра Векс", tier: 1, loreFaction: 'captains', deckNow: 'protectorate',
-    strength: 5, initials: "КВ", avatar: 'league/kaira-vex.webp',
+    strength: 6, initials: "КВ", avatar: 'league/kaira-vex.webp',
     character: "Наёмница, у которой всё имеет цену. Холодный расчёт, лёгкая ирония.",
     uniqueAbility: null,
     lines: {
@@ -147,7 +147,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-1-2', name: "Ткачиха Сельва", tier: 1, loreFaction: 'growth', deckNow: 'growth',
-    strength: 4, initials: "С", avatar: 'league/selva.webp',
+    strength: 5, initials: "С", avatar: 'league/selva.webp',
     character: "Разумная садовница роя, плетёт споры как ткань. Говорит спокойно и загадочно.",
     uniqueAbility: null,
     lines: {
@@ -163,7 +163,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-1-3', name: "Лейтенант Оран Дюк", tier: 1, loreFaction: 'protectorate', deckNow: 'protectorate',
-    strength: 2, initials: "ОД", avatar: 'league/oran-duke.webp',
+    strength: 3, initials: "ОД", avatar: 'league/oran-duke.webp',
     character: "Пилот орбитального флота, щёголь из знатной семьи. Свысока смотрит на «наземных».",
     uniqueAbility: null,
     lines: {
@@ -195,7 +195,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-1-5', name: "Глас роя", tier: 1, loreFaction: 'growth', deckNow: 'growth',
-    strength: 6, initials: "ГР", avatar: 'league/voice-of-the-swarm.webp',
+    strength: 7, initials: "ГР", avatar: 'league/voice-of-the-swarm.webp',
     character: "Существо, через которое говорит весь рой. Говорит о себе «мы».",
     uniqueAbility: null,
     lines: {
@@ -211,7 +211,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-1-6', name: "Капитан Скара Райнхольд", tier: 1, loreFaction: 'captains', deckNow: 'protectorate',
-    strength: 7, initials: "СР", avatar: 'league/skara-rainhold.webp',
+    strength: 8, initials: "СР", avatar: 'league/skara-rainhold.webp',
     character: "Капитан наёмного корабля «Чёрная гончая», сильнейшая в Серебре. Холодная, немногословная, опасная.",
     uniqueAbility: null,
     lines: {
@@ -227,7 +227,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-2-0', name: "Командор Ливия Аркс", tier: 2, loreFaction: 'protectorate', deckNow: 'formation',
-    strength: 4, initials: "ЛА", avatar: 'league/livia-arx.webp',
+    strength: 5, initials: "ЛА", avatar: 'league/livia-arx.webp',
     character: "Железная леди штаба, тактик, никогда не повышает голос.",
     uniqueAbility: null,
     lines: {
@@ -259,7 +259,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-2-2', name: "Матриарх Вейла", tier: 2, loreFaction: 'growth', deckNow: 'rebirth',
-    strength: 6, initials: "В", avatar: null,
+    strength: 7, initials: "В", avatar: null,
     character: "Древняя матка, мать тысяч. Говорит медленно и величественно.",
     uniqueAbility: null,
     lines: {
@@ -275,7 +275,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-2-3', name: "Сестра Безмолвие", tier: 2, loreFaction: 'choir', deckNow: 'formation',
-    strength: 5, initials: "СБ", avatar: null,
+    strength: 6, initials: "СБ", avatar: null,
     telepathic: true,
     character: "Псионик-аскет. Не говорит вслух — её реплики звучат прямо в голове (в игре — курсивом).",
     uniqueAbility: null,
@@ -324,7 +324,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-2-6', name: "Маршал Октавиан Рейн", tier: 2, loreFaction: 'protectorate', deckNow: 'formation',
-    strength: 7, initials: "ОР", avatar: null,
+    strength: 8, initials: "ОР", avatar: null,
     character: "Сильнейший в Золоте. Тот самый герой с золотой карты, легенда обороны. Спокоен, как стена.",
     uniqueAbility: null,
     lines: {
@@ -405,7 +405,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-3-4', name: "Сердце роя", tier: 3, loreFaction: 'growth', deckNow: 'plague-diamond',
-    strength: 5, initials: "СР", avatar: null,
+    strength: 6, initials: "СР", avatar: null,
     character: "Сам коллективный разум Поросли, обретший голос. Древний и голодный.",
     uniqueAbility: "в начале каждого своего хода порождает личинку.",
     lines: {
@@ -421,7 +421,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-3-5', name: "Архонт Селестар", tier: 3, loreFaction: 'flawless', deckNow: 'orbit-diamond',
-    strength: 6, initials: "АС", avatar: null,
+    strength: 7, initials: "АС", avatar: null,
     character: "Верховный правитель Безупречных. Надменность, возведённая в абсолют.",
     uniqueAbility: "первые 2 урона по каждому его отряду игнорируются.",
     lines: {
@@ -437,7 +437,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-3-6', name: "Фалура, Пепел звёзд", tier: 3, loreFaction: 'void', deckNow: 'falura',
-    strength: 7, initials: "Ф", avatar: null,
+    strength: 8, initials: "Ф", avatar: null,
     character: "Искажённая драконица в человеческом облике, перешедшая на сторону Пустоты. Героиня существующей карты. Сильнейшая в Алмазе.",
     uniqueAbility: "как на её карте — Приказ лидера перезаряжается каждый ход.",
     lines: {
@@ -452,48 +452,48 @@ export const LEAGUE_CHARACTERS = [
     },
   },
   {
-    id: 'frontier-rookie-1', name: 'Новичок фронтира 1', tier: 1, skillTier: 0,
-    loreFaction: 'neutral', deckNow: 'protectorate', strength: 4, initials: 'Н1', avatar: null,
-    character: 'Новичок, который недавно записался в Лигу.', uniqueAbility: null,
+    id: 'frontier-rookie-1', name: "Сборщик-7", tier: 1, loreFaction: 'core', deckNow: 'protectorate',
+    strength: 2, initials: "С7", avatar: null,
+    character: "Вежливый утильный дрон Ядра, собирает обломки после боёв. Говорит как служба поддержки.", uniqueAbility: null,
     lines: {
-      start: ['Посмотрим, чему меня научили.', 'Ну что, сыграем?'],
-      botStrong: ['Неплохо для новичка!', 'Вот на это я и рассчитывал.'],
-      humanStrong: ['Надо запомнить этот ход.', 'А это было неожиданно.'],
-      roundWin: ['Один раунд за мной.', 'Пока держусь.'],
-      roundLoss: ['Ещё отыграюсь.', 'В следующем раунде попробую иначе.'],
-      pass: ['На этом остановлюсь.', 'Теперь твоя очередь.'],
-      win: ['Сегодня мне везёт.', 'Хорошая партия!'],
-      loss: ['Есть чему поучиться.', 'Спасибо за игру.'],
+      start: ["Здравствуйте! Ваш бой важен для нас", "Сборщик-7 к вашим услугам. Начинаем?"],
+      botStrong: ["Операция выполнена успешно!", "Утилизация противника: 64%"],
+      humanStrong: ["Ой. Регистрирую повреждения", "Спасибо за обратную связь!"],
+      roundWin: ["Раунд добавлен в коллекцию", "Отличный результат! Для меня"],
+      roundLoss: ["Произошла ошибка. Попробуем снова", "Повреждения в пределах нормы"],
+      pass: ["Режим ожидания", "Сохраняю ресурсы для повторного использования"],
+      win: ["Спасибо, что выбрали Сборщик-7!", "Ваши обломки будут бережно собраны"],
+      loss: ["Оцените мою работу по шкале от 1 до 10", "Отправляю отчёт в Ядро. Мне будет стыдно"],
     },
   },
   {
-    id: 'frontier-rookie-2', name: 'Новичок фронтира 2', tier: 2, skillTier: 0,
-    loreFaction: 'neutral', deckNow: 'protectorate', strength: 4, initials: 'Н2', avatar: null,
-    character: 'Новичок, который недавно записался в Лигу.', uniqueAbility: null,
+    id: 'frontier-rookie-2', name: "Нокс, Вестник Пустоты", tier: 2, loreFaction: 'void', deckNow: 'plague',
+    strength: 4, initials: "НВ", avatar: null,
+    character: "Бывший навигатор, заглянувший в Пустоту и вернувшийся «не совсем собой». Тихий, вкрадчивый, предвещает гибель. Слуга Фалуры.", uniqueAbility: null,
     lines: {
-      start: ['Посмотрим, чему меня научили.', 'Ну что, сыграем?'],
-      botStrong: ['Неплохо для новичка!', 'Вот на это я и рассчитывал.'],
-      humanStrong: ['Надо запомнить этот ход.', 'А это было неожиданно.'],
-      roundWin: ['Один раунд за мной.', 'Пока держусь.'],
-      roundLoss: ['Ещё отыграюсь.', 'В следующем раунде попробую иначе.'],
-      pass: ['На этом остановлюсь.', 'Теперь твоя очередь.'],
-      win: ['Сегодня мне везёт.', 'Хорошая партия!'],
-      loss: ['Есть чему поучиться.', 'Спасибо за игру.'],
+      start: ["Пустота шепчет твоё имя. Хочешь услышать?", "Я видел, чем это закончится. Тебе не понравится"],
+      botStrong: ["Тьма откликается", "Так говорила Пустота"],
+      humanStrong: ["Свет… такой громкий", "Ты горишь. Это пройдёт"],
+      roundWin: ["Ещё на шаг ближе к тишине", "Пустота довольна"],
+      roundLoss: ["Это ничего не меняет", "Пепел остаётся пеплом"],
+      pass: ["Пусть тьма сделает остальное", "Я подожду. Пустота терпелива"],
+      win: ["Госпожа будет довольна", "Добро пожаловать в тишину"],
+      loss: ["Ты отсрочил неизбежное. Ненадолго", "Пустота запомнит. Она помнит всё"],
     },
   },
   {
-    id: 'frontier-rookie-3', name: 'Новичок фронтира 3', tier: 3, skillTier: 0,
-    loreFaction: 'neutral', deckNow: 'protectorate', strength: 4, initials: 'Н3', avatar: null,
-    character: 'Новичок, который недавно записался в Лигу.', uniqueAbility: null,
+    id: 'frontier-rookie-3', name: "Странник Врат", tier: 3, loreFaction: 'neutral', deckNow: 'protectorate',
+    strength: 5, initials: "СВ", avatar: null,
+    character: "Загадочный путник, который, по слухам, прошёл через Врата, когда они ещё работали. Никто не знает, сколько ему лет. Говорит загадками, знает больше всех.", uniqueAbility: "раз за матч может сыграть случайную карту из любой фракции.",
     lines: {
-      start: ['Посмотрим, чему меня научили.', 'Ну что, сыграем?'],
-      botStrong: ['Неплохо для новичка!', 'Вот на это я и рассчитывал.'],
-      humanStrong: ['Надо запомнить этот ход.', 'А это было неожиданно.'],
-      roundWin: ['Один раунд за мной.', 'Пока держусь.'],
-      roundLoss: ['Ещё отыграюсь.', 'В следующем раунде попробую иначе.'],
-      pass: ['На этом остановлюсь.', 'Теперь твоя очередь.'],
-      win: ['Сегодня мне везёт.', 'Хорошая партия!'],
-      loss: ['Есть чему поучиться.', 'Спасибо за игру.'],
+      start: ["Я видел, как погасли Врата. Увижу и тебя", "Садись. Время у нас есть. У меня — особенно"],
+      botStrong: ["Этому меня научили на другой стороне", "Старые пути ещё помнят меня"],
+      humanStrong: ["Ты напомнил мне кое-кого. Он тоже был хорош", "Любопытно. Очень давно не видел такого"],
+      roundWin: ["Всё идёт своим путём", "Дорога длинная"],
+      roundLoss: ["Даже Врата однажды погасли", "Хорошо. Мне нужна была эта остановка"],
+      pass: ["Я подожду. Я умею ждать", "Пусть дорога сама приведёт"],
+      win: ["Ты ещё в начале пути", "Иди. Врата откроются не для всех"],
+      loss: ["Наконец-то. Я ждал тебя очень долго", "Может быть, Врата откроются для тебя"],
     },
   },
 ];
