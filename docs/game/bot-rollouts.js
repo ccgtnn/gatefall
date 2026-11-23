@@ -1,8 +1,8 @@
-import { FACTIONS, ROWS } from './cards.js?v=robot-violet-1';
-import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=robot-violet-1';
-import { collection, copyLimit } from './decks.js?v=robot-violet-1';
-import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=league-1';
-import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=robot-violet-1';
+import { FACTIONS, ROWS } from './cards.js?v=robot-art-28';
+import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=robot-art-28';
+import { collection, copyLimit } from './decks.js?v=robot-art-28';
+import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=robot-art-28';
+import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=robot-art-28';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };

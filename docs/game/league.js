@@ -1,4 +1,4 @@
-import { PRESETS } from './decks.js?v=robot-violet-1';
+import { PRESETS } from './decks.js?v=robot-art-28';
 
 export const LEAGUE_RULES = Object.freeze({
   rounds: 7, promotionPlaces: 2, winPoints: 3, drawPoints: 1,

@@ -1,5 +1,5 @@
-import { DIAMOND, LEAGUES, LEAGUE_RULES, leagueOpponent, leagueStake, leagueTable, leagueTicket } from '../game/league.js?v=league-1';
-import { FACTIONS } from '../game/cards.js?v=robot-violet-1';
+import { DIAMOND, LEAGUES, LEAGUE_RULES, leagueOpponent, leagueStake, leagueTable, leagueTicket } from '../game/league.js?v=robot-art-28';
+import { FACTIONS } from '../game/cards.js?v=robot-art-28';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { sectionBack } from './resources.js?v=interface-polish-1';
 

@@ -1,4 +1,4 @@
-import { ROWS } from './cards.js?v=robot-violet-1';
+import { ROWS } from './cards.js?v=robot-art-28';
 import { emit } from './events.js?v=helper-robot-1';
 
 export const ROW_LIMIT = 9;
