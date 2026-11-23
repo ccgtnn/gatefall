@@ -469,7 +469,7 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
 :is(.hand-card, .unit-face).has-art[data-type]::after {
   background: linear-gradient(#080e171a, transparent 45%, transparent 74%, #080e1770);
 }
-.card-kind, .card-state {
+.card-state {
   position: absolute;
   display: grid;
   place-items: center;
@@ -482,21 +482,6 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   font-size: clamp(.58rem, 2dvh, .86rem);
   font-weight: 750;
   line-height: 1;
-}
-.card-kind {
-  --kind-stat-size: var(--badge-size, var(--stat-size, 22px));
-  --kind-inset: clamp(4px, calc(var(--kind-stat-size) * .28), 11px);
-  top: var(--kind-inset);
-  left: var(--kind-inset);
-  z-index: 3;
-  width: min(36%, clamp(18px, calc(var(--kind-stat-size) * 1.25), 44px));
-  height: auto;
-  aspect-ratio: 1;
-  border-color: var(--rarity-border-color, #8197a5);
-  border-radius: 4px;
-  color: color-mix(in srgb, var(--rarity-border-color, #8197a5) 73%, white);
-  font-size: clamp(.85rem, calc(var(--kind-stat-size) * .82), 2rem);
-  pointer-events: none;
 }
 .card-state {
   inset: auto auto 2px 50%;

@@ -20,7 +20,7 @@
   text-shadow: 0 1px 2px #000;
 }
 /* Shared corner figures, independent of badge shape. */
-.stat-badge:is(.stat-badge-power, .stat-badge-armor, .stat-badge-provision) {
+.stat-badge:is(.stat-badge-power, .stat-badge-armor, .stat-badge-provision), .card-kind {
   --corner-size: var(--badge-size, var(--stat-size, 22px));
   --corner-inset: clamp(3px, calc(var(--corner-size) * .17), 8px);
   z-index: 3;
@@ -33,11 +33,12 @@
 .stat-badge:is(.stat-badge-power, .stat-badge-armor, .stat-badge-provision) > .stat-badge-multiple-digits {
   letter-spacing: -.05em;
 }
-.stat-badge.stat-badge-power {
+.stat-badge.stat-badge-power, .card-kind {
+  --top-badge-width: calc(var(--corner-size) * .78);
   top: clamp(2px, calc(var(--corner-size) * .12), 5px);
   left: clamp(2px, calc(var(--corner-size) * .12), 5px);
   width: max-content;
-  min-width: calc(var(--corner-size) * .78);
+  min-width: var(--top-badge-width);
   height: calc(var(--corner-size) * .9);
   padding-inline: .12em;
   border: 1px solid var(--rarity-border-color, #a1b2c1);
@@ -45,7 +46,19 @@
   background: #111a26c4;
   box-shadow: 0 1px 3px #0008;
 }
-.stat-badge-power:not(.power-boosted, .power-damaged) > strong {
+.card-kind {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  font-weight: 550;
+  line-height: 1;
+  pointer-events: none;
+}
+[data-card-face] > .card-kind {
+  width: var(--top-badge-width);
+  padding: 0;
+}
+.stat-badge-power:not(.power-boosted, .power-damaged) > strong, .card-kind:not(.is-complete) {
   color: color-mix(in srgb, var(--rarity-border-color, #e7edf5) 76%, white);
 }
 .stat-badge.stat-badge-armor {
