@@ -12,6 +12,7 @@ export function roundText(event) {
 export function eventText(event) {
   const side = sideLabel[event.side];
   switch (event.type) {
+    case 'league-speech': return `${event.name}: «${event.line}»`;
     case 'mulligan': return `${side}: заменено карт ${event.count}.`;
     case 'round-start': return `Раунд ${event.round}. Первый ход: ${side.toLowerCase()}.`;
     case 'stratagem': return `${side}: на Поверхности появляется стратагема «${event.name}».`;
@@ -110,7 +111,7 @@ export function logView(match, showThoughts = false) {
       if (showThoughts) list.append(botThought(event));
     } else {
       const text = eventText(event);
-      if (text) list.append(element('li', null, text));
+      if (text) list.append(element('li', event.telepathic ? 'league-telepathy' : null, text));
     }
   }
   log.append(element('h2', null, 'Журнал ходов'), list);

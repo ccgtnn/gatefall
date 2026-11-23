@@ -1,3 +1,5 @@
+import { createLeagueDialogue, LEAGUE_DIALOGUE } from './game/league-dialogue.js?v=league-characters-1';
+import { setLeagueSpeech } from './ui/league-character.js?v=league-characters-1';
 import { createBaseScreen } from './ui/base-screen.js?v=robot-art-28';
 import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=decorations-1';
 import { createDeckStorage } from './ui/deck-storage.js?v=robot-art-28';
@@ -12,14 +14,14 @@ import { inspectDeck, PRESETS } from './game/decks.js?v=robot-art-28';
 import { applyAction, createDeckMatch } from './game/match.js?v=robot-art-28';
 import { element, iconButton } from './ui/dom.js?v=opponent-reveal-1';
 import { cardArt, preview, showCard } from './ui/cards.js?v=decorations-1';
-import { createBattlefield } from './ui/field.js?v=decorations-1';
+import { createBattlefield } from './ui/field.js?v=league-characters-1';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=decorations-1';
-import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=decorations-1';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=decorations-1';
+import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=league-characters-1';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=league-characters-1';
 import { createSettings } from './ui/settings.js?v=robot-art-28';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
-import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=monthly-ranks-1';
+import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=league-characters-1';
 import { createRewardBook } from './ui/reward-book.js?v=monthly-ranks-1';
 import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=decorations-1';
 import { createResourceBar } from './ui/resources.js?v=interface-polish-1';
@@ -28,7 +30,7 @@ import { questComplete } from './game/tavern.js?v=robot-art-28';
 import { rankStanding, wonRounds } from './game/ranks.js?v=monthly-ranks-1';
 import { createFramePreferences, decorationsScreen, FRAME_STORAGE_KEY } from './ui/decorations.js?v=decorations-1';
 import { rankScreen } from './ui/rank-screen.js?v=monthly-ranks-1';
-import { leagueScreen } from './ui/league-screen.js?v=robot-art-28';
+import { leagueScreen } from './ui/league-screen.js?v=league-characters-1';
 import { resetProgress } from './game/reset-progress.js?v=monthly-ranks-1';
 
 const app = document.querySelector('#app');
@@ -48,6 +50,9 @@ let matchDeck;
 let matchSession = 0;
 let matchRewardId;
 let leagueMatch;
+let leagueDialogue;
+let leagueSpeech;
+let speechTimer;
 let matchSettlement;
 let timer;
 let selectedCardId;
@@ -130,6 +135,8 @@ const hand = {
 };
 const battlefield = createBattlefield({
   getMatch: () => match,
+  getLeagueOpponent: () => leagueMatch,
+  getLeagueSpeech: () => leagueSpeech,
   isReplaying: () => replaying,
   getSelectedCardId: () => selectedCardId,
   isMulliganFieldVisible: () => mulliganFieldVisible,
@@ -181,6 +188,17 @@ function showNotice(notice, text, duration) {
   notice.hidden = false;
   notice.textContent = text;
   noticeTimers.set(notice, setTimeout(() => hideNotice(notice), duration));
+}
+
+function showLeagueSpeech(speech) {
+  clearTimeout(speechTimer);
+  leagueSpeech = speech;
+  if (!speech) return;
+  speechTimer = setTimeout(() => {
+    leagueSpeech = undefined;
+    const bubble = screen.querySelector('.league-battle > .league-character .league-speech');
+    if (bubble) setLeagueSpeech(bubble);
+  }, LEAGUE_DIALOGUE.duration);
 }
 
 function goTo(view) {
@@ -240,6 +258,10 @@ function start(deck, league) {
   retryRolls = [];
   matchRewardId = league?.id ?? matchId();
   leagueMatch = league?.bot;
+  leagueDialogue = leagueMatch && createLeagueDialogue(leagueMatch);
+  const greeting = leagueDialogue?.start();
+  if (greeting) match.log.push(greeting);
+  showLeagueSpeech(greeting);
   matchSettlement = undefined;
   selectedFaction = undefined;
   editedDeck = undefined;
@@ -252,10 +274,9 @@ function start(deck, league) {
   const coin = element('span', 'tossed-coin', first ? '✦' : '◈');
   coin.setAttribute('aria-hidden', 'true');
   const coinDuration = settings.motion() * 2.85;
-  showNotice(coinNotice, '', Math.max(leagueMatch ? 3000 : 1500, coinDuration + 900));
+  showNotice(coinNotice, '', Math.max(1500, coinDuration + 900));
   coinNotice.append(coin, label);
   animateCoin(coin, label, coinDuration);
-  if (leagueMatch) label.append(element('small', 'league-coin-opponent', `${leagueMatch.name} · «${leagueMatch.lines.start}»`));
   screen.querySelector('h2').focus({ preventScroll: true });
 }
 
@@ -270,6 +291,22 @@ async function leaveMatch(surrender = false) {
       return;
     }
     if (outcome === 'done') stats.record(match.players.human.factionId, 'loss');
+    if (surrender) {
+      matchSession += 1;
+      clearTimeout(timer);
+      hideNotice(coinNotice);
+      hideNotice(turnNotice);
+      hideNotice(roundNotice);
+      showLeagueSpeech();
+      replaying = false;
+      const speech = leagueDialogue?.concede();
+      match = { ...match, phase: 'finished', result: 'loss', surrendered: true,
+        log: speech ? [...match.log, speech] : match.log };
+      matchSettlement = outcome;
+      render();
+      screen.querySelector('h2')?.focus({ preventScroll: true });
+      return;
+    }
   } else if (match?.phase === 'finished' && matchSettlement !== 'done' && matchSettlement !== 'stale') {
     if (matchSettlement === 'unavailable') void saveMatchResult();
     return;
@@ -289,6 +326,8 @@ async function leaveMatch(surrender = false) {
   matchDeck = undefined;
   matchRewardId = undefined;
   leagueMatch = undefined;
+  leagueDialogue = undefined;
+  showLeagueSpeech();
   matchSettlement = undefined;
   menuView = returnTo;
   replaying = false;
@@ -333,10 +372,11 @@ function render() {
     const scored = wonRounds(match.log);
     const settlement = {
       saving, failed,
-      reply: leagueMatch && leagueMatch.name + ' · «' + leagueMatch.lines[{ win: 'loss', loss: 'win', draw: 'draw' }[match.result]] + '»',
+      opponent: leagueMatch,
+      reply: match.log.findLast(({ type, reason }) => type === 'league-speech' && (reason === 'win' || reason === 'loss')),
       notice: saving ? 'Сохраняем результат…' : failed ? 'Не удалось сохранить результат.'
         : matchSettlement === 'stale' ? 'Этот тур уже закрыт.'
-          : scored ? `В месячный ранг зачтено: ${scored} · текущий ранг ${rankStanding(progress.ranks().rounds).rank}` : '',
+          : scored && !match.surrendered ? `В месячный ранг зачтено: ${scored} · текущий ранг ${rankStanding(progress.ranks().rounds).rank}` : '',
     };
     content = finishedScreen(match, phaseLabel, () => start(matchDeck), leaveMatch,
       settings.showBotThoughts(), () => canPlayDeck(matchDeck), Boolean(leagueMatch), settlement);
@@ -447,8 +487,13 @@ async function updateMatch(next) {
   clearTimeout(timer);
   const before = match;
   const journal = next.log.slice(before.log.length);
+  const speech = leagueDialogue?.transition(before, next, journal);
+  if (speech) {
+    next.log.push(speech);
+    journal.push(speech);
+  }
   void progress.recordTavernEvents(matchRewardId, before.log.length, journal);
-  const events = journal.filter(({ type }) => type !== 'bot-thought');
+  const events = journal.filter(({ type }) => type !== 'bot-thought' && type !== 'league-speech');
   const duration = settings.motion();
   if ((before.phase === 'playing' && events.length && duration) || events.some(({ type }) => type === 'round-end')) {
     replaying = true;
@@ -480,6 +525,7 @@ async function updateMatch(next) {
 
   if (session !== matchSession) return;
   match = next;
+  if (speech && match.phase !== 'finished') showLeagueSpeech(speech);
   if (match.phase === 'finished' && before.phase !== 'finished') void saveMatchResult();
   if (match.phase === 'mulligan') {
     mulliganFieldVisible = false;
@@ -529,6 +575,7 @@ function cancelTargeting() {
   retryRolls = [...rolls, ...retryRolls];
   targetAction = undefined;
   match = before;
+  leagueDialogue?.cancelPlay();
   render();
   const source = cardId && CSS.escape(cardId);
   const selector = type === 'leader' ? '[data-aim-leader="human"] ~ .leader-power'

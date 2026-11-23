@@ -1,8 +1,9 @@
+import { leagueCharacter } from './league-character.js?v=league-characters-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { createCard } from '../game/board.js?v=robot-art-28';
 import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=robot-art-28';
 import { addCardCrop, cardButton, showCard } from './cards.js?v=decorations-1';
-import { logView, roundText } from './menu.js?v=decorations-1';
+import { logView, roundText } from './menu.js?v=league-characters-1';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=collection-2';
 import { factionFilters } from './faction-filters.js?v=1';
 import { copyLimit } from '../game/decks.js?v=robot-art-28';
@@ -173,7 +174,7 @@ export function leaderScreen(phaseLabel, factionId, start, back) {
   return panel;
 }
 
-export function finishedScreen(match, phaseLabel, start, leaveMatch, showThoughts, canReplay, league, { saving, failed, notice, reply }) {
+export function finishedScreen(match, phaseLabel, start, leaveMatch, showThoughts, canReplay, league, { saving, failed, notice, opponent, reply }) {
   phaseLabel.textContent = `Матч завершён · раундов ${match.round}`;
   const game = element('div', 'game');
   const panel = element('section', 'panel finish');
@@ -205,7 +206,7 @@ export function finishedScreen(match, phaseLabel, start, leaveMatch, showThought
   }
   panel.append(heading, score,
     ...rounds.map((event) => element('p', 'round-result', roundText(event))));
-  if (reply) panel.append(element('p', 'league-reply', reply));
+  if (opponent) panel.append(leagueCharacter(opponent, { line: reply?.line }));
   if (notice) panel.append(element('p', 'muted', notice));
   if (!league && !failed) panel.append(missing);
   panel.append(actions);

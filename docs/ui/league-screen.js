@@ -1,5 +1,5 @@
-import { DIAMOND, LEAGUES, LEAGUE_RULES, leagueOpponent, leagueStake, leagueTable, leagueTicket } from '../game/league.js?v=robot-art-28';
-import { FACTIONS } from '../game/cards.js?v=robot-art-28';
+import { DIAMOND, LEAGUES, LEAGUE_RULES, leagueOpponent, leagueStake, leagueTable, leagueTicket } from '../game/league.js?v=league-characters-1';
+import { leagueCharacter, LORE_FACTIONS } from './league-character.js?v=league-characters-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { sectionBack } from './resources.js?v=interface-polish-1';
 
@@ -84,9 +84,8 @@ export function leagueScreen(phase, actions) {
     const table = standings(season, bots);
     const opponent = element('div', 'league-opponent');
     const label = active ? 'Незавершённый матч' : 'Следующий соперник';
-    opponent.append(element('p', 'muted', label), element('strong', null, bot.name),
-      element('p', null, `${bot.deck.name} · ${difficulties[bot.difficulty]}`),
-      element('blockquote', null, bot.lines.start));
+    opponent.append(element('p', 'muted', label), leagueCharacter(bot, { line: bot.lines.start[0] }),
+      element('p', null, `${bot.deck.name} · ${difficulties[bot.difficulty]}`));
     if (active) {
       opponent.append(element('p', 'muted', 'Незавершённый матч нужно закрыть, чтобы перейти к следующему туру.'));
       const concede = button('Засчитать поражение', () => submit(() => actions.concede(active.id)));
@@ -145,7 +144,7 @@ function standings(season, bots) {
     if (season.tier !== DIAMOND && index < LEAGUE_RULES.promotionPlaces) row.classList.add('league-promotion');
     const name = element('th', null, human ? 'Ты' : bot.name);
     name.scope = 'row';
-    if (!human) name.title = FACTIONS[bot.factionId].name;
+    if (!human) name.title = LORE_FACTIONS[bot.loreFaction];
     row.insertCell().textContent = index + 1;
     row.append(name);
     for (const value of [points, wins, draws, losses, difference > 0 ? '+' + difference : difference]) {

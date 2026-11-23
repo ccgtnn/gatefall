@@ -1,35 +1,39 @@
-import { PRESETS } from './decks.js?v=robot-art-28';
+import { LEAGUE_CHARACTERS } from './league-characters.js?v=league-characters-1';
+import { leagueDeckFor } from './league-decks.js?v=league-characters-1';
 
 export const LEAGUE_RULES = Object.freeze({
   rounds: 7, promotionPlaces: 2, winPoints: 3, drawPoints: 1,
   minimumStake: 100, stakeStep: 25, bonusStep: 50, bonusStreakLimit: 4,
   firstPlaceMultiplier: 1.5,
+  simulationSwing: 9, simulationDrawMargin: .55, simulationSweepMargin: 3,
 });
 
-const roster = [
-  ['Бронзовая', { gold: 100 }, ['easy'], ['Рик', 'Дана', 'Мик', 'Вера', 'Том', 'Ада', 'Рой']],
-  ['Серебряная', { gold: 250, boosters: 1 }, ['normal'], ['Нора', 'Леон', 'Кира', 'Отис', 'Рута', 'Брин', 'Тесс']],
-  ['Золотая', { gold: 500, boosters: 2 }, ['normal', 'hard'], ['Грей', 'Ирис', 'Виктор', 'Ари', 'Дарен', 'Мира', 'Касс']],
-  ['Алмазная', { gold: 1000, boosters: 3, gateShards: 5 }, ['hard'], ['Селена', 'Рен', 'Ивар', 'Эйда', 'Никс', 'Зара', 'Орсон']],
-];
-const presets = Object.fromEntries(PRESETS.map((deck) => [deck.id, deck]));
-const opponentDecks = [
-  'preset-protectorate', 'preset-growth', 'preset-growth-plague',
-  'preset-protectorate-orbital', 'preset-growth-rebirth',
+const leagueRewards = [
+  ['Бронзовая', { gold: 100 }],
+  ['Серебряная', { gold: 250, boosters: 1 }],
+  ['Золотая', { gold: 500, boosters: 2 }],
+  ['Алмазная', { gold: 1000, boosters: 3, gateShards: 5 }],
 ];
 
-export const LEAGUES = roster.map(([name, reward, difficulties, names], tier) => ({
+export const LEAGUE_DIFFICULTIES = Object.freeze([
+  { upperRank: 4, lower: 'easy', upper: 'normal' },
+  { upperRank: 4, lower: 'normal', upper: 'hard' },
+  { upperRank: 7, lower: 'hard', upper: 'hard' },
+  { upperRank: 7, lower: 'hard', upper: 'hard' },
+]);
+
+export function leagueDifficulty(tier, strength) {
+  const { upperRank, lower, upper } = LEAGUE_DIFFICULTIES[tier];
+  return strength <= upperRank ? lower : upper;
+}
+
+export const LEAGUES = leagueRewards.map(([name, reward], tier) => ({
   name, reward,
-  bots: names.map((botName, index) => {
-    const deck = presets[opponentDecks[(tier + index) % opponentDecks.length]];
-    return {
-      id: `bot-${tier}-${index}`, name: botName, deck, factionId: deck.factionId,
-      difficulty: difficulties[Math.floor(index * difficulties.length / names.length)],
-      strength: tier * 2 + index * .5,
-      lines: { start: 'Посмотрим, что у тебя в колоде.', win: 'Этот матч за мной.', loss: 'Хорошая партия.', draw: 'На этот раз поровну.' },
-      uniqueAbility: null,
-    };
-  }),
+  bots: LEAGUE_CHARACTERS.filter((character) => character.tier === tier).map((character) => ({
+    ...character,
+    deck: leagueDeckFor(character),
+    difficulty: leagueDifficulty(tier, character.strength),
+  })),
 }));
 
 export const DIAMOND = LEAGUES.length - 1;
@@ -131,9 +135,13 @@ function scorePair(scores, first, second, result, difference) {
 }
 
 function simulatePair(bots, first, second, random) {
-  const margin = bots.get(first).strength - bots.get(second).strength + (random() - random()) * 9;
-  if (Math.abs(margin) < .55) return { result: 'draw', difference: 0 };
-  return { result: margin > 0 ? 'win' : 'loss', difference: Math.sign(margin) * (Math.abs(margin) >= 3 ? 2 : 1) };
+  const { simulationSwing, simulationDrawMargin, simulationSweepMargin } = LEAGUE_RULES;
+  const margin = bots.get(first).strength - bots.get(second).strength + (random() - random()) * simulationSwing;
+  if (Math.abs(margin) < simulationDrawMargin) return { result: 'draw', difference: 0 };
+  return {
+    result: margin > 0 ? 'win' : 'loss',
+    difference: Math.sign(margin) * (Math.abs(margin) >= simulationSweepMargin ? 2 : 1),
+  };
 }
 
 export function finishLeagueMatch(league, id, result, difference, random = Math.random) {

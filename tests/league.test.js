@@ -168,15 +168,16 @@ test('league state and rewards share the saved economy, survive reload, and rese
   time = monday;
   assert.equal(await boot().checkpointLeague(), 'current');
   assert.equal(boot().league().season.round, 0);
-  assert.equal(boot().inventory().gold, beforeReward.gold + 1500);
-  assert.equal(boot().inventory().packCount, beforeReward.packCount + 4);
-  assert.equal(boot().base().materials.gateShards, shards + 7);
+  assert.equal(boot().league().lastReward.place, 3);
+  assert.equal(boot().inventory().gold, beforeReward.gold + 1000);
+  assert.equal(boot().inventory().packCount, beforeReward.packCount + 3);
+  assert.equal(boot().base().materials.gateShards, shards + 5);
   await resetProgress(storage);
   assert.equal(boot().league(), null);
 });
 
 test('a league match uses its scheduled rival preset, even for same-faction opponents', () => {
-  const rival = LEAGUES[0].bots.find(({ deck }) => deck.id === 'preset-protectorate-orbital');
+  const rival = LEAGUES[2].bots.find(({ deck }) => deck.id === 'league-orbit-gold');
   const match = createDeckMatch(deck, { botDeck: rival.deck, random: fixed });
   assert.equal(match.players.bot.factionId, deck.factionId);
   assert.equal(match.players.bot.leader.id, rival.deck.leaderId);

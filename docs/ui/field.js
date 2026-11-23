@@ -1,3 +1,4 @@
+import { leagueCharacter } from './league-character.js?v=league-characters-1';
 import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js?v=robot-art-28';
 import { insertionPoint, placementEffectRows } from '../card-placement.js?v=row-placement-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
@@ -10,7 +11,7 @@ import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from
 import { orderBadge } from './stat-badges.js?v=badge-depth-1';
 
 export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, isMulliganFieldVisible, setMulliganField,
-  playHuman, humanCanAct, placeSelected, settingsButton, showDrawer, selectCard, mulliganScreen }) {
+  playHuman, humanCanAct, placeSelected, settingsButton, showDrawer, selectCard, mulliganScreen, getLeagueOpponent, getLeagueSpeech }) {
   function rowView(match, side, player, row, readyOrders) {
     const wrapper = element('div', 'board-row');
     const pending = !isReplaying() && match.pending?.side === 'human' ? match.pending : null;
@@ -300,10 +301,16 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     turnControls.append(action);
     right.append(pileView(match, 'bot', 'deck'), scoreView(match, 'bot'), turnControls, scoreView(match, 'human'), humanCorner);
     field.append(left, center, playerHand(match, humanCanAct() && !match.playedCard, selectCard, isReplaying), right);
-    game.append(field);
+    const opponent = getLeagueOpponent();
+    const stage = opponent ? element('div', 'league-battle-stage') : game;
+    if (opponent) {
+      game.classList.add('league-battle');
+      game.append(leagueCharacter(opponent, { compact: true, line: getLeagueSpeech()?.line }), stage);
+    }
+    stage.append(field);
     if (phase === 'mulligan') {
       field.inert = !isMulliganFieldVisible();
-      game.append(isMulliganFieldVisible()
+      stage.append(isMulliganFieldVisible()
         ? button('К муллигану', () => setMulliganField(false), 'button mulligan-return')
         : mulliganScreen());
     }
