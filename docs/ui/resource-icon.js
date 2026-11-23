@@ -12,7 +12,7 @@ export function resourceIcon(id, faction = false) {
     node.setAttribute('stroke-linejoin', 'round');
   }
   const use = document.createElementNS(svgNamespace, 'use');
-  use.setAttribute('href', './art/' + (faction ? 'faction-icons.svg?v=2' : 'reward-icons.svg?v=1') + '#' + id);
+  use.setAttribute('href', './art/' + (faction ? 'faction-icons.svg?v=3' : 'reward-icons.svg?v=1') + '#' + id);
   node.append(use);
   return node;
 }

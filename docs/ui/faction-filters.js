@@ -1,5 +1,5 @@
 import { button, element } from './dom.js?v=opponent-reveal-1';
-import { resourceIcon } from './resource-icon.js?v=faction-catalog-1';
+import { resourceIcon } from './resource-icon.js?v=faction-catalog-2';
 
 export function factionFilters(choices, onChange) {
   const group = element('div', 'faction-filters');

@@ -720,7 +720,7 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 [data-faction="captains"] { --faction-edge: #e1a289; }
 [data-faction="core"] { --faction-edge: #87dbe2; }
 [data-faction="void"] { --faction-edge: #c0a2e8; }
-[data-faction="psionics"] { --faction-edge: #a9bfff; }
+[data-faction="choir"] { --faction-edge: #a9bfff; }
 .faction-filter {
   display: inline-flex;
   align-items: center;

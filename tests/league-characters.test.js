@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { statSync } from 'node:fs';
 import { inspectDeck } from '../docs/game/decks.js';
+import { FACTIONS } from '../docs/game/cards.js';
+import { FACTION_CATALOG } from '../docs/game/faction-catalog.js';
 import { LEAGUE_CHARACTERS } from '../docs/game/league-characters.js';
 import { leagueDeckFor } from '../docs/game/league-decks.js';
 import { createLeagueDialogue, pickLeagueLine } from '../docs/game/league-dialogue.js';
@@ -40,6 +42,16 @@ test('every league character has a portrait file', () => {
     assert.ok(avatar, `${name} has no avatar`);
     assert.ok(statSync(new URL(avatar, art), { throwIfNoEntry: false })?.isFile(),
       `${name} avatar file is missing: ${avatar}`);
+  }
+});
+
+test('the faction catalog starts with playable factions and covers the league characters', () => {
+  const playable = Object.keys(FACTIONS);
+  assert.deepEqual(Object.keys(FACTION_CATALOG).slice(0, playable.length), playable);
+  for (const { name, loreFaction } of LEAGUE_CHARACTERS) {
+    if (loreFaction !== 'neutral') {
+      assert.ok(Object.hasOwn(FACTION_CATALOG, loreFaction), `${name}: missing faction ${loreFaction}`);
+    }
   }
 });
 
