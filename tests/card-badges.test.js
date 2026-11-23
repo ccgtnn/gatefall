@@ -135,6 +135,9 @@ test('frame preferences persist, refresh and restore the standard selection', as
   assert.equal(createFramePreferences(storage, { dataset: {} }).current(), 'protectorate-rampart');
   assert.equal(preferences.select('unknown-frame'), false);
   assert.equal(root.dataset.cardFrameChoice, 'protectorate-rampart');
+  assert.equal(preferences.select('growth-vines'), true);
+  assert.equal(root.dataset.cardFrameChoice, 'growth-vines');
+  assert.equal(createFramePreferences(storage, { dataset: {} }).current(), 'growth-vines');
   values.delete(FRAME_STORAGE_KEY);
   preferences.refresh();
   assert.equal(root.dataset.cardFrameChoice, 'standard');

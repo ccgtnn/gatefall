@@ -9,6 +9,7 @@ export const BATTLEFIELD_STORAGE_KEY = 'gatefall.battlefield';
 const frames = [
   { id: 'standard', name: 'Стандартные рамки' },
   { id: 'protectorate-rampart', name: 'Рубеж Протектората' },
+  { id: 'growth-vines', name: 'Лозы Поросли' },
 ];
 
 const battlefields = [

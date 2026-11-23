@@ -141,11 +141,18 @@
 }
 
 :is([data-card-frame="protectorate-rampart"], :where(:root[data-card-frame-choice="protectorate-rampart"]) [data-card-face]:not([data-card-frame]))[data-rarity] {
+  --decoration-frame: url('./art/frame-protectorate-rampart.webp');
   clip-path: polygon(3% .45%, 97% .45%, 99.45% 2%, 99.45% 98%, 97.5% 99.55%, 3% 99.55%, .55% 98%, .55% 2%);
 }
-:is([data-card-frame="protectorate-rampart"], :where(:root[data-card-frame-choice="protectorate-rampart"]) [data-card-face]:not([data-card-frame]))[data-rarity]::before {
+:is([data-card-frame="growth-vines"], :where(:root[data-card-frame-choice="growth-vines"]) [data-card-face]:not([data-card-frame]))[data-rarity] {
+  --decoration-frame: url('./art/frame-growth-vines.webp');
+}
+:is(
+  [data-card-frame]:not([data-card-frame="standard"]),
+  :where(:root[data-card-frame-choice]:not([data-card-frame-choice="standard"])) [data-card-face]:not([data-card-frame])
+)[data-rarity]::before {
   border: 0;
-  background: url('./art/frame-protectorate-rampart.webp') center / 100% 100% no-repeat;
+  background: var(--decoration-frame) center / 100% 100% no-repeat;
   filter: drop-shadow(0 1px clamp(1px, .42dvh, 3px) #03060ca6);
 }
 
