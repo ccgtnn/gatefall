@@ -75,7 +75,7 @@
     column-gap: .45%;
     row-gap: 0;
     padding: 0;
-    background: #171e25 url('./art/battlefield-metal.webp') center / 100% 100% no-repeat;
+    background: #171e25 url('./art/battlefield-metal.webp?v=2') center / 100% 100% no-repeat;
   }
   :where([data-battlefield-choice="metal"]) .field-center .board-row {
     grid-template-columns: 9.5% minmax(0, 1fr);

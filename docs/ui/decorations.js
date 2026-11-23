@@ -14,7 +14,7 @@ const frames = [
 const battlefields = [
   { id: 'standard', name: 'Стандартное поле', art: 'home-nebula.webp' },
   { id: 'wood', name: 'Деревянная доска', art: 'battlefield-wood.webp?v=2' },
-  { id: 'metal', name: 'Тактический стол', art: 'battlefield-metal.webp' },
+  { id: 'metal', name: 'Тактический стол', art: 'battlefield-metal.webp?v=2' },
 ];
 
 export function createFramePreferences(storage, root) {
