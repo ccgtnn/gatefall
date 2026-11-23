@@ -88,3 +88,16 @@ test('Orders keep their ready and cooldown states, with one overlay for the fiel
   assert.equal(cooldown.children[0].children[0].attributes.href.split('#')[1], 'order-cooldown');
   assert.equal(cooldown.children[1].textContent, 2);
 });
+
+test('the HUD trial uses compact power in the hand and detailed icons in preview for two cards', () => {
+  const symbolFor = (root, kind) => byClass(root, 'stat-badge-' + kind).children[0].children[0].attributes.href.split('#')[1];
+  for (const id of ['helper-robot', 'imperial-golem']) {
+    const hand = drawable(id);
+    assert.equal(symbolFor(hand, 'power'), 'hud-power');
+    assert.equal(byClass(hand, 'stat-badge-provision'), undefined);
+    showCard(makeCard(id));
+    assert.equal(symbolFor(preview, 'power'), 'hud-power-detail');
+    assert.equal(symbolFor(preview, 'provision'), 'hud-provision-detail');
+  }
+  assert.equal(symbolFor(drawable('bastion'), 'power'), 'power');
+});

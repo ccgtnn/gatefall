@@ -197,3 +197,14 @@ dialog.demo-preview-dialog {
   .demo-comparison:not([data-context="preview"]) .demo-pair { max-width: 13rem; margin-inline: auto; }
   .demo-legend { column-gap: .6rem; }
 }
+
+.demo-hud-hand { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; }
+.demo-hud-hand figure { margin: 0; text-align: center; }
+.demo-hud-hand .hand-card {
+  width: clamp(60px, 11dvh, 96px);
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 2 / 3;
+  padding: 0;
+}
+.demo-hud-hand figcaption { margin-top: .45rem; color: var(--demo-muted); font-size: .8rem; }

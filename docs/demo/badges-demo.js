@@ -1,7 +1,7 @@
 import { dialogClose } from '../ui/resources.js?v=interface-polish-1';
 import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=robot-art-28';
 import { basePower, createCard, isUnit, statusCount } from '../game/board.js?v=robot-art-28';
-import { cardArt, decorateCard, showCard } from '../ui/cards.js?v=details-1';
+import { cardArt, decorateCard, showCard } from '../ui/cards.js?v=hud-trial-1';
 import { button, element, setCardRarity } from '../ui/dom.js?v=opponent-reveal-1';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
@@ -153,6 +153,17 @@ function renderExample(sample, middleContext) {
   }
   article.append(header, comparisons);
   return article;
+}
+
+const trialHand = document.querySelector('.demo-hud-hand');
+for (const id of ['helper-robot', 'imperial-golem']) {
+  const definition = definitions.find((card) => card.id === id);
+  const card = createCard(id, definition);
+  const face = button(undefined, () => showCard(card), 'hand-card');
+  decorateCard(face, card, { factionId: definition.faction });
+  const tile = element('figure');
+  tile.append(face, element('figcaption', null, definition.name));
+  trialHand.append(tile);
 }
 
 const legend = document.querySelector('.demo-legend');
