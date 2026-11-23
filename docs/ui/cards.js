@@ -1,6 +1,6 @@
 import { dialogClose } from './resources.js?v=interface-polish-1';
 import { button, element, setCardRarity } from './dom.js?v=opponent-reveal-1';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS } from '../game/cards.js?v=robot-art-28';
+import { CARD_TYPES, FACTIONS, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=robot-art-28';
 import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=robot-art-28';
 
 import { deathwishDefinitions } from '../game/events.js?v=helper-robot-1';
@@ -35,7 +35,8 @@ export function showCard(card, { leader = false, legacy = false,
   orderReady = false, orderCooldown = 0, actions } = {}) {
   const { definition, power, armor, timer, counter } = card;
   setCardRarity(preview, definition.rarity);
-  const details = leader ? ['Лидер'] : [CARD_TYPES[cardType(card)], definition.faction === NEUTRAL && 'Нейтральная', RARITY_LABELS[definition.rarity],
+  const faction = definition.faction === NEUTRAL ? 'Нейтральная' : FACTIONS[definition.faction]?.name;
+  const details = leader ? ['Лидер'] : [CARD_TYPES[cardType(card)], faction, RARITY_LABELS[definition.rarity],
     definition.stratagem ? 'Стратагема' : definition.provision === undefined ? 'Токен'
       : `Провизия ${definition.provision}`].filter(Boolean);
   details.push(...(definition.categories ?? []));
@@ -59,13 +60,11 @@ export function showCard(card, { leader = false, legacy = false,
   title.id = 'preview-title';
   title.tabIndex = -1;
   title.autofocus = true;
-  const heading = element('div', 'preview-heading');
-  heading.append(title, dialogClose(preview));
   const body = element('div', 'preview-body');
   if (definition.accent) body.dataset.accent = definition.accent;
-  body.append(heading, element('p', 'muted', details.join(' · ')));
+  body.append(title, element('p', 'muted preview-details', details.join(' · ')));
   if (stats.length) body.append(element('p', 'preview-stats', stats.join(' · ')));
-  body.append(element('p', null, definition.text ?? 'Без эффекта.'));
+  body.append(element('p', 'preview-effect', definition.text || 'Без эффекта.'));
   if (card.inheritedDeathwishes?.length) {
     const wishes = element('ul');
     wishes.append(...card.inheritedDeathwishes.map(({ name }) => element('li', null, name)));
@@ -75,28 +74,37 @@ export function showCard(card, { leader = false, legacy = false,
   if (deathwishDefinitions(card).length) glossaryWords.add('Завещание');
   if (marked) glossaryWords.add('Цель');
   if (infection || definition.id === 'carrier') glossaryWords.add('Заражение');
+  if (hasShield || card.statuses?.shield === 0) glossaryWords.add('Силовой щит');
   if (definition.endTurn) glossaryWords.add('Конец хода');
-  if (glossaryWords.size) {
-    const glossary = element('dl', 'preview-keywords');
-    for (const keyword of glossaryWords) {
-      glossary.append(element('dt', null, keyword), element('dd', null, KEYWORDS[keyword]));
-    }
-    body.append(glossary);
-  }
+  if (definition.order) glossaryWords.add('Приказ');
+  const explanations = [...glossaryWords].filter((word) => Object.hasOwn(KEYWORDS, word))
+    .map((word) => [word, KEYWORDS[word]]);
+  const orderRow = ROW_LABELS[definition.order?.sourceRow];
+  if (orderRow) explanations.push([orderRow, 'Приказ доступен, пока карта находится в этом ряду.']);
   if (actions) body.append(actions);
-  if (definition.art || (!leader && !legacy)) {
-    const layout = element('div', 'preview-layout');
-    let art;
-    if (!leader && !legacy) {
-      const face = element('div', 'preview-card-face');
-      decorateCard(face, card, { factionId: definition.faction }, { showProvision: true, fullArt: true, orderReady, orderCooldown });
-      art = face;
-    } else art = cardArt(definition, 'preview-art');
-    layout.append(art, body);
-    preview.replaceChildren(layout);
-  } else {
-    preview.replaceChildren(body);
+
+  const layout = element('div', 'preview-layout');
+  if (!leader && !legacy) {
+    const face = element('div', 'preview-card-face');
+    decorateCard(face, card, { factionId: definition.faction }, { showProvision: true, fullArt: true, orderReady, orderCooldown });
+    layout.append(face);
+  } else if (definition.art) {
+    layout.append(cardArt(definition, 'preview-art'));
   }
+  layout.append(body);
+  if (explanations.length) {
+    const glossary = element('aside', 'preview-glossary');
+    const label = element('h3', null, 'Ключевые слова');
+    const list = element('dl', 'preview-keywords');
+    for (const [keyword, explanation] of explanations) {
+      const entry = element('div', 'preview-keyword');
+      entry.append(element('dt', null, keyword), element('dd', null, explanation));
+      list.append(entry);
+    }
+    glossary.append(label, list);
+    layout.append(glossary);
+  }
+  preview.replaceChildren(dialogClose(preview, 'preview-close'), layout);
   if (!preview.open) preview.showModal();
   else title.focus({ preventScroll: true });
   preview.scrollTop = 0;

@@ -1,0 +1,92 @@
+dialog.card-preview {
+  --preview-line: #677d9b66;
+  width: min(calc(100% - 1.5rem), 78rem);
+  max-height: calc(100dvh - 1.5rem);
+  background: radial-gradient(ellipse at top left, #23354a, #141d29 60%, #10151e);
+  border: 1px solid var(--preview-line);
+  border-radius: .9rem;
+  overflow: auto;
+}
+dialog.card-preview::backdrop {
+  background: #070b13b8;
+  backdrop-filter: blur(6px);
+}
+.card-preview .preview-close {
+  position: sticky;
+  z-index: 3;
+  top: .6rem;
+  display: grid;
+  margin: .6rem .6rem 0 auto;
+  background-color: #121b29;
+}
+.card-preview .preview-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "art" "body" "glossary";
+  gap: clamp(.75rem, 2vw, 1.5rem);
+  padding: .25rem clamp(.8rem, 2.3vw, 1.8rem) clamp(.8rem, 2.3vw, 1.8rem);
+  overflow-wrap: anywhere;
+}
+.card-preview :is(.preview-card-face, .preview-art) {
+  grid-area: art;
+  width: min(100%, 20rem, calc((100dvh - 5rem) * 2 / 3));
+  max-width: none;
+  justify-self: center;
+}
+.card-preview .preview-body {
+  grid-area: body;
+  min-width: 0;
+  gap: .65rem;
+  padding: clamp(.75rem, 1.8vw, 1.35rem);
+  background: #101824da;
+  border: 1px solid var(--preview-line);
+  border-radius: .65rem;
+}
+.card-preview :is(h2, h3, p, dl, ul) { margin: 0; }
+.card-preview h2 { font-size: clamp(1.3rem, 2.6vw, 2rem); }
+.card-preview .preview-details { color: #a9c2d9; }
+.card-preview .preview-stats { color: #e5c680; }
+.card-preview .preview-effect {
+  padding-top: .7rem;
+  border-top: 1px solid var(--preview-line);
+  line-height: 1.55;
+  white-space: pre-line;
+}
+.card-preview .card-trade { margin: .15rem 0 0; }
+.card-preview .preview-glossary { grid-area: glossary; min-width: 0; }
+.card-preview .preview-glossary h3 { margin-bottom: .6rem; font-size: 1rem; color: #a9c2d9; }
+.card-preview .preview-keywords { gap: .55rem; }
+.card-preview .preview-keyword {
+  padding: .65rem .8rem;
+  border-inline-start: 2px solid #78b3d3;
+  border-radius: .15rem .4rem .4rem .15rem;
+  background: #182638d9;
+}
+.card-preview .preview-keyword dd { margin: .2rem 0 0; line-height: 1.4; }
+
+.card-preview .preview-layout:not(:has(:is(.preview-card-face, .preview-art))) {
+  grid-template-areas: "body" "glossary";
+}
+@media (max-width: 539px) {
+  .card-preview :is(.preview-card-face, .preview-art) { width: min(100%, 10rem); }
+}
+@media (min-width: 540px) {
+  .card-preview .preview-layout:has(:is(.preview-card-face, .preview-art)) {
+    grid-template-columns: minmax(7rem, .73fr) minmax(0, 1.45fr);
+    grid-template-areas: "art body" ". glossary";
+  }
+  .card-preview .preview-layout:has(:is(.preview-card-face, .preview-art)):not(:has(.preview-glossary)) {
+    grid-template-areas: "art body";
+  }
+}
+@media (min-width: 760px) {
+  .card-preview:has(.preview-glossary) .preview-layout {
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+    grid-template-areas: "body glossary";
+  }
+  .card-preview:has(.preview-glossary) .preview-layout:has(:is(.preview-card-face, .preview-art)) {
+    grid-template-columns: minmax(8rem, .9fr) minmax(12rem, 1.4fr) minmax(10rem, 1fr);
+    grid-template-areas: "art body glossary";
+  }
+  .card-preview:not(:has(.preview-glossary)) { max-width: 58rem; }
+}
