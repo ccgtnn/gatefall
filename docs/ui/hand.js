@@ -23,7 +23,15 @@ export function updatePlacementSelection(screen, match, selectedCardId) {
   }
 }
 
-export function mulliganScreen({ getMatch, setMatch, updateMatch, setMulliganField, settingsButton }) {
+function hasMulliganChoice(match) {
+  if (mulliganRemaining(match) <= 0) return false;
+  const { hand, deck } = match.players.human;
+  const excluded = new Set(match.mulligan.excluded);
+  return deck.some(({ definition }) => !excluded.has(definition.id) &&
+    hand.some((card) => card.definition.id !== definition.id));
+}
+
+export function mulliganScreen({ getMatch, setMatch, updateMatch, setMulliganField, settingsButton, motion }) {
   const match = getMatch();
   const panel = element('section', 'mulligan mulligan-overlay');
   panel.setAttribute('role', 'dialog');
@@ -36,9 +44,19 @@ export function mulliganScreen({ getMatch, setMatch, updateMatch, setMulliganFie
   counter.setAttribute('aria-live', 'polite');
   const cards = element('div', 'hand-grid');
   function updateCounter() {
-    const remaining = mulliganRemaining(getMatch());
-    counter.textContent = 'Осталось замен: ' + remaining;
-    for (const choice of cards.children) choice.classList.toggle('is-unavailable', remaining === 0);
+    counter.textContent = 'Осталось замен: ' + mulliganRemaining(getMatch());
+  }
+
+  async function finishMulligan() {
+    const current = getMatch();
+    if (current.phase !== 'mulligan' || panel.inert || !panel.isConnected) return;
+    panel.inert = true;
+    const duration = motion();
+    if (duration && panel.animate) {
+      const fade = panel.animate([{ opacity: 1 }, { opacity: 0 }], { duration, easing: 'ease-out', fill: 'forwards' });
+      await fade.finished.catch(() => {});
+    }
+    if (panel.isConnected && current === getMatch()) updateMatch(confirmMulligan(current));
   }
 
   function choice(card, index) {
@@ -56,11 +74,12 @@ export function mulliganScreen({ getMatch, setMatch, updateMatch, setMulliganFie
       const replacement = choice(next.players.human.hand[index], index);
       previous.replaceWith(replacement);
       updateCounter();
-      if (focused) replacement.focus({ preventScroll: true });
+      if (!hasMulliganChoice(next)) void finishMulligan();
+      else if (focused) replacement.focus({ preventScroll: true });
     }, match.players.human);
   }
 
-  const confirm = button('Готово', () => updateMatch(confirmMulligan(getMatch())), 'button primary');
+  const confirm = button('Готово', finishMulligan, 'button primary');
   const header = element('header', 'mulligan-header');
   header.append(heading, counter);
   const actions = element('div', 'mulligan-actions');
@@ -68,6 +87,7 @@ export function mulliganScreen({ getMatch, setMatch, updateMatch, setMulliganFie
   cards.append(...match.players.human.hand.map(choice));
   panel.append(header, cards, actions, settingsButton());
   updateCounter();
+  if (!hasMulliganChoice(match)) queueMicrotask(finishMulligan);
   return panel;
 }
 

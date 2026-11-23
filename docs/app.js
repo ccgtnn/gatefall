@@ -4,7 +4,7 @@ import { createBaseScreen } from './ui/base-screen.js?v=robot-art-28';
 import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=decorations-1';
 import { createDeckStorage } from './ui/deck-storage.js?v=robot-art-28';
 import { bindCardPlacement } from './card-placement.js?v=row-placement-1';
-import { animateCoin, animateHandTurn, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=robot-art-28';
+import { animateCoin, animateHandTurn, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=round-intro-1';
 import { clearParticles } from './particles.js?v=step-14';
 import { playJournal } from './turn-playback.js?v=robot-art-28';
 import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=robot-art-28';
@@ -14,8 +14,8 @@ import { inspectDeck, PRESETS } from './game/decks.js?v=robot-art-28';
 import { applyAction, createDeckMatch } from './game/match.js?v=robot-art-28';
 import { element, iconButton } from './ui/dom.js?v=opponent-reveal-1';
 import { cardArt, preview, showCard } from './ui/cards.js?v=decorations-1';
-import { createBattlefield } from './ui/field.js?v=match-panels-1';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=decorations-1';
+import { createBattlefield } from './ui/field.js?v=round-intro-1';
+import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=round-intro-1';
 import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=match-panels-2';
 import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=league-characters-1';
 import { createSettings } from './ui/settings.js?v=robot-art-28';
@@ -134,7 +134,7 @@ const { drawer } = menu;
 const hand = {
   getMatch: () => match,
   setMatch: (next) => { match = next; },
-  updateMatch, setMulliganField, settingsButton,
+  updateMatch, setMulliganField, settingsButton, motion: () => settings.motion(),
 };
 const battlefield = createBattlefield({
   getMatch: () => match,
@@ -277,9 +277,14 @@ function start(deck, league) {
   const coin = element('span', 'tossed-coin', first ? '✦' : '◈');
   coin.setAttribute('aria-hidden', 'true');
   const coinDuration = settings.motion() * 2.85;
-  showNotice(coinNotice, '', Math.max(1500, coinDuration + 900));
+  const noticeDuration = Math.max(1500, coinDuration + 900);
+  showNotice(coinNotice, '', noticeDuration);
   coinNotice.append(coin, label);
-  animateCoin(coin, label, coinDuration);
+  if (coinDuration) {
+    void animateCoin(coinNotice, coin, label, coinDuration, noticeDuration).then(() => {
+      if (coin.parentElement === coinNotice) hideNotice(coinNotice);
+    });
+  }
   screen.querySelector('h2').focus({ preventScroll: true });
 }
 

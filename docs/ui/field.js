@@ -4,7 +4,7 @@ import { insertionPoint, placementEffectRows } from '../card-placement.js?v=row-
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
 import { ROWS, ROW_LABELS } from '../game/cards.js?v=robot-art-28';
 import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=decorations-1';
-import { playerHand } from './hand.js?v=decorations-1';
+import { playerHand } from './hand.js?v=round-intro-1';
 import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=robot-art-28';
 import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=robot-art-28';
 
@@ -32,9 +32,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     if (side === 'bot') label.title = score.title;
     const rowIcon = element('span', 'row-icon', row === 'orbit' ? '◎' : '▲');
     rowIcon.setAttribute('aria-hidden', 'true');
-    const rowName = element('span', 'field-row-name', ROW_LABELS[row]);
-    rowName.setAttribute('aria-hidden', 'true');
-    label.append(rowIcon, rowName, score);
+    label.append(rowIcon, score);
     const effect = player.rowEffects?.[row];
     if (effect) {
       wrapper.dataset.rowEffect = effect.type;

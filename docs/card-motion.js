@@ -386,7 +386,7 @@ export function animateLifeLoss(screen, winner, duration) {
   }
 }
 
-export function animateCoin(coin, label, duration) {
+export function animateCoin(notice, coin, label, duration, noticeDuration) {
   animate(coin, [
     { transform: 'translateY(9px) rotateY(0deg) scale(.45)', opacity: 0 },
     { transform: 'translateY(-24px) rotateY(435deg) scale(1.12)', opacity: 1, offset: .42 },
@@ -398,6 +398,12 @@ export function animateCoin(coin, label, duration) {
     { opacity: 0, transform: 'translateY(4px)', offset: .58 },
     { opacity: 1, transform: 'translateY(0)' },
   ], duration);
+  return animate(notice, [
+    { opacity: 0 },
+    { opacity: 1, offset: 170 / noticeDuration },
+    { opacity: 1, offset: 1 - 250 / noticeDuration },
+    { opacity: 0 },
+  ], noticeDuration);
 }
 
 export function animateHandTurn(screen, duration) {
