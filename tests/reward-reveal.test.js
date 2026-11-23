@@ -60,11 +60,21 @@ test('consecutive rewards merge while visible or within 1.5 seconds, without cro
   time += 1501;
   queue.enqueueReward(entry('База', { gold: 3 }));
   assert.equal(queue.remaining(), 2);
+});
+
+test('a new reward from the same source excludes an already collected reward', () => {
+  let time = 0;
+  const queue = createRewardQueue(() => time);
+  queue.enqueueReward({ title: 'Шахта', source: 'Сбор с базы', reward: { gold: 120 } });
+  assert.deepEqual(queue.current().reward, { gold: 120 });
   queue.collect();
-  queue.collect();
+  assert.equal(queue.remaining(), 0);
+
   time += 500;
-  queue.enqueueReward(entry('База', { gold: 4 }));
-  assert.deepEqual(queue.current().reward, { gold: 7 });
+  queue.enqueueReward({ title: 'Энергостанция', source: 'Сбор с базы', reward: { gold: 80 } });
+  assert.equal(queue.remaining(), 1);
+  assert.deepEqual(queue.current().reward, { gold: 80 });
+  assert.equal(queue.current().title, 'Энергостанция');
 });
 
 test('credits are committed before presentation and loading or retrying never credits them twice', async () => {

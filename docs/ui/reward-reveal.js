@@ -6,15 +6,14 @@ const MERGE_MS = 1500;
 export function createRewardQueue(now = Date.now) {
   const pending = [];
   let completed = 0;
-  let lastCollected;
 
   function enqueueReward({ title, source, reward }, showing = false) {
     const amounts = Object.entries(reward).filter(([, value]) => Number.isSafeInteger(value) && value > 0);
     if (!amounts.length) return false;
     const time = now();
-    const last = pending.at(-1) ?? lastCollected;
+    const last = pending.at(-1);
     const lastIsVisible = showing && pending.length === 1;
-    const merge = last?.source === source && (lastIsVisible || time - last.time <= MERGE_MS);
+    const merge = last && last.source === source && (lastIsVisible || time - last.time <= MERGE_MS);
     const totals = new Map(merge ? Object.entries(last.reward) : []);
     for (const [key, value] of amounts) totals.set(key, (totals.get(key) ?? 0) + value);
 
@@ -24,9 +23,8 @@ export function createRewardQueue(now = Date.now) {
       reward: Object.fromEntries(totals),
       time,
     };
-    if (merge && pending.length) pending[pending.length - 1] = entry;
+    if (merge) pending[pending.length - 1] = entry;
     else pending.push(entry);
-    lastCollected = undefined;
     return true;
   }
 
@@ -37,18 +35,12 @@ export function createRewardQueue(now = Date.now) {
     position: () => completed + 1,
     total: () => completed + pending.length,
     collect() {
-      const collected = pending.shift();
-      if (!collected) return;
-      if (pending.length) completed += 1;
-      else {
-        completed = 0;
-        lastCollected = collected;
-      }
+      if (!pending.shift()) return;
+      completed = pending.length ? completed + 1 : 0;
     },
     collectAll() {
       pending.length = 0;
       completed = 0;
-      lastCollected = undefined;
     },
   };
 }

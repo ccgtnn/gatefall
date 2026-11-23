@@ -32,7 +32,7 @@ import { BATTLEFIELD_STORAGE_KEY, createBattlefieldPreferences, createFramePrefe
 import { rankScreen } from './ui/rank-screen.js?v=monthly-ranks-1';
 import { leagueScreen } from './ui/league-screen.js?v=league-avatars-5';
 import { resetProgress } from './game/reset-progress.js?v=monthly-ranks-1';
-import { createRewardReveal, enqueueReward } from './ui/reward-reveal.js?v=reward-reveal-1';
+import { createRewardReveal, enqueueReward } from './ui/reward-reveal.js?v=reward-reveal-2';
 
 const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
