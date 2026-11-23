@@ -274,6 +274,18 @@ button:not(:disabled) { cursor: pointer; }
 .deck-choice strong { font-size: 1.05rem; }
 .deck-choice.has-art { min-height: 7rem; position: relative; align-content: end; }
 .deck-choice.has-art .muted { color: #d8dde7; }
+.upcoming-factions { margin-top: 1.4rem; }
+.upcoming-factions h2 { margin-bottom: .55rem; font-size: 1.15rem; }
+.deck-choice.faction-preview {
+  flex: 1 1 12rem;
+  align-content: start;
+  padding: .75rem;
+  border: 1px solid color-mix(in srgb, var(--faction-edge) 55%, #243547);
+  border-radius: .5rem;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--faction-edge) 19%, #132236), #111e30);
+}
+.faction-preview svg { width: 1.65rem; height: 1.65rem; color: var(--faction-edge); }
+.faction-preview p { margin: 0; font-size: .85rem; }
 .side-identity { display: flex; align-items: center; gap: .45rem; }
 .leader-portrait {
   width: 2.25rem;
@@ -704,6 +716,11 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 .card-catalog { display: grid; gap: .85rem; }
 .catalog-heading { display: flex; align-items: center; gap: .85rem; }
 .faction-filters { display: flex; flex-wrap: wrap; gap: .35rem; }
+[data-faction="flawless"] { --faction-edge: #e8c87f; }
+[data-faction="captains"] { --faction-edge: #e1a289; }
+[data-faction="core"] { --faction-edge: #87dbe2; }
+[data-faction="void"] { --faction-edge: #c0a2e8; }
+[data-faction="psionics"] { --faction-edge: #a9bfff; }
 .faction-filter {
   display: inline-flex;
   align-items: center;

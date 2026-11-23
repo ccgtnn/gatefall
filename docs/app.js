@@ -1,7 +1,7 @@
 import { createLeagueDialogue, LEAGUE_DIALOGUE } from './game/league-dialogue.js?v=match-panels-1';
 import { setLeagueSpeech } from './ui/league-character.js?v=league-characters-1';
 import { createBaseScreen } from './ui/base-screen.js?v=reward-reveal-1';
-import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=decorations-1';
+import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=faction-catalog-1';
 import { createDeckStorage } from './ui/deck-storage.js?v=robot-art-28';
 import { bindCardPlacement } from './card-placement.js?v=row-placement-1';
 import { animateCoin, animateHandTurn, animateLifeLoss, animateTurnSparks, presentJournalEvent } from './card-motion.js?v=turn-sparks-1';
@@ -17,7 +17,7 @@ import { cardArt, preview, showCard } from './ui/cards.js?v=decorations-1';
 import { createBattlefield } from './ui/field.js?v=round-intro-1';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=round-intro-1';
 import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=match-panels-2';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=league-characters-1';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=faction-catalog-1';
 import { createSettings } from './ui/settings.js?v=robot-art-28';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';

@@ -1,4 +1,5 @@
 import { button, element } from './dom.js?v=opponent-reveal-1';
+import { resourceIcon } from './resource-icon.js?v=faction-catalog-1';
 
 export function factionFilters(choices, onChange) {
   const group = element('div', 'faction-filters');
@@ -17,14 +18,7 @@ export function factionFilters(choices, onChange) {
     option.setAttribute('aria-pressed', String(!id));
     if (!id) active = option;
 
-    const namespace = 'http://www.w3.org/2000/svg';
-    const icon = document.createElementNS(namespace, 'svg');
-    icon.setAttribute('viewBox', '0 0 24 24');
-    icon.setAttribute('aria-hidden', 'true');
-    const use = document.createElementNS(namespace, 'use');
-    use.setAttribute('href', './art/faction-icons.svg?v=1#' + (id || 'all'));
-    icon.append(use);
-    option.append(icon, element('span', null, label));
+    option.append(resourceIcon(id || 'all', true), element('span', null, label));
     group.append(option);
   }
   return group;

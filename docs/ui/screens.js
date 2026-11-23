@@ -2,10 +2,11 @@ import { leagueCharacter } from './league-character.js?v=league-characters-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { createCard } from '../game/board.js?v=robot-art-28';
 import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=robot-art-28';
+import { FACTION_CATALOG } from '../game/faction-catalog.js?v=1';
 import { addCardCrop, cardButton, showCard } from './cards.js?v=decorations-1';
 import { logView, roundText } from './menu.js?v=league-characters-1';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=collection-2';
-import { factionFilters } from './faction-filters.js?v=1';
+import { factionFilters } from './faction-filters.js?v=faction-catalog-1';
 import { copyLimit } from '../game/decks.js?v=robot-art-28';
 import { craftPrice, dismantleValue } from '../game/rewards.js?v=monthly-ranks-1';
 import { resourceIcon } from './resource-icon.js?v=1';
@@ -13,7 +14,7 @@ import { sectionBack } from './resources.js?v=interface-polish-1';
 
 const catalogCards = [...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool)];
 const catalogFactions = [['', 'Все фракции'], [NEUTRAL, 'Нейтральные'],
-  ...Object.entries(FACTIONS).map(([id, faction]) => [id, faction.name])];
+  ...Object.entries(FACTION_CATALOG).map(([id, faction]) => [id, faction.name])];
 const categoryOptions = [...new Set(catalogCards.flatMap(({ categories }) => categories ?? []))]
   .sort((a, b) => a.localeCompare(b, 'ru')).map((category) => [category, category]);
 const provisionOptions = [...new Set(catalogCards.map(({ provision }) => provision))]
@@ -141,7 +142,11 @@ export function catalogScreen(progress) {
       quantity.textContent = `В коллекции · ${copies}`;
       return item;
     });
-    if (!next.length) next.push(empty);
+    if (!next.length) {
+      empty.textContent = Object.hasOwn(FACTION_CATALOG, faction) && !Object.hasOwn(FACTIONS, faction)
+        ? 'У этой фракции пока нет карт.' : 'Карты не найдены.';
+      next.push(empty);
+    }
     if (visible.length !== next.length || next.some((item, index) => visible[index] !== item)) {
       grid.replaceChildren(...next);
       visible = next;

@@ -1,9 +1,11 @@
 import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=robot-art-28';
+import { FACTION_CATALOG, UPCOMING_FACTIONS } from '../game/faction-catalog.js?v=1';
 import { createCard } from '../game/board.js?v=robot-art-28';
 import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=robot-art-28';
 import { addCardCrop, cardButton } from './cards.js?v=decorations-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
-import { factionFilters } from './faction-filters.js?v=1';
+import { factionFilters } from './faction-filters.js?v=faction-catalog-1';
+import { resourceIcon } from './resource-icon.js?v=faction-catalog-1';
 import { availabilityOptions, matchesAvailability } from './catalog-cards.js?v=collection-2';
 import { campaignShelf } from './campaigns.js?v=home-base-1';
 import { sectionBack } from './resources.js?v=interface-polish-1';
@@ -106,7 +108,7 @@ export function deckListScreen(phaseLabel, decks, stats, actions, inventory) {
   const screen = element('section', 'all-decks');
   screen.setAttribute('aria-label', 'Все колоды');
   const toolbar = element('div', 'deck-toolbar all-decks-toolbar');
-  const filters = factionFilters([['', 'Все фракции'], ...Object.entries(FACTIONS)
+  const filters = factionFilters([['', 'Все фракции'], ...Object.entries(FACTION_CATALOG)
     .map(([id, { name }]) => [id, name])], (id) => {
     faction = id;
     update();
@@ -144,7 +146,8 @@ export function deckListScreen(phaseLabel, decks, stats, actions, inventory) {
       }
       list.hidden = count === 0;
       empty.hidden = count > 0;
-      empty.textContent = !preset && !items.length ? 'Пока нет сохранённых колод.' : 'Нет колод этой фракции.';
+      empty.textContent = faction ? 'Нет колод этой фракции.'
+        : !preset && !items.length ? 'Пока нет сохранённых колод.' : 'Нет доступных колод.';
     }
   }
   screen.addEventListener('collection-change', update);
@@ -165,6 +168,21 @@ export function factionPicker(phaseLabel, select, back) {
     options.append(choice);
   }
   screen.append(sectionBack(back), options);
+  const upcoming = element('section', 'upcoming-factions');
+  upcoming.append(element('h2', null, 'Будущие фракции'));
+  const preview = element('div', 'deck-choices');
+  for (const [id, faction] of Object.entries(UPCOMING_FACTIONS)) {
+    if (Object.hasOwn(FACTIONS, id)) continue;
+    const card = element('article', 'deck-choice faction-preview');
+    card.dataset.faction = id;
+    card.append(resourceIcon(id, true), element('strong', null, faction.name),
+      element('p', 'muted', faction.description));
+    preview.append(card);
+  }
+  if (preview.children.length) {
+    upcoming.append(preview);
+    screen.append(upcoming);
+  }
   return screen;
 }
 
