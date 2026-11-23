@@ -138,6 +138,9 @@ test('frame preferences persist, refresh and restore the standard selection', as
   assert.equal(preferences.select('growth-vines'), true);
   assert.equal(root.dataset.cardFrameChoice, 'growth-vines');
   assert.equal(createFramePreferences(storage, { dataset: {} }).current(), 'growth-vines');
+  assert.equal(preferences.select('exemplars-crystal'), true);
+  assert.equal(root.dataset.cardFrameChoice, 'exemplars-crystal');
+  assert.equal(createFramePreferences(storage, { dataset: {} }).current(), 'exemplars-crystal');
   values.delete(FRAME_STORAGE_KEY);
   preferences.refresh();
   assert.equal(root.dataset.cardFrameChoice, 'standard');

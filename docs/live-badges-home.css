@@ -145,7 +145,30 @@
   clip-path: polygon(3% .45%, 97% .45%, 99.45% 2%, 99.45% 98%, 97.5% 99.55%, 3% 99.55%, .55% 98%, .55% 2%);
 }
 :is([data-card-frame="growth-vines"], :where(:root[data-card-frame-choice="growth-vines"]) [data-card-face]:not([data-card-frame]))[data-rarity] {
-  --decoration-frame: url('./art/frame-growth-vines.webp');
+  --decoration-frame: url('./art/frame-growth-vines.webp?v=2');
+  --decoration-mask: url('./art/frame-growth-vines-mask.png');
+  --decoration-status-inset: 8%;
+}
+:is([data-card-frame="exemplars-crystal"], :where(:root[data-card-frame-choice="exemplars-crystal"]) [data-card-face]:not([data-card-frame]))[data-rarity] {
+  --decoration-frame: url('./art/frame-exemplars-crystal.webp');
+  --decoration-mask: url('./art/frame-exemplars-crystal-mask.png');
+  --decoration-status-inset: 12%;
+}
+:is(
+  [data-card-frame="growth-vines"], [data-card-frame="exemplars-crystal"],
+  :where(:root:is([data-card-frame-choice="growth-vines"], [data-card-frame-choice="exemplars-crystal"])) [data-card-face]:not([data-card-frame])
+)[data-rarity] {
+  mask: var(--decoration-mask) center / 100% 100% no-repeat;
+  --decoration-shadow: drop-shadow(0 0 clamp(2px, .85dvh, 10px) #01040ace);
+  > .card-art-crop { scale: .97; }
+  > :is(.stat-badge-power, .card-kind) { top: 4.5%; left: 7%; }
+  > .stat-badge-armor { top: 4.5%; right: 7%; }
+  > .stat-badge-provision { right: 7%; bottom: 4.5%; }
+  > :is(.card-state, .stat-order-control, .stat-badge-hourglass, .stat-badge-order, .stat-badge-infection) {
+    bottom: var(--decoration-status-inset);
+  }
+  > :is(.stat-badge-chapters, .stat-badge-target) { top: var(--decoration-status-inset); }
+  > .stat-badge-infection { left: 9%; }
 }
 :is(
   [data-card-frame]:not([data-card-frame="standard"]),
@@ -153,7 +176,7 @@
 )[data-rarity]::before {
   border: 0;
   background: var(--decoration-frame) center / 100% 100% no-repeat;
-  filter: drop-shadow(0 1px clamp(1px, .42dvh, 3px) #03060ca6);
+  filter: var(--decoration-shadow, drop-shadow(0 1px clamp(1px, .42dvh, 3px) #03060ca6));
 }
 
 /* Deck selection */
