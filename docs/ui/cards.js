@@ -4,7 +4,7 @@ import { CARD_TYPES, FACTIONS, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } fr
 import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=robot-art-28';
 
 import { deathwishDefinitions } from '../game/events.js?v=helper-robot-1';
-import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=hud-trial-1';
+import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=hud-raster-1';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';
@@ -238,7 +238,7 @@ export function decorateCard(node, card, player, { orderOnField = false, legacy 
   else {
     const hud = hudTrialCards.has(definition.id);
     if (hud) node.dataset.hudTrial = '';
-    liveBadges(node, card, { orderOnField, showProvision, orderReady, orderCooldown, hud, fullArt });
+    liveBadges(node, card, { orderOnField, showProvision, orderReady, orderCooldown, hud });
   }
   if (statusCount(card, 'target')) node.append(statBadge('target', 'Отмечен Целью'));
   if (definition.categories?.length) node.append(element('span', 'card-category', definition.categories.join(' · ')));
@@ -246,9 +246,9 @@ export function decorateCard(node, card, player, { orderOnField = false, legacy 
   if (!definition.art) node.append(element('span', 'card-art-placeholder', definition.name));
 }
 
-function liveBadges(node, card, { orderOnField, showProvision, orderReady, orderCooldown, hud, fullArt }) {
+function liveBadges(node, card, { orderOnField, showProvision, orderReady, orderCooldown, hud }) {
   const { definition, armor, counter, timer } = card;
-  const design = (kind) => hud ? `hud-${kind}${fullArt ? '-detail' : ''}` : kind;
+  const design = (kind) => hud ? 'hud-' + kind : kind;
   if (isUnit(card)) {
     const power = statBadge('power', `Сила ${card.power} · база ${basePower(card)}`, card.power, design('power'));
     power.classList.add('unit-power');

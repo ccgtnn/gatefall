@@ -89,15 +89,18 @@ test('Orders keep their ready and cooldown states, with one overlay for the fiel
   assert.equal(cooldown.children[1].textContent, 2);
 });
 
-test('the HUD trial uses compact power in the hand and detailed icons in preview for two cards', () => {
-  const symbolFor = (root, kind) => byClass(root, 'stat-badge-' + kind).children[0].children[0].attributes.href.split('#')[1];
+test('the two HUD trial cards layer numbers over raster badges', () => {
+  const artFor = (root, kind) => byClass(root, 'stat-badge-' + kind).children[0].src;
   for (const id of ['helper-robot', 'imperial-golem']) {
     const hand = drawable(id);
-    assert.equal(symbolFor(hand, 'power'), 'hud-power');
+    assert.match(artFor(hand, 'power'), /hud-power\.webp/);
     assert.equal(byClass(hand, 'stat-badge-provision'), undefined);
-    showCard(makeCard(id));
-    assert.equal(symbolFor(preview, 'power'), 'hud-power-detail');
-    assert.equal(symbolFor(preview, 'provision'), 'hud-provision-detail');
+    const card = makeCard(id);
+    card.power += 2;
+    showCard(card);
+    assert.match(artFor(preview, 'power'), /hud-power\.webp/);
+    assert.match(artFor(preview, 'provision'), /hud-provision\.webp/);
+    assert.equal(byClass(preview, 'stat-badge-power').children[1].textContent, card.power);
   }
-  assert.equal(symbolFor(drawable('bastion'), 'power'), 'power');
+  assert.equal(byClass(drawable('bastion'), 'stat-badge-art'), undefined);
 });

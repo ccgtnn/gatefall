@@ -6,18 +6,30 @@ function symbol(name, size = 40) {
   icon.setAttribute('viewBox', `0 0 ${size} ${size}`);
   icon.setAttribute('aria-hidden', 'true');
   const use = document.createElementNS(namespace, 'use');
-  const version = name.startsWith('hud-') ? 'hud-trial-1' : 'orbital-strike-1';
-  use.setAttribute('href', `./demo/stat-badges.svg?v=${version}#${name}`);
+  use.setAttribute('href', './demo/stat-badges.svg?v=orbital-strike-1#' + name);
   icon.append(use);
   return icon;
 }
+
+const badgeArt = {
+  'hud-power': 'hud-power.webp',
+  'hud-provision': 'hud-provision.webp',
+};
 
 export function statBadge(kind, label, value, variant = kind) {
   const node = element('span', 'stat-badge stat-badge-' + kind);
   node.title = label;
   node.setAttribute('aria-label', label);
   node.setAttribute('role', 'img');
-  node.append(symbol(variant));
+  if (Object.hasOwn(badgeArt, variant)) {
+    const image = element('img', 'stat-badge-art');
+    image.src = './art/' + badgeArt[variant] + '?v=hud-raster-1';
+    image.alt = '';
+    image.draggable = false;
+    node.append(image);
+  } else {
+    node.append(symbol(variant));
+  }
   if (value !== undefined) node.append(element('strong', null, value));
   return node;
 }
