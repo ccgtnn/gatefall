@@ -1,12 +1,14 @@
 import { DIAMOND, LEAGUE_BOTS, LEAGUES, LEAGUE_RULES, leagueDivision, leagueOpponent, leagueStake, leagueTable, leagueTicket } from '../game/league.js?v=league-avatars-5';
 import { leagueAvatar, LORE_FACTIONS, setLeagueSpeech } from './league-character.js?v=league-screen-1';
-import { leagueProfile, leagueRecord, LEAGUE_DIFFICULTY_LABELS } from './league-profile.js?v=league-roster-1';
+import { leagueProfile, leagueRecord, LEAGUE_DIFFICULTY_LABELS } from './league-profile.js?v=league-overview-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { sectionBack } from './resources.js?v=interface-polish-1';
 
 const leagueTabs = [
   ['Бронза', '🥉'], ['Серебро', '🥈'], ['Золото', '🥇'], ['Алмаз', '💎'],
 ];
+
+export const LEAGUE_OVERVIEW_QUERY = '(min-width: 80rem) and (pointer: fine)';
 
 const actionErrors = {
   stale: 'Лига обновилась. Проверь текущий тур.',
@@ -18,8 +20,6 @@ export function leagueScreen(phase, actions) {
   phase.textContent = '';
   const panel = element('section', 'panel league-panel');
   const content = element('div', 'league-content');
-  content.id = 'league-tab-panel';
-  content.setAttribute('role', 'tabpanel');
   const nav = element('div', 'league-tabs');
   nav.setAttribute('role', 'tablist');
   nav.setAttribute('aria-label', 'Лиги');
@@ -29,7 +29,7 @@ export function leagueScreen(phase, actions) {
     const tab = button(undefined, () => selectTier(tier), 'button secondary league-tab');
     tab.id = `league-tab-${tier}`;
     tab.setAttribute('role', 'tab');
-    tab.setAttribute('aria-controls', content.id);
+    tab.setAttribute('aria-controls', 'league-tab-panel');
     const icon = element('span', 'league-tab-icon', symbol);
     icon.setAttribute('aria-hidden', 'true');
     const here = element('small', 'league-tab-here', 'Ты здесь');
@@ -140,32 +140,41 @@ export function leagueScreen(phase, actions) {
     const ticket = leagueTicket(league);
     const { season, active, lastReward, lastSeason } = league;
     const { tier, round, number } = season;
+    const overview = actions.overview();
     if (viewedTier === undefined || viewedTier === previousTier) viewedTier = tier;
-    nav.hidden = false;
+    panel.toggleAttribute('data-overview', overview);
+    if (overview) {
+      content.removeAttribute('id');
+      content.removeAttribute('role');
+      content.removeAttribute('aria-labelledby');
+    } else {
+      content.id = 'league-tab-panel';
+      content.setAttribute('role', 'tabpanel');
+      content.setAttribute('aria-labelledby', tabs[viewedTier].tab.id);
+    }
+    nav.hidden = overview;
     for (const [index, { tab, here }] of tabs.entries()) {
       tab.setAttribute('aria-selected', String(index === viewedTier));
       tab.tabIndex = index === viewedTier ? 0 : -1;
       here.hidden = index !== tier;
     }
-    content.setAttribute('aria-labelledby', tabs[viewedTier].tab.id);
-    const isHome = viewedTier === tier;
-    const division = leagueDivision(league, viewedTier);
+    const isHome = overview || viewedTier === tier;
     const { name } = LEAGUES[viewedTier];
     const bot = isHome ? leagueOpponent(season) : undefined;
-    heading.textContent = `${name} лига`;
-    meta.textContent = `Сезон ${number} · Тур ${round + 1} из ${LEAGUE_RULES.rounds}`;
+    heading.textContent = overview ? 'Лига' : `${name} лига`;
+    meta.textContent = overview ? `Сезон ${number}` : `Сезон ${number} · ${roundText(round)}`;
     currentPlay = undefined;
     const opponent = bot && nextOpponent(bot);
     function nextOpponent(bot) {
       const opponent = element('section', 'league-opponent');
       const label = active ? 'Незавершённый матч' : 'Следующий соперник';
-      const challenger = button(undefined, () => openProfile(bot), 'league-challenger');
+      const challenger = button(undefined, () => openProfile(bot, season.scores[bot.id]), 'league-challenger');
       challenger.setAttribute('aria-haspopup', 'dialog');
       challenger.append(leagueAvatar(bot), leagueIdentity(bot));
       const greeting = element('blockquote', 'league-speech');
       setLeagueSpeech(greeting, { line: bot.lines.start[0], telepathic: bot.telepathic });
       opponent.append(element('h3', null, label), challenger, greeting,
-        element('p', 'muted', `${bot.deck.name} · ${LEAGUE_DIFFICULTY_LABELS[bot.difficulty]}`));
+        element('p', 'muted league-opponent-info', `${bot.deck.name} · ${LEAGUE_DIFFICULTY_LABELS[bot.difficulty]}`));
       if (active) {
         const concede = button('Засчитать поражение', () => submit(() => actions.concede(active.id)));
         concede.disabled = busy;
@@ -192,30 +201,37 @@ export function leagueScreen(phase, actions) {
       return opponent;
     }
 
-    function openProfile(character) {
+    function openProfile(character, score) {
       const play = character.id === bot?.id && currentPlay && {
         ...currentPlay,
         start: () => {
           if (ticket === leagueTicket(league) && !currentPlay?.disabled) currentPlay?.start();
         },
       };
-      const dialog = leagueProfile(character, division.scores[character.id], league.encounters?.[character.id], play);
+      const dialog = leagueProfile(character, score, league.encounters?.[character.id], play);
       dialog.dataset.ticket = ticket;
       panel.append(dialog);
       dialog.showModal();
     }
-    const table = standings(division, openProfile);
+    const tables = element('div', 'league-divisions');
+    if (overview) {
+      tables.append(...LEAGUES.map((_, index) =>
+        divisionColumn(leagueDivision(league, index), index === tier, openProfile)));
+    } else {
+      tables.append(standings(leagueDivision(league, viewedTier), openProfile));
+    }
     const details = [
       lastSeason && element('p', 'muted', `Прошлый сезон · ${LEAGUES[lastSeason.tier].name} лига · место ${lastSeason.place}`),
       lastReward && element('p', 'muted', rewardText(lastReward)),
     ].filter(Boolean);
-    content.replaceChildren(...details, table, ...(opponent ? [opponent] : []));
+    content.replaceChildren(...details, tables, ...(opponent ? [opponent] : []));
     if (openDialog && (openDialog.dataset.ticket !== ticket ||
         (openDialog.querySelector('.button.primary') && !currentPlay))) openDialog.close();
     updateClock();
   }
 
   panel.addEventListener('league-tick', updateClock);
+  panel.addEventListener('league-layout-change', update);
   panel.addEventListener('collection-change', () => { if (!busy) update(); });
   update();
   if (league) {
@@ -227,10 +243,33 @@ export function leagueScreen(phase, actions) {
   return panel;
 }
 
+function roundText(round) {
+  return `Тур ${round + 1} из ${LEAGUE_RULES.rounds}`;
+}
+
+function divisionColumn(season, home, openProfile) {
+  const [name, medal] = leagueTabs[season.tier];
+  const column = element('section', 'league-division');
+  column.toggleAttribute('data-home', home);
+  const header = element('header', 'league-division-header');
+  const icon = element('span', null, medal);
+  icon.setAttribute('aria-hidden', 'true');
+  const heading = element('h3', null);
+  heading.id = `league-division-${season.tier}`;
+  heading.append(icon, name);
+  column.setAttribute('aria-labelledby', heading.id);
+  const details = element('div', 'league-division-meta');
+  details.append(element('span', null, roundText(season.round)));
+  if (home) details.append(element('small', 'league-tab-here', 'Ты здесь'));
+  header.append(heading, details);
+  column.append(header, standings(season, openProfile));
+  return column;
+}
+
 function leagueIdentity(bot) {
   const identity = element('span', 'league-identity');
   identity.append(element('strong', 'league-name', bot?.name ?? 'Ты'),
-    element('small', 'muted', bot ? LORE_FACTIONS[bot.loreFaction] : 'Игрок'));
+    element('small', 'muted league-faction', bot ? LORE_FACTIONS[bot.loreFaction] : 'Игрок'));
   return identity;
 }
 
@@ -240,7 +279,7 @@ function standings(season, openProfile) {
   const table = leagueTable(season);
   const firstRelegation = table.length + 1 - LEAGUE_RULES.relegationPlaces;
   for (const [index, score] of table.entries()) {
-    const { id, points, difference } = score;
+    const { id, points } = score;
     const bot = LEAGUE_BOTS.get(id);
     const item = element('li', 'league-entry');
     const place = index + 1;
@@ -252,10 +291,12 @@ function standings(season, openProfile) {
       if (place === firstRelegation) item.append(element('span', 'league-relegation-label', 'Зона вылета ↓'));
     }
     const row = bot
-      ? button(undefined, () => openProfile(bot), 'league-standing')
+      ? button(undefined, () => openProfile(bot, score), 'league-standing')
       : element('div', 'league-standing league-human');
     if (bot) row.setAttribute('aria-haspopup', 'dialog');
     else row.setAttribute('aria-current', 'true');
+    const record = leagueRecord(score);
+    row.title = `${bot?.name ?? 'Ты'} · ${bot ? LORE_FACTIONS[bot.loreFaction] : 'Игрок'}\n${record}`;
     const rank = element('span', 'league-place', place);
     const old = season.previousPlaces?.[id];
     if (old && old !== place) {
@@ -268,8 +309,8 @@ function standings(season, openProfile) {
     const avatar = bot ? leagueAvatar(bot) : element('span', 'league-avatar', '♟');
     if (!bot) avatar.setAttribute('aria-hidden', 'true');
     const numbers = element('span', 'league-numbers');
-    numbers.append(element('strong', null, points), element('small', 'muted', 'очк.'),
-      element('small', 'league-record', `П–Н–П ${leagueRecord(score)} · Δ ${difference > 0 ? '+' : ''}${difference}`));
+    numbers.append(element('strong', null, points), element('small', 'muted league-points-label', 'очк.'),
+      element('small', 'league-record', record));
     const identity = leagueIdentity(bot);
     const arrival = season.arrivals?.[id];
     if (bot && arrival) {

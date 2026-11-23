@@ -257,3 +257,71 @@ body:has(.in-league-match) #new-game { display: none; }
 .league-entry[data-relegation] .league-standing { background: linear-gradient(110deg, #503035dc, #15273e 75%); }
 .league-entry[data-relegation] .league-place { color: #efaa9e; }
 .league-arrival { white-space: nowrap; }
+
+#app:has(.league-panel[data-overview]) {
+  width: min(100% - 1.5rem, 104rem);
+}
+.league-panel[data-overview] { width: 100%; }
+.league-panel[data-overview] .league-divisions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(.5rem, 1vw, 1rem);
+}
+.league-division {
+  min-width: 0;
+  padding: .5rem;
+  border: 1px solid var(--league-rim);
+  border-radius: .65rem;
+  background: #101b2d;
+}
+.league-division[data-home] {
+  border-color: #e5b75e;
+  box-shadow: inset 0 0 12px #efbb5724, 0 0 10px #efbb571f;
+}
+.league-division-header { padding: .12rem .28rem .55rem; }
+.league-division-header h3 {
+  display: flex;
+  align-items: center;
+  gap: .38rem;
+  margin: 0 0 .18rem;
+  font-size: 1rem;
+}
+.league-division-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: .35rem;
+  color: #b9cbe0;
+  font-size: .76rem;
+}
+.league-division .league-standings {
+  grid-auto-flow: row;
+  grid-template: none;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .24rem;
+  padding-top: 1.15rem;
+}
+.league-division .league-promotion-label { right: 0; }
+.league-division .league-relegation-label { margin-top: .3rem; }
+.league-division .league-standing {
+  grid-template-columns: 1.25rem auto minmax(0, 1fr) auto;
+  gap: .4rem;
+  min-height: 2rem;
+  padding: .24rem .35rem;
+  font-size: .86rem;
+}
+.league-division .league-place { width: .9rem; font-size: 1rem; }
+.league-division .league-place small { font-size: .46rem; }
+.league-division .league-avatar { width: 1.65rem; }
+.league-division .league-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.league-division .league-numbers strong { margin: 0; font-size: 1rem; }
+.league-division :is(.league-faction, .league-record, .league-points-label) { display: none; }
+.league-panel[data-overview] .league-opponent {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr) auto;
+  align-items: center;
+}
+.league-panel[data-overview] .league-opponent :is(h3, .league-opponent-info) { grid-column: 1 / -1; }
+.league-panel[data-overview] .league-opponent-info { grid-row: 3; }

@@ -30,12 +30,16 @@ import { questComplete } from './game/tavern.js?v=robot-art-28';
 import { rankStanding, wonRounds } from './game/ranks.js?v=monthly-ranks-1';
 import { BATTLEFIELD_STORAGE_KEY, createBattlefieldPreferences, createFramePreferences, decorationsScreen, FRAME_STORAGE_KEY } from './ui/decorations.js?v=battlefield-decoration-5';
 import { rankScreen } from './ui/rank-screen.js?v=monthly-ranks-1';
-import { leagueScreen } from './ui/league-screen.js?v=league-avatars-5';
+import { leagueScreen, LEAGUE_OVERVIEW_QUERY } from './ui/league-screen.js?v=league-overview-1';
 import { resetProgress } from './game/reset-progress.js?v=monthly-ranks-1';
 import { createRewardReveal, enqueueReward } from './ui/reward-reveal.js?v=reward-reveal-2';
 
 const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
+const leagueOverview = window.matchMedia(LEAGUE_OVERVIEW_QUERY);
+leagueOverview.addEventListener('change', () => {
+  screen.querySelector('.league-panel')?.dispatchEvent(new Event('league-layout-change'));
+});
 const phaseLabel = document.querySelector('#phase');
 const turnNotice = document.querySelector('#match-notice');
 const coinNotice = document.querySelector('#coin-notice');
@@ -421,6 +425,7 @@ function render() {
       case 'ranks': content = rankScreen(phaseLabel, progress, () => goTo('decks')); break;
       case 'league': content = leagueScreen(phaseLabel, {
         back: () => goTo('decks'),
+        overview: () => leagueOverview.matches,
         read: progress.league,
         checkpoint: progress.checkpointLeague,
         decks: () => {
