@@ -1,12 +1,12 @@
-import { refreshPremiumArt } from './card-art.js?v=premium-art-1';
+import { refreshPremiumArt, resumeCardVideos } from './card-art.js?v=premium-loop-1';
 import { leagueCharacter } from './league-character.js?v=league-characters-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { createCard } from '../game/board.js?v=hounds-1';
 import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=hounds-1';
 import { FACTION_CATALOG } from '../game/faction-catalog.js?v=hounds-1';
 import { CAPTAIN_CARDS } from '../game/captains.js?v=hounds-1';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=premium-art-1';
-import { logView, roundText } from './menu.js?v=premium-art-1';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=premium-loop-1';
+import { logView, roundText } from './menu.js?v=premium-loop-1';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=collection-2';
 import { factionFilters } from './faction-filters.js?v=faction-catalog-2';
 import { copyLimit } from '../game/decks.js?v=hounds-1';
@@ -152,6 +152,7 @@ export function catalogScreen(progress) {
     if (visible.length !== next.length || next.some((item, index) => visible[index] !== item)) {
       grid.replaceChildren(...next);
       refreshPremiumArt(grid);
+      resumeCardVideos(grid);
       visible = next;
     }
   }

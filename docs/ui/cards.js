@@ -7,8 +7,8 @@ import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=hou
 import { deathwishDefinitions } from '../game/events.js?v=helper-robot-1';
 import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=badge-depth-1';
 
-import { addCardCrop, cardArt, hasPremiumArt, selectPremiumArt, usesPremiumArt } from './card-art.js?v=premium-art-1';
-export { addCardCrop, cardArt } from './card-art.js?v=premium-art-1';
+import { addCardCrop, cardArt, hasPremiumArt, selectPremiumArt, usesPremiumArt } from './card-art.js?v=premium-loop-1';
+export { addCardCrop, cardArt } from './card-art.js?v=premium-loop-1';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';

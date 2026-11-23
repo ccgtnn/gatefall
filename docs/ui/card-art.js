@@ -50,7 +50,7 @@ function artwork(id, poster, className, size, doc, animated = playPremium(id)) {
   node.preload = 'none';
   node.setAttribute('aria-hidden', 'true');
   node.addEventListener('error', () => node.replaceWith(artwork(id, poster, className, size, doc, false)), { once: true });
-  node.src = './art/' + clips.get(id)[size];
+  node.src = './art/' + clips.get(id)[size] + '?v=loop-1';
   return node;
 }
 
@@ -77,6 +77,17 @@ export function refreshPremiumArt(root, id) {
   }
 }
 
+export function resumeCardVideos(root) {
+  const videos = root.querySelectorAll('.card-art-video');
+  if (!videos.length) return;
+  // The browser can pause moved video elements while updating their layout.
+  requestAnimationFrame(() => {
+    for (const video of videos) {
+      if (video.isConnected && !video.error && video.getClientRects().length) video.play().catch(() => {});
+    }
+  });
+}
+
 export function keepCardVideos(current, next) {
   const key = (node) => {
     const card = node.closest('[data-card-id], [data-board-card]');
@@ -88,8 +99,5 @@ export function keepCardVideos(current, next) {
     const previous = id && videos.get(id);
     if (!previous || previous.src !== replacement.src) continue;
     replacement.replaceWith(previous);
-    queueMicrotask(() => {
-      if (previous.isConnected && previous.paused) previous.play().catch(() => {});
-    });
   }
 }

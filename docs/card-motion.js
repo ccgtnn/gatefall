@@ -1,5 +1,5 @@
 import { setCardRarity } from './ui/dom.js?v=opponent-reveal-1';
-import { cardArt } from './ui/card-art.js?v=premium-art-1';
+import { cardArt } from './ui/card-art.js?v=premium-loop-1';
 import { NEUTRAL } from './game/cards.js?v=hounds-1';
 import { burstParticles } from './particles.js?v=step-14';
 

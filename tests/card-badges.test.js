@@ -66,7 +66,7 @@ test('live battlefield and hand faces hide provision, while catalog and preview 
 test('premium selection updates existing copies and persists independently for both cards', async () => {
   const id = 'synaptic-parasite';
   const devourer = 'carrion-devourer';
-  const { PREMIUM_ART_KEY, selectPremiumArt } = await import('../docs/ui/card-art.js?v=premium-art-1');
+  const { PREMIUM_ART_KEY, selectPremiumArt } = await import('../docs/ui/card-art.js?v=premium-loop-1');
   const saved = new Map();
   globalThis.localStorage = { getItem: (key) => saved.get(key), setItem: (key, value) => saved.set(key, value) };
   const face = drawable(id);
@@ -80,13 +80,13 @@ test('premium selection updates existing copies and persists independently for b
     choice.value = 'premium';
     choice.listeners.change();
     const video = byClass(face, 'card-art-video');
-    assert.equal(video.src, './art/synaptic-parasite-hand.mp4');
+    assert.equal(video.src, './art/synaptic-parasite-hand.mp4?v=loop-1');
     assert.equal(video.poster, './art/synaptic-parasite.webp');
     assert.ok(video.autoplay && video.muted && video.loop && video.playsInline);
-    assert.equal(byClass(preview, 'card-art-video').src, './art/synaptic-parasite-preview.mp4');
+    assert.equal(byClass(preview, 'card-art-video').src, './art/synaptic-parasite-preview.mp4?v=loop-1');
     assert.equal(byClass(other, 'card-art-crop').tag, 'img');
     selectPremiumArt(devourer, true);
-    assert.equal(byClass(other, 'card-art-video').src, './art/carrion-devourer-card.mp4');
+    assert.equal(byClass(other, 'card-art-video').src, './art/carrion-devourer-card.mp4?v=loop-1');
     assert.deepEqual(JSON.parse(saved.get(PREMIUM_ART_KEY)), [id, devourer]);
 
     const restored = await import('../docs/ui/card-art.js?test-reload');
@@ -105,6 +105,26 @@ test('premium selection updates existing copies and persists independently for b
     document.body.replaceChildren(preview);
     delete globalThis.localStorage;
     delete globalThis.matchMedia;
+  }
+});
+
+test('filtered or moved video resumes after layout only while it is visible and attached', async () => {
+  const { resumeCardVideos } = await import('../docs/ui/card-art.js?v=premium-loop-1');
+  const frames = [];
+  const played = [];
+  const video = (name, isConnected, visible) => ({
+    isConnected, getClientRects: () => visible ? [{}] : [],
+    play: async () => { played.push(name); },
+  });
+  const result = [video('visible', true, true), video('detached', false, true), video('hidden', true, false)];
+  globalThis.requestAnimationFrame = (callback) => frames.push(callback);
+  try {
+    resumeCardVideos({ querySelectorAll: () => result });
+    assert.deepEqual(played, []);
+    frames[0]();
+    assert.deepEqual(played, ['visible']);
+  } finally {
+    delete globalThis.requestAnimationFrame;
   }
 });
 
