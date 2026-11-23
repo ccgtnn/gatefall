@@ -1,4 +1,4 @@
-import { DIAMOND, LEAGUES, LEAGUE_RULES, leagueOpponent, leagueStake, leagueTable, leagueTicket } from '../game/league.js?v=league-characters-1';
+import { DIAMOND, LEAGUES, LEAGUE_RULES, leagueOpponent, leagueStake, leagueTable, leagueTicket } from '../game/league.js?v=league-avatars-1';
 import { leagueCharacter, LORE_FACTIONS } from './league-character.js?v=league-characters-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { sectionBack } from './resources.js?v=interface-polish-1';

@@ -3,7 +3,7 @@
 export const LEAGUE_CHARACTERS = [
   {
     id: 'bot-0-0', name: "Капрал Тоби Мерц", tier: 0, loreFaction: 'protectorate', deckNow: 'protectorate',
-    strength: 2, initials: "ТМ", avatar: null,
+    strength: 2, initials: "ТМ", avatar: 'league/toby-mertz.webp',
     character: "Нервный юный новобранец, всё время боится ошибиться.",
     uniqueAbility: null,
     lines: {
@@ -19,7 +19,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-0-1', name: "Бабуля Грета", tier: 0, loreFaction: 'neutral', deckNow: 'protectorate',
-    strength: 4, initials: "БГ", avatar: null,
+    strength: 4, initials: "БГ", avatar: 'league/granny-greta.webp',
     character: "Хитрая старушка-торговка с рынка у Врат, видела всё и всех.",
     uniqueAbility: null,
     lines: {
@@ -35,7 +35,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-0-2', name: "Шпорник", tier: 0, loreFaction: 'growth', deckNow: 'growth',
-    strength: 1, initials: "Ш", avatar: null,
+    strength: 1, initials: "Ш", avatar: 'league/spornik.webp',
     character: "Маленький разумный спорыш, наивный и любопытный.",
     uniqueAbility: null,
     lines: {
@@ -51,7 +51,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-0-3', name: "Болторез", tier: 0, loreFaction: 'captains', deckNow: 'protectorate',
-    strength: 6, initials: "Б", avatar: null,
+    strength: 6, initials: "Б", avatar: 'league/boltorez.webp',
     character: "Угрюмый механик фронтира, говорит о картах как о железе.",
     uniqueAbility: null,
     lines: {
@@ -67,7 +67,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-0-4', name: "Кадет Ива Сорель", tier: 0, loreFaction: 'protectorate', deckNow: 'protectorate',
-    strength: 5, initials: "ИС", avatar: null,
+    strength: 5, initials: "ИС", avatar: 'league/iva-sorel.webp',
     character: "Отличница академии, говорит цитатами из устава.",
     uniqueAbility: null,
     lines: {
@@ -83,7 +83,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-0-5', name: "Хряп", tier: 0, loreFaction: 'growth', deckNow: 'growth',
-    strength: 3, initials: "Х", avatar: null,
+    strength: 3, initials: "Х", avatar: 'league/khryap.webp',
     character: "Вечно голодная тварь, думает только о еде.",
     uniqueAbility: null,
     lines: {
@@ -99,7 +99,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-0-6', name: "Лис Вэйн", tier: 0, loreFaction: 'captains', deckNow: 'protectorate',
-    strength: 7, initials: "ЛВ", avatar: null,
+    strength: 7, initials: "ЛВ", avatar: 'league/lis-vane.webp',
     character: "Самоуверенный контрабандист, «король Бронзы», сильнейший в лиге.",
     uniqueAbility: null,
     lines: {
@@ -115,7 +115,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-1-0', name: "Сержант Брам Кольт", tier: 1, loreFaction: 'protectorate', deckNow: 'protectorate',
-    strength: 3, initials: "БК", avatar: null,
+    strength: 3, initials: "БК", avatar: 'league/bram-colt.webp',
     character: "Ворчливый строевой сержант, тот самый, которого зовёт Тоби. Под суровостью — забота о своих.",
     uniqueAbility: null,
     lines: {
