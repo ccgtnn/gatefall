@@ -3,9 +3,9 @@ import { insertionPoint, placementEffectRows } from '../card-placement.js?v=row-
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
 import { ROWS, ROW_LABELS } from '../game/cards.js?v=robot-violet-1';
 import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=robot-violet-1';
-import { playerHand } from './hand.js?v=robot-violet-1';
+import { playerHand } from './hand.js?v=league-1';
 import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=robot-violet-1';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=robot-violet-1';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=league-1';
 
 import { orderBadge } from './stat-badges.js?v=orbital-strike-1';
 

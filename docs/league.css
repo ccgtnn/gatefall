@@ -1,0 +1,23 @@
+.league-panel {
+  width: min(100%, 760px);
+  margin: 1rem auto;
+  padding: clamp(.75rem, 3vw, 1.6rem);
+  background: linear-gradient(150deg, #19222c, #151819 60%);
+}
+.league-content > h2 { margin: .8rem 0 .25rem; }
+.league-table-scroll { overflow-x: auto; margin-block: 1rem; }
+.league-table { width: 100%; border-collapse: collapse; white-space: nowrap; font-variant-numeric: tabular-nums; font-size: .9rem; }
+.league-table :is(th, td) { padding: .48rem clamp(.3rem, 1.5vw, .7rem); border-bottom: 1px solid #ffffff1a; text-align: center; }
+.league-table th { color: #d0dcea; }
+.league-table th:nth-child(2) { text-align: left; width: 32%; }
+.league-table .league-human { background: #b98b321f; }
+.league-table .league-human th { color: #f5d174; }
+.league-table .league-promotion td:first-child { color: #91d8b0; }
+.league-opponent { display: grid; justify-items: start; gap: .45rem; padding: .9rem; background: #0e141acc; border: 1px solid #ffffff20; border-radius: .65rem; }
+.league-opponent :is(p, blockquote) { margin: 0; }
+.league-opponent blockquote { color: #d0dcea; font-style: italic; padding-bottom: .35rem; }
+.league-opponent .deck-field { width: min(100%, 26rem); }
+.league-countdown { margin-bottom: 0; font-variant-numeric: tabular-nums; }
+.league-panel > .economy-status:empty { display: none; }
+.league-coin-opponent { display: block; margin-top: .35em; font-weight: 500; color: #d0dcea; }
+body:has(.in-league-match) #new-game { display: none; }

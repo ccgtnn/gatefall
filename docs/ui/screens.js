@@ -6,7 +6,7 @@ import { logView, roundText } from './menu.js?v=robot-violet-1';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=collection-2';
 import { factionFilters } from './faction-filters.js?v=1';
 import { copyLimit } from '../game/decks.js?v=robot-violet-1';
-import { craftPrice, dismantleValue } from '../game/rewards.js?v=robot-violet-1';
+import { craftPrice, dismantleValue } from '../game/rewards.js?v=league-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 import { sectionBack } from './resources.js?v=interface-polish-1';
 
@@ -173,7 +173,7 @@ export function leaderScreen(phaseLabel, factionId, start, back) {
   return panel;
 }
 
-export function finishedScreen(match, phaseLabel, start, leaveMatch, showThoughts, canReplay) {
+export function finishedScreen(match, phaseLabel, start, leaveMatch, showThoughts, canReplay, leagueResult) {
   phaseLabel.textContent = `Матч завершён · раундов ${match.round}`;
   const game = element('div', 'game');
   const panel = element('section', 'panel finish');
@@ -194,11 +194,17 @@ export function finishedScreen(match, phaseLabel, start, leaveMatch, showThought
   }
   panel.addEventListener('collection-change', updateReplay);
   updateReplay();
-  actions.append(replay, button('Выбор колоды', leaveMatch));
+  if (leagueResult) {
+    actions.append(button(leagueResult.label, leaveMatch, 'button primary'));
+    actions.firstChild.disabled = leagueResult.saving;
+  } else {
+    actions.append(replay, button('Выбор колоды', leaveMatch));
+  }
   panel.append(
     heading, score,
     ...rounds.map((event) => element('p', 'round-result', roundText(event))),
-    missing, actions,
+    ...(leagueResult ? [element('p', 'league-reply', leagueResult.reply),
+      element('p', 'muted', leagueResult.notice)] : [missing]), actions,
   );
   game.append(panel, logView(match, showThoughts));
   return game;

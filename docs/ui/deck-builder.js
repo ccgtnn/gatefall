@@ -69,7 +69,7 @@ export function deckHomeScreen(phaseLabel, stats, actions, recentDecks) {
   const screen = element('section', 'deck-home');
   const sections = element('section', 'home-block');
   const tiles = element('div', 'home-tiles');
-  for (const [title, open] of [['База', actions.base], ['Все карты', actions.catalog]]) {
+  for (const [title, open] of [['База', actions.base], ['Лига', actions.league], ['Все карты', actions.catalog]]) {
     tiles.append(button(title, open, 'button home-tile'));
   }
   sections.append(element('h2', null, 'Разделы'), tiles);

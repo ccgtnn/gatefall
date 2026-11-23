@@ -52,10 +52,10 @@ function createPlayer(side, definitions, random, factionId, leader, charges) {
   };
 }
 
-export function createMatch({ decks, humanFaction = decks ? undefined : 'protectorate', humanLeader, botLeader, random = Math.random, rules = MATCH_RULES } = {}) {
+export function createMatch({ decks, humanFaction = decks ? undefined : 'protectorate', humanLeader, botLeader, botFaction: selectedBotFaction, random = Math.random, rules = MATCH_RULES } = {}) {
   const settings = { ...MATCH_RULES, ...rules };
   const human = FACTIONS[humanFaction];
-  const botFaction = human ? (humanFaction === 'growth' ? 'protectorate' : 'growth') : undefined;
+  const botFaction = selectedBotFaction ?? (human ? (humanFaction === 'growth' ? 'protectorate' : 'growth') : undefined);
   const bot = FACTIONS[botFaction];
   const selectedDecks = decks ?? { human: human.deck, bot: bot.deck };
   const leader = human?.leaders.find(({ id }) => id === humanLeader) ?? human?.leader;
@@ -91,6 +91,16 @@ export function createDeckMatch(deck, options = {}) {
   if (!result.valid) return null;
   const botFaction = deck.factionId === 'growth' ? 'protectorate' : 'growth';
   const random = options.random ?? Math.random;
+  if (options.botDeck) {
+    const rival = inspectDeck(options.botDeck);
+    if (!rival.valid) return null;
+    return createMatch({
+      random, rules: options.rules,
+      decks: { human: result.cards, bot: rival.cards },
+      humanFaction: deck.factionId, humanLeader: result.leader.id,
+      botFaction: options.botDeck.factionId, botLeader: rival.leader.id,
+    });
+  }
   const roll = random();
   const alternate = botFaction === 'protectorate'
     ? (roll < .5 && ORBITAL_STRIKE_PRESET)

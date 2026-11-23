@@ -1,10 +1,10 @@
 import { ROWS } from './cards.js?v=robot-violet-1';
 import { cardType, findUnit, isUnit, neighbors, restoreCard, statusCount, units } from './board.js?v=robot-violet-1';
 import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue, rowScatterValue } from './effects.js?v=robot-violet-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=robot-violet-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=league-1';
 
 import { deathwishDefinitions } from './events.js?v=helper-robot-1';
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=robot-violet-1';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=league-1';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;

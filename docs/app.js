@@ -1,30 +1,31 @@
 import { createBaseScreen } from './ui/base-screen.js?v=rebirth-1';
-import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=robot-violet-1';
+import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=league-1';
 import { createDeckStorage } from './ui/deck-storage.js?v=robot-violet-1';
 import { bindCardPlacement } from './card-placement.js?v=row-placement-1';
 import { animateCoin, animateHandTurn, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=robot-violet-1';
 import { clearParticles } from './particles.js?v=step-14';
 import { playJournal } from './turn-playback.js?v=robot-violet-1';
-import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=robot-violet-1';
+import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=league-1';
 import { findInPiles, placementSide } from './game/board.js?v=robot-violet-1';
 import { FACTIONS } from './game/cards.js?v=robot-violet-1';
-import { inspectDeck } from './game/decks.js?v=robot-violet-1';
-import { applyAction, createDeckMatch } from './game/match.js?v=robot-violet-1';
+import { inspectDeck, PRESETS } from './game/decks.js?v=robot-violet-1';
+import { applyAction, createDeckMatch } from './game/match.js?v=league-1';
 import { element, iconButton } from './ui/dom.js?v=opponent-reveal-1';
 import { cardArt, preview, showCard } from './ui/cards.js?v=robot-violet-1';
-import { createBattlefield } from './ui/field.js?v=robot-violet-1';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=robot-violet-1';
+import { createBattlefield } from './ui/field.js?v=league-1';
+import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=league-1';
 import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=robot-violet-1';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=robot-violet-1';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=league-1';
 import { createSettings } from './ui/settings.js?v=robot-violet-1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
-import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=robot-violet-1';
-import { createRewardBook } from './ui/reward-book.js?v=robot-violet-1';
-import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=robot-violet-1';
+import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=league-1';
+import { createRewardBook } from './ui/reward-book.js?v=league-1';
+import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=league-1';
 import { createResourceBar } from './ui/resources.js?v=interface-polish-1';
 import { aimAnchor, aimTone, bindTargeting } from './ui/targeting.js?v=targeting-1';
-import { resetProgress } from './game/reset-progress.js?v=robot-violet-1';
+import { leagueScreen } from './ui/league-screen.js?v=league-1';
+import { resetProgress } from './game/reset-progress.js?v=league-1';
 
 const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
@@ -42,6 +43,8 @@ let editedDeck;
 let matchDeck;
 let matchSession = 0;
 let matchRewardId;
+let leagueMatch;
+let leagueSettlement;
 let timer;
 let selectedCardId;
 let replaying = false;
@@ -69,11 +72,13 @@ const openResources = createResourceBar(app.querySelector('.masthead'), document
   essence: catalog,
   packCount: createBoosterOpening(progress, () => openResources('gold')),
 });
-progress.subscribe(() => screen.querySelector('.deck-editor, .deck-home, .all-decks, .finish')?.dispatchEvent(new Event('collection-change')));
+progress.subscribe(() => screen.querySelector('.deck-editor, .deck-home, .all-decks, .finish, .league-panel')?.dispatchEvent(new Event('collection-change')));
 window.addEventListener('storage', (event) => {
   if (event.key?.startsWith('gatefall.') && event.newValue === null) window.location.reload();
   else if (event.key === REWARD_STORAGE_KEY || event.key === null) progress.refresh();
 });
+if (progress.league()) void progress.checkpointLeague();
+setInterval(() => screen.querySelector('.league-panel')?.dispatchEvent(new Event('league-tick')), 1000);
 const menu = createMatchMenu(() => match, () => settings.showBotThoughts());
 const { drawer } = menu;
 const hand = {
@@ -168,16 +173,32 @@ function canPlayDeck(deck) {
   return inspectDeck(deck, progress.inventory().owned).valid;
 }
 
-function start(deck) {
-  if (!canPlayDeck(deck)) return;
-  const next = createDeckMatch(deck);
+function matchId() {
+  return globalThis.crypto?.randomUUID?.() ?? `match-${Date.now()}-${Math.random()}`;
+}
+
+async function startLeague(ticket, bot, deck) {
+  if (!canPlayDeck(deck)) return 'invalid-deck';
+  const next = createDeckMatch(deck, { botDeck: bot.deck });
+  if (!next) return 'invalid-deck';
+  const id = matchId();
+  const outcome = await progress.beginLeagueMatch(ticket, id, deck);
+  if (outcome === 'done') start(deck, { next, bot, id });
+  return outcome;
+}
+
+function start(deck, league) {
+  if (!league && !canPlayDeck(deck)) return;
+  const next = league?.next ?? createDeckMatch(deck);
   if (!next) return;
   deckStore.recordPlay(deck.id);
   matchDeck = structuredClone(deck);
   match = next;
   targetAction = undefined;
   retryRolls = [];
-  matchRewardId = globalThis.crypto?.randomUUID?.() ?? `match-${Date.now()}-${Math.random()}`;
+  matchRewardId = league?.id ?? matchId();
+  leagueMatch = league?.bot;
+  leagueSettlement = undefined;
   selectedFaction = undefined;
   editedDeck = undefined;
   menuView = 'decks';
@@ -189,14 +210,28 @@ function start(deck) {
   const coin = element('span', 'tossed-coin', first ? '✦' : '◈');
   coin.setAttribute('aria-hidden', 'true');
   const coinDuration = settings.motion() * 2.85;
-  showNotice(coinNotice, '', Math.max(1500, coinDuration + 900));
+  showNotice(coinNotice, '', Math.max(leagueMatch ? 3000 : 1500, coinDuration + 900));
   coinNotice.append(coin, label);
   animateCoin(coin, label, coinDuration);
+  if (leagueMatch) label.append(element('small', 'league-coin-opponent', `${leagueMatch.name} · «${leagueMatch.lines.start}»`));
   screen.querySelector('h2').focus({ preventScroll: true });
 }
 
-function leaveMatch(surrender = false) {
-  if (surrender === true && (match?.phase === 'playing' || match?.phase === 'mulligan')) {
+async function leaveMatch(surrender = false) {
+  const returnTo = leagueMatch ? 'league' : 'decks';
+  if (leagueMatch && (match?.phase === 'playing' || match?.phase === 'mulligan')) {
+    const id = matchRewardId;
+    const outcome = await progress.settleLeagueMatch(id, 'loss', -2);
+    if (id !== matchRewardId) return;
+    if (outcome !== 'done' && outcome !== 'stale') {
+      showNotice(turnNotice, 'Не удалось сохранить результат. Попробуй выйти снова.', 3000);
+      return;
+    }
+    if (outcome === 'done') stats.record(match.players.human.factionId, 'loss');
+  } else if (leagueMatch && match?.phase === 'finished' && leagueSettlement !== 'done' && leagueSettlement !== 'stale') {
+    if (leagueSettlement === 'unavailable') void saveLeagueResult();
+    return;
+  } else if (surrender === true && (match?.phase === 'playing' || match?.phase === 'mulligan')) {
     stats.record(match.players.human.factionId, 'loss');
   }
   matchSession += 1;
@@ -210,7 +245,10 @@ function leaveMatch(surrender = false) {
   targetAction = undefined;
   retryRolls = [];
   matchDeck = undefined;
-  menuView = 'decks';
+  matchRewardId = undefined;
+  leagueMatch = undefined;
+  leagueSettlement = undefined;
+  menuView = returnTo;
   replaying = false;
   mulliganFieldVisible = false;
   announcement.textContent = '';
@@ -240,11 +278,25 @@ function render() {
   screen.classList.toggle('is-replaying', replaying);
   selectedCardId = undefined;
   app.classList.toggle('in-match', match?.phase === 'mulligan' || match?.phase === 'playing');
+  app.classList.toggle('in-league-match', Boolean(leagueMatch));
+  document.querySelector('#bot-difficulty').disabled = Boolean(leagueMatch);
+  document.querySelector('#leave-description').textContent = leagueMatch
+    ? 'Матч закончится поражением. Ты вернёшься к таблице лиги.'
+    : 'Текущий матч закончится. Ты вернёшься к выбору колоды.';
   let content;
   if (match?.phase === 'mulligan' || match?.phase === 'playing') content = battlefield();
   else if (match?.phase === 'finished') {
+    const saving = !leagueSettlement || leagueSettlement === 'saving';
+    const failed = leagueSettlement === 'unavailable';
+    const result = leagueMatch && {
+      saving,
+      label: failed ? 'Повторить сохранение' : 'К таблице лиги',
+      reply: leagueMatch.name + ' · «' + leagueMatch.lines[{ win: 'loss', loss: 'win', draw: 'draw' }[match.result]] + '»',
+      notice: saving ? 'Сохраняем результат тура…' : failed ? 'Не удалось сохранить результат тура.'
+        : leagueSettlement === 'stale' ? 'Этот тур уже закрыт.' : '',
+    };
     content = finishedScreen(match, phaseLabel, () => start(matchDeck), leaveMatch,
-      settings.showBotThoughts(), () => canPlayDeck(matchDeck));
+      settings.showBotThoughts(), () => canPlayDeck(matchDeck), result);
   } else {
     const back = () => goTo('all-decks');
     switch (menuView) {
@@ -263,8 +315,20 @@ function render() {
         back: () => goTo('decks'), create: () => goTo('faction'), play: start, edit: editDeck,
         copy: (deck) => makeDeck(deck.factionId, deck.leaderId, deck),
       }, progress.inventory); break;
+      case 'league': content = leagueScreen(phaseLabel, {
+        back: () => goTo('decks'),
+        read: progress.league,
+        checkpoint: progress.checkpointLeague,
+        decks: () => {
+          const { owned } = progress.inventory();
+          return [...PRESETS, ...deckStore.list()].filter((deck) => inspectDeck(deck, owned).valid);
+        },
+        gold: () => progress.inventory().gold,
+        play: startLeague,
+        concede: (id) => progress.settleLeagueMatch(id, 'loss', -2),
+      }); break;
       default: content = deckHomeScreen(phaseLabel, stats, {
-        base: openBase, catalog: () => openResources('essence'), all: back, play: start,
+        base: openBase, league: () => goTo('league'), catalog: () => openResources('essence'), all: back, play: start,
       }, () => deckStore.recent(progress.inventory().owned));
     }
   }
@@ -310,7 +374,7 @@ async function showRoundResult(event, state, duration) {
 function playBotTurn() {
   let trace;
   const options = settings.showBotThoughts() ? { onDecision: (decision) => { trace = decision; } } : {};
-  const action = chooseBotTurn(match, settings.difficulty(), options);
+  const action = chooseBotTurn(match, leagueMatch?.difficulty ?? settings.difficulty(), options);
   const next = applyAction(match, 'bot', action);
   if (trace && next !== match) {
     next.log.push({
@@ -363,8 +427,11 @@ async function updateMatch(next) {
   if (session !== matchSession) return;
   match = next;
   if (match.phase === 'finished' && before.phase !== 'finished') {
-    stats.record(match.players.human.factionId, match.result);
-    void progress.rewardMatch(matchRewardId, match.result);
+    if (leagueMatch) void saveLeagueResult();
+    else {
+      stats.record(match.players.human.factionId, match.result);
+      void progress.rewardMatch(matchRewardId, match.result);
+    }
   }
   if (match.phase === 'mulligan') {
     mulliganFieldVisible = false;
@@ -387,6 +454,20 @@ async function updateMatch(next) {
   } else if (before.phase === 'mulligan') {
     screen.querySelector('#pass-button:enabled')?.focus({ preventScroll: true });
   }
+}
+
+async function saveLeagueResult() {
+  const id = matchRewardId;
+  const rounds = match.log.filter(({ type }) => type === 'round-end');
+  const difference = rounds.reduce((total, { winner }) => total + (winner === 'human' ? 1 : winner === 'bot' ? -1 : 0), 0);
+  leagueSettlement = 'saving';
+  render();
+  const outcome = await progress.settleLeagueMatch(id, match.result, difference);
+  if (id !== matchRewardId) return;
+  if (outcome === 'done') stats.record(match.players.human.factionId, match.result);
+  leagueSettlement = outcome === 'done' || outcome === 'stale' ? outcome : 'unavailable';
+  render();
+  screen.querySelector('h2')?.focus({ preventScroll: true });
 }
 
 function cancelTargeting() {

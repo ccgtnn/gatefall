@@ -1,8 +1,9 @@
+import { createLeague, DIAMOND, finishLeagueMatch, leagueStake, needsLeagueReset, reserveLeagueMatch, resetLeagueWeek } from './league.js?v=league-1';
 import { victoryGold, weeklyReward } from './outpost.js?v=base-outpost-1';
 import { advanceProduction, productionView, readProduction, takeProduction } from './base-production.js?v=rebirth-1';
 import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=rebirth-1';
 import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=robot-violet-1';
-import { copyLimit } from './decks.js?v=robot-violet-1';
+import { copyLimit, inspectDeck } from './decks.js?v=robot-violet-1';
 
 export const STARTING_KEYS = 10000;
 export const STARTING_GOLD = 10000;
@@ -408,6 +409,7 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
       rewardedMatches: Array.isArray(snapshot.rewardedMatches) ? snapshot.rewardedMatches : [],
       lastWeeklyClaim: Number.isSafeInteger(snapshot.lastWeeklyClaim) ? snapshot.lastWeeklyClaim : null,
       pendingPack: readPack(snapshot.pendingPack),
+      league: snapshot.league?.season ? snapshot.league : null,
     };
   }
 
@@ -460,6 +462,19 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
     catch { return 'unavailable'; }
     if (outcome === 'opened' || outcome === 'done') refresh();
     return outcome;
+  }
+
+  function rollLeague(state, time) {
+    const next = state.league ? resetLeagueWeek(state.league, time, random) : createLeague(time);
+    if (!next) return 'current';
+    const reward = next.lastReward;
+    if (reward) {
+      if (!creditMaterials(state.base.materials, { gateShards: reward.gateShards ?? 0 })) return 'unavailable';
+      state.rewardGold += reward.gold;
+      state.purchased[NEUTRAL] += reward.boosters ?? 0;
+    }
+    state.league = next;
+    return 'done';
   }
 
   function buildLevel(slot, kind, previousLevel) {
@@ -540,6 +555,34 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
         state.rewardGold += gold;
         state.lastWeeklyClaim = time;
         return 'done';
+      });
+    },
+    league: () => read().league,
+    checkpointLeague() {
+      return transact((state, _previousAt, time) => rollLeague(state, time));
+    },
+    beginLeagueMatch(ticket, id, deck) {
+      return transact((state, _previousAt, time) => {
+        if (!state.league || needsLeagueReset(state.league, time)) return 'stale';
+        const inventory = balances(state);
+        if (!inspectDeck(deck, inventory.owned).valid) return 'invalid-deck';
+        const outcome = reserveLeagueMatch(state.league, ticket, id, inventory.gold);
+        if (outcome === 'done') state.goldSpent += leagueStake(state.league);
+        return outcome;
+      });
+    },
+    settleLeagueMatch(id, result, difference) {
+      if (!['win', 'loss', 'draw'].includes(result) || !Number.isInteger(difference) || Math.abs(difference) > 2) {
+        return Promise.resolve('invalid-result');
+      }
+      return transact((state, _previousAt, time) => {
+        if (!state.league) return 'stale';
+        const settled = finishLeagueMatch(state.league, id, result, difference, random);
+        if (!settled) return 'stale';
+        const regularGold = result === 'win' && settled.tier !== DIAMOND ? victoryGold(state.base.buildings.outpost?.level) : 0;
+        state.rewardGold += settled.payout + regularGold;
+        const rollover = rollLeague(state, time);
+        return rollover === 'unavailable' ? rollover : 'done';
       });
     },
     rewardMatch(matchId, result) {
