@@ -1,10 +1,10 @@
 import { deathwishDefinitions, deathwishJobs, emit } from './events.js?v=helper-robot-1';
-import { ROWS, ROW_LABELS } from './cards.js?v=hounds-1';
+import { ROWS, ROW_LABELS } from './cards.js?v=failura-1';
 import {
   activeOrder, announcePlay, applyStatus, availableRows, boost, cardType, changeCoins, consume, damage, damageOverflow, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, restoreCard, ROW_LIMIT,
   refreshHoundAura, setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, infectionDamage, transformUnit, units,
-} from './board.js?v=hounds-1';
+} from './board.js?v=failura-1';
 import { HOUND_CATEGORY } from './captains.js?v=hounds-1';
 
 function reference(match, job, key = 'source') {
@@ -664,7 +664,7 @@ export function runEffect(match, job, random) {
   if (step.action === 'replace-leader') {
     const player = match.players[job.side];
     const { ability, text, ...order } = step.order;
-    const leader = { ...(player.leader ?? { name: 'Фалура' }), ability, text,
+    const leader = { ...(player.leader ?? { name: 'Файлура' }), ability, text,
       order: { ...order, sourceDefinitionId: job.sourceDefinitionId } };
     player.leader = leader;
     match.log.push({ type: 'leader-replaced', side: job.side, name: leader.name, leader });

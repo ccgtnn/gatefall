@@ -1,7 +1,7 @@
 import { dialogClose } from './resources.js?v=essence-gain-1';
 import { button, element, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROW_LABELS } from '../game/cards.js?v=hounds-1';
-import { cardButton, showCard } from './cards.js?v=essence-gain-1';
+import { ROW_LABELS } from '../game/cards.js?v=failura-1';
+import { cardButton, showCard } from './cards.js?v=failura-1';
 
 export function roundText(event) {
   const { scores, winner } = event;
@@ -48,7 +48,7 @@ export function eventText(event) {
       return '';
     }
     case 'row-effect': return `${side}, ${ROW_LABELS[event.row]}: ${event.effect ? 'Гниение · ' + event.effect.remaining : 'Гниение снято'}.`;
-    case 'leader-replaced': return `${side}: Фалура заменила способность лидера Приказом.`;
+    case 'leader-replaced': return `${side}: Файлура заменила способность лидера Приказом.`;
     case 'scenario-chapter': return `«${event.name}»: глава ${event.chapter}.`;
     case 'base-power': return `${side}: базовая сила карты — ${event.basePower}.`;
     case 'heal': return `${side}: сила карты восстановлена до ${event.power}.`;

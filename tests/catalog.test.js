@@ -9,8 +9,9 @@ const ids = (filters) => filterCatalog(cards, filters).map(({ id }) => id);
 
 test('catalog searches both name and card text, ignoring case and ё spelling', () => {
   assert.ok(ids({ query: '  АННИГИЛЯЦИЯ  ' }).includes('annihilation'));
-  assert.deepEqual(ids({ query: 'Фалура породи 2 тени' }), ['falura']);
-  assert.ok(ids({ query: 'звезд' }).length > 0);
+  assert.deepEqual(ids({ query: 'Файлура породи 2 тени' }), ['falura']);
+  assert.ok(ids({ query: 'пепел звёзд' }).includes('falura'));
+  assert.equal(cards.find(({ id }) => id === 'falura').name, 'Файлура, Пепел Звезд');
   assert.deepEqual(ids({ query: 'неттакойкарты' }), []);
 });
 

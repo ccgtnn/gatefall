@@ -267,7 +267,7 @@ export const ANNIHILATION = Object.freeze({
 export const SHADOW = Object.freeze({
   id: 'shadow', name: 'Тень', faction: NEUTRAL, type: 'unit', power: 2,
   art: 'shadow.webp',
-  text: 'Обречённая. Пока на твоей стороне поля есть хотя бы одна Тень, Приказ лидера от Фалуры готов каждый твой ход.',
+  text: 'Обречённая. Пока на твоей стороне поля есть хотя бы одна Тень, Приказ лидера от Файлуры готов каждый твой ход.',
   categories: ['Пустота'], doomed: true, token: true, keywords: ['Обречённость'],
 });
 
@@ -342,7 +342,7 @@ export const NEUTRAL_CARDS = Object.freeze([
     ['world-gates', 'Врата Миров', 'gold', 11, null, 'Посмотри свою колоду, выбери любую карту и сыграй её.', {
       type: 'effect', art: 'world-gates.webp', accent: 'gate', deploy: ability([{ action: 'play-from-deck', fullDeck: true }]),
     }],
-    ['falura', 'Фалура, Пепел звёзд', 'gold', 19, null,
+    ['falura', 'Файлура, Пепел Звезд', 'gold', 19, null,
       'Замени способность лидера до конца матча Приказом: нанести 2 урона выбранному вражескому отряду. Перезарядка 1 ход. Породи 2 Тени. Пока на твоём поле есть Тень, Приказ готов каждый твой ход.', {
         type: 'artifact', art: 'falura.webp', categories: ['Пустота'],
         deploy: ability([{ action: 'replace-leader', order: faluraOrder },

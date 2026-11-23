@@ -66,7 +66,7 @@ test('live battlefield and hand faces hide provision, while catalog and preview 
 test('premium selection updates existing copies and persists independently for both cards', async () => {
   const id = 'synaptic-parasite';
   const devourer = 'carrion-devourer';
-  const { PREMIUM_ART_KEY, selectPremiumArt } = await import('../docs/ui/card-art.js?v=premium-loop-1');
+  const { PREMIUM_ART_KEY, selectPremiumArt } = await import('../docs/ui/card-art.js?v=failura-1');
   const saved = new Map();
   globalThis.localStorage = { getItem: (key) => saved.get(key), setItem: (key, value) => saved.set(key, value) };
   const face = drawable(id);
@@ -109,7 +109,7 @@ test('premium selection updates existing copies and persists independently for b
 });
 
 test('filtered or moved video resumes after layout only while it is visible and attached', async () => {
-  const { resumeCardVideos } = await import('../docs/ui/card-art.js?v=premium-loop-1');
+  const { resumeCardVideos } = await import('../docs/ui/card-art.js?v=failura-1');
   const frames = [];
   const played = [];
   const video = (name, isConnected, visible) => ({

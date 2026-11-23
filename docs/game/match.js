@@ -1,9 +1,9 @@
-import { inspectDeck, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET } from './decks.js?v=hounds-1';
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=hounds-1';
-import { announcePlay, availableRows, cardType, changeCoins, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, refreshHoundAura, spendResilience, statusCount, takeCards } from './board.js?v=hounds-1';
-import { availableFees, availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=hounds-1';
+import { inspectDeck, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET } from './decks.js?v=failura-1';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=failura-1';
+import { announcePlay, availableRows, cardType, changeCoins, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, refreshHoundAura, spendResilience, statusCount, takeCards } from './board.js?v=failura-1';
+import { availableFees, availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=failura-1';
 
-export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=hounds-1';
+export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=failura-1';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;

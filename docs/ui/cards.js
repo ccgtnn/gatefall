@@ -1,14 +1,14 @@
 import { dialogClose } from './resources.js?v=essence-gain-1';
 import { button, element, selectField, setCardRarity } from './dom.js?v=opponent-reveal-1';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=hounds-1';
-import { FACTION_CATALOG } from '../game/faction-catalog.js?v=hounds-1';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=hounds-1';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=failura-1';
+import { FACTION_CATALOG } from '../game/faction-catalog.js?v=failura-1';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=failura-1';
 
 import { deathwishDefinitions } from '../game/events.js?v=helper-robot-1';
 import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=badge-depth-1';
 
-import { addCardCrop, cardArt, hasPremiumArt, selectPremiumArt, usesPremiumArt } from './card-art.js?v=premium-loop-1';
-export { addCardCrop, cardArt } from './card-art.js?v=premium-loop-1';
+import { addCardCrop, cardArt, hasPremiumArt, selectPremiumArt, usesPremiumArt } from './card-art.js?v=failura-1';
+export { addCardCrop, cardArt } from './card-art.js?v=failura-1';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';

@@ -436,7 +436,7 @@ export const LEAGUE_CHARACTERS = [
     },
   },
   {
-    id: 'bot-3-6', name: "Фалура, Пепел звёзд", tier: 3, loreFaction: 'void', deckNow: 'falura',
+    id: 'bot-3-6', name: "Файлура, Пепел Звезд", tier: 3, loreFaction: 'void', deckNow: 'falura',
     strength: 8, initials: "Ф", avatar: 'league/falura.webp',
     character: "Искажённая драконица в человеческом облике, перешедшая на сторону Пустоты. Героиня существующей карты. Сильнейшая в Алмазе.",
     uniqueAbility: "как на её карте — Приказ лидера перезаряжается каждый ход.",
@@ -469,7 +469,7 @@ export const LEAGUE_CHARACTERS = [
   {
     id: 'frontier-rookie-2', name: "Нокс, Вестник Пустоты", tier: 2, loreFaction: 'void', deckNow: 'plague',
     strength: 4, initials: "НВ", avatar: 'league/nox.webp',
-    character: "Бывший навигатор, заглянувший в Пустоту и вернувшийся «не совсем собой». Тихий, вкрадчивый, предвещает гибель. Слуга Фалуры.", uniqueAbility: null,
+    character: "Бывший навигатор, заглянувший в Пустоту и вернувшийся «не совсем собой». Тихий, вкрадчивый, предвещает гибель. Слуга Файлуры.", uniqueAbility: null,
     lines: {
       start: ["Пустота шепчет твоё имя. Хочешь услышать?", "Я видел, чем это закончится. Тебе не понравится"],
       botStrong: ["Тьма откликается", "Так говорила Пустота"],
