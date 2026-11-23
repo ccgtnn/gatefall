@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PRESETS } from '../docs/game/decks.js';
 import {
-  createLeague, DIAMOND, finishLeagueMatch, LEAGUES, leagueOpponent,
+  createLeague, DIAMOND, finishLeagueMatch, LEAGUES, leagueDivision, leagueOpponent,
   leagueSchedule, leagueStake, leagueTable, leagueTicket, leagueWeek,
   reserveLeagueMatch, resetLeagueWeek,
 } from '../docs/game/league.js';
@@ -52,7 +52,7 @@ test('a reserved match advances all four pairings once on settlement', () => {
   assert.equal(finishLeagueMatch(league, 'second-tab', 'win', 2, fixed), null);
   let rolls = 0;
   finishLeagueMatch(league, 'match', 'win', 2, () => { rolls += 1; return .5; });
-  assert.equal(rolls, 6);
+  assert.equal(rolls, 24);
   assert.equal(league.season.round, 1);
   const { scores } = league.season;
   assert.equal(scores.human.points, 3);
@@ -204,4 +204,50 @@ test('place changes compare the previous table and encounters survive season and
   assert.deepEqual(next.encounters, league.encounters);
   play(next, 'draw', 0);
   assert.deepEqual(next.encounters[openingOpponent], { wins: 1, draws: 1, losses: 0 });
+});
+
+test('all four divisions advance on settlement, with an alternating bye in each foreign division', () => {
+  const league = createLeague(sunday);
+  delete league.divisions;
+  for (let round = 0; round < 7; round += 1) {
+    const ticket = leagueTicket(league);
+    assert.equal(reserveLeagueMatch(league, ticket, ticket, 0), 'done');
+    assert.equal(leagueDivision(league, 1).round, round);
+    finishLeagueMatch(league, ticket, 'loss', -2, fixed);
+    for (const tier of [1, 2, 3]) {
+      const division = leagueDivision(league, tier);
+      const scores = leagueTable(division);
+      const bye = leagueSchedule(tier)[round][0][1];
+      assert.equal(division.round, round + 1);
+      assert.equal(scores.length, 7);
+      assert.equal(scores.reduce((count, { wins, draws, losses }) => count + wins + draws + losses, 0), (round + 1) * 6);
+      if (round === 0) assert.deepEqual(division.scores[bye], { id: bye, points: 0, wins: 0, draws: 0, losses: 0, difference: 0 });
+    }
+    assert.equal(finishLeagueMatch(league, ticket, 'loss', -2, fixed), null);
+  }
+  for (const score of leagueTable(leagueDivision(league, 1))) assert.equal(score.wins + score.draws + score.losses, 6);
+});
+
+test('promotion starts a clean player season and other division scores preserve their rounds up to the weekly reset', () => {
+  const league = createLeague(sunday);
+  for (let round = 0; round < 6; round += 1) play(league, 'win', 2);
+  assert.ok(leagueTable(leagueDivision(league, 1)).some(({ points }) => points > 0));
+  play(league, 'win', 2);
+  assert.equal(league.season.tier, 1);
+  assert.equal(league.season.round, 0);
+  assert.equal(leagueDivision(league, 1), league.season);
+  assert.ok(leagueTable(league.season).every(({ points }) => points === 0));
+  assert.equal(leagueTable(leagueDivision(league, 0)).length, 7);
+  assert.equal(leagueDivision(league, 0).round, 7);
+  assert.equal(leagueDivision(league, 2).round, 7);
+  play(league, 'win', 2);
+  assert.equal(leagueDivision(league, 0).round, 8);
+  assert.ok(leagueDivision(league, 0).previousPlaces);
+  const next = resetLeagueWeek(JSON.parse(JSON.stringify(league)), monday, fixed);
+  for (const [tier] of LEAGUES.entries()) {
+    const division = leagueDivision(next, tier);
+    assert.equal(division.round, 0);
+    assert.equal(division.previousPlaces, undefined);
+    assert.ok(leagueTable(division).every(({ points, wins, losses }) => points === 0 && wins === 0 && losses === 0));
+  }
 });

@@ -62,8 +62,9 @@ export function leagueSchedule(tier) {
   });
 }
 
-function newSeason(tier, number = 1) {
-  const scores = Object.fromEntries(entrants(tier).map((id) => [id, {
+function newSeason(tier, number = 1, hasPlayer = true) {
+  const ids = hasPlayer ? entrants(tier) : entrants(tier).slice(1);
+  const scores = Object.fromEntries(ids.map((id) => [id, {
     id, points: 0, wins: 0, draws: 0, losses: 0, difference: 0,
   }]));
   return { tier, number, round: 0, scores };
@@ -72,7 +73,7 @@ function newSeason(tier, number = 1) {
 export function createLeague(time) {
   return {
     ...leagueWeek(time), season: newSeason(0), best: { tier: 0, place: null }, played: false,
-    diamond: { wins: 0, losses: 0, streak: 0 }, encounters: {}, active: null, lastReward: null,
+    diamond: { wins: 0, losses: 0, streak: 0 }, encounters: {}, divisions: {}, active: null, lastReward: null,
   };
 }
 
@@ -80,6 +81,15 @@ export function leagueTable(season) {
   return Object.values(season.scores).sort((a, b) => b.points - a.points ||
     b.wins - a.wins || b.difference - a.difference ||
     Number(a.id === HUMAN) - Number(b.id === HUMAN));
+}
+
+export function leagueDivision(league, tier) {
+  if (tier === league.season.tier) return league.season;
+  return league.divisions?.[tier] ?? newSeason(tier, 1, false);
+}
+
+function recordPlaces(season) {
+  season.previousPlaces = Object.fromEntries(leagueTable(season).map(({ id }, index) => [id, index + 1]));
 }
 
 function humanPlace(season) {
@@ -144,21 +154,35 @@ function simulatePair(bots, first, second, random) {
   };
 }
 
+function playBotPairs(season, pairs, random) {
+  const bots = new Map(LEAGUES[season.tier].bots.map((bot) => [bot.id, bot]));
+  for (const [first, second] of pairs) {
+    const { result, difference } = simulatePair(bots, first, second, random);
+    scorePair(season.scores, first, second, result, difference);
+  }
+}
+
 export function finishLeagueMatch(league, id, result, difference, random = Math.random) {
   if (!league.active || league.active.id !== id) return null;
   const { season } = league;
   const { tier, round, scores } = season;
   const { stake } = league.active;
   const [[, opponent], ...botPairs] = leagueSchedule(tier)[round];
-  season.previousPlaces = Object.fromEntries(leagueTable(season).map(({ id }, index) => [id, index + 1]));
+  recordPlaces(season);
   const encounters = league.encounters ??= {};
   const record = encounters[opponent] ??= { wins: 0, draws: 0, losses: 0 };
   record[{ win: 'wins', draw: 'draws', loss: 'losses' }[result]] += 1;
   scorePair(scores, HUMAN, opponent, result, difference);
-  const bots = new Map(LEAGUES[tier].bots.map((bot) => [bot.id, bot]));
-  for (const [first, second] of botPairs) {
-    const simulated = simulatePair(bots, first, second, random);
-    scorePair(scores, first, second, simulated.result, simulated.difference);
+  playBotPairs(season, botPairs, random);
+  const divisions = league.divisions ??= {};
+  for (const [otherTier] of LEAGUES.entries()) {
+    if (otherTier === tier) continue;
+    const division = divisions[otherTier] ??= newSeason(otherTier, 1, false);
+    recordPlaces(division);
+    // The bot paired with the vacant player seat has a bye.
+    const [, ...pairs] = leagueSchedule(otherTier)[division.round % LEAGUE_RULES.rounds];
+    playBotPairs(division, pairs, random);
+    division.round += 1;
   }
 
   league.played = true;
@@ -181,7 +205,17 @@ export function finishLeagueMatch(league, id, result, difference, random = Math.
     recordBest(league, tier, place);
     const nextTier = place <= LEAGUE_RULES.promotionPlaces ? Math.min(tier + 1, DIAMOND) : tier;
     league.lastSeason = { tier, place };
-    if (nextTier > tier) recordBest(league, nextTier, null);
+    if (nextTier > tier) {
+      recordBest(league, nextTier, null);
+      const humanPreviousPlace = season.previousPlaces[HUMAN];
+      delete season.previousPlaces[HUMAN];
+      for (const id of Object.keys(season.previousPlaces)) {
+        if (season.previousPlaces[id] > humanPreviousPlace) season.previousPlaces[id] -= 1;
+      }
+      delete scores[HUMAN];
+      divisions[tier] = season;
+      delete divisions[nextTier];
+    }
     league.season = newSeason(nextTier, season.number + 1);
   }
   return { tier, payout };
