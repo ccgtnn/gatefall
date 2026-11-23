@@ -364,12 +364,14 @@ function readPack(pack) {
 
 function revealPackCard(state, cardId) {
   const pack = state.pendingPack;
-  if (pack.revealed.includes(cardId)) return;
-  if (!pack.prepaid) state.dismantlingEssence += pack.essenceByCard[cardId];
+  if (pack.revealed.includes(cardId)) return 0;
+  const essence = pack.prepaid ? 0 : (pack.essenceByCard[cardId] ?? 0);
+  state.dismantlingEssence += essence;
   pack.revealed.push(cardId);
+  return essence;
 }
 
-export function createRewardProgress(storage, locks, { random = Math.random, now = Date.now } = {}) {
+export function createRewardProgress(storage, locks, { random = Math.random, now = Date.now, enqueueReward: publishReward } = {}) {
   const listeners = new Set();
   let saved = null;
   let latestTime = 0;
@@ -451,16 +453,23 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
   async function transact(change) {
     const commit = () => {
       const state = read();
+      const rewards = [];
       const previousProductionAt = state.production.at;
       const time = now();
       advanceProduction(state.production, state.base.buildings, observedTime(time));
-      const outcome = change(state, previousProductionAt, time);
+      const outcome = change(state, previousProductionAt, time, (entry) => rewards.push(entry));
       if (outcome !== 'opened' && outcome !== 'done') return outcome;
       const { progress, ...economy } = state;
       const next = { unlocked: [...progress.unlocked], ...economy };
       try { storage?.setItem(REWARD_STORAGE_KEY, JSON.stringify(next)); }
       catch { return 'unavailable'; }
       saved = next;
+      // Publish in commit order, only after the balances and claim markers are saved.
+      if (publishReward) for (const entry of rewards) {
+        if (!Object.values(entry.reward).some((amount) => amount > 0)) continue;
+        try { publishReward(entry); }
+        catch (error) { console.warn('Reward reveal could not be queued', error); }
+      }
       return outcome;
     };
     let outcome;
@@ -474,7 +483,7 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
     return state.startingKeys + state.producedKeys + state.tavernKeys + state.rankKeys + award;
   }
 
-  function creditRankRounds(state, id, rounds, time) {
+  function creditRankRounds(state, id, rounds, time, enqueueReward) {
     if (!rounds) return true;
     const current = syncRanks(state.ranks, time);
     if (current.matches.includes(id)) return true;
@@ -485,6 +494,7 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
       !creditMaterials(state.base.materials, materials)) return false;
     state.ranks = { ...current, rounds: next, matches: [...current.matches, id] };
     state.rankKeys += keys;
+    enqueueReward({ title: 'Награда за ранг', source: 'Месячные ранги', reward: { keys, ...materials } });
     return true;
   }
 
@@ -496,7 +506,7 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
     return true;
   }
 
-  function rollLeague(state, time) {
+  function rollLeague(state, time, enqueueReward) {
     const next = state.league ? resetLeagueWeek(state.league, time, random) : createLeague(time);
     if (!next) return 'current';
     const reward = next.lastReward;
@@ -504,6 +514,8 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
       if (!creditMaterials(state.base.materials, { gateShards: reward.gateShards ?? 0 })) return 'unavailable';
       state.rewardGold += reward.gold;
       state.purchased[NEUTRAL] += reward.boosters ?? 0;
+      const { gold, gateShards, boosters } = reward;
+      enqueueReward({ title: 'Недельная награда Лиги', source: 'Лига', reward: { gold, gateShards, boosters } });
     }
     state.league = next;
     return 'done';
@@ -539,10 +551,15 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
     unlock(id) {
       const node = nodesById.get(id);
       if (!node) return Promise.resolve('unknown');
-      return transact(({ progress }) => {
+      return transact(({ progress }, _previousAt, _time, enqueueReward) => {
         const state = rewardState(node, progress);
         if (state !== 'available') return state;
         progress.unlocked.add(id);
+        const reward = { keys: node.keyReward ?? 0 };
+        if (node.kind === 'gold' || node.kind === 'gold-stack') reward.gold = node.value;
+        if (node.kind === 'essence') reward.essence = node.value;
+        if (node.kind === 'booster') reward.boosters = node.value;
+        enqueueReward({ title: node.label, source: 'Книга наград', reward });
         return 'opened';
       });
     },
@@ -557,7 +574,7 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
         previousAt !== production.at && Object.keys(production.stock).length ? 'done' : 'empty');
     },
     collect(kind) {
-      return transact((state, _previousAt, time) => {
+      return transact((state, _previousAt, time, enqueueReward) => {
         const { gold = 0, keys = 0, ...materials } = takeProduction(state.production, kind);
         const hasMaterials = Object.keys(materials).length > 0;
         if (!gold && !keys && !hasMaterials) return 'empty';
@@ -568,6 +585,7 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
         state.producedKeys += keys;
         rollTavern(state, time);
         advanceTavern(state.tavern, { collect: 1 });
+        enqueueReward({ title: 'Сбор с базы', source: 'Сбор с базы', reward: { gold, keys, ...materials } });
         return 'done';
       });
     },
@@ -578,7 +596,7 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
         time, Math.max(observedTime(time), state.production.at ?? 0));
     },
     claimOutpost() {
-      return transact((state, _previousAt, time) => {
+      return transact((state, _previousAt, time, enqueueReward) => {
         const weekly = weeklyReward(state.base.buildings.outpost?.level, state.lastWeeklyClaim,
           time, state.production.at);
         if (!weekly) return 'empty';
@@ -589,6 +607,7 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
         }
         state.rewardGold += gold;
         state.lastWeeklyClaim = time;
+        enqueueReward({ title: 'Недельное снабжение', source: 'Форпост', reward: weekly.bundle });
         return 'done';
       });
     },
@@ -603,12 +622,13 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
       });
     },
     claimTavernQuest(key) {
-      return transact((state, _previousAt, time) => {
+      return transact((state, _previousAt, time, enqueueReward) => {
         rollTavern(state, time);
         const tavern = state.tavern;
         const quest = [...(tavern?.pending ?? []), ...(tavern?.slots ?? [])].find((entry) => entry.key === key);
         if (!quest || quest.claimed || !questComplete(quest)) return 'stale';
-        const { keys, gold, steel } = TAVERN_QUEST_BY_ID.get(quest.id).reward;
+        const { title, reward } = TAVERN_QUEST_BY_ID.get(quest.id);
+        const { keys, gold, steel } = reward;
         if (!Number.isSafeInteger(keysWith(state, keys)) ||
           !Number.isSafeInteger(state.rewardGold + gold) ||
           (steel && !creditMaterials(state.base.materials, { steel }))) return 'unavailable';
@@ -616,6 +636,7 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
         state.rewardGold += gold;
         quest.claimed = true;
         tavern.pending = tavern.pending.filter((entry) => entry !== quest);
+        enqueueReward({ title, source: 'Таверна', reward });
         return 'done';
       });
     },
@@ -647,7 +668,7 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
     },
     league: () => read().league,
     checkpointLeague() {
-      return transact((state, _previousAt, time) => rollLeague(state, time));
+      return transact((state, _previousAt, time, enqueueReward) => rollLeague(state, time, enqueueReward));
     },
     beginLeagueMatch(ticket, id, deck) {
       return transact((state, _previousAt, time) => {
@@ -664,38 +685,46 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
         !Number.isInteger(rounds) || rounds < 0 || rounds > 2) {
         return Promise.resolve('invalid-result');
       }
-      return transact((state, _previousAt, time) => {
+      return transact((state, _previousAt, time, enqueueReward) => {
         if (!state.league) return 'stale';
         const settled = finishLeagueMatch(state.league, id, result, difference, random);
         if (!settled) return 'stale';
-        if (!creditRankRounds(state, id, rounds, time)) return 'unavailable';
         const regularGold = result === 'win' && settled.tier !== DIAMOND ? victoryGold(state.base.buildings.outpost?.level) : 0;
         state.rewardGold += settled.payout + regularGold;
+        if (regularGold) enqueueReward({ title: 'Золото за победу', source: 'Итоги матча', reward: { gold: regularGold } });
+        if (settled.payout) enqueueReward({ title: 'Выплата Алмазной лиги', source: 'Алмазная лига', reward: { gold: settled.payout } });
+        if (!creditRankRounds(state, id, rounds, time, enqueueReward)) return 'unavailable';
         rollTavern(state, time);
         trackTavernMatch(state.tavern, id, result, factionId, true);
-        const rollover = rollLeague(state, time);
+        const rollover = rollLeague(state, time, enqueueReward);
         return rollover === 'unavailable' ? rollover : 'done';
       });
     },
     rewardMatch(matchId, result, factionId, rounds = 0) {
       if (!['win', 'loss', 'draw'].includes(result) || typeof matchId !== 'string' || !matchId ||
         (result !== 'win' && !factionId) || !Number.isInteger(rounds) || rounds < 0 || rounds > 2) return Promise.resolve('empty');
-      return transact((state, _previousAt, time) => {
+      return transact((state, _previousAt, time, enqueueReward) => {
         if (state.rewardedMatches.includes(matchId) || state.tavern?.finished.includes(matchId) ||
           state.ranks?.matches.includes(matchId)) return 'claimed';
-        if (!creditRankRounds(state, matchId, rounds, time)) return 'unavailable';
+        if (result === 'win') {
+          const gold = victoryGold(state.base.buildings.outpost?.level);
+          if (!Number.isSafeInteger(state.rewardGold + gold)) return 'unavailable';
+          state.rewardGold += gold;
+          state.rewardedMatches = [...state.rewardedMatches, matchId];
+          enqueueReward({ title: 'Золото за победу', source: 'Итоги матча', reward: { gold } });
+        }
+        if (!creditRankRounds(state, matchId, rounds, time, enqueueReward)) return 'unavailable';
         const rolled = rollTavern(state, time);
         const tracked = trackTavernMatch(state.tavern, matchId, result, factionId, false);
-        if (result !== 'win') return rolled || tracked || rounds ? 'done' : 'empty';
-        const gold = victoryGold(state.base.buildings.outpost?.level);
-        if (!Number.isSafeInteger(state.rewardGold + gold)) return 'unavailable';
-        state.rewardGold += gold;
-        state.rewardedMatches = [...state.rewardedMatches, matchId];
-        return 'done';
+        return result === 'win' || rolled || tracked || rounds ? 'done' : 'empty';
       });
     },
-    grantMaterials(reward) {
-      return transact(({ base }) => creditMaterials(base.materials, reward) ? 'done' : 'unknown');
+    grantMaterials(reward, { title = 'Материалы получены', source = 'Снабжение' } = {}) {
+      return transact(({ base }, _previousAt, _time, enqueueReward) => {
+        if (!creditMaterials(base.materials, reward)) return 'unknown';
+        enqueueReward({ title, source, reward });
+        return 'done';
+      });
     },
     build(slot, kind) {
       if (!slot || buildingSlot(kind) !== slot) return Promise.resolve('unknown');
@@ -708,10 +737,11 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
     },
     buyPack(id) {
       if (!pools.has(id)) return Promise.resolve('unknown');
-      return transact((state) => {
+      return transact((state, _previousAt, _time, enqueueReward) => {
         if (balances(state).gold < BOOSTER_PRICE) return 'unaffordable';
         state.purchased[id] += 1;
         state.goldSpent += BOOSTER_PRICE;
+        enqueueReward({ title: 'Бустер куплен', source: 'Магазин бустеров', reward: { boosters: 1 } });
         return 'done';
       });
     },
@@ -736,20 +766,22 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
       });
     },
     revealPack(id, cardId) {
-      return transact((state) => {
+      return transact((state, _previousAt, _time, enqueueReward) => {
         const pack = state.pendingPack;
         if (pack?.id !== id || (cardId !== undefined && !pack.cards.includes(cardId))) return 'unknown';
         const cards = cardId === undefined ? pack.cards : [cardId];
         if (cards.every((card) => pack.revealed.includes(card))) return 'revealed';
-        for (const card of cards) revealPackCard(state, card);
+        const essence = cards.reduce((sum, card) => sum + revealPackCard(state, card), 0);
+        enqueueReward({ title: 'Эссенция за лишние копии', source: 'Открытие бустера', reward: { essence } });
         return 'done';
       });
     },
     finishPack(id) {
-      return transact((state) => {
+      return transact((state, _previousAt, _time, enqueueReward) => {
         if (state.pendingPack?.id !== id) return 'unknown';
-        for (const card of state.pendingPack.cards) revealPackCard(state, card);
+        const essence = state.pendingPack.cards.reduce((sum, card) => sum + revealPackCard(state, card), 0);
         state.pendingPack = null;
+        enqueueReward({ title: 'Эссенция за лишние копии', source: 'Открытие бустера', reward: { essence } });
         return 'done';
       });
     },
@@ -769,10 +801,12 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
     dismantle(id) {
       const card = definitions.get(id);
       if (!card) return Promise.resolve('unknown');
-      return transact((state) => {
+      return transact((state, _previousAt, _time, enqueueReward) => {
         if (!balances(state).owned[id]) return 'empty';
         state.dismantledCards[id] += 1;
-        state.dismantlingEssence += dismantleValue(card);
+        const essence = dismantleValue(card);
+        state.dismantlingEssence += essence;
+        enqueueReward({ title: 'Эссенция получена', source: 'Распыление карты', reward: { essence } });
         return 'done';
       });
     },

@@ -2,29 +2,11 @@ import { createBaseGrid } from './base-grid.js?v=robot-art-28';
 import { BASE_OVERLAYS, BASE_POSITIONS, baseLayout, overlayStyle } from './base-layout.js?v=base-mine-1';
 import { BASE_PLOTS, BUILDING_BY_PLOT, BUILDINGS, MATERIALS, buildingEffect, constructionShortages } from '../game/base.js?v=tavern-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
-import { dialogClose, sectionDialog } from './resources.js?v=interface-polish-1';
-import { resourceIcon } from './resource-icon.js?v=1';
+import { dialogClose, resourceGlyph as materialIcon, resourceLabel, sectionDialog } from './resources.js?v=reward-reveal-1';
 
-const labels = { gold: 'Золото', ...MATERIALS };
-const iconPath = {
-  steel: 'm4 11 12-6 12 6-12 6Zm0 5 12 6 12-6M4 21l12 6 12-6',
-  energyCells: 'M10 6h12v23H10zM13 3h6v3m-1 4-4 8h4l-3 6',
-  gateShards: 'm16 3 9 10-9 16-9-16zm0 0v26M7 13h18M4 7v4m-2-2h4m21 13v4m-2-2h4',
-};
+const labels = { gold: resourceLabel('gold'), ...MATERIALS };
 const USE_BASE_OVERLAYS = false;
 const reserved = 'Участок под будущую постройку';
-
-function materialIcon(key) {
-  if (key === 'gold') return resourceIcon(key);
-  const namespace = 'http://www.w3.org/2000/svg';
-  const icon = document.createElementNS(namespace, 'svg');
-  icon.setAttribute('viewBox', '0 0 32 32');
-  icon.setAttribute('aria-hidden', 'true');
-  const path = document.createElementNS(namespace, 'path');
-  path.setAttribute('d', iconPath[key]);
-  icon.append(path);
-  return icon;
-}
 
 function makeMask(sprite) {
   const { naturalWidth: width, naturalHeight: height } = sprite;

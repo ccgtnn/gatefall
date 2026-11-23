@@ -1,6 +1,6 @@
 import { createLeagueDialogue, LEAGUE_DIALOGUE } from './game/league-dialogue.js?v=match-panels-1';
 import { setLeagueSpeech } from './ui/league-character.js?v=league-characters-1';
-import { createBaseScreen } from './ui/base-screen.js?v=robot-art-28';
+import { createBaseScreen } from './ui/base-screen.js?v=reward-reveal-1';
 import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=decorations-1';
 import { createDeckStorage } from './ui/deck-storage.js?v=robot-art-28';
 import { bindCardPlacement } from './card-placement.js?v=row-placement-1';
@@ -21,10 +21,10 @@ import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=l
 import { createSettings } from './ui/settings.js?v=robot-art-28';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
-import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=league-avatars-5';
+import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=reward-reveal-1';
 import { createRewardBook } from './ui/reward-book.js?v=monthly-ranks-1';
 import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=decorations-1';
-import { createResourceBar } from './ui/resources.js?v=interface-polish-1';
+import { createResourceBar } from './ui/resources.js?v=reward-reveal-1';
 import { aimAnchor, aimTone, bindTargeting } from './ui/targeting.js?v=targeting-1';
 import { questComplete } from './game/tavern.js?v=robot-art-28';
 import { rankStanding, wonRounds } from './game/ranks.js?v=monthly-ranks-1';
@@ -32,6 +32,7 @@ import { BATTLEFIELD_STORAGE_KEY, createBattlefieldPreferences, createFramePrefe
 import { rankScreen } from './ui/rank-screen.js?v=monthly-ranks-1';
 import { leagueScreen } from './ui/league-screen.js?v=league-avatars-5';
 import { resetProgress } from './game/reset-progress.js?v=monthly-ranks-1';
+import { createRewardReveal, enqueueReward } from './ui/reward-reveal.js?v=reward-reveal-1';
 
 const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
@@ -72,7 +73,8 @@ const settings = createSettings(app, leaveMatch, async () => {
   await resetProgress(storage, navigator.locks);
   window.location.reload();
 });
-const progress = createRewardProgress(storage, navigator.locks);
+const rewardReveal = createRewardReveal({ motion: settings.motion, canShow: () => !match });
+const progress = createRewardProgress(storage, navigator.locks, { enqueueReward });
 const openBase = createBaseScreen(progress);
 void progress.checkpointProduction();
 const catalog = economyDialog('card-collection', 'Все карты');
@@ -356,6 +358,15 @@ function placeSelected(row, side) {
   playHuman({ type: 'play', cardId: selectedCardId, row, position: match.players[side].board[row].length });
 }
 
+async function replayMatch() {
+  const deck = matchDeck;
+  if (rewardReveal.hasPending()) {
+    await leaveMatch();
+    await rewardReveal.whenIdle();
+  }
+  if (!match || match.phase === 'finished') start(deck);
+}
+
 function setMulliganField(visible) {
   mulliganFieldVisible = visible;
   render();
@@ -386,7 +397,7 @@ function render() {
         : matchSettlement === 'stale' ? 'Этот тур уже закрыт.'
           : scored && !match.surrendered ? `В месячный ранг зачтено: ${scored} · текущий ранг ${rankStanding(progress.ranks().rounds).rank}` : '',
     };
-    content = finishedScreen(match, phaseLabel, () => start(matchDeck), leaveMatch,
+    content = finishedScreen(match, phaseLabel, replayMatch, leaveMatch,
       settings.showBotThoughts(), () => canPlayDeck(matchDeck), Boolean(leagueMatch), settlement);
   } else {
     const back = () => goTo('all-decks');
@@ -434,6 +445,7 @@ function render() {
   }
   app.classList.toggle('is-deck-home', content.classList.contains('deck-home'));
   screen.replaceChildren(content);
+  rewardReveal.refresh();
   menu.refresh(match, replaying);
   const pending = !replaying && match?.pending?.side === 'human' ? match.pending : null;
   const sourceId = pending?.job?.sourceId ?? targetAction?.cardId;

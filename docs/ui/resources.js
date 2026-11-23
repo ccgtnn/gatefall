@@ -1,5 +1,6 @@
 import { button, element, iconButton } from './dom.js?v=opponent-reveal-1';
 import { resourceIcon } from './resource-icon.js?v=1';
+import { MATERIALS } from '../game/base.js?v=tavern-1';
 
 const resources = [
   ['keys', 'key', 'Ключи', 'Книга наград'],
@@ -7,6 +8,36 @@ const resources = [
   ['essence', 'essence', 'Эссенция', 'Все карты'],
   ['packCount', 'booster', 'Бустеры', 'Открытие бустеров'],
 ];
+
+const walletResources = Object.fromEntries(resources.map(([key, glyph, label]) => [key, { glyph, label }]));
+const materialPaths = {
+  steel: 'm4 11 12-6 12 6-12 6Zm0 5 12 6 12-6M4 21l12 6 12-6',
+  energyCells: 'M10 6h12v23H10zM13 3h6v3m-1 4-4 8h4l-3 6',
+  gateShards: 'm16 3 9 10-9 16-9-16zm0 0v26M7 13h18M4 7v4m-2-2h4m21 13v4m-2-2h4',
+};
+
+export function resourceLabel(key) {
+  const walletKey = key === 'boosters' ? 'packCount' : key;
+  return (Object.hasOwn(walletResources, walletKey) && walletResources[walletKey].label) ||
+    (Object.hasOwn(MATERIALS, key) && MATERIALS[key]) || key;
+}
+
+export function resourceGlyph(key) {
+  const walletKey = key === 'boosters' ? 'packCount' : key;
+  if (Object.hasOwn(walletResources, walletKey)) return resourceIcon(walletResources[walletKey].glyph);
+  if (!Object.hasOwn(materialPaths, key)) return null;
+  const namespace = 'http://www.w3.org/2000/svg';
+  const icon = document.createElementNS(namespace, 'svg');
+  icon.setAttribute('viewBox', '0 0 32 32');
+  icon.setAttribute('aria-hidden', 'true');
+  icon.setAttribute('fill', 'none');
+  icon.setAttribute('stroke', 'currentColor');
+  icon.setAttribute('stroke-width', '1.5');
+  const path = document.createElementNS(namespace, 'path');
+  path.setAttribute('d', materialPaths[key]);
+  icon.append(path);
+  return icon;
+}
 
 function chromeButton(label, outline, handler, className) {
   const control = iconButton(undefined, label, handler, 'chrome-button ' + className);
@@ -75,7 +106,7 @@ export function createResourceBar(home, settings, progress, routes) {
     control.setAttribute('aria-haspopup', 'dialog');
     control.setAttribute('aria-controls', routes[key].dialog.id);
     const count = element('strong');
-    control.append(resourceIcon(glyph), count);
+    control.append(resourceGlyph(key), count);
     bar.append(control);
     return { key, label, title, control, count };
   });

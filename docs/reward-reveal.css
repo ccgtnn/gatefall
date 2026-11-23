@@ -1,0 +1,54 @@
+.reward-reveal {
+  width: min(34rem, calc(100% - 2rem));
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: clamp(1rem, 4vw, 2rem);
+  overflow: auto;
+  border: 1px solid #cba872;
+  border-radius: .85rem;
+  background: radial-gradient(ellipse at top, #294562, #131e32 64%, #0d1525);
+  color: #f3f6fc;
+  box-shadow: 0 0 2rem #dfab5152, inset 0 0 1.5rem #a8d4ff15;
+  text-align: center;
+}
+.reward-reveal::backdrop { background: #050a12db; }
+.reward-reveal.is-entering::backdrop { animation: reward-reveal-dim var(--reward-enter) ease-out both; }
+.reward-reveal.is-entering { animation: reward-reveal-in var(--reward-enter) ease-out both; }
+@keyframes reward-reveal-dim { from { opacity: 0; } to { opacity: 1; } }
+@keyframes reward-reveal-in {
+  from { opacity: 0; transform: scale(.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+.reward-reveal-header h2 { margin: 0; font-size: clamp(1.3rem, 5vw, 2rem); }
+.reward-reveal-source, .reward-reveal-count { margin: .35rem 0; color: #e5c38e; }
+.reward-reveal-count { font-size: .85rem; font-variant-numeric: tabular-nums; }
+.reward-reveal-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.5rem), 1fr));
+  gap: .65rem;
+  margin: 1.25rem 0;
+  padding: 0;
+  list-style: none;
+}
+.reward-reveal-item {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: .25rem;
+  padding: .55rem .3rem;
+  border: 1px solid #8fb4d34f;
+  border-radius: .5rem;
+  background: #0e1828b3;
+}
+.reward-reveal-item svg { width: 2rem; height: 2rem; color: #ecc982; }
+.reward-reveal-item[data-resource="steel"] svg { color: #aec9df; }
+.reward-reveal-item[data-resource="energyCells"] svg { color: #82ecd2; }
+.reward-reveal-item[data-resource="gateShards"] svg { color: #d3adff; }
+.reward-reveal-item strong { font-size: clamp(1.2rem, 4vw, 1.8rem); overflow-wrap: anywhere; }
+.reward-reveal-item span { color: #cbd6e4; font-size: .85rem; }
+.reward-reveal-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem; }
+.reward-reveal [hidden] { display: none; }
+
+@media (max-width: 36rem) {
+  .reward-reveal-items:has(> :nth-child(3)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
