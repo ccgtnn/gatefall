@@ -483,7 +483,21 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   font-weight: 750;
   line-height: 1;
 }
-.card-kind { top: 2px; left: 2px; border-radius: 3px; }
+.card-kind {
+  --kind-stat-size: var(--badge-size, var(--stat-size, 22px));
+  --kind-inset: clamp(4px, calc(var(--kind-stat-size) * .28), 11px);
+  top: var(--kind-inset);
+  left: var(--kind-inset);
+  z-index: 3;
+  width: min(36%, clamp(18px, calc(var(--kind-stat-size) * 1.25), 44px));
+  height: auto;
+  aspect-ratio: 1;
+  border-color: var(--rarity-border-color, #8197a5);
+  border-radius: 4px;
+  color: color-mix(in srgb, var(--rarity-border-color, #8197a5) 73%, white);
+  font-size: clamp(.85rem, calc(var(--kind-stat-size) * .82), 2rem);
+  pointer-events: none;
+}
 .card-state {
   inset: auto auto 2px 50%;
   transform: translateX(-50%);
