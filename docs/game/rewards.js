@@ -1,7 +1,8 @@
+import { advanceTavern, questComplete, replaceTavernQuest, syncTavern, TAVERN_QUEST_BY_ID, tavernEventAmounts, trackTavernMatch } from './tavern.js?v=tavern-1';
 import { createLeague, DIAMOND, finishLeagueMatch, leagueStake, needsLeagueReset, reserveLeagueMatch, resetLeagueWeek } from './league.js?v=league-1';
 import { victoryGold, weeklyReward } from './outpost.js?v=base-outpost-1';
-import { advanceProduction, productionView, readProduction, takeProduction } from './base-production.js?v=rebirth-1';
-import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=rebirth-1';
+import { advanceProduction, productionView, readProduction, takeProduction } from './base-production.js?v=tavern-1';
+import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=tavern-1';
 import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=robot-violet-1';
 import { copyLimit, inspectDeck } from './decks.js?v=robot-violet-1';
 
@@ -388,12 +389,14 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
     const hasFullCollection = snapshot.fullCollection === true;
     const startingKeys = fresh ? STARTING_KEYS : count(snapshot.startingKeys) || LEGACY_STARTING_KEYS;
     const producedKeys = count(snapshot.producedKeys);
+    const tavernKeys = count(snapshot.tavernKeys);
     return {
       startingGold: fresh ? STARTING_GOLD : count(snapshot.startingGold),
       startingKeys,
       startingEssence: fresh ? STARTING_ESSENCE : count(snapshot.startingEssence) || LEGACY_STARTING_ESSENCE,
-      progress: readProgress(snapshot.unlocked, startingKeys + producedKeys),
-      producedKeys,
+      progress: readProgress(snapshot.unlocked, startingKeys + producedKeys + tavernKeys),
+      producedKeys, tavernKeys,
+      tavern: snapshot.tavern?.slots ? snapshot.tavern : null,
       fullCollection: true,
       purchased: countsFor(pools.keys(), snapshot.purchased),
       opened: countsFor(pools.keys(), snapshot.opened),
@@ -464,6 +467,14 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
     return outcome;
   }
 
+  function rollTavern(state, time) {
+    const level = state.base.buildings[buildingSlot('tavern')]?.level;
+    const next = syncTavern(state.tavern, level, time, random);
+    if (next === state.tavern) return false;
+    state.tavern = next;
+    return true;
+  }
+
   function rollLeague(state, time) {
     const next = state.league ? resetLeagueWeek(state.league, time, random) : createLeague(time);
     if (!next) return 'current';
@@ -480,7 +491,7 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
   function buildLevel(slot, kind, previousLevel) {
     const level = previousLevel + 1;
     const cost = buildingPrice(kind, level);
-    return transact((state) => {
+    return transact((state, _previousAt, time) => {
       const { materials, buildings } = state.base;
       const currentLevel = buildings[slot]?.level ?? 0;
       if (currentLevel !== previousLevel) return previousLevel ? 'stale' : 'occupied';
@@ -491,6 +502,7 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
         if (key !== 'gold') materials[key] -= price;
       }
       buildings[slot] = { kind, level };
+      if (kind === 'tavern') rollTavern(state, time);
       return 'done';
     });
   }
@@ -524,15 +536,17 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
         previousAt !== production.at && Object.keys(production.stock).length ? 'done' : 'empty');
     },
     collect(kind) {
-      return transact((state) => {
+      return transact((state, _previousAt, time) => {
         const { gold = 0, keys = 0, ...materials } = takeProduction(state.production, kind);
         const hasMaterials = Object.keys(materials).length > 0;
         if (!gold && !keys && !hasMaterials) return 'empty';
         if (!Number.isSafeInteger(state.producedGold + gold) ||
-          !Number.isSafeInteger(state.startingKeys + state.producedKeys + keys)) return 'unavailable';
+          !Number.isSafeInteger(state.startingKeys + state.producedKeys + state.tavernKeys + keys)) return 'unavailable';
         if (hasMaterials && !creditMaterials(state.base.materials, materials)) return 'unavailable';
         state.producedGold += gold;
         state.producedKeys += keys;
+        rollTavern(state, time);
+        advanceTavern(state.tavern, { collect: 1 });
         return 'done';
       });
     },
@@ -557,6 +571,49 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
         return 'done';
       });
     },
+    tavern: () => read().tavern,
+    checkpointTavern() {
+      return transact((state, _previousAt, time) => rollTavern(state, time) ? 'done' : 'current');
+    },
+    changeTavernQuest(key) {
+      return transact((state, _previousAt, time) => {
+        rollTavern(state, time);
+        return replaceTavernQuest(state.tavern, key, random) ? 'done' : 'stale';
+      });
+    },
+    claimTavernQuest(key) {
+      return transact((state, _previousAt, time) => {
+        rollTavern(state, time);
+        const tavern = state.tavern;
+        const quest = [...(tavern?.pending ?? []), ...(tavern?.slots ?? [])].find((entry) => entry.key === key);
+        if (!quest || quest.claimed || !questComplete(quest)) return 'stale';
+        const { keys, gold, steel } = TAVERN_QUEST_BY_ID.get(quest.id).reward;
+        if (!Number.isSafeInteger(state.startingKeys + state.producedKeys + state.tavernKeys + keys) ||
+          !Number.isSafeInteger(state.rewardGold + gold) ||
+          (steel && !creditMaterials(state.base.materials, { steel }))) return 'unavailable';
+        state.tavernKeys += keys;
+        state.rewardGold += gold;
+        quest.claimed = true;
+        tavern.pending = tavern.pending.filter((entry) => entry !== quest);
+        return 'done';
+      });
+    },
+    recordTavernEvents(id, offset, events) {
+      const amounts = tavernEventAmounts(events);
+      if (!Object.keys(amounts).length || !read().base.buildings[buildingSlot('tavern')]) return Promise.resolve('empty');
+      return transact((state, _previousAt, time) => {
+        const rolled = rollTavern(state, time);
+        const tavern = state.tavern;
+        if (!tavern) return 'empty';
+        const cursor = Object.hasOwn(tavern.cursors, id) ? tavern.cursors[id] : 0;
+        const skip = Math.max(0, cursor - offset);
+        if (skip >= events.length) return rolled ? 'done' : 'empty';
+        const progress = skip ? tavernEventAmounts(events.slice(skip)) : amounts;
+        advanceTavern(tavern, progress);
+        tavern.cursors = { ...tavern.cursors, [id]: offset + events.length };
+        return 'done';
+      });
+    },
     league: () => read().league,
     checkpointLeague() {
       return transact((state, _previousAt, time) => rollLeague(state, time));
@@ -571,7 +628,7 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
         return outcome;
       });
     },
-    settleLeagueMatch(id, result, difference) {
+    settleLeagueMatch(id, result, difference, factionId) {
       if (!['win', 'loss', 'draw'].includes(result) || !Number.isInteger(difference) || Math.abs(difference) > 2) {
         return Promise.resolve('invalid-result');
       }
@@ -581,14 +638,20 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
         if (!settled) return 'stale';
         const regularGold = result === 'win' && settled.tier !== DIAMOND ? victoryGold(state.base.buildings.outpost?.level) : 0;
         state.rewardGold += settled.payout + regularGold;
+        rollTavern(state, time);
+        trackTavernMatch(state.tavern, id, result, factionId, true);
         const rollover = rollLeague(state, time);
         return rollover === 'unavailable' ? rollover : 'done';
       });
     },
-    rewardMatch(matchId, result) {
-      if (result !== 'win' || typeof matchId !== 'string' || !matchId) return Promise.resolve('empty');
-      return transact((state) => {
-        if (state.rewardedMatches.includes(matchId)) return 'claimed';
+    rewardMatch(matchId, result, factionId) {
+      if (!['win', 'loss', 'draw'].includes(result) || typeof matchId !== 'string' || !matchId ||
+        (result !== 'win' && !factionId)) return Promise.resolve('empty');
+      return transact((state, _previousAt, time) => {
+        if (state.rewardedMatches.includes(matchId) || state.tavern?.finished.includes(matchId)) return 'claimed';
+        const rolled = rollTavern(state, time);
+        const tracked = trackTavernMatch(state.tavern, matchId, result, factionId, false);
+        if (result !== 'win') return rolled || tracked ? 'done' : 'empty';
         const gold = victoryGold(state.base.buildings.outpost?.level);
         if (!Number.isSafeInteger(state.rewardGold + gold)) return 'unavailable';
         state.rewardGold += gold;
@@ -619,7 +682,7 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
     },
     openPack(id) {
       if (!pools.has(id)) return Promise.resolve('unknown');
-      return transact((state) => {
+      return transact((state, _previousAt, time) => {
         if (state.pendingPack) return 'pending';
         const { boosters, owned } = balances(state);
         if (!boosters[id]) return 'empty';
@@ -632,6 +695,8 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
         }
         const number = Object.values(state.opened).reduce((sum, value) => sum + value, 0);
         state.pendingPack = { id: number, faction: id, cards: cards.map((card) => card.id), essenceByCard, revealed: [] };
+        rollTavern(state, time);
+        advanceTavern(state.tavern, { booster: 1 });
         return 'done';
       });
     },

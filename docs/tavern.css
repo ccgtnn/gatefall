@@ -1,0 +1,35 @@
+.tavern-screen .reward-shell {
+  width: min(100%, 700px);
+  margin-inline: auto;
+  gap: .6rem;
+}
+.tavern-screen :is(h2, h3, p) { margin: 0; }
+.tavern-clock, .tavern-count { font-variant-numeric: tabular-nums; }
+.tavern-list { display: grid; gap: .6rem; }
+.tavern-quest {
+  min-width: 0;
+  display: grid;
+  gap: .55rem;
+  padding: .8rem;
+  border: 1px solid #ffffff26;
+  background: linear-gradient(135deg, #252522, #1c2128);
+  border-radius: .55rem;
+}
+.tavern-quest progress { width: 100%; accent-color: #d7ae62; }
+.tavern-summary, .tavern-actions { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+.tavern-actions, .tavern-rewards { flex-wrap: wrap; }
+.tavern-rewards, .tavern-rewards span { display: flex; align-items: center; gap: .35rem; }
+.tavern-rewards { gap: .8rem; }
+.tavern-rewards svg { width: 1rem; height: 1rem; }
+.tavern-badge {
+  display: inline-grid;
+  place-items: center;
+  margin-inline-start: .5em;
+  min-width: 1.4em;
+  padding-inline: .15em;
+  border-radius: 1em;
+  color: #201608;
+  background: #efc675;
+  font-size: .8em;
+}
+.tavern-badge[hidden] { display: none; }

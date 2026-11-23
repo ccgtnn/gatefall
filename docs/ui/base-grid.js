@@ -1,9 +1,11 @@
+import { createTavernScreen } from './tavern-screen.js?v=tavern-1';
 import { weeklyBundle } from '../game/outpost.js?v=base-outpost-1';
-import { BUILDINGS, MAX_BUILDING_LEVEL, buildingEffect, buildingPrice, buildingSlot, constructionShortages } from '../game/base.js?v=rebirth-1';
+import { BUILDINGS, MAX_BUILDING_LEVEL, buildingEffect, buildingPrice, buildingSlot, constructionShortages } from '../game/base.js?v=tavern-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { dialogClose } from './resources.js?v=interface-polish-1';
 
 export function createBaseGrid(shell, progress, labels, materialIcon) {
+  const openTavern = createTavernScreen(progress);
   const toolbar = element('div', 'base-production-toolbar');
   const collectAll = button('Собрать всё', () => collect());
   toolbar.append(collectAll);
@@ -85,6 +87,7 @@ export function createBaseGrid(shell, progress, labels, materialIcon) {
     const shortage = element('p', 'base-shortage');
     let level = 0;
     const open = button('Открыть', () => {
+      if (kind === 'tavern') return void openTavern();
       heading.textContent = definition.name;
       body.replaceChildren(element('strong', null, 'Уровень ' + level),
         element('p', null, buildingEffect(kind, level)));

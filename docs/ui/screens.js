@@ -6,7 +6,7 @@ import { logView, roundText } from './menu.js?v=robot-violet-1';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=collection-2';
 import { factionFilters } from './faction-filters.js?v=1';
 import { copyLimit } from '../game/decks.js?v=robot-violet-1';
-import { craftPrice, dismantleValue } from '../game/rewards.js?v=league-1';
+import { craftPrice, dismantleValue } from '../game/rewards.js?v=tavern-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 import { sectionBack } from './resources.js?v=interface-polish-1';
 

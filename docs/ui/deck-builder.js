@@ -69,7 +69,12 @@ export function deckHomeScreen(phaseLabel, stats, actions, recentDecks) {
   const screen = element('section', 'deck-home');
   const sections = element('section', 'home-block');
   const tiles = element('div', 'home-tiles');
-  for (const [title, open] of [['База', actions.base], ['Лига', actions.league], ['Все карты', actions.catalog]]) {
+  const base = button('База', actions.base, 'button home-tile');
+  const badge = element('span', 'tavern-badge');
+  badge.setAttribute('aria-hidden', 'true');
+  base.append(badge);
+  tiles.append(base);
+  for (const [title, open] of [['Лига', actions.league], ['Все карты', actions.catalog]]) {
     tiles.append(button(title, open, 'button home-tile'));
   }
   sections.append(element('h2', null, 'Разделы'), tiles);
@@ -81,6 +86,10 @@ export function deckHomeScreen(phaseLabel, stats, actions, recentDecks) {
   screen.append(campaignShelf(campaigns), sections, decks);
 
   function update() {
+    const ready = actions.tavernRewards();
+    badge.hidden = !ready;
+    badge.textContent = ready;
+    base.setAttribute('aria-label', ready ? `База · награды Таверны: ${ready}` : 'База');
     const cards = recentDecks().map((deck) => deckListItem(deck,
       PRESETS.includes(deck) ? stats : undefined, { play: actions.play }).item);
     list.replaceChildren(...(cards.length ? cards : [element('p', 'muted', 'Нет доступных колод.')]));

@@ -10,7 +10,7 @@ export const STARTING_MATERIALS = Object.freeze({ steel: 10000, energyCells: 100
 export const MAX_BUILDING_LEVEL = 5;
 export const BUILDINGS = Object.freeze({
   outpost: { name: 'Форпост', art: 'outpost', cost: { gold: 500, steel: 150, energyCells: 100 }, production: { keys: 1 / 8 } },
-  tavern: { name: 'Таверна', plot: '5', art: 'tavern', cost: { gold: 300, steel: 150, energyCells: 50 }, effect: (level) => `Ежедневные задания · слотов: ${level} · скоро` },
+  tavern: { name: 'Таверна', plot: '5', art: 'tavern', cost: { gold: 300, steel: 150, energyCells: 50 }, effect: (level) => `Ежедневные задания · слотов: ${level}` },
   mine: { name: 'Шахта', plot: '2', art: 'mine', cost: { gold: 400, steel: 100, energyCells: 50 }, production: { steel: 20, gold: 10 } },
   power: { name: 'Энергостанция', art: 'power', cost: { gold: 350, steel: 75, energyCells: 25 }, production: { energyCells: 10 } },
   warehouse: { name: 'Склад', art: 'warehouse', cost: { gold: 250, steel: 80, energyCells: 25 }, effect: (level) => `Запас производства · ${productionHours(level)} ч на здание` },

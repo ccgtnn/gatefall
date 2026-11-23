@@ -1,5 +1,5 @@
-import { createBaseScreen } from './ui/base-screen.js?v=rebirth-1';
-import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=league-1';
+import { createBaseScreen } from './ui/base-screen.js?v=tavern-1';
+import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=tavern-1';
 import { createDeckStorage } from './ui/deck-storage.js?v=robot-violet-1';
 import { bindCardPlacement } from './card-placement.js?v=row-placement-1';
 import { animateCoin, animateHandTurn, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=robot-violet-1';
@@ -15,17 +15,18 @@ import { cardArt, preview, showCard } from './ui/cards.js?v=robot-violet-1';
 import { createBattlefield } from './ui/field.js?v=league-1';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=league-1';
 import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=robot-violet-1';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=league-1';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=tavern-1';
 import { createSettings } from './ui/settings.js?v=robot-violet-1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
-import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=league-1';
-import { createRewardBook } from './ui/reward-book.js?v=league-1';
-import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=league-1';
+import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=tavern-1';
+import { createRewardBook } from './ui/reward-book.js?v=tavern-1';
+import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=tavern-1';
 import { createResourceBar } from './ui/resources.js?v=interface-polish-1';
 import { aimAnchor, aimTone, bindTargeting } from './ui/targeting.js?v=targeting-1';
+import { questComplete } from './game/tavern.js?v=tavern-1';
 import { leagueScreen } from './ui/league-screen.js?v=league-1';
-import { resetProgress } from './game/reset-progress.js?v=league-1';
+import { resetProgress } from './game/reset-progress.js?v=tavern-1';
 
 const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
@@ -78,7 +79,26 @@ window.addEventListener('storage', (event) => {
   else if (event.key === REWARD_STORAGE_KEY || event.key === null) progress.refresh();
 });
 if (progress.league()) void progress.checkpointLeague();
-setInterval(() => screen.querySelector('.league-panel')?.dispatchEvent(new Event('league-tick')), 1000);
+let tavernResetAt;
+let checkingTavern = false;
+let retryTavernAt = 0;
+function rememberTavernReset() {
+  tavernResetAt = progress.tavern()?.resetAt;
+}
+async function checkpointTavern() {
+  if (checkingTavern) return;
+  checkingTavern = true;
+  const outcome = await progress.checkpointTavern();
+  checkingTavern = false;
+  retryTavernAt = outcome === 'unavailable' ? Date.now() + 15000 : 0;
+}
+progress.subscribe(rememberTavernReset);
+rememberTavernReset();
+void checkpointTavern();
+setInterval(() => {
+  screen.querySelector('.league-panel')?.dispatchEvent(new Event('league-tick'));
+  if (tavernResetAt && Date.now() >= Math.max(tavernResetAt, retryTavernAt)) void checkpointTavern();
+}, 1000);
 const menu = createMatchMenu(() => match, () => settings.showBotThoughts());
 const { drawer } = menu;
 const hand = {
@@ -328,7 +348,12 @@ function render() {
         concede: (id) => progress.settleLeagueMatch(id, 'loss', -2),
       }); break;
       default: content = deckHomeScreen(phaseLabel, stats, {
-        base: openBase, league: () => goTo('league'), catalog: () => openResources('essence'), all: back, play: start,
+        base: openBase,
+        tavernRewards: () => {
+          const tavern = progress.tavern();
+          return tavern ? tavern.pending.length + tavern.slots.filter((quest) => !quest.claimed && questComplete(quest)).length : 0;
+        },
+        league: () => goTo('league'), catalog: () => openResources('essence'), all: back, play: start,
       }, () => deckStore.recent(progress.inventory().owned));
     }
   }
@@ -394,7 +419,9 @@ async function updateMatch(next) {
   const session = matchSession;
   clearTimeout(timer);
   const before = match;
-  const events = next.log.slice(before.log.length).filter(({ type }) => type !== 'bot-thought');
+  const journal = next.log.slice(before.log.length);
+  void progress.recordTavernEvents(matchRewardId, before.log.length, journal);
+  const events = journal.filter(({ type }) => type !== 'bot-thought');
   const duration = settings.motion();
   if ((before.phase === 'playing' && events.length && duration) || events.some(({ type }) => type === 'round-end')) {
     replaying = true;
@@ -430,7 +457,7 @@ async function updateMatch(next) {
     if (leagueMatch) void saveLeagueResult();
     else {
       stats.record(match.players.human.factionId, match.result);
-      void progress.rewardMatch(matchRewardId, match.result);
+      void progress.rewardMatch(matchRewardId, match.result, match.players.human.factionId);
     }
   }
   if (match.phase === 'mulligan') {
@@ -462,7 +489,7 @@ async function saveLeagueResult() {
   const difference = rounds.reduce((total, { winner }) => total + (winner === 'human' ? 1 : winner === 'bot' ? -1 : 0), 0);
   leagueSettlement = 'saving';
   render();
-  const outcome = await progress.settleLeagueMatch(id, match.result, difference);
+  const outcome = await progress.settleLeagueMatch(id, match.result, difference, match.players.human.factionId);
   if (id !== matchRewardId) return;
   if (outcome === 'done') stats.record(match.players.human.factionId, match.result);
   leagueSettlement = outcome === 'done' || outcome === 'stale' ? outcome : 'unavailable';
