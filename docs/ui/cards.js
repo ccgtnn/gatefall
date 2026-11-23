@@ -7,12 +7,22 @@ import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=hou
 import { deathwishDefinitions } from '../game/events.js?v=helper-robot-1';
 import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=badge-depth-1';
 
+const animatedArt = {
+  'synaptic-parasite': {
+    hand: 'synaptic-parasite-hand.mp4',
+    preview: 'synaptic-parasite-preview.mp4',
+  },
+};
+
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';
 preview.setAttribute('aria-labelledby', 'preview-title');
 document.body.append(preview);
 preview.addEventListener('click', (event) => {
   if (event.target === preview) preview.close();
+});
+preview.addEventListener('close', () => {
+  if (!preview.open) preview.querySelector('.card-art-video')?.pause();
 });
 export function cardArt(definition, className) {
   const image = element('img', className);
@@ -25,11 +35,24 @@ export function cardArt(definition, className) {
   return image;
 }
 
-export function addCardCrop(node, definition, { fullArt = false } = {}) {
+export function addCardCrop(node, definition, { fullArt = false, animation } = {}) {
   setCardRarity(node, definition.rarity);
   if (!definition.art) return;
   node.classList.add('has-art');
-  node.prepend(cardArt(fullArt ? { ...definition, artCrop: undefined } : definition, 'card-art-crop'));
+  const image = cardArt(fullArt ? { ...definition, artCrop: undefined } : definition, 'card-art-crop');
+  const clip = animatedArt[definition.id]?.[animation];
+  if (!clip || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+    node.prepend(image);
+    return;
+  }
+  const video = element('video', 'card-art-crop card-art-video');
+  video.poster = image.src;
+  video.muted = video.defaultMuted = video.loop = video.playsInline = video.autoplay = true;
+  video.preload = 'none';
+  video.setAttribute('aria-hidden', 'true');
+  video.addEventListener('error', () => video.replaceWith(image), { once: true });
+  video.src = './art/' + clip;
+  node.prepend(video);
 }
 
 export function showCard(card, { leader = false, legacy = false,
@@ -88,7 +111,7 @@ export function showCard(card, { leader = false, legacy = false,
   const layout = element('div', 'preview-layout');
   if (!leader && !legacy) {
     const face = element('div', 'preview-card-face');
-    decorateCard(face, card, { factionId: definition.faction }, { showProvision: true, fullArt: true, orderReady, orderCooldown, frame });
+    decorateCard(face, card, { factionId: definition.faction }, { showProvision: true, fullArt: true, orderReady, orderCooldown, frame, animation: 'preview' });
     layout.append(face);
   } else if (definition.art) {
     layout.append(cardArt(definition, 'preview-art'));
@@ -226,7 +249,7 @@ function cardStats(card) {
 }
 
 export function decorateCard(node, card, player, { orderOnField = false, legacy = false,
-  showProvision = false, fullArt = false, orderReady = false, orderCooldown = 0, frame } = {}) {
+  showProvision = false, fullArt = false, orderReady = false, orderCooldown = 0, frame, animation } = {}) {
   const { definition } = card;
   const type = cardType(card);
   node.dataset.type = type;
@@ -242,7 +265,7 @@ export function decorateCard(node, card, player, { orderOnField = false, legacy 
   }
   if (statusCount(card, 'target')) node.append(statBadge('target', 'Отмечен Целью'));
   if (definition.categories?.length) node.append(element('span', 'card-category', definition.categories.join(' · ')));
-  addCardCrop(node, definition, { fullArt });
+  addCardCrop(node, definition, { fullArt, animation });
   if (!definition.art) node.append(element('span', 'card-art-placeholder', definition.name));
 }
 
@@ -334,10 +357,10 @@ function cardLabel(card, showProvision) {
   return details.join(' · ');
 }
 
-export function cardButton(card, handler, player, placement = false, { showProvision = false, inspect } = {}) {
+export function cardButton(card, handler, player, placement = false, { showProvision = false, inspect, animation } = {}) {
   const node = button(undefined, handler, 'hand-card');
   node.dataset.cardId = card.id;
-  decorateCard(node, card, player, { showProvision });
+  decorateCard(node, card, player, { showProvision, animation });
   cardInspection(node, card, placement, inspect);
   return node;
 }

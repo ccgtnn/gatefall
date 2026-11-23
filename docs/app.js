@@ -1,7 +1,7 @@
 import { createLeagueDialogue, LEAGUE_DIALOGUE } from './game/league-dialogue.js?v=hounds-1';
 import { setLeagueSpeech } from './ui/league-character.js?v=league-characters-1';
 import { createBaseScreen } from './ui/base-screen.js?v=hounds-1';
-import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=hounds-1';
+import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=parasite-motion-1';
 import { createDeckStorage } from './ui/deck-storage.js?v=hounds-1';
 import { bindCardPlacement } from './card-placement.js?v=hounds-1';
 import { animateCoin, animateHandTurn, animateLifeLoss, animateTurnSparks, presentJournalEvent } from './card-motion.js?v=hounds-1';
@@ -13,22 +13,22 @@ import { FACTIONS } from './game/cards.js?v=hounds-1';
 import { inspectDeck, PRESETS } from './game/decks.js?v=hounds-1';
 import { applyAction, createDeckMatch } from './game/match.js?v=hounds-1';
 import { element, iconButton } from './ui/dom.js?v=opponent-reveal-1';
-import { cardArt, preview, showCard } from './ui/cards.js?v=hounds-1';
-import { createBattlefield } from './ui/field.js?v=hounds-1';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=hounds-1';
-import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=hounds-1';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=hounds-1';
+import { cardArt, preview, showCard } from './ui/cards.js?v=parasite-motion-1';
+import { createBattlefield } from './ui/field.js?v=parasite-motion-1';
+import { keepHandVideos, mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=parasite-motion-1';
+import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=parasite-motion-1';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=parasite-motion-1';
 import { createSettings } from './ui/settings.js?v=hounds-1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
 import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=hounds-1';
 import { createRewardBook } from './ui/reward-book.js?v=hounds-1';
-import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=hounds-1';
+import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=parasite-motion-1';
 import { createResourceBar } from './ui/resources.js?v=reward-reveal-1';
 import { aimAnchor, aimTone, bindTargeting } from './ui/targeting.js?v=targeting-1';
 import { questComplete } from './game/tavern.js?v=hounds-1';
 import { rankStanding, wonRounds } from './game/ranks.js?v=monthly-ranks-1';
-import { BATTLEFIELD_STORAGE_KEY, createBattlefieldPreferences, createFramePreferences, decorationsScreen, FRAME_STORAGE_KEY } from './ui/decorations.js?v=fitted-frames-1';
+import { BATTLEFIELD_STORAGE_KEY, createBattlefieldPreferences, createFramePreferences, decorationsScreen, FRAME_STORAGE_KEY } from './ui/decorations.js?v=parasite-motion-1';
 import { rankScreen } from './ui/rank-screen.js?v=monthly-ranks-1';
 import { leagueScreen, LEAGUE_OVERVIEW_QUERY } from './ui/league-screen.js?v=hounds-1';
 import { resetProgress } from './game/reset-progress.js?v=hounds-1';
@@ -449,6 +449,7 @@ function render() {
     }
   }
   app.classList.toggle('is-deck-home', content.classList.contains('deck-home'));
+  if (app.classList.contains('in-match')) keepHandVideos(screen, content);
   screen.replaceChildren(content);
   rewardReveal.refresh();
   menu.refresh(match, replaying);

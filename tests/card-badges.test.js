@@ -56,6 +56,27 @@ test('live battlefield and hand faces hide provision, while catalog and preview 
   assert.match(byClass(preview, 'muted').textContent, /Провизия 11/);
 });
 
+test('Synaptic Parasite uses separate silent loops in hand and preview with a still fallback', () => {
+  const id = 'synaptic-parasite';
+  assert.equal(byClass(drawable(id), 'card-art-crop').tag, 'img');
+  const hand = byClass(drawable(id, { animation: 'hand' }), 'card-art-video');
+  assert.equal(hand.tag, 'video');
+  assert.equal(hand.src, './art/synaptic-parasite-hand.mp4');
+  assert.equal(hand.poster, './art/synaptic-parasite.webp');
+  assert.ok(hand.autoplay && hand.muted && hand.loop && hand.playsInline);
+  showCard(makeCard(id));
+  assert.equal(byClass(preview, 'card-art-video').src, './art/synaptic-parasite-preview.mp4');
+
+  globalThis.matchMedia = () => ({ matches: true });
+  try {
+    assert.equal(byClass(drawable(id, { animation: 'hand' }), 'card-art-crop').tag, 'img');
+    showCard(makeCard(id));
+    assert.equal(byClass(preview, 'card-art-video'), undefined);
+  } finally {
+    delete globalThis.matchMedia;
+  }
+});
+
 test('card details start at the top and focus the title without scrolling the page', () => {
   preview.open = true;
   preview.scrollTop = 150;

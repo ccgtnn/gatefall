@@ -1,6 +1,6 @@
 import { FACTIONS } from '../game/cards.js?v=hounds-1';
 import { createCard } from '../game/board.js?v=hounds-1';
-import { decorateCard } from './cards.js?v=hounds-1';
+import { decorateCard } from './cards.js?v=parasite-motion-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { sectionBack } from './resources.js?v=interface-polish-1';
 
