@@ -256,6 +256,21 @@ body:has(.is-deck-home) {
   font-size: 1.05rem;
   font-weight: 700;
 }
+.home-tile-base { --section-art: url('./art/home-base-panel.webp'); }
+.home-tile-league { --section-art: url('./art/home-league-panel.webp'); }
+.home-tile-ranks { --section-art: url('./art/home-ranks-panel.webp'); }
+.is-deck-home .home-tiles-sections > .home-tile {
+  --face: linear-gradient(90deg, #10182660, transparent 56%), var(--section-art) center / cover no-repeat #101826;
+  display: flex;
+  align-items: center;
+  aspect-ratio: 3 / 1;
+  padding-inline: clamp(.75rem, 2vw, 1.35rem);
+  text-align: left;
+  text-shadow: 0 1px 3px #05080f;
+}
+@media (max-width: 37rem) and (orientation: portrait) {
+  .home-tiles-sections { grid-template-columns: 1fr; }
+}
 .campaign-slots {
   position: relative;
   display: grid;

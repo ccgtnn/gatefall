@@ -70,13 +70,13 @@ export function deckHomeScreen(phaseLabel, stats, actions, recentDecks) {
   phaseLabel.textContent = '';
   const screen = element('section', 'deck-home');
   const sections = element('section', 'home-block');
-  const tiles = element('div', 'home-tiles');
-  const base = button('База', actions.base, 'button home-tile');
+  const tiles = element('div', 'home-tiles home-tiles-sections');
+  const base = button('База', actions.base, 'button home-tile home-tile-base');
   const badge = element('span', 'tavern-badge');
   badge.setAttribute('aria-hidden', 'true');
   base.append(badge);
-  const ranks = button('', actions.ranks, 'button home-tile');
-  tiles.append(base, button('Лига', actions.league, 'button home-tile'), ranks);
+  const ranks = button('', actions.ranks, 'button home-tile home-tile-ranks');
+  tiles.append(base, button('Лига', actions.league, 'button home-tile home-tile-league'), ranks);
   const collectionTiles = element('div', 'home-tiles home-tiles-collection');
   collectionTiles.append(button('Все карты', actions.catalog, 'button home-tile'),
     button('Украшения', actions.decorations, 'button home-tile'));
