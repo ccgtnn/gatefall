@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { animateHandTurn, presentJournalEvent } from '../docs/card-motion.js';
+import { animateHandTurn, animateTurnSparks, presentJournalEvent } from '../docs/card-motion.js';
 
 function scenario() {
   const trace = [];
@@ -95,6 +95,21 @@ test('the turn cue sweeps the hand in order and respects reduced motion', () => 
   assert.deepEqual(pulses, []);
   animateHandTurn(screen, 320);
   assert.deepEqual(pulses, cards.map((_, index) => ({ index, delay: 53 * index, duration: 106 })));
+});
+
+test('turn sparks run on both rows of the active side and clean up after the flight', async () => {
+  const { screen } = scenario();
+  const rows = [[], []];
+  screen.querySelectorAll = (selector) => {
+    assert.equal(selector, '.field-center > .side[data-side="bot"] > .board-row');
+    return rows.map((sparks) => ({ append: (spark) => sparks.push(spark) }));
+  };
+  animateTurnSparks(screen, 'bot', 0);
+  assert.deepEqual(rows, [[], []]);
+  animateTurnSparks(screen, 'bot', 320);
+  assert.deepEqual(rows.map((sparks) => sparks.map(({ motion }) => motion.options.delay)), [[0, 35, 70], [35, 70, 105]]);
+  await Promise.resolve();
+  assert.ok(rows.flat().every((spark) => !spark.isConnected));
 });
 
 test('a row effect updates the field immediately on application and expiry', async () => {

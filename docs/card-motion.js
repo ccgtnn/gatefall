@@ -419,6 +419,27 @@ export function animateHandTurn(screen, duration) {
   });
 }
 
+export function animateTurnSparks(screen, side, duration) {
+  if (!duration) return;
+  const rows = screen.querySelectorAll(`.field-center > .side[data-side="${side}"] > .board-row`);
+  for (const [rowIndex, row] of rows.entries()) {
+    for (let index = 0; index < 3; index += 1) {
+      const spark = screen.ownerDocument.createElement('span');
+      if (!spark.animate) continue;
+      spark.className = 'turn-spark';
+      spark.setAttribute('aria-hidden', 'true');
+      row.append(spark);
+      const flight = spark.animate([
+        { offsetDistance: '0%', opacity: 0 },
+        { offsetDistance: '10%', opacity: 1, offset: .1 },
+        { offsetDistance: '82%', opacity: 1, offset: .82 },
+        { offsetDistance: '100%', opacity: 0 },
+      ], { duration: Math.round(duration * 1.8), delay: (rowIndex + index) * 35 });
+      void flight.finished.then(() => spark.remove(), () => spark.remove());
+    }
+  }
+}
+
 export async function presentJournalEvent(screen, event, commit, render, duration) {
   if (event.type === 'row-effect') {
     render(commit());

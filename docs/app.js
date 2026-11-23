@@ -4,7 +4,7 @@ import { createBaseScreen } from './ui/base-screen.js?v=robot-art-28';
 import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=decorations-1';
 import { createDeckStorage } from './ui/deck-storage.js?v=robot-art-28';
 import { bindCardPlacement } from './card-placement.js?v=row-placement-1';
-import { animateCoin, animateHandTurn, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=round-intro-1';
+import { animateCoin, animateHandTurn, animateLifeLoss, animateTurnSparks, presentJournalEvent } from './card-motion.js?v=turn-sparks-1';
 import { clearParticles } from './particles.js?v=step-14';
 import { playJournal } from './turn-playback.js?v=robot-art-28';
 import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=robot-art-28';
@@ -274,10 +274,10 @@ function start(deck, league) {
   render();
   const first = match.starter === 'human';
   const label = element('span', 'coin-result', 'Монетка: ты ходишь ' + (first ? 'первым' : 'вторым'));
-  const coin = element('span', 'tossed-coin', first ? '✦' : '◈');
+  const coin = element('span', 'tossed-coin ' + (first ? 'coin-first' : 'coin-second'), first ? '✦' : '◈');
   coin.setAttribute('aria-hidden', 'true');
-  const coinDuration = settings.motion() * 2.85;
-  const noticeDuration = Math.max(1500, coinDuration + 900);
+  const coinDuration = settings.motion() * 3.6;
+  const noticeDuration = Math.max(1500, coinDuration + 1000);
   showNotice(coinNotice, '', noticeDuration);
   coinNotice.append(coin, label);
   if (coinDuration) {
@@ -540,8 +540,11 @@ async function updateMatch(next) {
   }
   render();
   const changedTurn = match.phase === 'playing' && match.turn !== before.turn;
+  const turnStarted = match.phase === 'playing' && (before.phase !== 'playing' || changedTurn ||
+    match.players[match.turn].turns !== before.players[match.turn].turns);
   const humanTurnStarted = humanCanAct() && !match.playedCard &&
     (changedTurn || match.players.human.turns !== before.players.human.turns);
+  if (turnStarted && battlefieldPreferences.current() === 'standard') animateTurnSparks(screen, match.turn, duration);
   if (humanTurnStarted) animateHandTurn(screen, duration);
   if (changedTurn || humanTurnStarted) showNotice(turnNotice, match.turn === 'human' ? 'Твой ход' : 'Ход противника', 1000);
   else if (match.phase !== 'playing') hideNotice(turnNotice);
