@@ -12,22 +12,23 @@ const reasons = ['start', 'botStrong', 'humanStrong', 'roundWin', 'roundLoss', '
 const telepath = LEAGUE_CHARACTERS.find(({ name }) => name === 'Первый Голос');
 const zero = () => 0;
 
-test('all 28 characters have ranked places, eight occasions, and legal decks', () => {
-  assert.equal(LEAGUE_CHARACTERS.length, 28);
-  assert.equal(new Set(LEAGUE_CHARACTERS.map(({ id }) => id)).size, 28);
+test('all 31 characters have ranked places, eight occasions, and legal decks', () => {
+  assert.equal(LEAGUE_CHARACTERS.length, 31);
+  assert.equal(new Set(LEAGUE_CHARACTERS.map(({ id }) => id)).size, 31);
   assert.deepEqual(LEAGUE_CHARACTERS.filter(({ telepathic }) => telepathic).map(({ name }) => name),
     ['Сестра Безмолвие', 'Первый Голос']);
   for (const [tier, { bots }] of LEAGUES.entries()) {
-    assert.deepEqual(bots.map(({ strength }) => strength).sort(), [1, 2, 3, 4, 5, 6, 7]);
+    const originals = bots.filter(({ skillTier }) => skillTier === undefined);
+    assert.deepEqual(originals.map(({ strength }) => strength).sort(), [1, 2, 3, 4, 5, 6, 7]);
     for (const bot of bots) {
       assert.ok(bot.name && bot.character && bot.initials);
       assert.ok('avatar' in bot);
-      assert.equal(Boolean(bot.uniqueAbility), tier === 3);
+      assert.equal(Boolean(bot.uniqueAbility), tier === 3 && bot.skillTier === undefined);
       assert.deepEqual(Object.keys(bot.lines), reasons);
       assert.ok(Object.values(bot.lines).every((lines) => new Set(lines).size === 2));
       assert.ok(inspectDeck(bot.deck).valid, bot.name);
     }
-    const difficulty = bots.slice().sort((a, b) => a.strength - b.strength).map((bot) => bot.difficulty);
+    const difficulty = originals.slice().sort((a, b) => a.strength - b.strength).map((bot) => bot.difficulty);
     const [low, high] = [['easy', 'normal'], ['normal', 'hard'], ['hard', 'hard'], ['hard', 'hard']][tier];
     assert.deepEqual(difficulty, [...Array(4).fill(low), ...Array(3).fill(high)]);
   }
@@ -55,7 +56,7 @@ test('simulated results favor the higher ranked opponent when the random rolls c
   reserveLeagueMatch(league, leagueTicket(league), 'first', 0);
   finishLeagueMatch(league, 'first', 'draw', 0, zero);
   const strengths = new Map(LEAGUES[0].bots.map(({ id, strength }) => [id, strength]));
-  for (const pair of leagueSchedule(0)[0].slice(1)) {
+  for (const pair of leagueSchedule(league.season)[0].slice(1)) {
     const [winner, loser] = pair.sort((a, b) => strengths.get(b) - strengths.get(a));
     assert.equal(league.season.scores[winner].wins, 1);
     assert.equal(league.season.scores[loser].losses, 1);

@@ -1,6 +1,6 @@
 import { rankRewards, syncRanks } from './ranks.js?v=monthly-ranks-1';
 import { advanceTavern, questComplete, replaceTavernQuest, syncTavern, TAVERN_QUEST_BY_ID, tavernEventAmounts, trackTavernMatch } from './tavern.js?v=robot-art-28';
-import { createLeague, DIAMOND, finishLeagueMatch, leagueStake, needsLeagueReset, reserveLeagueMatch, resetLeagueWeek } from './league.js?v=league-tabs-1';
+import { createLeague, DIAMOND, finishLeagueMatch, leagueStake, needsLeagueReset, reserveLeagueMatch, resetLeagueWeek, upgradeLeague } from './league.js?v=league-promotion-1';
 import { victoryGold, weeklyReward } from './outpost.js?v=base-outpost-1';
 import { advanceProduction, productionView, readProduction, takeProduction } from './base-production.js?v=tavern-1';
 import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=tavern-1';
@@ -415,7 +415,7 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
       rewardedMatches: Array.isArray(snapshot.rewardedMatches) ? snapshot.rewardedMatches : [],
       lastWeeklyClaim: Number.isSafeInteger(snapshot.lastWeeklyClaim) ? snapshot.lastWeeklyClaim : null,
       pendingPack: readPack(snapshot.pendingPack),
-      league: snapshot.league?.season ? snapshot.league : null,
+      league: snapshot.league?.season ? upgradeLeague(snapshot.league) : null,
     };
   }
 

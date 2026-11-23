@@ -211,7 +211,6 @@ body:has(.in-league-match) #new-game { display: none; }
 }
 .league-tab-icon { font-size: 1.15em; }
 .league-tab-here { color: #f6d899; font-size: .68rem; }
-.league-placeholder { opacity: .58; border-style: dashed; }
 @media (orientation: landscape) and (max-height: 650px) {
   .league-tabs .league-tab {
     grid-template: auto auto / auto auto;
@@ -225,3 +224,16 @@ body:has(.in-league-match) #new-game { display: none; }
   --edge-light: #9fdcffcf;
   --idle-light: #73caff65;
 }
+.league-relegation-label {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin: .2rem 0;
+  color: #efaa9e;
+  font-size: .72rem;
+  letter-spacing: .035em;
+}
+.league-relegation-label::after { content: ''; background: linear-gradient(90deg, #b967607c, transparent); flex: 1; height: 1px; }
+.league-entry[data-relegation] .league-standing { background: linear-gradient(110deg, #503035dc, #15273e 75%); }
+.league-entry[data-relegation] .league-place { color: #efaa9e; }
+.league-arrival { white-space: nowrap; }

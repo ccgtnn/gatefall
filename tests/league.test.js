@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PRESETS } from '../docs/game/decks.js';
 import {
-  createLeague, DIAMOND, finishLeagueMatch, LEAGUES, leagueDivision, leagueOpponent,
+  createLeague, DIAMOND, finishLeagueMatch, LEAGUE_BOTS, LEAGUES, leagueDivision, leagueOpponent,
   leagueSchedule, leagueStake, leagueTable, leagueTicket, leagueWeek,
-  reserveLeagueMatch, resetLeagueWeek,
+  reserveLeagueMatch, resetLeagueWeek, upgradeLeague,
 } from '../docs/game/league.js';
 import { createDeckMatch } from '../docs/game/match.js';
 import { createRewardProgress } from '../docs/game/rewards.js';
@@ -32,9 +32,11 @@ function storageStub() {
 }
 
 test('each league schedules all 28 unique pairings and all seven player opponents', () => {
-  for (const [tier, { bots }] of LEAGUES.entries()) {
-    const schedule = leagueSchedule(tier);
-    assert.equal(bots.length, 7);
+  const league = createLeague(sunday);
+  for (const [tier] of LEAGUES.entries()) {
+    const division = leagueDivision(league, tier);
+    const schedule = leagueSchedule(division);
+    assert.equal(leagueTable(division).length, 8);
     assert.equal(schedule.length, 7);
     assert.equal(new Set(schedule.flat().map((pair) => [...pair].sort().join('/'))).size, 28);
     assert.equal(new Set(schedule.map((round) => round[0][1])).size, 7);
@@ -52,7 +54,7 @@ test('a reserved match advances all four pairings once on settlement', () => {
   assert.equal(finishLeagueMatch(league, 'second-tab', 'win', 2, fixed), null);
   let rolls = 0;
   finishLeagueMatch(league, 'match', 'win', 2, () => { rolls += 1; return .5; });
-  assert.equal(rolls, 24);
+  assert.equal(rolls, 30);
   assert.equal(league.season.round, 1);
   const { scores } = league.season;
   assert.equal(scores.human.points, 3);
@@ -168,10 +170,10 @@ test('league state and rewards share the saved economy, survive reload, and rese
   time = monday;
   assert.equal(await boot().checkpointLeague(), 'current');
   assert.equal(boot().league().season.round, 0);
-  assert.equal(boot().league().lastReward.place, 3);
-  assert.equal(boot().inventory().gold, beforeReward.gold + 1000);
-  assert.equal(boot().inventory().packCount, beforeReward.packCount + 3);
-  assert.equal(boot().base().materials.gateShards, shards + 5);
+  assert.equal(boot().league().lastReward.place, 1);
+  assert.equal(boot().inventory().gold, beforeReward.gold + 1500);
+  assert.equal(boot().inventory().packCount, beforeReward.packCount + 4);
+  assert.equal(boot().base().materials.gateShards, shards + 7);
   await resetProgress(storage);
   assert.equal(boot().league(), null);
 });
@@ -206,48 +208,86 @@ test('place changes compare the previous table and encounters survive season and
   assert.deepEqual(next.encounters[openingOpponent], { wins: 1, draws: 1, losses: 0 });
 });
 
-test('all four divisions advance on settlement, with an alternating bye in each foreign division', () => {
+function divisions(league) {
+  return LEAGUES.map((_, tier) => leagueDivision(league, tier));
+}
+
+test('32 unique participants advance together and every bot plays one match per tour', () => {
   const league = createLeague(sunday);
-  delete league.divisions;
-  for (let round = 0; round < 7; round += 1) {
-    const ticket = leagueTicket(league);
-    assert.equal(reserveLeagueMatch(league, ticket, ticket, 0), 'done');
-    assert.equal(leagueDivision(league, 1).round, round);
-    finishLeagueMatch(league, ticket, 'loss', -2, fixed);
-    for (const tier of [1, 2, 3]) {
-      const division = leagueDivision(league, tier);
-      const scores = leagueTable(division);
-      const bye = leagueSchedule(tier)[round][0][1];
-      assert.equal(division.round, round + 1);
-      assert.equal(scores.length, 7);
-      assert.equal(scores.reduce((count, { wins, draws, losses }) => count + wins + draws + losses, 0), (round + 1) * 6);
-      if (round === 0) assert.deepEqual(division.scores[bye], { id: bye, points: 0, wins: 0, draws: 0, losses: 0, difference: 0 });
+  assert.equal(new Set(divisions(league).flatMap((season) => Object.keys(season.scores))).size, 32);
+  for (let round = 0; round < 6; round += 1) {
+    play(league, 'loss', -2);
+    for (const season of divisions(league)) {
+      assert.equal(season.round, round + 1);
+      const scores = leagueTable(season);
+      assert.equal(scores.length, 8);
+      for (const { wins, draws, losses } of scores) assert.equal(wins + draws + losses, round + 1);
     }
-    assert.equal(finishLeagueMatch(league, ticket, 'loss', -2, fixed), null);
   }
-  for (const score of leagueTable(leagueDivision(league, 1))) assert.equal(score.wins + score.draws + score.losses, 6);
 });
 
-test('promotion starts a clean player season and other division scores preserve their rounds up to the weekly reset', () => {
+test('all divisions exchange exactly their top and bottom pairs and reset simultaneously', () => {
   const league = createLeague(sunday);
   for (let round = 0; round < 6; round += 1) play(league, 'win', 2);
-  assert.ok(leagueTable(leagueDivision(league, 1)).some(({ points }) => points > 0));
+  const previous = divisions(league);
   play(league, 'win', 2);
-  assert.equal(league.season.tier, 1);
-  assert.equal(league.season.round, 0);
-  assert.equal(leagueDivision(league, 1), league.season);
-  assert.ok(leagueTable(league.season).every(({ points }) => points === 0));
-  assert.equal(leagueTable(leagueDivision(league, 0)).length, 7);
-  assert.equal(leagueDivision(league, 0).round, 7);
-  assert.equal(leagueDivision(league, 2).round, 7);
-  play(league, 'win', 2);
-  assert.equal(leagueDivision(league, 0).round, 8);
-  assert.ok(leagueDivision(league, 0).previousPlaces);
-  const next = resetLeagueWeek(JSON.parse(JSON.stringify(league)), monday, fixed);
-  for (const [tier] of LEAGUES.entries()) {
-    const division = leagueDivision(next, tier);
-    assert.equal(division.round, 0);
-    assert.equal(division.previousPlaces, undefined);
-    assert.ok(leagueTable(division).every(({ points, wins, losses }) => points === 0 && wins === 0 && losses === 0));
+  const next = divisions(league);
+  for (const [tier, season] of previous.entries()) {
+    for (const [index, { id }] of leagueTable(season).entries()) {
+      const change = tier < DIAMOND && index < 2 ? 1 : tier > 0 && index >= 6 ? -1 : 0;
+      assert.ok(next[tier + change].scores[id], id);
+      assert.equal(next[tier + change].arrivals[id], change || undefined);
+    }
   }
+  for (const season of next) {
+    assert.equal(season.number, 2);
+    assert.equal(season.round, 0);
+    assert.equal(season.previousPlaces, undefined);
+    assert.equal(leagueTable(season).length, 8);
+    assert.ok(leagueTable(season).every(({ points }) => points === 0));
+  }
+  assert.equal(league.season.tier, 1);
+  const visitors = leagueTable(league.season).map(({ id }) => LEAGUE_BOTS.get(id)).filter((bot) => bot?.tier === 0);
+  assert.ok(visitors.length);
+  for (const visitor of visitors) {
+    assert.equal(visitor.difficulty, visitor.strength <= 4 ? 'easy' : 'normal');
+    assert.equal(visitor.deck.factionId, visitor.loreFaction === 'growth' ? 'growth' : 'protectorate');
+  }
+  assert.equal(LEAGUE_BOTS.get('frontier-rookie-3').difficulty, 'easy');
+});
+
+test('a player finishing in the bottom two is relegated but keeps the weekly peak', () => {
+  const league = createLeague(sunday);
+  for (let round = 0; round < 7; round += 1) play(league, 'win', 2);
+  for (let round = 0; round < 7; round += 1) play(league, 'loss', -2);
+  assert.equal(league.season.tier, 0);
+  assert.equal(league.season.arrivals.human, -1);
+  assert.equal(league.best.tier, 1);
+  const next = resetLeagueWeek(JSON.parse(JSON.stringify(league)), monday, fixed);
+  assert.equal(next.lastReward.tier, 1);
+  for (const [tier, season] of divisions(next).entries()) {
+    assert.equal(season.number, 1);
+    assert.equal(season.round, 0);
+    assert.deepEqual(season.arrivals, {});
+    assert.deepEqual(leagueTable(season).filter(({ id }) => id !== 'human').map(({ id }) => id),
+      LEAGUES[tier].bots.map(({ id }) => id));
+    assert.ok(leagueTable(season).every(({ points }) => points === 0));
+  }
+});
+
+test('legacy saves preserve the player fixture, score and reservation while restoring four full divisions', () => {
+  const league = createLeague(sunday);
+  const legacy = { ...league, format: undefined, divisions: {} };
+  const previous = leagueDivision(league, 1);
+  const { 'frontier-rookie-1': _rookie, ...scores } = previous.scores;
+  legacy.season = { ...previous, round: 3, scores: { human: { id: 'human', points: 3 }, ...scores } };
+  legacy.active = { id: 'saved', stake: 0 };
+  const opponent = leagueOpponent(legacy.season).id;
+  const upgraded = upgradeLeague(JSON.parse(JSON.stringify(legacy)));
+  assert.equal(leagueOpponent(upgraded.season).id, opponent);
+  assert.equal(upgraded.season.scores.human.points, 3);
+  assert.equal(upgraded.active.id, 'saved');
+  const seasons = divisions(upgraded);
+  assert.ok(seasons.every(({ round, scores }) => round === 3 && Object.keys(scores).length === 8));
+  assert.equal(new Set(seasons.flatMap((season) => Object.keys(season.scores))).size, 32);
 });

@@ -1,4 +1,4 @@
-import { DIAMOND, LEAGUES, LEAGUE_RULES, leagueDivision, leagueOpponent, leagueStake, leagueTable, leagueTicket } from '../game/league.js?v=league-tabs-1';
+import { DIAMOND, LEAGUE_BOTS, LEAGUES, LEAGUE_RULES, leagueDivision, leagueOpponent, leagueStake, leagueTable, leagueTicket } from '../game/league.js?v=league-promotion-1';
 import { leagueAvatar, LORE_FACTIONS, setLeagueSpeech } from './league-character.js?v=league-screen-1';
 import { leagueProfile, leagueRecord, LEAGUE_DIFFICULTY_LABELS } from './league-profile.js?v=league-screen-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
@@ -150,11 +150,10 @@ export function leagueScreen(phase, actions) {
     content.setAttribute('aria-labelledby', tabs[viewedTier].tab.id);
     const isHome = viewedTier === tier;
     const division = leagueDivision(league, viewedTier);
-    const { name, bots } = LEAGUES[viewedTier];
+    const { name } = LEAGUES[viewedTier];
     const bot = isHome ? leagueOpponent(season) : undefined;
     heading.textContent = `${name} лига`;
-    meta.textContent = isHome ? `Сезон ${number} · Тур ${round + 1} из ${LEAGUE_RULES.rounds}`
-      : `Тур ${division.round % LEAGUE_RULES.rounds + 1} из ${LEAGUE_RULES.rounds}`;
+    meta.textContent = `Сезон ${number} · Тур ${round + 1} из ${LEAGUE_RULES.rounds}`;
     currentPlay = undefined;
     const opponent = bot && nextOpponent(bot);
     function nextOpponent(bot) {
@@ -205,7 +204,7 @@ export function leagueScreen(phase, actions) {
       panel.append(dialog);
       dialog.showModal();
     }
-    const table = standings(division, bots, openProfile, isHome ? '' : viewedTier > tier ? 'Здесь будет твоё место' : 'Пройдено');
+    const table = standings(division, openProfile);
     const details = [
       lastSeason && element('p', 'muted', `Прошлый сезон · ${LEAGUES[lastSeason.tier].name} лига · место ${lastSeason.place}`),
       lastReward && element('p', 'muted', rewardText(lastReward)),
@@ -235,17 +234,23 @@ function leagueIdentity(bot) {
   return identity;
 }
 
-function standings(season, bots, openProfile, placeholder) {
+function standings(season, openProfile) {
   const list = element('ol', 'league-standings');
   list.setAttribute('aria-label', 'Участники лиги');
-  for (const [index, score] of leagueTable(season).entries()) {
+  const table = leagueTable(season);
+  const firstRelegation = table.length + 1 - LEAGUE_RULES.relegationPlaces;
+  for (const [index, score] of table.entries()) {
     const { id, points, difference } = score;
-    const bot = bots.find((candidate) => candidate.id === id);
+    const bot = LEAGUE_BOTS.get(id);
     const item = element('li', 'league-entry');
     const place = index + 1;
     const promotion = season.tier !== DIAMOND && place <= LEAGUE_RULES.promotionPlaces;
     if (promotion) item.dataset.promotion = place;
     if (promotion && place === 1) item.append(element('span', 'league-promotion-label', 'Зона повышения ↑'));
+    if (season.tier > 0 && place >= firstRelegation) {
+      item.dataset.relegation = '';
+      if (place === firstRelegation) item.append(element('span', 'league-relegation-label', 'Зона вылета ↓'));
+    }
     const row = bot
       ? button(undefined, () => openProfile(bot), 'league-standing')
       : element('div', 'league-standing league-human');
@@ -265,16 +270,16 @@ function standings(season, bots, openProfile, placeholder) {
     const numbers = element('span', 'league-numbers');
     numbers.append(element('strong', null, points), element('small', 'muted', 'очк.'),
       element('small', 'league-record', `П–Н–П ${leagueRecord(score)} · Δ ${difference > 0 ? '+' : ''}${difference}`));
-    row.append(rank, avatar, leagueIdentity(bot), numbers);
-    item.append(row);
-    list.append(item);
-  }
-  if (placeholder) {
-    const item = element('li', 'league-entry');
-    const row = element('div', 'league-standing league-placeholder');
-    const avatar = element('span', 'league-avatar', '♟');
-    avatar.setAttribute('aria-hidden', 'true');
-    row.append(element('span', 'league-place', '—'), avatar, element('strong', 'league-name', placeholder));
+    const identity = leagueIdentity(bot);
+    const arrival = season.arrivals?.[id];
+    if (bot && arrival) {
+      const label = arrival > 0 ? 'Повысился в прошлом сезоне' : 'Вылетел в прошлом сезоне';
+      const marker = element('span', arrival > 0 ? 'league-arrival league-up' : 'league-arrival league-down', arrival > 0 ? '↑' : '↓');
+      marker.title = label;
+      marker.setAttribute('aria-label', label);
+      identity.firstChild.append(' ', marker);
+    }
+    row.append(rank, avatar, identity, numbers);
     item.append(row);
     list.append(item);
   }

@@ -1,11 +1,11 @@
-import { LEAGUE_CHARACTERS } from './league-characters.js?v=league-avatars-2';
+import { LEAGUE_CHARACTERS } from './league-characters.js?v=league-promotion-1';
 import { leagueDeckFor } from './league-decks.js?v=league-characters-1';
 
 export const LEAGUE_RULES = Object.freeze({
-  rounds: 7, promotionPlaces: 2, winPoints: 3, drawPoints: 1,
+  rounds: 7, promotionPlaces: 2, relegationPlaces: 2, winPoints: 3, drawPoints: 1,
   minimumStake: 100, stakeStep: 25, bonusStep: 50, bonusStreakLimit: 4,
   firstPlaceMultiplier: 1.5,
-  simulationSwing: 9, simulationDrawMargin: .55, simulationSweepMargin: 3,
+  simulationTierStep: 2, simulationSwing: 9, simulationDrawMargin: .55, simulationSweepMargin: 3,
 });
 
 const leagueRewards = [
@@ -27,13 +27,19 @@ export function leagueDifficulty(tier, strength) {
   return strength <= upperRank ? lower : upper;
 }
 
-export const LEAGUES = leagueRewards.map(([name, reward], tier) => ({
-  name, reward,
-  bots: LEAGUE_CHARACTERS.filter((character) => character.tier === tier).map((character) => ({
+export const LEAGUE_BOTS = new Map(LEAGUE_CHARACTERS.map((character) => {
+  const skillTier = character.skillTier ?? character.tier;
+  return [character.id, {
     ...character,
     deck: leagueDeckFor(character),
-    difficulty: leagueDifficulty(tier, character.strength),
-  })),
+    difficulty: leagueDifficulty(skillTier, character.strength),
+    simulationStrength: character.strength + skillTier * LEAGUE_RULES.simulationTierStep,
+  }];
+}));
+
+export const LEAGUES = leagueRewards.map(([name, reward], tier) => ({
+  name, reward,
+  bots: [...LEAGUE_BOTS.values()].filter((bot) => bot.tier === tier),
 }));
 
 export const DIAMOND = LEAGUES.length - 1;
@@ -49,12 +55,16 @@ export function leagueWeek(time) {
   return { week, resetAt: monday.getTime() };
 }
 
-function entrants(tier) {
-  return [HUMAN, ...LEAGUES[tier].bots.map(({ id }) => id)];
+function homeRosters() {
+  return LEAGUES.map(({ bots }, tier) => [
+    ...(tier === 0 ? [HUMAN] : []), ...bots.map(({ id }) => id),
+  ]);
 }
 
-export function leagueSchedule(tier) {
-  const order = entrants(tier);
+export function leagueSchedule(season) {
+  const order = Object.keys(season.scores);
+  const player = order.indexOf(HUMAN);
+  if (player > 0) order.unshift(order.splice(player, 1)[0]);
   return Array.from({ length: LEAGUE_RULES.rounds }, () => {
     const pairs = order.slice(0, order.length / 2).map((id, index) => [id, order.at(-1 - index)]);
     order.splice(1, 0, order.pop());
@@ -62,19 +72,53 @@ export function leagueSchedule(tier) {
   });
 }
 
-function newSeason(tier, number = 1, hasPlayer = true) {
-  const ids = hasPlayer ? entrants(tier) : entrants(tier).slice(1);
+function newSeason(tier, number, ids, arrivals = {}) {
   const scores = Object.fromEntries(ids.map((id) => [id, {
     id, points: 0, wins: 0, draws: 0, losses: 0, difference: 0,
   }]));
-  return { tier, number, round: 0, scores };
+  return { tier, number, round: 0, scores, arrivals };
+}
+
+function setSeasons(league, seasons) {
+  league.divisions = {};
+  for (const season of seasons) {
+    if (Object.hasOwn(season.scores, HUMAN)) league.season = season;
+    else league.divisions[season.tier] = season;
+  }
 }
 
 export function createLeague(time) {
-  return {
-    ...leagueWeek(time), season: newSeason(0), best: { tier: 0, place: null }, played: false,
-    diamond: { wins: 0, losses: 0, streak: 0 }, encounters: {}, divisions: {}, active: null, lastReward: null,
+  const league = {
+    ...leagueWeek(time), format: 2, best: { tier: 0, place: null }, played: false,
+    diamond: { wins: 0, losses: 0, streak: 0 }, encounters: {}, active: null, lastReward: null,
   };
+  setSeasons(league, homeRosters().map((ids, tier) => newSeason(tier, 1, ids)));
+  return league;
+}
+
+export function upgradeLeague(league) {
+  if (!league || league.format === 2) return league;
+  const { tier: playerTier, number, round } = league.season;
+  const rosters = homeRosters();
+  if (playerTier) {
+    // Keep the old opponents and fixture order, including any reserved match.
+    rosters[0][0] = rosters[playerTier].pop();
+  }
+  rosters[playerTier] = Object.keys(league.season.scores);
+  const seasons = rosters.map((ids, tier) => {
+    if (tier === playerTier) return { ...league.season, arrivals: {} };
+    const season = newSeason(tier, number, ids);
+    const schedule = leagueSchedule(season);
+    while (season.round < round) {
+      recordPlaces(season);
+      playBotPairs(season, schedule[season.round], () => .5);
+      season.round += 1;
+    }
+    return season;
+  });
+  const upgraded = { ...league, format: 2 };
+  setSeasons(upgraded, seasons);
+  return upgraded;
 }
 
 export function leagueTable(season) {
@@ -85,7 +129,7 @@ export function leagueTable(season) {
 
 export function leagueDivision(league, tier) {
   if (tier === league.season.tier) return league.season;
-  return league.divisions?.[tier] ?? newSeason(tier, 1, false);
+  return league.divisions[tier];
 }
 
 function recordPlaces(season) {
@@ -104,8 +148,8 @@ function recordBest(league, tier, place) {
 }
 
 export function leagueOpponent(season) {
-  const [, opponent] = leagueSchedule(season.tier)[season.round][0];
-  return LEAGUES[season.tier].bots.find((bot) => bot.id === opponent);
+  const [, opponent] = leagueSchedule(season)[season.round][0];
+  return LEAGUE_BOTS.get(opponent);
 }
 
 export function leagueStake(league) {
@@ -144,9 +188,9 @@ function scorePair(scores, first, second, result, difference) {
   loser.losses += 1;
 }
 
-function simulatePair(bots, first, second, random) {
+function simulatePair(first, second, random) {
   const { simulationSwing, simulationDrawMargin, simulationSweepMargin } = LEAGUE_RULES;
-  const margin = bots.get(first).strength - bots.get(second).strength + (random() - random()) * simulationSwing;
+  const margin = LEAGUE_BOTS.get(first).simulationStrength - LEAGUE_BOTS.get(second).simulationStrength + (random() - random()) * simulationSwing;
   if (Math.abs(margin) < simulationDrawMargin) return { result: 'draw', difference: 0 };
   return {
     result: margin > 0 ? 'win' : 'loss',
@@ -155,11 +199,32 @@ function simulatePair(bots, first, second, random) {
 }
 
 function playBotPairs(season, pairs, random) {
-  const bots = new Map(LEAGUES[season.tier].bots.map((bot) => [bot.id, bot]));
   for (const [first, second] of pairs) {
-    const { result, difference } = simulatePair(bots, first, second, random);
+    const { result, difference } = simulatePair(first, second, random);
     scorePair(season.scores, first, second, result, difference);
   }
+}
+
+function nextSeason(league) {
+  const rosters = LEAGUES.map(() => []);
+  const arrivals = LEAGUES.map(() => ({}));
+  for (const [tier] of LEAGUES.entries()) {
+    const division = leagueDivision(league, tier);
+    const table = leagueTable(division);
+    for (const [index, { id }] of table.entries()) {
+      let destination = tier;
+      if (index < LEAGUE_RULES.promotionPlaces && tier < DIAMOND) destination += 1;
+      if (index >= table.length - LEAGUE_RULES.relegationPlaces && tier > 0) destination -= 1;
+      rosters[destination].push(id);
+      if (destination !== tier) arrivals[destination][id] = Math.sign(destination - tier);
+    }
+  }
+  const { number, tier } = league.season;
+  const place = humanPlace(league.season);
+  recordBest(league, tier, place);
+  league.lastSeason = { tier, place };
+  setSeasons(league, rosters.map((ids, tier) => newSeason(tier, number + 1, ids, arrivals[tier])));
+  recordBest(league, league.season.tier, null);
 }
 
 export function finishLeagueMatch(league, id, result, difference, random = Math.random) {
@@ -167,21 +232,16 @@ export function finishLeagueMatch(league, id, result, difference, random = Math.
   const { season } = league;
   const { tier, round, scores } = season;
   const { stake } = league.active;
-  const [[, opponent], ...botPairs] = leagueSchedule(tier)[round];
+  const [[, opponent], ...botPairs] = leagueSchedule(season)[round];
   recordPlaces(season);
   const encounters = league.encounters ??= {};
   const record = encounters[opponent] ??= { wins: 0, draws: 0, losses: 0 };
   record[{ win: 'wins', draw: 'draws', loss: 'losses' }[result]] += 1;
   scorePair(scores, HUMAN, opponent, result, difference);
   playBotPairs(season, botPairs, random);
-  const divisions = league.divisions ??= {};
-  for (const [otherTier] of LEAGUES.entries()) {
-    if (otherTier === tier) continue;
-    const division = divisions[otherTier] ??= newSeason(otherTier, 1, false);
+  for (const division of Object.values(league.divisions)) {
     recordPlaces(division);
-    // The bot paired with the vacant player seat has a bye.
-    const [, ...pairs] = leagueSchedule(otherTier)[division.round % LEAGUE_RULES.rounds];
-    playBotPairs(division, pairs, random);
+    playBotPairs(division, leagueSchedule(division)[round], random);
     division.round += 1;
   }
 
@@ -200,24 +260,7 @@ export function finishLeagueMatch(league, id, result, difference, random = Math.
       league.diamond.streak = 0;
     }
   }
-  if (season.round === LEAGUE_RULES.rounds) {
-    const place = humanPlace(season);
-    recordBest(league, tier, place);
-    const nextTier = place <= LEAGUE_RULES.promotionPlaces ? Math.min(tier + 1, DIAMOND) : tier;
-    league.lastSeason = { tier, place };
-    if (nextTier > tier) {
-      recordBest(league, nextTier, null);
-      const humanPreviousPlace = season.previousPlaces[HUMAN];
-      delete season.previousPlaces[HUMAN];
-      for (const id of Object.keys(season.previousPlaces)) {
-        if (season.previousPlaces[id] > humanPreviousPlace) season.previousPlaces[id] -= 1;
-      }
-      delete scores[HUMAN];
-      divisions[tier] = season;
-      delete divisions[nextTier];
-    }
-    league.season = newSeason(nextTier, season.number + 1);
-  }
+  if (season.round === LEAGUE_RULES.rounds) nextSeason(league);
   return { tier, payout };
 }
 
