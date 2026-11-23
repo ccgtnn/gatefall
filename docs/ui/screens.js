@@ -1,8 +1,8 @@
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { createCard } from '../game/board.js?v=robot-art-28';
 import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=robot-art-28';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=rarity-stats-1';
-import { logView, roundText } from './menu.js?v=rarity-stats-1';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=rampart-frame-1';
+import { logView, roundText } from './menu.js?v=rampart-frame-1';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=collection-2';
 import { factionFilters } from './faction-filters.js?v=1';
 import { copyLimit } from '../game/decks.js?v=robot-art-28';

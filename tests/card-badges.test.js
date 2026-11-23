@@ -105,3 +105,13 @@ test('all rarities use numeric power plates and the shared provision hexagon', (
     assert.equal(provision.children[1].textContent, card.definition.provision);
   }
 });
+
+test('the Rampart overlay is scoped to live Bastion faces and keeps legendary rarity', () => {
+  const bastion = drawable('bastion');
+  assert.equal(bastion.dataset.cardFrame, 'protectorate-rampart');
+  assert.equal(bastion.dataset.rarity, 'gold');
+  assert.equal(drawable('imperial-golem').dataset.cardFrame, undefined);
+  assert.equal(drawable('bastion', { legacy: true }).dataset.cardFrame, undefined);
+  showCard(makeCard('bastion'));
+  assert.equal(byClass(preview, 'preview-card-face').dataset.cardFrame, 'protectorate-rampart');
+});

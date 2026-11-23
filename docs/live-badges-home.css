@@ -117,6 +117,12 @@
   .preview-card-face { width: min(100%, 31vh); }
 }
 
+[data-card-frame="protectorate-rampart"][data-rarity]::before {
+  border: 0;
+  background: url('./art/frame-protectorate-rampart.webp') center / 100% 100% no-repeat;
+}
+[data-card-frame="protectorate-rampart"] > .stat-badge-armor { z-index: 3; }
+
 /* Deck selection */
 .brand-logo { display: none; }
 #app.is-deck-home {

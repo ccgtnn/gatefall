@@ -232,6 +232,7 @@ export function decorateCard(node, card, player, { orderOnField = false, legacy 
   if (definition.enemySide) node.dataset.enemySide = 'true';
   node.dataset.faction = definition.faction === NEUTRAL ? NEUTRAL : player.factionId ?? '';
   node.setAttribute('aria-label', cardLabel(card, legacy || showProvision));
+  if (!legacy && definition.id === 'bastion') node.dataset.cardFrame = 'protectorate-rampart';
   if (legacy) legacyBadges(node, card, orderOnField);
   else liveBadges(node, card, { orderOnField, showProvision, orderReady, orderCooldown });
   if (statusCount(card, 'target')) node.append(statBadge('target', 'Отмечен Целью'));
