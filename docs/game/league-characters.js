@@ -131,7 +131,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-1-1', name: "Кайра Векс", tier: 1, loreFaction: 'captains', deckNow: 'protectorate',
-    strength: 5, initials: "КВ", avatar: null,
+    strength: 5, initials: "КВ", avatar: 'league/kaira-vex.webp',
     character: "Наёмница, у которой всё имеет цену. Холодный расчёт, лёгкая ирония.",
     uniqueAbility: null,
     lines: {
@@ -147,7 +147,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-1-2', name: "Ткачиха Сельва", tier: 1, loreFaction: 'growth', deckNow: 'growth',
-    strength: 4, initials: "С", avatar: null,
+    strength: 4, initials: "С", avatar: 'league/selva.webp',
     character: "Разумная садовница роя, плетёт споры как ткань. Говорит спокойно и загадочно.",
     uniqueAbility: null,
     lines: {
@@ -163,7 +163,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-1-3', name: "Лейтенант Оран Дюк", tier: 1, loreFaction: 'protectorate', deckNow: 'protectorate',
-    strength: 2, initials: "ОД", avatar: null,
+    strength: 2, initials: "ОД", avatar: 'league/oran-duke.webp',
     character: "Пилот орбитального флота, щёголь из знатной семьи. Свысока смотрит на «наземных».",
     uniqueAbility: null,
     lines: {
@@ -179,7 +179,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-1-4', name: "Доктор Мира Холт", tier: 1, loreFaction: 'neutral', deckNow: 'growth',
-    strength: 1, initials: "МХ", avatar: null,
+    strength: 1, initials: "МХ", avatar: 'league/mira-holt.webp',
     character: "Ксенобиолог, изучает Поросль. Восторженная, путает бой с исследованием.",
     uniqueAbility: null,
     lines: {
@@ -195,7 +195,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-1-5', name: "Глас роя", tier: 1, loreFaction: 'growth', deckNow: 'growth',
-    strength: 6, initials: "ГР", avatar: null,
+    strength: 6, initials: "ГР", avatar: 'league/voice-of-the-swarm.webp',
     character: "Существо, через которое говорит весь рой. Говорит о себе «мы».",
     uniqueAbility: null,
     lines: {
@@ -211,7 +211,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-1-6', name: "Капитан Скара Райнхольд", tier: 1, loreFaction: 'captains', deckNow: 'protectorate',
-    strength: 7, initials: "СР", avatar: null,
+    strength: 7, initials: "СР", avatar: 'league/skara-rainhold.webp',
     character: "Капитан наёмного корабля «Чёрная гончая», сильнейшая в Серебре. Холодная, немногословная, опасная.",
     uniqueAbility: null,
     lines: {
@@ -227,7 +227,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-2-0', name: "Командор Ливия Аркс", tier: 2, loreFaction: 'protectorate', deckNow: 'formation',
-    strength: 4, initials: "ЛА", avatar: null,
+    strength: 4, initials: "ЛА", avatar: 'league/livia-arx.webp',
     character: "Железная леди штаба, тактик, никогда не повышает голос.",
     uniqueAbility: null,
     lines: {
@@ -243,7 +243,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-2-1', name: "Дракс Морроу", tier: 2, loreFaction: 'captains', deckNow: 'orbit-gold',
-    strength: 1, initials: "ДМ", avatar: null,
+    strength: 1, initials: "ДМ", avatar: 'league/drax-morrow.webp',
     character: "Охотник за головами. Говорит мало, курит, ценит хорошую цель.",
     uniqueAbility: null,
     lines: {
