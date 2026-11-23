@@ -5,19 +5,33 @@ import { button, element } from './dom.js?v=opponent-reveal-1';
 import { sectionBack } from './resources.js?v=interface-polish-1';
 
 export const FRAME_STORAGE_KEY = 'gatefall.card-frame';
+export const BATTLEFIELD_STORAGE_KEY = 'gatefall.battlefield';
 const frames = [
   { id: 'standard', name: 'Стандартные рамки' },
   { id: 'protectorate-rampart', name: 'Рубеж Протектората' },
 ];
 
+const battlefields = [
+  { id: 'standard', name: 'Стандартное поле', art: 'home-nebula.webp' },
+  { id: 'wood', name: 'Деревянная доска', art: 'battlefield-wood.webp' },
+];
+
 export function createFramePreferences(storage, root) {
+  return createChoicePreferences(storage, root, FRAME_STORAGE_KEY, 'cardFrameChoice', frames);
+}
+
+export function createBattlefieldPreferences(storage, root) {
+  return createChoicePreferences(storage, root, BATTLEFIELD_STORAGE_KEY, 'battlefieldChoice', battlefields);
+}
+
+function createChoicePreferences(storage, root, key, attribute, choices) {
   let current;
   function apply(id) {
-    current = frames.some((frame) => frame.id === id) ? id : 'standard';
-    root.dataset.cardFrameChoice = current;
+    current = choices.some((choice) => choice.id === id) ? id : 'standard';
+    root.dataset[attribute] = current;
   }
   function refresh() {
-    try { apply(storage?.getItem(FRAME_STORAGE_KEY)); }
+    try { apply(storage?.getItem(key)); }
     catch { apply(current); }
   }
   refresh();
@@ -25,49 +39,64 @@ export function createFramePreferences(storage, root) {
     current: () => current,
     refresh,
     select(id) {
-      if (!frames.some((frame) => frame.id === id)) return false;
+      if (!choices.some((choice) => choice.id === id)) return false;
       apply(id);
       try {
         if (!storage) return false;
-        storage.setItem(FRAME_STORAGE_KEY, id);
+        storage.setItem(key, id);
         return true;
       } catch { return false; }
     },
   };
 }
 
-export function decorationsScreen(phase, preferences, back) {
+export function decorationsScreen(phase, framesPreference, battlefieldPreference, back) {
   phase.textContent = '';
   const panel = element('section', 'panel decorations-panel');
   const heading = element('h2', null, 'Украшения');
   heading.tabIndex = -1;
-  const grid = element('div', 'decoration-options');
-  grid.setAttribute('role', 'group');
-  grid.setAttribute('aria-label', 'Рамки карт');
   const status = element('p', 'economy-status');
   status.setAttribute('role', 'status');
   const definition = FACTIONS.protectorate.pool.find(({ id }) => id === 'bastion');
   const sample = createCard(definition.id, definition);
-  const options = frames.map(({ id, name }) => {
-    const choice = button(undefined, () => {
-      const saved = preferences.select(id);
-      status.textContent = saved ? '' : 'Выбор действует до перезагрузки.';
-      update();
-    }, 'button decoration-option');
+  const frameOptions = decorationOptions('Рамки карт', frames, framesPreference, ({ id }) => {
     const face = element('span', 'hand-card decoration-face');
     decorateCard(face, sample, { factionId: definition.faction }, { showProvision: true, fullArt: true, frame: id });
-    face.setAttribute('aria-hidden', 'true');
-    choice.append(face, element('strong', null, name));
-    grid.append(choice);
-    return { id, choice };
+    return face;
   });
-  function update() {
-    for (const { id, choice } of options) {
-      choice.setAttribute('aria-pressed', String(id === preferences.current()));
+  const fieldOptions = decorationOptions('Поле боя · ПК', battlefields, battlefieldPreference, ({ art }) => {
+    const image = element('img', 'decoration-field');
+    image.alt = '';
+    image.src = './art/' + art;
+    return image;
+  });
+
+  function decorationOptions(label, items, preferences, preview) {
+    const section = element('section', 'decoration-section');
+    const grid = element('div', 'decoration-options');
+    grid.setAttribute('role', 'group');
+    grid.setAttribute('aria-label', label);
+    const options = items.map((item) => {
+      const choice = button(undefined, () => {
+        status.textContent = preferences.select(item.id) ? '' : 'Выбор действует до перезагрузки.';
+        update();
+      }, 'button decoration-option');
+      const visual = preview(item);
+      visual.setAttribute('aria-hidden', 'true');
+      choice.append(visual, element('strong', null, item.name));
+      grid.append(choice);
+      return { id: item.id, choice };
+    });
+    function update() {
+      for (const { id, choice } of options) choice.setAttribute('aria-pressed', String(id === preferences.current()));
     }
+    panel.addEventListener('decorations-change', update);
+    update();
+    section.append(element('h3', null, label), grid);
+    return section;
   }
-  panel.addEventListener('frame-change', update);
-  update();
-  panel.append(sectionBack(back), heading, grid, status);
+  const header = element('header', 'decoration-header');
+  header.append(sectionBack(back), heading);
+  panel.append(header, frameOptions, fieldOptions, status);
   return panel;
 }

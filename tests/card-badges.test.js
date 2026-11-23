@@ -139,3 +139,22 @@ test('frame preferences persist, refresh and restore the standard selection', as
   preferences.refresh();
   assert.equal(root.dataset.cardFrameChoice, 'standard');
 });
+
+test('the battlefield choice persists independently of the card frame', async () => {
+  const { createBattlefieldPreferences, createFramePreferences, BATTLEFIELD_STORAGE_KEY, FRAME_STORAGE_KEY } =
+    await import('../docs/ui/decorations.js');
+  const values = new Map([[FRAME_STORAGE_KEY, 'protectorate-rampart']]);
+  const storage = { getItem: (key) => values.get(key), setItem: (key, value) => values.set(key, value) };
+  const root = { dataset: {} };
+  createFramePreferences(storage, root);
+  const battlefield = createBattlefieldPreferences(storage, root);
+  assert.equal(battlefield.current(), 'standard');
+  assert.equal(battlefield.select('wood'), true);
+  assert.equal(createBattlefieldPreferences(storage, { dataset: {} }).current(), 'wood');
+  assert.equal(root.dataset.battlefieldChoice, 'wood');
+  assert.equal(root.dataset.cardFrameChoice, 'protectorate-rampart');
+  assert.equal(values.get(FRAME_STORAGE_KEY), 'protectorate-rampart');
+  values.delete(BATTLEFIELD_STORAGE_KEY);
+  battlefield.refresh();
+  assert.equal(root.dataset.battlefieldChoice, 'standard');
+});

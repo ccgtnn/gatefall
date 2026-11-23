@@ -34,3 +34,37 @@
   padding: 0;
   --badge-size: clamp(17px, 3vw, 24px);
 }
+.decoration-header { display: flex; align-items: center; gap: .75rem; }
+.decoration-header h2 { margin: 0; }
+.decoration-header .section-back { position: static; }
+.decoration-section h3 { margin-block: .9rem 0; }
+.decoration-field {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid #52677f;
+  border-radius: 4px;
+}
+
+@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
+  :where([data-battlefield-choice="wood"]) .match-board {
+    /* Tracks follow the image: the left labels sit beside the inset four rows. */
+    grid-template: ". . . ." 9.1% "left center hand right" minmax(0, 1fr) ". . . ." 7.4% /
+      5.1% minmax(0, 1fr) 22.9% 7.2%;
+    column-gap: .5%;
+    row-gap: 0;
+    padding: 0;
+    background: #21150f url('./art/battlefield-wood.webp') center / 100% 100% no-repeat;
+  }
+  :where([data-battlefield-choice="wood"]) .field-center .board-row {
+    grid-template-columns: 9.4% minmax(0, 1fr);
+    background: linear-gradient(90deg, transparent 9.4%, color-mix(in srgb, var(--lane-tint) 12%, transparent) 9.4%);
+  }
+  :where([data-battlefield-choice="wood"]) .field-center .row-label:not(:enabled) {
+    background-color: #0b132063;
+  }
+  :where([data-battlefield-choice="wood"]) :is(.field-rail, .battle-hand) {
+    background: #10172149;
+  }
+}

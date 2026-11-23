@@ -28,7 +28,7 @@ import { createResourceBar } from './ui/resources.js?v=interface-polish-1';
 import { aimAnchor, aimTone, bindTargeting } from './ui/targeting.js?v=targeting-1';
 import { questComplete } from './game/tavern.js?v=robot-art-28';
 import { rankStanding, wonRounds } from './game/ranks.js?v=monthly-ranks-1';
-import { createFramePreferences, decorationsScreen, FRAME_STORAGE_KEY } from './ui/decorations.js?v=decorations-1';
+import { BATTLEFIELD_STORAGE_KEY, createBattlefieldPreferences, createFramePreferences, decorationsScreen, FRAME_STORAGE_KEY } from './ui/decorations.js?v=battlefield-decoration-1';
 import { rankScreen } from './ui/rank-screen.js?v=monthly-ranks-1';
 import { leagueScreen } from './ui/league-screen.js?v=league-avatars-5';
 import { resetProgress } from './game/reset-progress.js?v=monthly-ranks-1';
@@ -66,6 +66,7 @@ let storage;
 try { storage = window.localStorage; } catch {}
 const deckStore = createDeckStorage(storage);
 const framePreferences = createFramePreferences(storage, document.documentElement);
+const battlefieldPreferences = createBattlefieldPreferences(storage, document.documentElement);
 const stats = createFactionStats(Object.keys(FACTIONS), storage);
 const settings = createSettings(app, leaveMatch, async () => {
   await resetProgress(storage, navigator.locks);
@@ -84,11 +85,13 @@ const openResources = createResourceBar(app.querySelector('.masthead'), document
 });
 progress.subscribe(() => screen.querySelector('.deck-editor, .deck-home, .all-decks, .finish, .league-panel, .rank-panel')?.dispatchEvent(new Event('collection-change')));
 window.addEventListener('storage', (event) => {
-  if (event.key === FRAME_STORAGE_KEY || event.key === null) {
-    framePreferences.refresh();
-    screen.querySelector('.decorations-panel')?.dispatchEvent(new Event('frame-change'));
+  const decorationKeys = [FRAME_STORAGE_KEY, BATTLEFIELD_STORAGE_KEY];
+  if (decorationKeys.includes(event.key) || event.key === null) {
+    if (event.key !== BATTLEFIELD_STORAGE_KEY) framePreferences.refresh();
+    if (event.key !== FRAME_STORAGE_KEY) battlefieldPreferences.refresh();
+    screen.querySelector('.decorations-panel')?.dispatchEvent(new Event('decorations-change'));
   }
-  if (event.key === FRAME_STORAGE_KEY) return;
+  if (decorationKeys.includes(event.key)) return;
   if (event.key?.startsWith('gatefall.') && event.newValue === null) window.location.reload();
   else if (event.key === REWARD_STORAGE_KEY || event.key === null) progress.refresh();
 });
@@ -398,7 +401,7 @@ function render() {
         back: () => goTo('decks'), create: () => goTo('faction'), play: start, edit: editDeck,
         copy: (deck) => makeDeck(deck.factionId, deck.leaderId, deck),
       }, progress.inventory); break;
-      case 'decorations': content = decorationsScreen(phaseLabel, framePreferences, () => goTo('decks')); break;
+      case 'decorations': content = decorationsScreen(phaseLabel, framePreferences, battlefieldPreferences, () => goTo('decks')); break;
       case 'ranks': content = rankScreen(phaseLabel, progress, () => goTo('decks')); break;
       case 'league': content = leagueScreen(phaseLabel, {
         back: () => goTo('decks'),
