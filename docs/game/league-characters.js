@@ -340,7 +340,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-3-0', name: "Корвин Безгербовый", tier: 3, loreFaction: 'captains', deckNow: 'orbit-diamond',
-    strength: 1, initials: "КБ", avatar: null,
+    strength: 1, initials: "КБ", avatar: 'league/corvin.webp',
     character: "Легенда пиратов, адмирал без флага. Обаятельный, весёлый, опасный.",
     uniqueAbility: "начинает матч с 11 картами в руке.",
     lines: {
@@ -356,7 +356,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-3-1', name: "Кассия Фульмина", tier: 3, loreFaction: 'protectorate', deckNow: 'formation-diamond',
-    strength: 2, initials: "КФ", avatar: null,
+    strength: 2, initials: "КФ", avatar: 'league/kassia-fulmina.webp',
     character: "Командор щитов, героиня с золотой карты. Живая легенда обороны.",
     uniqueAbility: "её отряды выходят на поле с 1 бронёй.",
     lines: {
@@ -389,7 +389,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-3-3', name: "Аксиом", tier: 3, loreFaction: 'core', deckNow: 'orbit-diamond',
-    strength: 4, initials: "А", avatar: null,
+    strength: 4, initials: "А", avatar: 'league/axiom.webp',
     character: "Машинный разум Ядра. Говорит вероятностями, вежлив до жути.",
     uniqueAbility: "раз за раунд копирует последнюю бронзовую карту, сыгранную игроком.",
     lines: {
@@ -405,7 +405,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-3-4', name: "Сердце роя", tier: 3, loreFaction: 'growth', deckNow: 'plague-diamond',
-    strength: 6, initials: "СР", avatar: null,
+    strength: 6, initials: "СР", avatar: 'league/swarm-heart.webp',
     character: "Сам коллективный разум Поросли, обретший голос. Древний и голодный.",
     uniqueAbility: "в начале каждого своего хода порождает личинку.",
     lines: {
@@ -421,7 +421,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-3-5', name: "Архонт Селестар", tier: 3, loreFaction: 'flawless', deckNow: 'orbit-diamond',
-    strength: 7, initials: "АС", avatar: null,
+    strength: 7, initials: "АС", avatar: 'league/archon-selestar.webp',
     character: "Верховный правитель Безупречных. Надменность, возведённая в абсолют.",
     uniqueAbility: "первые 2 урона по каждому его отряду игнорируются.",
     lines: {
@@ -437,7 +437,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-3-6', name: "Фалура, Пепел звёзд", tier: 3, loreFaction: 'void', deckNow: 'falura',
-    strength: 8, initials: "Ф", avatar: null,
+    strength: 8, initials: "Ф", avatar: 'league/falura.webp',
     character: "Искажённая драконица в человеческом облике, перешедшая на сторону Пустоты. Героиня существующей карты. Сильнейшая в Алмазе.",
     uniqueAbility: "как на её карте — Приказ лидера перезаряжается каждый ход.",
     lines: {
@@ -483,7 +483,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'frontier-rookie-3', name: "Странник Врат", tier: 3, loreFaction: 'neutral', deckNow: 'protectorate',
-    strength: 5, initials: "СВ", avatar: null,
+    strength: 5, initials: "СВ", avatar: 'league/gate-wanderer.webp',
     character: "Загадочный путник, который, по слухам, прошёл через Врата, когда они ещё работали. Никто не знает, сколько ему лет. Говорит загадками, знает больше всех.", uniqueAbility: "раз за матч может сыграть случайную карту из любой фракции.",
     lines: {
       start: ["Я видел, как погасли Врата. Увижу и тебя", "Садись. Время у нас есть. У меня — особенно"],
