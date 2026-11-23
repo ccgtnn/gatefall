@@ -259,7 +259,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-2-2', name: "Матриарх Вейла", tier: 2, loreFaction: 'growth', deckNow: 'rebirth',
-    strength: 7, initials: "В", avatar: null,
+    strength: 7, initials: "В", avatar: 'league/matriarch-veyla.webp',
     character: "Древняя матка, мать тысяч. Говорит медленно и величественно.",
     uniqueAbility: null,
     lines: {
@@ -275,7 +275,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-2-3', name: "Сестра Безмолвие", tier: 2, loreFaction: 'choir', deckNow: 'formation',
-    strength: 6, initials: "СБ", avatar: null,
+    strength: 6, initials: "СБ", avatar: 'league/sister-silence.webp',
     telepathic: true,
     character: "Псионик-аскет. Не говорит вслух — её реплики звучат прямо в голове (в игре — курсивом).",
     uniqueAbility: null,
@@ -292,7 +292,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-2-4', name: "Эон-Ксар", tier: 2, loreFaction: 'flawless', deckNow: 'orbit-gold',
-    strength: 3, initials: "ЭК", avatar: null,
+    strength: 3, initials: "ЭК", avatar: 'league/eon-xar.webp',
     character: "Надменный посланник Безупречных. Считает всех вокруг примитивными.",
     uniqueAbility: null,
     lines: {
@@ -308,7 +308,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-2-5', name: "Морхаус, жрец гнили", tier: 2, loreFaction: 'growth', deckNow: 'plague',
-    strength: 2, initials: "М", avatar: null,
+    strength: 2, initials: "М", avatar: 'league/morhouse.webp',
     character: "Человек, добровольно отдавшийся Чуме. Фанатик, проповедует разложение.",
     uniqueAbility: null,
     lines: {
@@ -324,7 +324,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-2-6', name: "Маршал Октавиан Рейн", tier: 2, loreFaction: 'protectorate', deckNow: 'formation',
-    strength: 8, initials: "ОР", avatar: null,
+    strength: 8, initials: "ОР", avatar: 'league/octavian-rein.webp',
     character: "Сильнейший в Золоте. Тот самый герой с золотой карты, легенда обороны. Спокоен, как стена.",
     uniqueAbility: null,
     lines: {
@@ -468,7 +468,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'frontier-rookie-2', name: "Нокс, Вестник Пустоты", tier: 2, loreFaction: 'void', deckNow: 'plague',
-    strength: 4, initials: "НВ", avatar: null,
+    strength: 4, initials: "НВ", avatar: 'league/nox.webp',
     character: "Бывший навигатор, заглянувший в Пустоту и вернувшийся «не совсем собой». Тихий, вкрадчивый, предвещает гибель. Слуга Фалуры.", uniqueAbility: null,
     lines: {
       start: ["Пустота шепчет твоё имя. Хочешь услышать?", "Я видел, чем это закончится. Тебе не понравится"],
