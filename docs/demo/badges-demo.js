@@ -1,7 +1,7 @@
 import { dialogClose } from '../ui/resources.js?v=interface-polish-1';
 import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=robot-art-28';
 import { basePower, createCard, isUnit, statusCount } from '../game/board.js?v=robot-art-28';
-import { cardArt, decorateCard, showCard } from '../ui/cards.js?v=badge-depth-1';
+import { cardArt, decorateCard, showCard } from '../ui/cards.js?v=decorations-1';
 import { button, element, setCardRarity } from '../ui/dom.js?v=opponent-reveal-1';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
@@ -159,8 +159,9 @@ const trialHand = document.querySelector('.demo-hud-hand');
 for (const id of ['infantry', 'helper-robot', 'imperial-golem', 'bastion']) {
   const definition = definitions.find((card) => card.id === id);
   const card = createCard(id, definition);
-  const face = button(undefined, () => showCard(card), 'hand-card');
-  decorateCard(face, card, { factionId: definition.faction });
+  const frame = id === 'bastion' ? 'protectorate-rampart' : 'standard';
+  const face = button(undefined, () => showCard(card, { frame }), 'hand-card');
+  decorateCard(face, card, { factionId: definition.faction }, { frame });
   const tile = element('figure');
   tile.append(face, element('figcaption', null, definition.name));
   trialHand.append(tile);

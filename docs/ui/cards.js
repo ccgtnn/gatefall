@@ -32,7 +32,7 @@ export function addCardCrop(node, definition, { fullArt = false } = {}) {
 }
 
 export function showCard(card, { leader = false, legacy = false,
-  orderReady = false, orderCooldown = 0, actions } = {}) {
+  orderReady = false, orderCooldown = 0, actions, frame } = {}) {
   const { definition, power, armor, timer, counter } = card;
   setCardRarity(preview, definition.rarity);
   const faction = definition.faction === NEUTRAL ? 'Нейтральная' : FACTIONS[definition.faction]?.name;
@@ -86,7 +86,7 @@ export function showCard(card, { leader = false, legacy = false,
   const layout = element('div', 'preview-layout');
   if (!leader && !legacy) {
     const face = element('div', 'preview-card-face');
-    decorateCard(face, card, { factionId: definition.faction }, { showProvision: true, fullArt: true, orderReady, orderCooldown });
+    decorateCard(face, card, { factionId: definition.faction }, { showProvision: true, fullArt: true, orderReady, orderCooldown, frame });
     layout.append(face);
   } else if (definition.art) {
     layout.append(cardArt(definition, 'preview-art'));
@@ -224,7 +224,7 @@ function cardStats(card) {
 }
 
 export function decorateCard(node, card, player, { orderOnField = false, legacy = false,
-  showProvision = false, fullArt = false, orderReady = false, orderCooldown = 0 } = {}) {
+  showProvision = false, fullArt = false, orderReady = false, orderCooldown = 0, frame } = {}) {
   const { definition } = card;
   const type = cardType(card);
   node.dataset.type = type;
@@ -232,9 +232,12 @@ export function decorateCard(node, card, player, { orderOnField = false, legacy 
   if (definition.enemySide) node.dataset.enemySide = 'true';
   node.dataset.faction = definition.faction === NEUTRAL ? NEUTRAL : player.factionId ?? '';
   node.setAttribute('aria-label', cardLabel(card, legacy || showProvision));
-  if (!legacy && definition.id === 'bastion') node.dataset.cardFrame = 'protectorate-rampart';
   if (legacy) legacyBadges(node, card, orderOnField);
-  else liveBadges(node, card, { orderOnField, showProvision, orderReady, orderCooldown });
+  else {
+    node.dataset.cardFace = '';
+    if (frame) node.dataset.cardFrame = frame;
+    liveBadges(node, card, { orderOnField, showProvision, orderReady, orderCooldown });
+  }
   if (statusCount(card, 'target')) node.append(statBadge('target', 'Отмечен Целью'));
   if (definition.categories?.length) node.append(element('span', 'card-category', definition.categories.join(' · ')));
   addCardCrop(node, definition, { fullArt });

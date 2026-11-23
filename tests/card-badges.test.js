@@ -106,12 +106,36 @@ test('all rarities use numeric power plates and the shared provision hexagon', (
   }
 });
 
-test('the Rampart overlay is scoped to live Bastion faces and keeps legendary rarity', () => {
+test('live cards follow the selected frame while explicit preview frames keep rarity', () => {
   const bastion = drawable('bastion');
-  assert.equal(bastion.dataset.cardFrame, 'protectorate-rampart');
+  assert.equal(bastion.dataset.cardFace, '');
+  assert.equal(bastion.dataset.cardFrame, undefined);
   assert.equal(bastion.dataset.rarity, 'gold');
-  assert.equal(drawable('imperial-golem').dataset.cardFrame, undefined);
-  assert.equal(drawable('bastion', { legacy: true }).dataset.cardFrame, undefined);
-  showCard(makeCard('bastion'));
-  assert.equal(byClass(preview, 'preview-card-face').dataset.cardFrame, 'protectorate-rampart');
+  assert.equal(drawable('imperial-golem').dataset.cardFace, '');
+  assert.equal(drawable('bastion', { legacy: true }).dataset.cardFace, undefined);
+
+  showCard(makeCard('bastion'), { frame: 'protectorate-rampart' });
+  const face = byClass(preview, 'preview-card-face');
+  assert.equal(face.dataset.cardFrame, 'protectorate-rampart');
+  assert.equal(face.dataset.rarity, 'gold');
+});
+
+test('frame preferences persist, refresh and restore the standard selection', async () => {
+  const { createFramePreferences, FRAME_STORAGE_KEY } = await import('../docs/ui/decorations.js');
+  const values = new Map();
+  const storage = {
+    getItem: (key) => values.get(key),
+    setItem: (key, value) => values.set(key, value),
+  };
+  const root = { dataset: {} };
+  const preferences = createFramePreferences(storage, root);
+  assert.equal(preferences.current(), 'standard');
+  assert.equal(preferences.select('protectorate-rampart'), true);
+  assert.equal(root.dataset.cardFrameChoice, 'protectorate-rampart');
+  assert.equal(createFramePreferences(storage, { dataset: {} }).current(), 'protectorate-rampart');
+  assert.equal(preferences.select('unknown-frame'), false);
+  assert.equal(root.dataset.cardFrameChoice, 'protectorate-rampart');
+  values.delete(FRAME_STORAGE_KEY);
+  preferences.refresh();
+  assert.equal(root.dataset.cardFrameChoice, 'standard');
 });

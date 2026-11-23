@@ -2,7 +2,7 @@ import { placementEffectRows } from '../card-placement.js?v=row-placement-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { cardType, placementSide } from '../game/board.js?v=robot-art-28';
 import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=robot-art-28';
-import { cardButton, showCard } from './cards.js?v=badge-depth-1';
+import { cardButton, showCard } from './cards.js?v=decorations-1';
 
 export function updatePlacementSelection(screen, match, selectedCardId) {
   const card = match.players.human.hand.find(({ id }) => id === selectedCardId);

@@ -1,5 +1,5 @@
 import { createBaseScreen } from './ui/base-screen.js?v=robot-art-28';
-import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=badge-depth-1';
+import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=decorations-1';
 import { createDeckStorage } from './ui/deck-storage.js?v=robot-art-28';
 import { bindCardPlacement } from './card-placement.js?v=row-placement-1';
 import { animateCoin, animateHandTurn, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=robot-art-28';
@@ -11,21 +11,22 @@ import { FACTIONS } from './game/cards.js?v=robot-art-28';
 import { inspectDeck, PRESETS } from './game/decks.js?v=robot-art-28';
 import { applyAction, createDeckMatch } from './game/match.js?v=robot-art-28';
 import { element, iconButton } from './ui/dom.js?v=opponent-reveal-1';
-import { cardArt, preview, showCard } from './ui/cards.js?v=badge-depth-1';
-import { createBattlefield } from './ui/field.js?v=badge-depth-1';
-import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=badge-depth-1';
-import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=badge-depth-1';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=badge-depth-1';
+import { cardArt, preview, showCard } from './ui/cards.js?v=decorations-1';
+import { createBattlefield } from './ui/field.js?v=decorations-1';
+import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=decorations-1';
+import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=decorations-1';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=decorations-1';
 import { createSettings } from './ui/settings.js?v=robot-art-28';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
 import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=monthly-ranks-1';
 import { createRewardBook } from './ui/reward-book.js?v=monthly-ranks-1';
-import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=badge-depth-1';
+import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=decorations-1';
 import { createResourceBar } from './ui/resources.js?v=interface-polish-1';
 import { aimAnchor, aimTone, bindTargeting } from './ui/targeting.js?v=targeting-1';
 import { questComplete } from './game/tavern.js?v=robot-art-28';
 import { rankStanding, wonRounds } from './game/ranks.js?v=monthly-ranks-1';
+import { createFramePreferences, decorationsScreen, FRAME_STORAGE_KEY } from './ui/decorations.js?v=decorations-1';
 import { rankScreen } from './ui/rank-screen.js?v=monthly-ranks-1';
 import { leagueScreen } from './ui/league-screen.js?v=robot-art-28';
 import { resetProgress } from './game/reset-progress.js?v=monthly-ranks-1';
@@ -59,6 +60,7 @@ let mulliganFieldVisible = false;
 let storage;
 try { storage = window.localStorage; } catch {}
 const deckStore = createDeckStorage(storage);
+const framePreferences = createFramePreferences(storage, document.documentElement);
 const stats = createFactionStats(Object.keys(FACTIONS), storage);
 const settings = createSettings(app, leaveMatch, async () => {
   await resetProgress(storage, navigator.locks);
@@ -77,6 +79,11 @@ const openResources = createResourceBar(app.querySelector('.masthead'), document
 });
 progress.subscribe(() => screen.querySelector('.deck-editor, .deck-home, .all-decks, .finish, .league-panel, .rank-panel')?.dispatchEvent(new Event('collection-change')));
 window.addEventListener('storage', (event) => {
+  if (event.key === FRAME_STORAGE_KEY || event.key === null) {
+    framePreferences.refresh();
+    screen.querySelector('.decorations-panel')?.dispatchEvent(new Event('frame-change'));
+  }
+  if (event.key === FRAME_STORAGE_KEY) return;
   if (event.key?.startsWith('gatefall.') && event.newValue === null) window.location.reload();
   else if (event.key === REWARD_STORAGE_KEY || event.key === null) progress.refresh();
 });
@@ -351,6 +358,7 @@ function render() {
         back: () => goTo('decks'), create: () => goTo('faction'), play: start, edit: editDeck,
         copy: (deck) => makeDeck(deck.factionId, deck.leaderId, deck),
       }, progress.inventory); break;
+      case 'decorations': content = decorationsScreen(phaseLabel, framePreferences, () => goTo('decks')); break;
       case 'ranks': content = rankScreen(phaseLabel, progress, () => goTo('decks')); break;
       case 'league': content = leagueScreen(phaseLabel, {
         back: () => goTo('decks'),
@@ -371,7 +379,8 @@ function render() {
           return tavern ? tavern.pending.length + tavern.slots.filter((quest) => !quest.claimed && questComplete(quest)).length : 0;
         },
         league: () => goTo('league'), ranks: () => goTo('ranks'),
-        currentRank: () => rankStanding(progress.ranks().rounds).rank, catalog: () => openResources('essence'), all: back, play: start,
+        currentRank: () => rankStanding(progress.ranks().rounds).rank,
+        catalog: () => openResources('essence'), decorations: () => goTo('decorations'), all: back, play: start,
       }, () => deckStore.recent(progress.inventory().owned));
     }
   }

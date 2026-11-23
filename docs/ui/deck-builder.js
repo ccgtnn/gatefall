@@ -1,7 +1,7 @@
 import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=robot-art-28';
 import { createCard } from '../game/board.js?v=robot-art-28';
 import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=robot-art-28';
-import { addCardCrop, cardButton } from './cards.js?v=badge-depth-1';
+import { addCardCrop, cardButton } from './cards.js?v=decorations-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { factionFilters } from './faction-filters.js?v=1';
 import { availabilityOptions, matchesAvailability } from './catalog-cards.js?v=collection-2';
@@ -73,13 +73,12 @@ export function deckHomeScreen(phaseLabel, stats, actions, recentDecks) {
   const badge = element('span', 'tavern-badge');
   badge.setAttribute('aria-hidden', 'true');
   base.append(badge);
-  tiles.append(base);
-  for (const [title, open] of [['Лига', actions.league], ['Все карты', actions.catalog]]) {
-    tiles.append(button(title, open, 'button home-tile'));
-  }
   const ranks = button('', actions.ranks, 'button home-tile');
-  tiles.append(ranks);
-  sections.append(element('h2', null, 'Разделы'), tiles);
+  tiles.append(base, button('Лига', actions.league, 'button home-tile'), ranks);
+  const collectionTiles = element('div', 'home-tiles home-tiles-collection');
+  collectionTiles.append(button('Все карты', actions.catalog, 'button home-tile'),
+    button('Украшения', actions.decorations, 'button home-tile'));
+  sections.append(element('h2', null, 'Разделы'), tiles, collectionTiles);
   const decks = element('section', 'home-block');
   const heading = element('div', 'deck-toolbar home-decks-toolbar');
   heading.append(element('h2', null, 'Колоды'), button('Все колоды', actions.all));

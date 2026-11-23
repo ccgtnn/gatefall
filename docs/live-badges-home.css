@@ -67,6 +67,7 @@
 }
 .stat-badge-armor > strong { transform: translateY(-.105em); }
 .stat-badge-provision > strong { transform: translateY(-.08em); }
+.catalog-entry .stat-badge-provision > strong { transform: translate(-.055em, -.035em); }
 .stat-badge-infection { color: #e0ffbd; filter: drop-shadow(0 0 2px #8ef75aa0); }
 .stat-badge-order > strong { transform: translate(.28em, .25em); font-size: .84em; }
 .stat-badge-chapters { display: inline-flex; width: max-content; height: calc(var(--badge-size, var(--stat-size, 22px)) * .68); }
@@ -126,10 +127,10 @@
   .preview-card-face { width: min(100%, 31vh); }
 }
 
-[data-card-frame="protectorate-rampart"] {
+:is([data-card-frame="protectorate-rampart"], :where(:root[data-card-frame-choice="protectorate-rampart"]) [data-card-face]:not([data-card-frame]))[data-rarity] {
   clip-path: polygon(3% .45%, 97% .45%, 99.45% 2%, 99.45% 98%, 97.5% 99.55%, 3% 99.55%, .55% 98%, .55% 2%);
 }
-[data-card-frame="protectorate-rampart"][data-rarity]::before {
+:is([data-card-frame="protectorate-rampart"], :where(:root[data-card-frame-choice="protectorate-rampart"]) [data-card-face]:not([data-card-frame]))[data-rarity]::before {
   border: 0;
   background: url('./art/frame-protectorate-rampart.webp') center / 100% 100% no-repeat;
   filter: drop-shadow(0 1px clamp(1px, .42dvh, 3px) #03060ca6);
@@ -202,12 +203,13 @@ body:has(.is-deck-home) {
 .all-decks :is(.deck-list-item, .deck-list)[hidden] { display: none; }
 .home-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: .65rem;
 }
+.home-tiles-collection { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .is-deck-home .home-tile {
   min-height: 3.5rem;
-  padding: .6rem 1rem;
+  padding: .6rem clamp(.3rem, 1.5vw, 1rem);
   font-size: 1.05rem;
   font-weight: 700;
 }
