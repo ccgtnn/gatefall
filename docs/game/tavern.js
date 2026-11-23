@@ -1,4 +1,4 @@
-import { FACTIONS, LARVA, NEUTRAL } from './cards.js?v=robot-art-28';
+import { FACTIONS, LARVA, NEUTRAL } from './cards.js?v=hounds-1';
 
 export const TAVERN_REWARDS = Object.freeze({
   normal: Object.freeze({ keys: 2, gold: 100 }),

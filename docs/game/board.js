@@ -1,8 +1,10 @@
-import { ROWS } from './cards.js?v=robot-art-28';
+import { ROWS } from './cards.js?v=hounds-1';
 import { emit } from './events.js?v=helper-robot-1';
+import { HOUND_CATEGORY } from './captains.js?v=hounds-1';
 
 export const ROW_LIMIT = 9;
 export const HAND_LIMIT = 10;
+export const COIN_LIMIT = 9;
 export const opponent = (side) => side === 'human' ? 'bot' : 'human';
 
 export const cardType = ({ definition }) => definition.type ?? 'unit';
@@ -51,8 +53,18 @@ export function playDestination(player, { row, position }) {
   return { row, position };
 }
 
-export function availableRows(player) {
-  return ROWS.filter((row) => player.board[row].length < ROW_LIMIT);
+export function availableRows(player, card) {
+  const required = card?.definition.requiredRow;
+  return ROWS.filter((row) => (!required || required === row) && player.board[row].length < ROW_LIMIT);
+}
+
+export function changeCoins(match, side, amount) {
+  const player = match.players[side];
+  const before = player.coins ?? 0;
+  if (!Number.isInteger(amount) || before + amount < 0) return;
+  const coins = Math.min(COIN_LIMIT, before + amount);
+  player.coins = coins;
+  if (coins !== before) match.log.push({ type: 'coins', side, coins, amount: coins - before });
 }
 
 export function recordCardPlay(player, card) {
@@ -75,6 +87,7 @@ export function announcePlay(match, side, card, destination, extra) {
     card: { ...card }, position: destination?.position, ...extra }, { played: card, firstLegendary });
   if (card.armor) emit(match, { type: 'armor', side: boardSide ?? side, name: card.definition.name, cardId: card.id,
     armor: card.armor, amount: card.armor });
+  if (boardSide && card.definition.categories?.includes(HOUND_CATEGORY)) refreshHoundAura(match, boardSide);
   return reactions;
 }
 
@@ -124,7 +137,7 @@ export function changeBasePower(match, unit, amount) {
 export function heal(match, unit) {
   if (!unit || !isUnit(unit.card)) return;
   const { card, side } = unit;
-  card.power = basePower(card);
+  card.power = basePower(card) + (card.houndBonus ?? 0);
   match.log.push({ type: 'heal', side, cardId: card.id, power: card.power });
 }
 
@@ -232,6 +245,36 @@ export function removeUnit(match, unit, reason, consumerId, extra) {
     ...(owner !== side && { owner }), name: card.definition.name, cardId: card.id, power: card.power,
     infection: statusCount(card, 'infection'), exile, reason, ...extra,
   }, { source: card, death }));
+  if (card.definition.houndAura) refreshHoundAura(match, side);
+}
+
+export function refreshHoundAura(match, side) {
+  const field = units(match, side);
+  const bonus = field.reduce((sum, { card }) => sum + (card.definition.houndAura ?? 0), 0);
+  const fallen = [];
+  for (const { card } of field) {
+    if (!isUnit(card) || !card.definition.categories?.includes(HOUND_CATEGORY)) continue;
+    const delta = bonus - (card.houndBonus ?? 0);
+    if (!delta) continue;
+    if (bonus) card.houndBonus = bonus;
+    else delete card.houndBonus;
+    card.power += delta;
+    match.log.push({ type: 'aura-power', side, cardId: card.id, power: card.power, houndBonus: bonus });
+    if (card.power <= 0) fallen.push(card.id);
+  }
+  for (const id of fallen) {
+    const unit = findUnit(match, id);
+    if (unit && unit.card.power <= 0) removeUnit(match, unit, 'aura');
+  }
+}
+
+export function transformUnit(match, unit, definition) {
+  const { side, row, position, card } = unit;
+  const replacement = createCard(card.id, definition);
+  if (card.owner) replacement.owner = card.owner;
+  match.players[side].board[row][position] = replacement;
+  match.log.push({ type: 'transform', side, cardId: card.id, name: card.definition.name, card: { ...replacement } });
+  refreshHoundAura(match, side);
 }
 
 export function discardCard(match, side, card, exile = false) {
@@ -286,4 +329,5 @@ export function spawnCards(match, side, row, position, count, definition) {
   const tokens = Array.from({ length: added }, () => createCard(`token-${++match.tokenCount}`, definition));
   placeCards(match.players[side], row, position, tokens);
   emit(match, { type: 'spawn', side, row, count: added, name: definition.name, position, cards: tokens.map((card) => ({ ...card })) });
+  if (definition.categories?.includes(HOUND_CATEGORY)) refreshHoundAura(match, side);
 }

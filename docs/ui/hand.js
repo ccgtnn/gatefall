@@ -1,8 +1,8 @@
-import { placementEffectRows } from '../card-placement.js?v=row-placement-1';
+import { placementEffectRows } from '../card-placement.js?v=hounds-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
-import { cardType, placementSide } from '../game/board.js?v=robot-art-28';
-import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=robot-art-28';
-import { cardButton, showCard } from './cards.js?v=decorations-1';
+import { availableRows, cardType, placementSide } from '../game/board.js?v=hounds-1';
+import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=hounds-1';
+import { cardButton, showCard } from './cards.js?v=hounds-1';
 
 export function updatePlacementSelection(screen, match, selectedCardId) {
   const card = match.players.human.hand.find(({ id }) => id === selectedCardId);
@@ -12,7 +12,7 @@ export function updatePlacementSelection(screen, match, selectedCardId) {
   const effectRows = card ? placementEffectRows(card.definition) : [];
   for (const row of screen.querySelectorAll('[data-play-row]')) {
     const available = Boolean(card && placementSide('human', card) === row.dataset.side &&
-      (cardType(card) === 'effect' || row.dataset.full !== 'true'));
+      (cardType(card) === 'effect' || availableRows(match.players[row.dataset.side], card).includes(row.dataset.playRow)));
     row.classList.toggle('is-selectable', available);
     const activeEffect = available && effectRows.includes(row.dataset.playRow);
     row.classList.toggle('is-placement-effect-row', activeEffect);
@@ -107,6 +107,7 @@ export function playerHand(match, active, selectCard, isReplaying) {
     }, human, available);
     if (available) {
       node.dataset.playCard = '';
+      if (card.definition.requiredRow) node.dataset.requiredRow = card.definition.requiredRow;
       const effectRows = placementEffectRows(card.definition);
       if (effectRows.length) node.dataset.effectRows = effectRows.join(' ');
     }

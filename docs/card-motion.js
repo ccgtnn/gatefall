@@ -1,9 +1,9 @@
 import { setCardRarity } from './ui/dom.js?v=opponent-reveal-1';
-import { NEUTRAL } from './game/cards.js?v=robot-art-28';
+import { NEUTRAL } from './game/cards.js?v=hounds-1';
 import { burstParticles } from './particles.js?v=step-14';
 
 const VISUAL_EVENTS = new Set([
-  'play', 'damage', 'boost', 'armor', 'status', 'death', 'destroy', 'discard', 'spawn', 'deathwish', 'consume', 'consume-group', 'leader', 'order',
+  'play', 'damage', 'boost', 'armor', 'status', 'death', 'destroy', 'discard', 'spawn', 'deathwish', 'consume', 'consume-group', 'leader', 'order', 'aura-power', 'transform',
 ]);
 
 function rects(screen) {
@@ -441,6 +441,16 @@ export function animateTurnSparks(screen, side, duration) {
 }
 
 export async function presentJournalEvent(screen, event, commit, render, duration) {
+  if (event.type === 'coins') {
+    render(commit());
+    const counter = screen.querySelector(`[data-coins-side="${event.side}"]`);
+    if (counter && duration) {
+      const delta = event.amount > 0 ? '+' + event.amount : '−' + Math.abs(event.amount);
+      await Promise.all(floatingNumber(screen, { rect: counter.getBoundingClientRect() }, delta,
+        event.amount > 0 ? 'boost' : 'coin-spend', duration));
+    }
+    return;
+  }
   if (event.type === 'row-effect') {
     render(commit());
     return;
@@ -480,6 +490,9 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
   motions.push(updateScores(screen, previousScores, duration * .88));
 
   switch (event.type) {
+    case 'aura-power':
+    case 'transform':
+      break;
     case 'play':
       motions.push(...fly(screen, event, current, origin, duration));
       break;

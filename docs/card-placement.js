@@ -97,7 +97,9 @@ export function bindCardPlacement(screen, play, inspect) {
     if (!card) return;
     delete card.dataset.suppressClick;
     const isEffect = card.dataset.type === 'effect';
-    const rows = [...screen.querySelectorAll(isEffect ? '[data-cast-zone]' : '[data-play-row]')].filter((row) => isEffect || (row.dataset.side === (card.dataset.enemySide ? 'bot' : 'human') && row.dataset.full !== 'true'));
+    const rows = [...screen.querySelectorAll(isEffect ? '[data-cast-zone]' : '[data-play-row]')].filter((row) => isEffect ||
+      (row.dataset.side === (card.dataset.enemySide ? 'bot' : 'human') && row.dataset.full !== 'true' &&
+        (!card.dataset.requiredRow || row.dataset.playRow === card.dataset.requiredRow)));
     if (!rows.length) return;
     gesture = { pointerId: event.pointerId, card, rows, isEffect, startX: event.clientX, startY: event.clientY };
     card.setPointerCapture(event.pointerId);

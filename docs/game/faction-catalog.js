@@ -1,4 +1,4 @@
-import { FACTIONS } from './cards.js?v=robot-art-28';
+import { FACTIONS } from './cards.js?v=hounds-1';
 
 export const UPCOMING_FACTIONS = Object.freeze({
   flawless: { name: 'Безупречные', description: 'Инопланетная цивилизация с передовыми технологиями.' },

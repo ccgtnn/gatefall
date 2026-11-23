@@ -867,3 +867,20 @@ body:has(#app[data-animation-speed="fast"]) .field-drawer[open] { animation-dura
   vertical-align: middle;
   object-fit: cover;
 }
+
+.field-coins, .unit-fee {
+  display: inline-flex;
+  align-items: center;
+  gap: .2em;
+  color: #ffe0a0;
+  background: #251d16;
+  border: 1px solid #94704d;
+  border-radius: .3rem;
+  padding: .12em .28em;
+  font-size: clamp(.55rem, 1.7dvh, .78rem);
+  font-variant-numeric: tabular-nums;
+}
+.unit-fee { position: absolute; z-index: 2; inset: auto .12rem .12rem auto; }
+.unit-fee:disabled { opacity: .65; }
+.tribute-choices { display: flex; flex-wrap: wrap; gap: .35rem; }
+.motion-number.motion-coin-spend { color: #ffbd99; }

@@ -1,7 +1,7 @@
 import { dialogClose } from './resources.js?v=interface-polish-1';
 import { button, element, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROW_LABELS } from '../game/cards.js?v=robot-art-28';
-import { cardButton, showCard } from './cards.js?v=decorations-1';
+import { ROW_LABELS } from '../game/cards.js?v=hounds-1';
+import { cardButton, showCard } from './cards.js?v=hounds-1';
 
 export function roundText(event) {
   const { scores, winner } = event;
@@ -32,6 +32,9 @@ export function eventText(event) {
     }
     case 'turn-skip': return `${side}: ход завершён без паса. Нет карты для розыгрыша.`;
     case 'deck-top': return `${side}: карта перемещена на верх колоды.`;
+    case 'hand-bottom': return `${side}: карта из руки перемещена на дно колоды.`;
+    case 'coins': return `${side}: монеты ${event.amount > 0 ? '+' : '−'}${Math.abs(event.amount)} · всего ${event.coins}.`;
+    case 'transform': return `«${event.name}» превращается в «${event.card.definition.name}».`;
     case 'draw': return `${side}: добор ${event.count}${event.extraSwaps ? ` · дополнительных замен +${event.extraSwaps}` : ''}.`;
     case 'round-end': return roundText(event);
     case 'status': {

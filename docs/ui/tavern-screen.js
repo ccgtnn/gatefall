@@ -1,4 +1,4 @@
-import { questComplete, TAVERN_QUEST_BY_ID } from '../game/tavern.js?v=robot-art-28';
+import { questComplete, TAVERN_QUEST_BY_ID } from '../game/tavern.js?v=hounds-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { sectionDialog } from './resources.js?v=interface-polish-1';
 import { resourceIcon } from './resource-icon.js?v=1';

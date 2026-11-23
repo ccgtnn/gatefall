@@ -1,9 +1,9 @@
-import { inspectDeck, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET } from './decks.js?v=robot-art-28';
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=robot-art-28';
-import { announcePlay, availableRows, cardType, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, spendResilience, statusCount, takeCards } from './board.js?v=robot-art-28';
-import { availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=robot-art-28';
+import { inspectDeck, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET } from './decks.js?v=hounds-1';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=hounds-1';
+import { announcePlay, availableRows, cardType, changeCoins, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, refreshHoundAura, spendResilience, statusCount, takeCards } from './board.js?v=hounds-1';
+import { availableFees, availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=hounds-1';
 
-export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=robot-art-28';
+export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=hounds-1';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;
@@ -15,6 +15,7 @@ const LATER_MULLIGAN_LIMIT = 2;
 export const MATCH_RULES = Object.freeze({
   nextStarter: 'winner',
   leaderCharges: 1,
+  coinsPersistBetweenRounds: true,
 });
 
 function emptyBoard() {
@@ -42,6 +43,7 @@ function createPlayer(side, definitions, random, factionId, leader, charges) {
     discard: [],
     exile: [],
     turns: 0,
+    coins: 0,
     usedAbility: false,
     roundActed: false,
     extraSwaps: 0,
@@ -125,7 +127,7 @@ export function totalScore(player) {
 }
 
 export function canPlayCard(match, side, card) {
-  return cardType(card) === 'effect' ? canCast(match, side, card) : availableRows(match.players[placementSide(side, card)]).length > 0;
+  return cardType(card) === 'effect' ? canCast(match, side, card) : availableRows(match.players[placementSide(side, card)], card).length > 0;
 }
 
 export function playableCards(match, side) {
@@ -138,7 +140,8 @@ export function canPass(match, side) {
 }
 
 export function canEndTurn(match, side) {
-  return match.phase === 'playing' && match.turn === side && !match.pending && match.playedCard;
+  return match.phase === 'playing' && match.turn === side && !match.pending &&
+    (match.playedCard || (match.players[side].usedAbility && !playableCards(match, side).length));
 }
 
 export function mulliganLimit(match, side) {
@@ -263,7 +266,11 @@ function resolveRound(match) {
     match.starter = winner;
   }
   match.round += 1;
-  for (const side of SIDES) drawForRound(match, side);
+  for (const side of SIDES) {
+    refreshHoundAura(match, side);
+    if (!match.rules.coinsPersistBetweenRounds) changeCoins(match, side, -(match.players[side].coins ?? 0));
+    drawForRound(match, side);
+  }
   match.phase = 'mulligan';
   match.mulligan = { used: 0, excluded: [] };
   match.turn = null;
@@ -305,11 +312,11 @@ function progress(match, random) {
     }
 
     if (match.playedCard) {
-      if (availableOrders(match, side).length || canUseLeader(match, side)) return;
+      if (availableOrders(match, side).length || canUseLeader(match, side) || availableFees(match, side).length) return;
       match.ending = 'effects';
       continue;
     }
-    if (playableCards(match, side).length) return;
+    if (playableCards(match, side).length || availableFees(match, side).length) return;
     if (player.usedAbility) {
       match.log.push({ type: 'turn-skip', side });
       match.ending = 'effects';
@@ -350,14 +357,17 @@ export function applyAction(match, side, action, { random = Math.random, copy = 
   if (type === 'pass' && !canPass(match, side)) return match;
   if (type === 'end-turn' && !canEndTurn(match, side)) return match;
   if (type === 'order' && !availableOrders(match, side).some(({ card }) => card.id === cardId)) return match;
+  const fee = type === 'fee' && availableFees(match, side).find(({ card }) => card.id === cardId)?.card.definition.fee;
+  if (type === 'fee' && !fee) return match;
   if (type === 'leader' && !canUseLeader(match, side)) return match;
-  if (type !== 'play' && type !== 'pass' && type !== 'order' && type !== 'leader' && type !== 'end-turn') return match;
+  if (type !== 'play' && type !== 'pass' && type !== 'order' && type !== 'leader' && type !== 'end-turn' && type !== 'fee') return match;
   const cardIndex = type === 'play' ? player.hand.findIndex(({ id }) => id === cardId) : -1;
   let destination;
   if (type === 'play') {
     const card = player.hand[cardIndex];
     if (match.playedCard || !card || !canPlayCard(match, side, card)) return match;
     if (cardType(card) !== 'effect') {
+      if (card.definition.requiredRow && card.definition.requiredRow !== action.row) return match;
       destination = playDestination(match.players[placementSide(side, card)], action);
       if (!destination) return match;
     }
@@ -395,6 +405,11 @@ export function applyAction(match, side, action, { random = Math.random, copy = 
     const sourceDefinitionId = leader.order?.sourceDefinitionId;
     next.log.push({ type: 'leader', side, name: leader.name, ...(sourceDefinitionId && { sourceDefinitionId, lastUsedTurn: leader.lastUsedTurn }) });
     next.effects.push({ ability: leader.ability, side, sourceDefinitionId });
+  } else if (type === 'fee') {
+    current.usedAbility = true;
+    current.roundActed = true;
+    next.effects.push({ ability: { ...fee, steps: [{ action: 'coins', amount: -fee.coins }, ...fee.steps] },
+      side, sourceId: cardId, requiredSource: true });
   } else {
     current.usedAbility = true;
     current.roundActed = true;

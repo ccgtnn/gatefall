@@ -1,7 +1,8 @@
 import { dialogClose } from './resources.js?v=interface-polish-1';
 import { button, element, setCardRarity } from './dom.js?v=opponent-reveal-1';
-import { CARD_TYPES, FACTIONS, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=robot-art-28';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=robot-art-28';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=hounds-1';
+import { FACTION_CATALOG } from '../game/faction-catalog.js?v=hounds-1';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=hounds-1';
 
 import { deathwishDefinitions } from '../game/events.js?v=helper-robot-1';
 import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=badge-depth-1';
@@ -35,11 +36,12 @@ export function showCard(card, { leader = false, legacy = false,
   orderReady = false, orderCooldown = 0, actions, frame } = {}) {
   const { definition, power, armor, timer, counter } = card;
   setCardRarity(preview, definition.rarity);
-  const faction = definition.faction === NEUTRAL ? 'Нейтральная' : FACTIONS[definition.faction]?.name;
+  const faction = definition.faction === NEUTRAL ? 'Нейтральная' : FACTION_CATALOG[definition.faction]?.name;
   const details = leader ? ['Лидер'] : [CARD_TYPES[cardType(card)], faction, RARITY_LABELS[definition.rarity],
     definition.stratagem ? 'Стратагема' : definition.provision === undefined ? 'Токен'
       : `Провизия ${definition.provision}`].filter(Boolean);
   details.push(...(definition.categories ?? []));
+  if (definition.shipClass) details.push(definition.shipClass);
   const stats = [];
   if (definition.scenario) stats.push(`Главы ${card.chapter ?? 0}/${definition.scenario.chapters.length}`);
   const infection = statusCount(card, 'infection');

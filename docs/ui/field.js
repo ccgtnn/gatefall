@@ -1,18 +1,18 @@
 import { leagueCharacter } from './league-character.js?v=league-characters-1';
-import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js?v=robot-art-28';
-import { insertionPoint, placementEffectRows } from '../card-placement.js?v=row-placement-1';
+import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js?v=hounds-1';
+import { insertionPoint, placementEffectRows } from '../card-placement.js?v=hounds-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=robot-art-28';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=decorations-1';
-import { playerHand } from './hand.js?v=round-intro-1';
-import { availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=robot-art-28';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=robot-art-28';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=hounds-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=hounds-1';
+import { playerHand } from './hand.js?v=hounds-1';
+import { availableFees, availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=hounds-1';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=hounds-1';
 
 import { orderBadge } from './stat-badges.js?v=badge-depth-1';
 
 export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, isMulliganFieldVisible, setMulliganField,
   playHuman, humanCanAct, placeSelected, settingsButton, showDrawer, selectCard, mulliganScreen, getLeagueOpponent, getLeagueSpeech }) {
-  function rowView(match, side, player, row, readyOrders) {
+  function rowView(match, side, player, row, readyOrders, readyFees) {
     const wrapper = element('div', 'board-row');
     const pending = !isReplaying() && match.pending?.side === 'human' ? match.pending : null;
     const deckPlacement = pending?.kind === 'deck-placement' &&
@@ -66,7 +66,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     slots.dataset.side = side;
     slots.dataset.full = String(cards.length >= ROW_LIMIT);
     slots.addEventListener('click', (event) => {
-      if (event.target.closest('.unit-order, .placement-choice')) return;
+      if (event.target.closest('.unit-order, .unit-fee, .placement-choice')) return;
       if (rowTarget) chooseRow();
       else if (deckPlacement) {
         const rects = Array.from(slots.querySelectorAll('.slot.filled'), (node) => node.getBoundingClientRect());
@@ -112,6 +112,14 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
         order.title = label;
         slot.append(order);
       }
+      if (side === 'human' && card.definition.fee) {
+        const cost = card.definition.fee.coins;
+        const fee = button('◉ ' + cost, () => playHuman({ type: 'fee', cardId: card.id }), 'unit-fee');
+        fee.disabled = !humanCanAct() || !readyFees.has(card.id);
+        fee.title = 'Плата ' + cost + ' · ' + card.definition.name;
+        fee.setAttribute('aria-label', fee.title);
+        slot.append(fee);
+      }
       slots.append(slot);
     }
     if (cards.length === 0) {
@@ -147,7 +155,8 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     section.toggleAttribute('data-psionic-storm', underStorm);
     section.setAttribute('aria-label', sideLabel[side] + (underStorm ? ' · Псионная буря' : ''));
     const rows = side === 'bot' ? ROWS : [...ROWS].reverse();
-    section.append(...rows.map((row) => rowView(match, side, player, row, readyOrders)));
+    const readyFees = new Set(availableFees(match, side).map(({ card }) => card.id));
+    section.append(...rows.map((row) => rowView(match, side, player, row, readyOrders, readyFees)));
     if (side === 'bot' && player.passed) section.append(element('p', 'opponent-passed', 'ПАС'));
     return section;
   }
@@ -194,6 +203,13 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       lives.append(element('span', live ? 'life-stone is-live' : 'life-stone', live ? '◆' : '◇'));
     }
     panel.append(element('span', 'field-score-side', sideLabel[side]), total, lives);
+    const coins = element('span', 'field-coins');
+    coins.dataset.coinsSide = side;
+    coins.setAttribute('aria-label', 'Боевые монеты: ' + (player.coins ?? 0));
+    const coinIcon = element('span', null, '◉');
+    coinIcon.setAttribute('aria-hidden', 'true');
+    coins.append(coinIcon, element('strong', null, player.coins ?? 0));
+    panel.append(coins);
     if (side === 'bot') {
       const count = element('span', 'field-hand-count bot-hand-count');
       count.classList.toggle('is-passed', player.passed);
@@ -262,10 +278,10 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     const pile = pending.pile ?? 'deck';
     const options = new Set(pending.options);
     const selectable = human[pile].filter(({ id }) => pending.fullDeck || options.has(id));
-    const scrollable = pending.fullDeck || pending.kind === 'deck-top' || pile === 'discard';
+    const scrollable = pending.fullDeck || pending.kind === 'deck-top' || pile === 'discard' || pile === 'hand';
     if (scrollable) {
       panel.classList.add('pile-offer');
-      selectable.sort((a, b) => a.definition.name.localeCompare(b.definition.name, 'ru'));
+      if (pile !== 'hand') selectable.sort((a, b) => a.definition.name.localeCompare(b.definition.name, 'ru'));
     }
     for (const item of selectable) {
       const card = pile === 'discard' ? restoreCard(item) : item;
@@ -280,6 +296,20 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     return panel;
   }
 
+  function tributeChoice(pending) {
+    const offer = element('section', 'deck-offer panel');
+    const heading = element('h2', null, pending.prompt);
+    heading.id = 'deck-choice-title';
+    offer.setAttribute('aria-labelledby', heading.id);
+    const options = element('div', 'tribute-choices');
+    for (const cost of pending.options) {
+      const label = cost === '0' ? 'Без взноса' : `◉ ${cost} · Гончие ×${pending.tiers[cost]}`;
+      options.append(button(label, () => playHuman({ type: 'target', cardId: cost }), 'button effect-target'));
+    }
+    offer.append(heading, options);
+    return offer;
+  }
+
   function battlefield() {
     const match = getMatch();
     const game = element('div', 'match-screen');
@@ -292,7 +322,8 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     const humanOrders = readyOrderIds(match, 'human');
     center.append(sideView(match, 'bot', readyOrderIds(match, 'bot')), sideView(match, 'human', humanOrders));
     if (!isReplaying() && pending?.side === 'human') {
-      if (pending.kind === 'deck-card' || pending.kind === 'deck-top') center.append(deckChoice(match));
+      if (['deck-card', 'deck-top', 'hand-bottom'].includes(pending.kind)) center.append(deckChoice(match));
+      else if (pending.kind === 'tribute') center.append(tributeChoice(pending));
       else {
         const picked = pending.kind === 'deck-placement' && players.human[pending.pile ?? 'deck'].find(({ id }) => id === pending.cardId);
         const prompt = picked ? picked.definition.name + ' · ' + pending.prompt : pending.prompt;
@@ -304,7 +335,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       iconButton('▤', 'Журнал ходов', () => showDrawer('journal'), 'field-log'),
       leaderView(match, 'human'), pileView(match, 'human', 'discard'));
     const right = element('div', 'field-rail field-right');
-    const afterPlay = match.turn === 'human' && match.playedCard;
+    const afterPlay = match.turn === 'human' && (match.playedCard || canEndTurn(match, 'human'));
     const action = button(afterPlay ? 'Конец хода' : 'Пас', () =>
       playHuman({ type: afterPlay ? 'end-turn' : 'pass' }), 'button field-action');
     action.id = 'pass-button';

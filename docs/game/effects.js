@@ -1,10 +1,11 @@
 import { deathwishDefinitions, deathwishJobs, emit } from './events.js?v=helper-robot-1';
-import { ROWS, ROW_LABELS } from './cards.js?v=robot-art-28';
+import { ROWS, ROW_LABELS } from './cards.js?v=hounds-1';
 import {
-  activeOrder, announcePlay, applyStatus, availableRows, boost, cardType, consume, damage, damageOverflow, findUnit,
+  activeOrder, announcePlay, applyStatus, availableRows, boost, cardType, changeCoins, consume, damage, damageOverflow, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, restoreCard, ROW_LIMIT,
-  setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, infectionDamage, units,
-} from './board.js?v=robot-art-28';
+  refreshHoundAura, setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, infectionDamage, transformUnit, units,
+} from './board.js?v=hounds-1';
+import { HOUND_CATEGORY } from './captains.js?v=hounds-1';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);
@@ -34,6 +35,7 @@ function targets(match, job, query, choosing = false) {
     (!query.type || cardType(unit.card) === query.type) &&
     (!query.unitOrOrder || isUnit(unit.card) || unit.card.definition.order) &&
     (!query.token || unit.card.definition.token) &&
+    (!query.category || unit.card.definition.categories?.includes(query.category)) &&
     (query.infected === undefined || Boolean(statusCount(unit.card, 'infection')) === query.infected) &&
     (query.marked === undefined || Boolean(statusCount(unit.card, 'target')) === query.marked) &&
     (!query.definitionId || unit.card.definition.id === query.definitionId) &&
@@ -98,7 +100,7 @@ function eligiblePileCards(match, side, pile, step, piles = {}) {
   const cards = piles[pile] ?? match.players[side][pile];
   const candidates = step.fullDeck ? cards : pileCandidates(cards, step.filter);
   return candidates.filter((card) => {
-    if (cardType(card) !== 'effect') return availableRows(match.players[placementSide(side, card)]).length > 0;
+    if (cardType(card) !== 'effect') return availableRows(match.players[placementSide(side, card)], card).length > 0;
     return canCast(match, side, card, { ...piles, [pile]: cards.filter(({ id }) => id !== card.id) }, 'deploy');
   });
 }
@@ -168,6 +170,19 @@ export function availableOrders(match, side) {
     const order = activeOrder(unit);
     return order && unit.card.readyAt <= player.turns &&
       canStart(match, { ability: orderAbility(order), side, sourceId: unit.card.id });
+  });
+}
+
+export function availableFees(match, side) {
+  const player = match.players[side];
+  return units(match, side).filter((unit) => {
+    const { card, row } = unit;
+    const fee = card.definition.fee;
+    return fee && (player.coins ?? 0) >= fee.coins &&
+      (!card.definition.requiredRow || row === card.definition.requiredRow) &&
+      (!fee.needsSourceSpace || player.board[row].length < ROW_LIMIT) &&
+      (!fee.needsExhaustedOrder || (activeOrder(unit) && card.readyAt > player.turns)) &&
+      canStart(match, { ability: fee, side, sourceId: card.id });
   });
 }
 
@@ -274,7 +289,7 @@ function playFromPile(match, job, step, random) {
   const destinationSide = placementSide(job.side, player[pile][index]);
   const recipient = match.players[destinationSide];
   if (!isEffect && !job.refs.deckPlacement) {
-    const rows = availableRows(recipient);
+    const rows = availableRows(recipient, player[pile][index]);
     if (!rows.length) return true;
     const type = cardType(player[pile][index]) === 'artifact' ? 'артефакта' : 'отряда';
     pause(match, job, 'deck-placement', 'deckPlacement', rows, `Выбери ряд и позицию для ${type}.`,
@@ -307,7 +322,7 @@ function summonFromDeck(match, job, step, random) {
   if (step.row === 'random') {
     if (source?.pile !== 'deck') return;
     const player = match.players[job.side];
-    const rows = availableRows(player);
+    const rows = availableRows(player, source.card);
     if (!rows.length) return;
     const row = rows.length === 1 ? rows[0] : rows[Math.floor(random() * rows.length)];
     placeSummonedCard(match, job.side, row, player.board[row].length, source.card);
@@ -320,7 +335,7 @@ function summonFromDeck(match, job, step, random) {
   const index = Math.min(player.board[row].length,
     position + Number(step.position === 'right' || (step.position === 'death' && Boolean(source))));
   if (!playDestination(player, { row, position: index })) return;
-  const candidates = pileCandidates(player.deck, step.filter);
+  const candidates = pileCandidates(player.deck, step.filter).filter((card) => availableRows(player, card).includes(row));
   if (!candidates.length) return;
   const selected = candidates[Math.floor(random() * candidates.length)];
   placeSummonedCard(match, side, row, index, selected);
@@ -332,6 +347,7 @@ function placeSummonedCard(match, side, row, index, selected) {
   placeCards(player, row, index, [card]);
   match.log.push({ type: 'spawn', from: 'deck', side, row, position: index,
     name: card.definition.name, count: 1, cards: [{ ...card }] });
+  if (card.definition.categories?.includes(HOUND_CATEGORY)) refreshHoundAura(match, side);
 }
 
 export function enqueueEndTurn(match, side) {
@@ -474,8 +490,45 @@ export function runEffect(match, job, random) {
 
   const step = job.ability.steps[job.index];
   if (!step) return;
+  const holdsCategory = step.when?.orAlliesCategory &&
+    units(match, job.side).every(({ card }) => card.definition.categories?.includes(step.when.orAlliesCategory));
   if ((step.sourceRow && reference(match, job)?.row !== step.sourceRow) ||
-      (step.when && !targets(match, job, step.when.targets).length)) {
+      (step.when && !holdsCategory && !targets(match, job, step.when.targets).length)) {
+    job.index += 1;
+    match.effects.unshift(job);
+    return;
+  }
+  if (step.action === 'coins' || step.action === 'choose-tribute' || step.action === 'choose-hand-bottom') {
+    const player = match.players[job.side];
+    if (step.action === 'coins') changeCoins(match, job.side, step.amount);
+    if (step.action === 'choose-tribute') {
+      const origin = reference(match, job);
+      if (origin && player.board[origin.row].length < ROW_LIMIT) {
+        const options = Object.keys(step.tiers).filter((cost) => Number(cost) <= (player.coins ?? 0));
+        if (!job.refs.tribute && options.length) {
+          pause(match, job, 'tribute', 'tribute', ['0', ...options], 'Выбери размер взноса.',
+            { tiers: step.tiers });
+          return;
+        }
+        if (step.tiers[job.refs.tribute]) {
+          changeCoins(match, job.side, -Number(job.refs.tribute));
+          spawn(match, job, { ...step.spawn, amount: step.tiers[job.refs.tribute] });
+        }
+      }
+    }
+    if (step.action === 'choose-hand-bottom' && player.hand.length) {
+      if (!job.refs.bottomCard) {
+        pause(match, job, 'hand-bottom', 'bottomCard', player.hand.map(({ id }) => id),
+          'Выбери карту из руки на дно колоды.', { pile: 'hand' });
+        return;
+      }
+      const index = player.hand.findIndex(({ id }) => id === job.refs.bottomCard);
+      if (index >= 0) {
+        const [card] = player.hand.splice(index, 1);
+        player.deck.push(card);
+        match.log.push({ type: 'hand-bottom', side: job.side, cardId: card.id, name: card.definition.name });
+      }
+    }
     job.index += 1;
     match.effects.unshift(job);
     return;
@@ -652,6 +705,8 @@ export function runEffect(match, job, random) {
   if (step.action === 'consume') {
     const [receiver] = targets(match, job, step.receiver);
     result = consume(match, target, receiver, step);
+  } else if (step.action === 'transform') {
+    transformUnit(match, target, step.card);
   } else if (step.action === 'activate-deathwish') {
     match.effects.unshift(...deathwishJobs(target.card, {
       side: target.side, row: target.row, position: target.position, sourceId: target.card.id,

@@ -1,11 +1,12 @@
 import { rankRewards, syncRanks } from './ranks.js?v=monthly-ranks-1';
-import { advanceTavern, questComplete, replaceTavernQuest, syncTavern, TAVERN_QUEST_BY_ID, tavernEventAmounts, trackTavernMatch } from './tavern.js?v=robot-art-28';
-import { createLeague, DIAMOND, finishLeagueMatch, leagueStake, needsLeagueReset, reserveLeagueMatch, resetLeagueWeek, upgradeLeague } from './league.js?v=league-avatars-5';
+import { advanceTavern, questComplete, replaceTavernQuest, syncTavern, TAVERN_QUEST_BY_ID, tavernEventAmounts, trackTavernMatch } from './tavern.js?v=hounds-1';
+import { createLeague, DIAMOND, finishLeagueMatch, leagueStake, needsLeagueReset, reserveLeagueMatch, resetLeagueWeek, upgradeLeague } from './league.js?v=hounds-1';
 import { victoryGold, weeklyReward } from './outpost.js?v=base-outpost-1';
 import { advanceProduction, productionView, readProduction, takeProduction } from './base-production.js?v=tavern-1';
 import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=tavern-1';
-import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=robot-art-28';
-import { copyLimit, inspectDeck } from './decks.js?v=robot-art-28';
+import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=hounds-1';
+import { copyLimit, inspectDeck } from './decks.js?v=hounds-1';
+import { CAPTAIN_CARDS } from './captains.js?v=hounds-1';
 
 export const STARTING_KEYS = 10000;
 export const STARTING_GOLD = 10000;
@@ -325,7 +326,7 @@ export function rewardState(node, { keys, unlocked }) {
 
 const pools = new Map(Object.entries(FACTIONS).map(([id, { pool }]) => [id, pool]));
 pools.set(NEUTRAL, NEUTRAL_CARDS);
-const definitions = new Map([...pools.values()].flat().map((card) => [card.id, card]));
+const definitions = new Map([...pools.values(), CAPTAIN_CARDS].flat().map((card) => [card.id, card]));
 const count = (value) => Number.isSafeInteger(value) && value > 0 ? value : 0;
 
 function countsFor(keys, values) {

@@ -1,5 +1,5 @@
-import { recordCardPlay, spendResilience } from './game/board.js?v=robot-art-28';
-import { ROWS } from './game/cards.js?v=robot-art-28';
+import { recordCardPlay, spendResilience } from './game/board.js?v=hounds-1';
+import { ROWS } from './game/cards.js?v=hounds-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;
@@ -49,6 +49,13 @@ export function applyJournalEvent(state, event) {
   }
   if (!player) return;
 
+  if (type === 'coins') player.coins = event.coins;
+  if (type === 'hand-bottom') {
+    const card = player.hand.find(({ id }) => id === cardId);
+    player.hand = player.hand.filter(({ id }) => id !== cardId);
+    if (card) player.deck = [...player.deck, card];
+    return;
+  }
   if (type === 'pass') player.passed = true;
   if (type === 'leader-replaced') player.leader = event.leader;
   if (type === 'leader' && event.lastUsedTurn !== undefined) {
@@ -102,6 +109,12 @@ export function applyJournalEvent(state, event) {
       break;
     }
     if (type === 'inherit-deathwishes') line[index].inheritedDeathwishes = event.inheritedDeathwishes;
+    if (type === 'transform') line[index] = { ...event.card };
+    if (type === 'aura-power') {
+      line[index].power = event.power;
+      if (event.houndBonus) line[index].houndBonus = event.houndBonus;
+      else delete line[index].houndBonus;
+    }
     if (type === 'scenario-chapter') line[index].chapter = event.chapter;
     if (type === 'base-power') line[index].basePower = event.basePower;
     if (['boost', 'damage', 'base-power', 'heal'].includes(type)) line[index].power = event.power;

@@ -1,4 +1,4 @@
-import { totalScore } from './match.js?v=robot-art-28';
+import { totalScore } from './match.js?v=hounds-1';
 
 export const LEAGUE_DIALOGUE = Object.freeze({ chance: .35, strongSwing: 6, duration: 6500 });
 

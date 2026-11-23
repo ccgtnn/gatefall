@@ -717,7 +717,12 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 .catalog-heading { display: flex; align-items: center; gap: .85rem; }
 .faction-filters { display: flex; flex-wrap: wrap; gap: .35rem; }
 [data-faction="flawless"] { --faction-edge: #e8c87f; }
-[data-faction="captains"] { --faction-edge: #e1a289; }
+[data-faction="captains"] {
+  --faction-edge: #e1a289;
+  --faction-light: #f3dacb;
+  --faction-face: #443127;
+  --faction-second: #29212e;
+}
 [data-faction="core"] { --faction-edge: #87dbe2; }
 [data-faction="void"] { --faction-edge: #c0a2e8; }
 [data-faction="choir"] { --faction-edge: #a9bfff; }
