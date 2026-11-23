@@ -46,6 +46,23 @@ body:has(#app[data-animation-speed="fast"]) { --pack-pace: .48; }
   background: linear-gradient(160deg, #25394d, #111e2b);
   font-variant-numeric: tabular-nums;
 }
+.resource-balance { display: flex; position: relative; }
+.essence-gain {
+  padding: .15rem .38rem;
+  border: 1px solid #68aa9a;
+  border-radius: .35rem;
+  background: #102a2b;
+  color: #a7ffe3;
+  font-size: .8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.resource-balance > .essence-gain {
+  position: absolute;
+  inset-block-start: calc(100% + .4rem);
+  inset-inline-end: 0;
+}
 .resource-button:hover, .resource-button[aria-current="page"], .resource-bar #start-settings:hover, .chrome-button:hover {
   border-color: var(--resource-tint, #b5d5f6);
   background: #2e465c;
@@ -247,6 +264,9 @@ body:has(.reward-book[open]) { overflow: hidden; }
   padding: .65rem 0;
   border-block-start: 1px solid #637b8e59;
 }
+.card-trade-balance { display: flex; align-items: center; flex-wrap: wrap; gap: .2rem .6rem; }
+.card-trade-confirmation > p { padding-block-end: .45rem; }
+.card-trade [hidden] { display: none; }
 .card-trade-actions { display: flex; flex-wrap: wrap; gap: .45rem; }
 .craft-button { padding: .25rem .55rem; font-size: .85rem; }
 .card-trade-value { display: inline-flex; gap: .12rem; align-items: center; white-space: nowrap; }

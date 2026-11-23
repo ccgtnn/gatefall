@@ -1,4 +1,4 @@
-import { dialogClose } from './resources.js?v=interface-polish-1';
+import { dialogClose } from './resources.js?v=essence-gain-1';
 import { button, element, selectField, setCardRarity } from './dom.js?v=opponent-reveal-1';
 import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=hounds-1';
 import { FACTION_CATALOG } from '../game/faction-catalog.js?v=hounds-1';

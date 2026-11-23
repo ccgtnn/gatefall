@@ -1,5 +1,5 @@
-import { dialogClose } from './resources.js?v=interface-polish-1';
-import { bindRulesMenu } from './rules.js?v=hounds-1';
+import { dialogClose } from './resources.js?v=essence-gain-1';
+import { bindRulesMenu } from './rules.js?v=essence-gain-1';
 import { createSoundEffects, DEFAULT_VOLUME } from '../sound.js?v=step-10-volume';
 import { motionDuration } from '../turn-playback.js?v=hounds-1';
 

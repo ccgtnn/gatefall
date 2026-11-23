@@ -1,8 +1,8 @@
 import { FACTIONS } from '../game/cards.js?v=hounds-1';
 import { createCard } from '../game/board.js?v=hounds-1';
-import { decorateCard } from './cards.js?v=premium-loop-1';
+import { decorateCard } from './cards.js?v=essence-gain-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
-import { sectionBack } from './resources.js?v=interface-polish-1';
+import { sectionBack } from './resources.js?v=essence-gain-1';
 
 export const FRAME_STORAGE_KEY = 'gatefall.card-frame';
 export const BATTLEFIELD_STORAGE_KEY = 'gatefall.battlefield';

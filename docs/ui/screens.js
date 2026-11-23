@@ -5,14 +5,14 @@ import { createCard } from '../game/board.js?v=hounds-1';
 import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=hounds-1';
 import { FACTION_CATALOG } from '../game/faction-catalog.js?v=hounds-1';
 import { CAPTAIN_CARDS } from '../game/captains.js?v=hounds-1';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=premium-loop-1';
-import { logView, roundText } from './menu.js?v=premium-loop-1';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=essence-gain-1';
+import { logView, roundText } from './menu.js?v=essence-gain-1';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=collection-2';
 import { factionFilters } from './faction-filters.js?v=faction-catalog-2';
 import { copyLimit } from '../game/decks.js?v=hounds-1';
 import { craftPrice, dismantleValue } from '../game/rewards.js?v=hounds-1';
 import { resourceIcon } from './resource-icon.js?v=1';
-import { sectionBack } from './resources.js?v=interface-polish-1';
+import { sectionBack } from './resources.js?v=essence-gain-1';
 
 const catalogCards = [...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool), ...CAPTAIN_CARDS];
 const catalogFactions = [['', 'Все фракции'], [NEUTRAL, 'Нейтральные'],
@@ -72,26 +72,62 @@ export function catalogScreen(progress) {
     const { definition } = card;
     const panel = element('section', 'card-trade');
     panel.setAttribute('aria-label', 'Коллекция');
-    const quantity = element('p', 'catalog-quantity');
+    const quantity = element('span', 'catalog-quantity');
+    const balance = element('span', 'catalog-quantity');
+    const balanceLine = element('p', 'card-trade-balance');
+    balanceLine.dataset.essenceBalance = '';
+    balanceLine.append(quantity, balance);
     const message = element('p', 'economy-status');
     message.setAttribute('role', 'status');
     const buttons = element('div', 'card-trade-actions');
     const price = craftPrice(definition);
     const payout = dismantleValue(definition);
     const craft = tradeButton('Создать', '−' + price, `Создать «${definition.name}» за ${price} эссенции`, () => trade('craft'));
-    const dismantle = tradeButton('Распылить', '+' + payout, `Распылить «${definition.name}» за ${payout} эссенции`, () => trade('dismantle'));
+    const dismantle = tradeButton('Распылить', '+' + payout, `Распылить «${definition.name}» за ${payout} эссенции`, () => {
+      buttons.hidden = true;
+      confirmation.hidden = false;
+      cancel.focus();
+    });
+    const confirmation = element('div', 'card-trade-confirmation');
+    confirmation.hidden = true;
+    confirmation.setAttribute('role', 'group');
+    const question = `Распылить одну копию «${definition.name}»? Ты получишь ${payout} эссенции.`;
+    confirmation.setAttribute('aria-label', question);
+
+    function dismissConfirmation() {
+      confirmation.hidden = true;
+      buttons.hidden = false;
+    }
+
+    const cancel = button('Отмена', () => {
+      dismissConfirmation();
+      dismantle.focus();
+    });
+    const confirm = button('Да, распылить', () => {
+      dismissConfirmation();
+      void trade('dismantle');
+    }, 'button craft-button');
+    const confirmActions = element('div', 'card-trade-actions');
+    confirmActions.append(cancel, confirm);
+    confirmation.append(element('p', null, question), confirmActions);
+    confirmation.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      cancel.click();
+    });
     buttons.append(craft, dismantle);
-    panel.append(quantity, buttons, message);
+    panel.append(balanceLine, buttons, confirmation, message);
     showCard(card, { actions: panel });
     tradeView = {
       panel,
       update({ essence, owned }) {
         const copies = owned[definition.id];
-        quantity.textContent = `В коллекции · ${copies} · Эссенция · ${essence}`;
+        quantity.textContent = `В коллекции · ${copies}`;
+        balance.textContent = `Эссенция · ${essence}`;
         craft.disabled = busy || copies >= copyLimit(definition) || essence < price;
         craft.title = copies >= copyLimit(definition) ? 'Для колоды уже хватает копий'
           : essence < price ? 'Нужно больше эссенции' : craft.getAttribute('aria-label');
-        dismantle.disabled = busy || !copies;
+        dismantle.disabled = confirm.disabled = busy || !copies;
       },
     };
     tradeView.update(progress.inventory());
@@ -104,7 +140,7 @@ export function catalogScreen(progress) {
       busy = false;
       update();
       const success = action === 'craft' ? `Создана карта «${definition.name}».`
-        : `Распылена карта «${definition.name}». Получено ${payout} эссенции.`;
+        : `Распылена карта «${definition.name}».`;
       const messages = {
         done: success, empty: 'В коллекции нет копий этой карты.', owned: 'В коллекции уже достаточно копий.',
         unaffordable: 'Нужно больше эссенции.',

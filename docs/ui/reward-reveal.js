@@ -1,5 +1,5 @@
 import { button, element } from './dom.js?v=opponent-reveal-1';
-import { resourceGlyph, resourceLabel } from './resources.js?v=reward-reveal-1';
+import { resourceGlyph, resourceLabel } from './resources.js?v=essence-gain-1';
 
 const MERGE_MS = 1500;
 
@@ -49,10 +49,13 @@ const queue = createRewardQueue();
 let reveal;
 
 export function enqueueReward(entry) {
-  if (queue.enqueueReward(entry, reveal?.isOpen())) reveal?.refresh();
+  const { essence, ...reward } = entry.reward;
+  const queued = queue.enqueueReward({ ...entry, reward }, reveal?.isOpen());
+  if (Number.isSafeInteger(essence) && essence > 0) reveal?.notifyEssence(essence);
+  if (queued) reveal?.refresh();
 }
 
-export function createRewardReveal({ motion, canShow }) {
+export function createRewardReveal({ motion, canShow, showEssence = () => {} }) {
   const dialog = element('dialog', 'reward-reveal');
   dialog.setAttribute('role', 'dialog');
   dialog.setAttribute('aria-modal', 'true');
@@ -76,6 +79,11 @@ export function createRewardReveal({ motion, canShow }) {
   let scheduled = false;
   let rendered;
   let renderedPosition;
+  let deferredEssence = 0;
+  function notifyEssence(amount) {
+    if (queue.current()) deferredEssence += amount;
+    else showEssence(amount);
+  }
   const idle = new Set();
   function show() {
     scheduled = false;
@@ -140,6 +148,10 @@ export function createRewardReveal({ motion, canShow }) {
       rendered = undefined;
       dialog.classList.remove('is-entering');
       dialog.close();
+      if (deferredEssence) {
+        showEssence(deferredEssence);
+        deferredEssence = 0;
+      }
       for (const resolve of idle) resolve();
       idle.clear();
     }
@@ -158,7 +170,7 @@ export function createRewardReveal({ motion, canShow }) {
     }
   });
 
-  reveal = { refresh, isOpen: () => dialog.open };
+  reveal = { refresh, notifyEssence, isOpen: () => dialog.open };
   refresh();
   return {
     refresh,

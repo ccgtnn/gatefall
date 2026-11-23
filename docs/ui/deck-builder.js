@@ -2,13 +2,13 @@ import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v
 import { FACTION_CATALOG, UPCOMING_FACTIONS } from '../game/faction-catalog.js?v=hounds-1';
 import { createCard } from '../game/board.js?v=hounds-1';
 import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=hounds-1';
-import { addCardCrop, cardButton } from './cards.js?v=premium-loop-1';
+import { addCardCrop, cardButton } from './cards.js?v=essence-gain-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { factionFilters } from './faction-filters.js?v=faction-catalog-2';
 import { resourceIcon } from './resource-icon.js?v=faction-catalog-2';
 import { availabilityOptions, matchesAvailability } from './catalog-cards.js?v=collection-2';
 import { campaignShelf } from './campaigns.js?v=home-base-1';
-import { sectionBack } from './resources.js?v=interface-polish-1';
+import { sectionBack } from './resources.js?v=essence-gain-1';
 
 const byProvision = (a, b) => b.provision - a.provision || a.name.localeCompare(b.name, 'ru');
 

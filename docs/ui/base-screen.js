@@ -1,8 +1,8 @@
-import { createBaseGrid } from './base-grid.js?v=hounds-1';
+import { createBaseGrid } from './base-grid.js?v=essence-gain-1';
 import { BASE_OVERLAYS, BASE_POSITIONS, baseLayout, overlayStyle } from './base-layout.js?v=base-mine-1';
 import { BASE_PLOTS, BUILDING_BY_PLOT, BUILDINGS, MATERIALS, buildingEffect, constructionShortages } from '../game/base.js?v=tavern-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
-import { dialogClose, resourceGlyph as materialIcon, resourceLabel, sectionDialog } from './resources.js?v=reward-reveal-1';
+import { dialogClose, resourceGlyph as materialIcon, resourceLabel, sectionDialog } from './resources.js?v=essence-gain-1';
 
 const labels = { gold: resourceLabel('gold'), ...MATERIALS };
 const USE_BASE_OVERLAYS = false;

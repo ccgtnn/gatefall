@@ -1,6 +1,6 @@
 import { MONTHLY_RANKS, rankStanding } from '../game/ranks.js?v=monthly-ranks-1';
 import { element } from './dom.js?v=opponent-reveal-1';
-import { sectionBack } from './resources.js?v=interface-polish-1';
+import { sectionBack } from './resources.js?v=essence-gain-1';
 
 const resetDate = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
 const columns = [

@@ -1,4 +1,4 @@
-import { dialogClose } from './resources.js?v=interface-polish-1';
+import { dialogClose } from './resources.js?v=essence-gain-1';
 import { KEYWORDS } from '../game/cards.js?v=hounds-1';
 import { element } from './dom.js?v=opponent-reveal-1';
 

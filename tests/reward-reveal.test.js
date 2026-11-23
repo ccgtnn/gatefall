@@ -128,7 +128,10 @@ test('the reward dialog waits for the results gate and lets the player collect a
   globalThis.document = { body, createElement: () => new Node(), createElementNS: () => new Node() };
 
   let resultsDismissed = false;
-  const reveal = createRewardReveal({ motion: () => 0, canShow: () => resultsDismissed });
+  const essenceGains = [];
+  const reveal = createRewardReveal({
+    motion: () => 0, canShow: () => resultsDismissed, showEssence: (amount) => essenceGains.push(amount),
+  });
   const [dialog] = body.children;
   const [header, items, actions] = dialog.children;
   const [, title, counter] = header.children;
@@ -160,4 +163,19 @@ test('the reward dialog waits for the results gate and lets the player collect a
   await idle;
   assert.equal(dialog.open, false);
   assert.equal(reveal.hasPending(), false);
+
+  enqueueReward(entry('Распыление', { essence: 20 }));
+  await nextTick();
+  assert.deepEqual(essenceGains, [20]);
+  assert.equal(dialog.open, false);
+  assert.equal(reveal.hasPending(), false);
+
+  enqueueReward(entry('Книга наград', { essence: 50, keys: 2 }));
+  await nextTick();
+  assert.deepEqual(essenceGains, [20]);
+  assert.equal(dialog.open, true);
+  assert.deepEqual(items.children.map(({ dataset }) => dataset.resource), ['keys']);
+  receive.dispatchEvent(new Event('click'));
+  assert.equal(dialog.open, false);
+  assert.deepEqual(essenceGains, [20, 50]);
 });

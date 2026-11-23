@@ -72,6 +72,30 @@ export function sectionDialog(id, title, className = '') {
   return { dialog, shell };
 }
 
+const essenceNotices = new WeakMap();
+
+export function showEssenceGain(amount) {
+  const balance = document.querySelector('.card-preview[open] [data-essence-balance]') ??
+    document.querySelector('.resource-bar [data-essence-balance]');
+  if (!balance) return;
+  const previous = essenceNotices.get(balance);
+  clearTimeout(previous?.timer);
+  const total = (previous?.total ?? 0) + amount;
+  const notice = previous?.notice ?? element('span', 'essence-gain');
+  if (!previous) {
+    notice.setAttribute('role', 'status');
+    balance.append(notice);
+  }
+  const count = '+' + total.toLocaleString('ru');
+  notice.textContent = count;
+  notice.setAttribute('aria-label', count + ' эссенции');
+  const timer = setTimeout(() => {
+    notice.remove();
+    essenceNotices.delete(balance);
+  }, 2800);
+  essenceNotices.set(balance, { notice, total, timer });
+}
+
 export function createResourceBar(home, settings, progress, routes) {
   const bar = element('nav', 'resource-bar');
   bar.setAttribute('aria-label', 'Ресурсы и настройки');
@@ -107,7 +131,12 @@ export function createResourceBar(home, settings, progress, routes) {
     control.setAttribute('aria-controls', routes[key].dialog.id);
     const count = element('strong');
     control.append(resourceGlyph(key), count);
-    bar.append(control);
+    if (key === 'essence') {
+      const balance = element('span', 'resource-balance');
+      balance.dataset.essenceBalance = '';
+      balance.append(control);
+      bar.append(balance);
+    } else bar.append(control);
     return { key, label, title, control, count };
   });
   bar.append(settings);
