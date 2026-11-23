@@ -6,7 +6,7 @@ import { logView, roundText } from './menu.js?v=details-1';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=collection-2';
 import { factionFilters } from './faction-filters.js?v=1';
 import { copyLimit } from '../game/decks.js?v=robot-art-28';
-import { craftPrice, dismantleValue } from '../game/rewards.js?v=robot-art-28';
+import { craftPrice, dismantleValue } from '../game/rewards.js?v=monthly-ranks-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 import { sectionBack } from './resources.js?v=interface-polish-1';
 
@@ -173,7 +173,7 @@ export function leaderScreen(phaseLabel, factionId, start, back) {
   return panel;
 }
 
-export function finishedScreen(match, phaseLabel, start, leaveMatch, showThoughts, canReplay, leagueResult) {
+export function finishedScreen(match, phaseLabel, start, leaveMatch, showThoughts, canReplay, league, { saving, failed, notice, reply }) {
   phaseLabel.textContent = `Матч завершён · раундов ${match.round}`;
   const game = element('div', 'game');
   const panel = element('section', 'panel finish');
@@ -189,23 +189,26 @@ export function finishedScreen(match, phaseLabel, start, leaveMatch, showThought
   const replay = button('Ещё раз той же колодой', start, 'button primary');
   const missing = element('p', 'deck-invalid', 'В коллекции отсутствуют копии для этой колоды.');
   function updateReplay() {
-    replay.disabled = !canReplay();
-    missing.hidden = !replay.disabled;
+    const playable = canReplay();
+    replay.disabled = saving || failed || !playable;
+    missing.hidden = playable || saving;
   }
   panel.addEventListener('collection-change', updateReplay);
   updateReplay();
-  if (leagueResult) {
-    actions.append(button(leagueResult.label, leaveMatch, 'button primary'));
-    actions.firstChild.disabled = leagueResult.saving;
+  if (failed) {
+    actions.append(button('Повторить сохранение', leaveMatch, 'button primary'));
   } else {
-    actions.append(replay, button('Выбор колоды', leaveMatch));
+    if (!league) actions.append(replay);
+    const back = button(league ? 'К таблице лиги' : 'Выбор колоды', leaveMatch, league ? 'button primary' : 'button');
+    back.disabled = saving;
+    actions.append(back);
   }
-  panel.append(
-    heading, score,
-    ...rounds.map((event) => element('p', 'round-result', roundText(event))),
-    ...(leagueResult ? [element('p', 'league-reply', leagueResult.reply),
-      element('p', 'muted', leagueResult.notice)] : [missing]), actions,
-  );
+  panel.append(heading, score,
+    ...rounds.map((event) => element('p', 'round-result', roundText(event))));
+  if (reply) panel.append(element('p', 'league-reply', reply));
+  if (notice) panel.append(element('p', 'muted', notice));
+  if (!league && !failed) panel.append(missing);
+  panel.append(actions);
   game.append(panel, logView(match, showThoughts));
   return game;
 }

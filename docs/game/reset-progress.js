@@ -1,4 +1,4 @@
-import { REWARD_STORAGE_KEY } from './rewards.js?v=robot-art-28';
+import { REWARD_STORAGE_KEY } from './rewards.js?v=monthly-ranks-1';
 
 export async function resetProgress(storage, locks) {
   function clearGameData() {

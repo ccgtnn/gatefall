@@ -1,5 +1,5 @@
 import { createBaseScreen } from './ui/base-screen.js?v=robot-art-28';
-import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=details-1';
+import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=monthly-ranks-1';
 import { createDeckStorage } from './ui/deck-storage.js?v=robot-art-28';
 import { bindCardPlacement } from './card-placement.js?v=row-placement-1';
 import { animateCoin, animateHandTurn, animateLifeLoss, presentJournalEvent } from './card-motion.js?v=robot-art-28';
@@ -15,18 +15,20 @@ import { cardArt, preview, showCard } from './ui/cards.js?v=details-1';
 import { createBattlefield } from './ui/field.js?v=details-1';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=details-1';
 import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=details-1';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=details-1';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=monthly-ranks-1';
 import { createSettings } from './ui/settings.js?v=robot-art-28';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
-import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=robot-art-28';
-import { createRewardBook } from './ui/reward-book.js?v=robot-art-28';
-import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=details-1';
+import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=monthly-ranks-1';
+import { createRewardBook } from './ui/reward-book.js?v=monthly-ranks-1';
+import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=monthly-ranks-1';
 import { createResourceBar } from './ui/resources.js?v=interface-polish-1';
 import { aimAnchor, aimTone, bindTargeting } from './ui/targeting.js?v=targeting-1';
 import { questComplete } from './game/tavern.js?v=robot-art-28';
+import { rankStanding, wonRounds } from './game/ranks.js?v=monthly-ranks-1';
+import { rankScreen } from './ui/rank-screen.js?v=monthly-ranks-1';
 import { leagueScreen } from './ui/league-screen.js?v=robot-art-28';
-import { resetProgress } from './game/reset-progress.js?v=robot-art-28';
+import { resetProgress } from './game/reset-progress.js?v=monthly-ranks-1';
 
 const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
@@ -45,7 +47,7 @@ let matchDeck;
 let matchSession = 0;
 let matchRewardId;
 let leagueMatch;
-let leagueSettlement;
+let matchSettlement;
 let timer;
 let selectedCardId;
 let replaying = false;
@@ -73,7 +75,7 @@ const openResources = createResourceBar(app.querySelector('.masthead'), document
   essence: catalog,
   packCount: createBoosterOpening(progress, () => openResources('gold')),
 });
-progress.subscribe(() => screen.querySelector('.deck-editor, .deck-home, .all-decks, .finish, .league-panel')?.dispatchEvent(new Event('collection-change')));
+progress.subscribe(() => screen.querySelector('.deck-editor, .deck-home, .all-decks, .finish, .league-panel, .rank-panel')?.dispatchEvent(new Event('collection-change')));
 window.addEventListener('storage', (event) => {
   if (event.key?.startsWith('gatefall.') && event.newValue === null) window.location.reload();
   else if (event.key === REWARD_STORAGE_KEY || event.key === null) progress.refresh();
@@ -95,9 +97,22 @@ async function checkpointTavern() {
 progress.subscribe(rememberTavernReset);
 rememberTavernReset();
 void checkpointTavern();
+let rankResetAt = progress.rankResetAt();
+let retryRanksAt = 0;
+let checkingRanks = false;
+progress.subscribe(() => { rankResetAt = progress.rankResetAt(); });
+async function checkpointRanks() {
+  if (checkingRanks) return;
+  checkingRanks = true;
+  const outcome = await progress.checkpointRanks();
+  checkingRanks = false;
+  retryRanksAt = outcome === 'done' ? 0 : Date.now() + 15000;
+}
+void checkpointRanks();
 setInterval(() => {
   screen.querySelector('.league-panel')?.dispatchEvent(new Event('league-tick'));
   if (tavernResetAt && Date.now() >= Math.max(tavernResetAt, retryTavernAt)) void checkpointTavern();
+  if (Date.now() >= Math.max(rankResetAt, retryRanksAt)) void checkpointRanks();
 }, 1000);
 const menu = createMatchMenu(() => match, () => settings.showBotThoughts());
 const { drawer } = menu;
@@ -218,7 +233,7 @@ function start(deck, league) {
   retryRolls = [];
   matchRewardId = league?.id ?? matchId();
   leagueMatch = league?.bot;
-  leagueSettlement = undefined;
+  matchSettlement = undefined;
   selectedFaction = undefined;
   editedDeck = undefined;
   menuView = 'decks';
@@ -248,8 +263,8 @@ async function leaveMatch(surrender = false) {
       return;
     }
     if (outcome === 'done') stats.record(match.players.human.factionId, 'loss');
-  } else if (leagueMatch && match?.phase === 'finished' && leagueSettlement !== 'done' && leagueSettlement !== 'stale') {
-    if (leagueSettlement === 'unavailable') void saveLeagueResult();
+  } else if (match?.phase === 'finished' && matchSettlement !== 'done' && matchSettlement !== 'stale') {
+    if (matchSettlement === 'unavailable') void saveMatchResult();
     return;
   } else if (surrender === true && (match?.phase === 'playing' || match?.phase === 'mulligan')) {
     stats.record(match.players.human.factionId, 'loss');
@@ -267,7 +282,7 @@ async function leaveMatch(surrender = false) {
   matchDeck = undefined;
   matchRewardId = undefined;
   leagueMatch = undefined;
-  leagueSettlement = undefined;
+  matchSettlement = undefined;
   menuView = returnTo;
   replaying = false;
   mulliganFieldVisible = false;
@@ -306,17 +321,18 @@ function render() {
   let content;
   if (match?.phase === 'mulligan' || match?.phase === 'playing') content = battlefield();
   else if (match?.phase === 'finished') {
-    const saving = !leagueSettlement || leagueSettlement === 'saving';
-    const failed = leagueSettlement === 'unavailable';
-    const result = leagueMatch && {
-      saving,
-      label: failed ? 'Повторить сохранение' : 'К таблице лиги',
-      reply: leagueMatch.name + ' · «' + leagueMatch.lines[{ win: 'loss', loss: 'win', draw: 'draw' }[match.result]] + '»',
-      notice: saving ? 'Сохраняем результат тура…' : failed ? 'Не удалось сохранить результат тура.'
-        : leagueSettlement === 'stale' ? 'Этот тур уже закрыт.' : '',
+    const saving = !matchSettlement || matchSettlement === 'saving';
+    const failed = matchSettlement === 'unavailable';
+    const scored = wonRounds(match.log);
+    const settlement = {
+      saving, failed,
+      reply: leagueMatch && leagueMatch.name + ' · «' + leagueMatch.lines[{ win: 'loss', loss: 'win', draw: 'draw' }[match.result]] + '»',
+      notice: saving ? 'Сохраняем результат…' : failed ? 'Не удалось сохранить результат.'
+        : matchSettlement === 'stale' ? 'Этот тур уже закрыт.'
+          : scored ? `В месячный ранг зачтено: ${scored} · текущий ранг ${rankStanding(progress.ranks().rounds).rank}` : '',
     };
     content = finishedScreen(match, phaseLabel, () => start(matchDeck), leaveMatch,
-      settings.showBotThoughts(), () => canPlayDeck(matchDeck), result);
+      settings.showBotThoughts(), () => canPlayDeck(matchDeck), Boolean(leagueMatch), settlement);
   } else {
     const back = () => goTo('all-decks');
     switch (menuView) {
@@ -335,6 +351,7 @@ function render() {
         back: () => goTo('decks'), create: () => goTo('faction'), play: start, edit: editDeck,
         copy: (deck) => makeDeck(deck.factionId, deck.leaderId, deck),
       }, progress.inventory); break;
+      case 'ranks': content = rankScreen(phaseLabel, progress, () => goTo('decks')); break;
       case 'league': content = leagueScreen(phaseLabel, {
         back: () => goTo('decks'),
         read: progress.league,
@@ -353,7 +370,8 @@ function render() {
           const tavern = progress.tavern();
           return tavern ? tavern.pending.length + tavern.slots.filter((quest) => !quest.claimed && questComplete(quest)).length : 0;
         },
-        league: () => goTo('league'), catalog: () => openResources('essence'), all: back, play: start,
+        league: () => goTo('league'), ranks: () => goTo('ranks'),
+        currentRank: () => rankStanding(progress.ranks().rounds).rank, catalog: () => openResources('essence'), all: back, play: start,
       }, () => deckStore.recent(progress.inventory().owned));
     }
   }
@@ -453,13 +471,7 @@ async function updateMatch(next) {
 
   if (session !== matchSession) return;
   match = next;
-  if (match.phase === 'finished' && before.phase !== 'finished') {
-    if (leagueMatch) void saveLeagueResult();
-    else {
-      stats.record(match.players.human.factionId, match.result);
-      void progress.rewardMatch(matchRewardId, match.result, match.players.human.factionId);
-    }
-  }
+  if (match.phase === 'finished' && before.phase !== 'finished') void saveMatchResult();
   if (match.phase === 'mulligan') {
     mulliganFieldVisible = false;
   }
@@ -483,16 +495,21 @@ async function updateMatch(next) {
   }
 }
 
-async function saveLeagueResult() {
+async function saveMatchResult() {
   const id = matchRewardId;
-  const rounds = match.log.filter(({ type }) => type === 'round-end');
-  const difference = rounds.reduce((total, { winner }) => total + (winner === 'human' ? 1 : winner === 'bot' ? -1 : 0), 0);
-  leagueSettlement = 'saving';
+  const { result, log } = match;
+  const { factionId } = match.players.human;
+  const rounds = wonRounds(log);
+  matchSettlement = 'saving';
   render();
-  const outcome = await progress.settleLeagueMatch(id, match.result, difference, match.players.human.factionId);
+  const outcome = leagueMatch
+    ? await progress.settleLeagueMatch(id, result,
+      rounds - log.filter(({ type, winner }) => type === 'round-end' && winner === 'bot').length, factionId, rounds)
+    : await progress.rewardMatch(id, result, factionId, rounds);
   if (id !== matchRewardId) return;
-  if (outcome === 'done') stats.record(match.players.human.factionId, match.result);
-  leagueSettlement = outcome === 'done' || outcome === 'stale' ? outcome : 'unavailable';
+  if (outcome === 'done' || outcome === 'empty') stats.record(factionId, result);
+  matchSettlement = outcome === 'stale' ? 'stale'
+    : ['done', 'empty', 'claimed'].includes(outcome) ? 'done' : 'unavailable';
   render();
   screen.querySelector('h2')?.focus({ preventScroll: true });
 }

@@ -1,0 +1,14 @@
+.rank-panel {
+  width: min(100%, 52rem);
+  margin: 1rem auto;
+  padding: clamp(.75rem, 3vw, 1.5rem);
+  background: linear-gradient(150deg, #202b38, #14191f 65%);
+}
+.rank-summary { font-size: 1.1rem; font-weight: 700; }
+.rank-panel progress { width: min(100%, 30rem); accent-color: #e5c680; }
+.rank-table-scroll { overflow-x: auto; margin-top: .75rem; }
+.rank-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.rank-table :is(th, td) { padding: .45rem clamp(.3rem, 1.3vw, .7rem); text-align: center; border-bottom: 1px solid #ffffff20; }
+.rank-table thead { color: #a9c2d9; }
+.rank-table .rank-reached { color: #adb6c2; }
+.rank-table [aria-current] { color: #ffe1a1; background: #b98b3230; }

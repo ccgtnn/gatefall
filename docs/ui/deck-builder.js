@@ -77,6 +77,8 @@ export function deckHomeScreen(phaseLabel, stats, actions, recentDecks) {
   for (const [title, open] of [['Лига', actions.league], ['Все карты', actions.catalog]]) {
     tiles.append(button(title, open, 'button home-tile'));
   }
+  const ranks = button('', actions.ranks, 'button home-tile');
+  tiles.append(ranks);
   sections.append(element('h2', null, 'Разделы'), tiles);
   const decks = element('section', 'home-block');
   const heading = element('div', 'deck-toolbar home-decks-toolbar');
@@ -86,6 +88,7 @@ export function deckHomeScreen(phaseLabel, stats, actions, recentDecks) {
   screen.append(campaignShelf(campaigns), sections, decks);
 
   function update() {
+    ranks.textContent = `Ранги · ${actions.currentRank()}`;
     const ready = actions.tavernRewards();
     badge.hidden = !ready;
     badge.textContent = ready;

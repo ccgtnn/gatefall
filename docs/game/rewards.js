@@ -1,3 +1,4 @@
+import { rankRewards, syncRanks } from './ranks.js?v=monthly-ranks-1';
 import { advanceTavern, questComplete, replaceTavernQuest, syncTavern, TAVERN_QUEST_BY_ID, tavernEventAmounts, trackTavernMatch } from './tavern.js?v=robot-art-28';
 import { createLeague, DIAMOND, finishLeagueMatch, leagueStake, needsLeagueReset, reserveLeagueMatch, resetLeagueWeek } from './league.js?v=robot-art-28';
 import { victoryGold, weeklyReward } from './outpost.js?v=base-outpost-1';
@@ -390,12 +391,14 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
     const startingKeys = fresh ? STARTING_KEYS : count(snapshot.startingKeys) || LEGACY_STARTING_KEYS;
     const producedKeys = count(snapshot.producedKeys);
     const tavernKeys = count(snapshot.tavernKeys);
+    const rankKeys = count(snapshot.rankKeys);
     return {
       startingGold: fresh ? STARTING_GOLD : count(snapshot.startingGold),
       startingKeys,
       startingEssence: fresh ? STARTING_ESSENCE : count(snapshot.startingEssence) || LEGACY_STARTING_ESSENCE,
-      progress: readProgress(snapshot.unlocked, startingKeys + producedKeys + tavernKeys),
-      producedKeys, tavernKeys,
+      progress: readProgress(snapshot.unlocked, startingKeys + producedKeys + tavernKeys + rankKeys),
+      producedKeys, tavernKeys, rankKeys,
+      ranks: snapshot.ranks ?? null,
       tavern: snapshot.tavern?.slots ? snapshot.tavern : null,
       fullCollection: true,
       purchased: countsFor(pools.keys(), snapshot.purchased),
@@ -465,6 +468,24 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
     catch { return 'unavailable'; }
     if (outcome === 'opened' || outcome === 'done') refresh();
     return outcome;
+  }
+
+  function keysWith(state, award) {
+    return state.startingKeys + state.producedKeys + state.tavernKeys + state.rankKeys + award;
+  }
+
+  function creditRankRounds(state, id, rounds, time) {
+    if (!rounds) return true;
+    const current = syncRanks(state.ranks, time);
+    if (current.matches.includes(id)) return true;
+    const next = current.rounds + rounds;
+    if (!Number.isSafeInteger(next)) return false;
+    const { keys, ...materials } = rankRewards(current.rounds, next);
+    if (!Number.isSafeInteger(keysWith(state, keys)) ||
+      !creditMaterials(state.base.materials, materials)) return false;
+    state.ranks = { ...current, rounds: next, matches: [...current.matches, id] };
+    state.rankKeys += keys;
+    return true;
   }
 
   function rollTavern(state, time) {
@@ -541,7 +562,7 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
         const hasMaterials = Object.keys(materials).length > 0;
         if (!gold && !keys && !hasMaterials) return 'empty';
         if (!Number.isSafeInteger(state.producedGold + gold) ||
-          !Number.isSafeInteger(state.startingKeys + state.producedKeys + state.tavernKeys + keys)) return 'unavailable';
+          !Number.isSafeInteger(keysWith(state, keys))) return 'unavailable';
         if (hasMaterials && !creditMaterials(state.base.materials, materials)) return 'unavailable';
         state.producedGold += gold;
         state.producedKeys += keys;
@@ -588,7 +609,7 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
         const quest = [...(tavern?.pending ?? []), ...(tavern?.slots ?? [])].find((entry) => entry.key === key);
         if (!quest || quest.claimed || !questComplete(quest)) return 'stale';
         const { keys, gold, steel } = TAVERN_QUEST_BY_ID.get(quest.id).reward;
-        if (!Number.isSafeInteger(state.startingKeys + state.producedKeys + state.tavernKeys + keys) ||
+        if (!Number.isSafeInteger(keysWith(state, keys)) ||
           !Number.isSafeInteger(state.rewardGold + gold) ||
           (steel && !creditMaterials(state.base.materials, { steel }))) return 'unavailable';
         state.tavernKeys += keys;
@@ -614,6 +635,16 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
         return 'done';
       });
     },
+    ranks: () => syncRanks(read().ranks, now()),
+    rankResetAt: () => read().ranks?.resetAt ?? 0,
+    checkpointRanks() {
+      return transact((state, _previousAt, time) => {
+        const next = syncRanks(state.ranks, time);
+        if (next === state.ranks) return 'current';
+        state.ranks = next;
+        return 'done';
+      });
+    },
     league: () => read().league,
     checkpointLeague() {
       return transact((state, _previousAt, time) => rollLeague(state, time));
@@ -628,14 +659,16 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
         return outcome;
       });
     },
-    settleLeagueMatch(id, result, difference, factionId) {
-      if (!['win', 'loss', 'draw'].includes(result) || !Number.isInteger(difference) || Math.abs(difference) > 2) {
+    settleLeagueMatch(id, result, difference, factionId, rounds = 0) {
+      if (!['win', 'loss', 'draw'].includes(result) || !Number.isInteger(difference) || Math.abs(difference) > 2 ||
+        !Number.isInteger(rounds) || rounds < 0 || rounds > 2) {
         return Promise.resolve('invalid-result');
       }
       return transact((state, _previousAt, time) => {
         if (!state.league) return 'stale';
         const settled = finishLeagueMatch(state.league, id, result, difference, random);
         if (!settled) return 'stale';
+        if (!creditRankRounds(state, id, rounds, time)) return 'unavailable';
         const regularGold = result === 'win' && settled.tier !== DIAMOND ? victoryGold(state.base.buildings.outpost?.level) : 0;
         state.rewardGold += settled.payout + regularGold;
         rollTavern(state, time);
@@ -644,14 +677,16 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
         return rollover === 'unavailable' ? rollover : 'done';
       });
     },
-    rewardMatch(matchId, result, factionId) {
+    rewardMatch(matchId, result, factionId, rounds = 0) {
       if (!['win', 'loss', 'draw'].includes(result) || typeof matchId !== 'string' || !matchId ||
-        (result !== 'win' && !factionId)) return Promise.resolve('empty');
+        (result !== 'win' && !factionId) || !Number.isInteger(rounds) || rounds < 0 || rounds > 2) return Promise.resolve('empty');
       return transact((state, _previousAt, time) => {
-        if (state.rewardedMatches.includes(matchId) || state.tavern?.finished.includes(matchId)) return 'claimed';
+        if (state.rewardedMatches.includes(matchId) || state.tavern?.finished.includes(matchId) ||
+          state.ranks?.matches.includes(matchId)) return 'claimed';
+        if (!creditRankRounds(state, matchId, rounds, time)) return 'unavailable';
         const rolled = rollTavern(state, time);
         const tracked = trackTavernMatch(state.tavern, matchId, result, factionId, false);
-        if (result !== 'win') return rolled || tracked ? 'done' : 'empty';
+        if (result !== 'win') return rolled || tracked || rounds ? 'done' : 'empty';
         const gold = victoryGold(state.base.buildings.outpost?.level);
         if (!Number.isSafeInteger(state.rewardGold + gold)) return 'unavailable';
         state.rewardGold += gold;
