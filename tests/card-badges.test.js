@@ -48,7 +48,7 @@ test('live battlefield and hand faces hide provision, while catalog and preview 
   const catalog = drawable('bastion', { showProvision: true });
   assert.equal(byClass(field, 'stat-badge-provision'), undefined);
   assert.equal(byClass(hand, 'stat-badge-provision'), undefined);
-  assert.equal(byClass(catalog, 'stat-badge-provision').children[1].textContent, 11);
+  assert.equal(byClass(byClass(catalog, 'stat-badge-provision'), 'stat-badge-multiple-digits').textContent, 11);
   assert.ok(byClass(catalog, 'stat-badge-armor'));
   assert.equal(catalog.dataset.rarity, 'gold');
   showCard(makeCard('bastion'));

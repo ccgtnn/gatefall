@@ -17,7 +17,10 @@ export function statBadge(kind, label, value, variant = kind) {
   node.setAttribute('aria-label', label);
   node.setAttribute('role', 'img');
   if (kind !== 'power') node.append(symbol(variant));
-  if (value !== undefined) node.append(element('strong', null, value));
+  if (value !== undefined) {
+    const digits = String(value).length > 1 ? 'stat-badge-multiple-digits' : '';
+    node.append(element('strong', digits, value));
+  }
   return node;
 }
 

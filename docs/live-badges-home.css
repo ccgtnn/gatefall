@@ -19,43 +19,48 @@
   -webkit-text-stroke: 1px #101722;
   text-shadow: 0 1px 2px #000;
 }
+/* Shared corner figures, independent of badge shape. */
+.stat-badge:is(.stat-badge-power, .stat-badge-armor, .stat-badge-provision) {
+  --corner-size: var(--badge-size, var(--stat-size, 22px));
+  --corner-inset: clamp(3px, calc(var(--corner-size) * .17), 8px);
+  z-index: 3;
+  font-size: max(10px, calc(var(--corner-size) * .6));
+}
+.stat-badge:is(.stat-badge-power, .stat-badge-armor, .stat-badge-provision) > strong {
+  font-weight: 650;
+  -webkit-text-stroke: .35px #101722;
+}
+.stat-badge:is(.stat-badge-power, .stat-badge-armor, .stat-badge-provision) > .stat-badge-multiple-digits {
+  letter-spacing: -.05em;
+}
+.stat-badge.stat-badge-power {
+  top: clamp(2px, calc(var(--corner-size) * .12), 5px);
+  left: clamp(2px, calc(var(--corner-size) * .12), 5px);
+  width: max-content;
+  min-width: calc(var(--corner-size) * 1.05);
+  height: calc(var(--corner-size) * .8);
+  padding-inline: .16em;
+  border: 1px solid var(--rarity-border-color, #a1b2c1);
+  border-radius: clamp(2px, calc(var(--corner-size) * .12), 5px);
+  background: #111a26ec;
+  box-shadow: 0 1px 3px #0008;
+}
 .stat-badge.stat-badge-armor {
-  width: var(--badge-size, var(--stat-size, 22px));
-  height: var(--badge-size, var(--stat-size, 22px));
+  top: var(--corner-inset);
+  right: var(--corner-inset);
+  width: var(--corner-size);
+  height: var(--corner-size);
   background: none;
   box-shadow: none;
   clip-path: none;
-  font-size: max(10px, calc(var(--badge-size, var(--stat-size, 22px)) * .64));
+  color: #e2f5ff;
 }
-/* Keep the figures clear of the art and the rarity frame. */
-.stat-badge.stat-badge-power {
-  --power-size: var(--badge-size, var(--stat-size, 22px));
-  z-index: 3;
-  top: clamp(2px, calc(var(--power-size) * .12), 5px);
-  left: clamp(2px, calc(var(--power-size) * .12), 5px);
-  width: max-content;
-  min-width: calc(var(--power-size) * 1.05);
-  height: calc(var(--power-size) * .8);
-  padding-inline: .16em;
-  border: 1px solid var(--rarity-border-color, #a1b2c1);
-  border-radius: clamp(2px, calc(var(--power-size) * .12), 5px);
-  background: #111a26ec;
-  box-shadow: 0 1px 3px #0008;
-  font-size: max(10px, calc(var(--power-size) * .6));
-}
-.stat-badge-armor { color: #e2f5ff; }
 .stat-badge.stat-badge-provision {
-  --provision-size: var(--badge-size, var(--stat-size, 22px));
-  z-index: 3;
-  right: clamp(3px, calc(var(--provision-size) * .17), 8px);
-  bottom: clamp(3px, calc(var(--provision-size) * .17), 8px);
-  width: calc(var(--provision-size) * 1.16);
-  height: calc(var(--provision-size) * 1.16);
+  right: var(--corner-inset);
+  bottom: var(--corner-inset);
+  width: calc(var(--corner-size) * 1.16);
+  height: calc(var(--corner-size) * 1.16);
   color: #ffe4a5;
-}
-.stat-badge-provision > strong {
-  font-weight: 650;
-  -webkit-text-stroke: .4px #101722;
 }
 .stat-badge-infection { color: #e0ffbd; filter: drop-shadow(0 0 2px #8ef75aa0); }
 .stat-badge-order > strong { transform: translate(.28em, .25em); font-size: .84em; }
@@ -63,9 +68,8 @@
 .stat-badge-chapters > svg { position: static; width: calc(var(--badge-size, var(--stat-size, 22px)) * .68); height: 100%; }
 
 :where(.hand-card, .unit-face, .preview-card-face) > .stat-badge { position: absolute; z-index: 1; }
-.stat-badge-armor, .stat-badge-chapters { top: 1px; }
+.stat-badge-chapters { top: 1px; }
 .stat-badge-infection { left: 1px; }
-.stat-badge-armor { right: 1px; }
 .stat-badge-infection, .stat-badge-hourglass, .stat-badge-order { bottom: 1px; }
 :is(.hand-card, .unit-face, .preview-card-face) > :is(.stat-badge-hourglass, .stat-badge-order, .stat-badge-chapters) {
   left: 50%;
@@ -120,8 +124,8 @@
 [data-card-frame="protectorate-rampart"][data-rarity]::before {
   border: 0;
   background: url('./art/frame-protectorate-rampart.webp') center / 100% 100% no-repeat;
+  filter: drop-shadow(0 1px clamp(1px, .48dvh, 4px) #03060cbf);
 }
-[data-card-frame="protectorate-rampart"] > .stat-badge-armor { z-index: 3; }
 
 /* Deck selection */
 .brand-logo { display: none; }

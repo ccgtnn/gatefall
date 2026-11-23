@@ -4,7 +4,7 @@ import { CARD_TYPES, FACTIONS, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } fr
 import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=robot-art-28';
 
 import { deathwishDefinitions } from '../game/events.js?v=helper-robot-1';
-import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=rarity-stats-1';
+import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=badge-depth-1';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';
