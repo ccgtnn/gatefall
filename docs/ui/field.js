@@ -226,6 +226,34 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     return node;
   }
 
+  function handSummary(player, side) {
+    const human = side === 'human';
+    const stack = human
+      ? button(undefined, () => showDrawer({ side, pile: 'deck' }), 'field-hand-stack')
+      : element('div', 'field-hand-stack');
+    const counts = `В руке: ${player.hand.length} · В колоде: ${player.deck.length}`;
+    if (human) {
+      stack.setAttribute('aria-label', 'Открыть свою колоду. ' + counts);
+      stack.title = 'Открыть свою колоду';
+    }
+    const backs = element('span', 'field-hand-backs');
+    backs.setAttribute('aria-hidden', 'true');
+    const art = player.factionId === 'growth' ? 'back-growth.webp' : 'back-protectorate.webp';
+    for (let index = 0; index < player.hand.length; index += 1) {
+      const back = element('img');
+      back.src = './art/' + art;
+      back.alt = '';
+      backs.append(back);
+    }
+    stack.classList.toggle('is-passed', player.passed);
+    const numbers = element('span', 'field-hand-numbers');
+    numbers.append(element('span', null, 'В руке: ' + player.hand.length),
+      element('span', null, 'В колоде: ' + player.deck.length));
+    if (human) stack.append(backs, numbers);
+    else stack.append(numbers, backs);
+    return stack;
+  }
+
   function deckChoice(match) {
     const { pending, players: { human } } = match;
     const panel = element('section', 'deck-offer panel');
@@ -299,13 +327,24 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       turnControls.append(element('p', 'field-turn-label', turn));
     }
     turnControls.append(action);
-    right.append(pileView(match, 'bot', 'deck'), scoreView(match, 'bot'), turnControls, scoreView(match, 'human'), humanCorner);
+    const botCorner = pileView(match, 'bot', 'deck');
+    botCorner.classList.add('field-compact-count');
+    humanCorner.classList.add('field-compact-count');
+    const botHand = handSummary(players.bot, 'bot');
+    right.append(botCorner, botHand, scoreView(match, 'bot'), turnControls, scoreView(match, 'human'),
+      handSummary(players.human, 'human'), humanCorner);
     field.append(left, center, playerHand(match, humanCanAct() && !match.playedCard, selectCard, isReplaying), right);
     const opponent = getLeagueOpponent();
     const stage = opponent ? element('div', 'league-battle-stage') : game;
     if (opponent) {
       game.classList.add('league-battle');
-      game.append(leagueCharacter(opponent, { compact: true, line: getLeagueSpeech()?.line }), stage);
+      const speech = getLeagueSpeech();
+      const character = leagueCharacter(opponent, { compact: true, line: speech?.line });
+      if (speech) {
+        // Keep the entrance animation in sync when playback rebuilds the field.
+        character.querySelector('.league-speech').style.animationDelay = `${Math.min(0, speech.shownAt - Date.now())}ms`;
+      }
+      game.append(character, stage);
     }
     stage.append(field);
     if (phase === 'mulligan') {

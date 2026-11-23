@@ -190,7 +190,27 @@ body:has(.in-league-match) #new-game { display: none; }
   font-size: clamp(.65rem, min(3.4dvh, 1.65vw), .95rem);
 }
 .league-battle .league-name { max-width: min(30vw, 16rem); }
-.league-battle .league-speech { max-width: 45rem; }
+.league-battle .league-speech {
+  max-width: 45rem;
+  padding: .38em .7em;
+  border-color: #d3a865;
+  background: #172c43;
+  color: #fff4dc;
+  box-shadow: 0 0 .55rem #be88374d;
+  font-weight: 650;
+}
+.league-battle .league-speech.league-telepathy {
+  border-color: #be9ae0;
+  color: #f2e4ff;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .league-battle .league-speech:not([hidden]) { animation: league-speech-in .85s ease-out both; }
+}
+@keyframes league-speech-in {
+  from { opacity: 0; transform: translateX(-.4rem); }
+  28% { opacity: 1; transform: translateX(0); box-shadow: 0 0 1.2rem #e1b36d99; }
+  to { opacity: 1; transform: translateX(0); }
+}
 
 .league-tabs {
   display: grid;

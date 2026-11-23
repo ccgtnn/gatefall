@@ -1,4 +1,4 @@
-import { createLeagueDialogue, LEAGUE_DIALOGUE } from './game/league-dialogue.js?v=league-characters-1';
+import { createLeagueDialogue, LEAGUE_DIALOGUE } from './game/league-dialogue.js?v=match-panels-1';
 import { setLeagueSpeech } from './ui/league-character.js?v=league-characters-1';
 import { createBaseScreen } from './ui/base-screen.js?v=robot-art-28';
 import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=decorations-1';
@@ -14,9 +14,9 @@ import { inspectDeck, PRESETS } from './game/decks.js?v=robot-art-28';
 import { applyAction, createDeckMatch } from './game/match.js?v=robot-art-28';
 import { element, iconButton } from './ui/dom.js?v=opponent-reveal-1';
 import { cardArt, preview, showCard } from './ui/cards.js?v=decorations-1';
-import { createBattlefield } from './ui/field.js?v=league-characters-1';
+import { createBattlefield } from './ui/field.js?v=match-panels-1';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=decorations-1';
-import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=league-characters-1';
+import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=match-panels-1';
 import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=league-characters-1';
 import { createSettings } from './ui/settings.js?v=robot-art-28';
 
@@ -195,7 +195,7 @@ function showNotice(notice, text, duration) {
 
 function showLeagueSpeech(speech) {
   clearTimeout(speechTimer);
-  leagueSpeech = speech;
+  leagueSpeech = speech ? { ...speech, shownAt: Date.now() } : undefined;
   if (!speech) return;
   speechTimer = setTimeout(() => {
     leagueSpeech = undefined;

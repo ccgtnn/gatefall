@@ -352,6 +352,58 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   color: #d4e7f4;
 }
 
+.field-hand-stack { display: none; }
+
+@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
+  .field-right {
+    grid-template-rows: minmax(0, 1fr) auto auto auto minmax(0, 1fr);
+  }
+  .field-right .field-compact-count, .field-right .bot-hand-count { display: none; }
+  .field-hand-stack {
+    display: grid;
+    justify-items: center;
+    gap: .25rem;
+    width: 100%;
+    min-width: 0;
+    padding: .26rem .14rem;
+    border: 1px solid #6888a14d;
+    border-radius: 5px;
+    background: #101b28e0;
+    color: #e0eaf4;
+  }
+  button.field-hand-stack { cursor: pointer; }
+  button.field-hand-stack:is(:hover, :focus-visible) {
+    border-color: #eac78a;
+    background: #253446;
+  }
+  .field-hand-backs {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 2px;
+    width: min(100%, 7.5rem);
+  }
+  .field-hand-backs:empty { min-height: .45rem; }
+  .field-hand-backs img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border: 1px solid #627287;
+    border-radius: 2px;
+    box-shadow: 0 1px 3px #000b;
+  }
+  .field-hand-stack.is-passed .field-hand-backs { opacity: .48; }
+  .field-hand-numbers {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: .1rem .45em;
+    font-size: clamp(.6rem, .85vw, .8rem);
+    font-variant-numeric: tabular-nums;
+  }
+  .field-hand-numbers span { white-space: nowrap; }
+}
+
 .battle-hand {
   --hand-columns: 2;
   --hand-rows: 5;
@@ -398,6 +450,7 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   height: 100%;
   min-height: 0;
   padding: 0;
+  filter: drop-shadow(0 2px 3px #000b);
 }
 .battle-hand-cards > .hand-card[aria-pressed="true"]:not(.is-dragged) {
   transform: translateY(-1px) scale(1.04);
@@ -502,10 +555,16 @@ button.unit-order:not(:disabled)::before {
   overscroll-behavior: contain;
 }
 .field-drawer[open] { animation: field-drawer-in .24s ease-out; }
+.field-deck-drawer { inset: 0 0 0 auto; }
+.field-deck-drawer[open] { animation-name: field-deck-drawer-in; }
 body:has(#app[data-animation-speed="fast"]) .field-drawer[open] { animation-duration: .15s; }
 .field-drawer::backdrop { background: #070e16ad; }
 @keyframes field-drawer-in {
   from { transform: translateX(-100%); opacity: .3; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes field-deck-drawer-in {
+  from { transform: translateX(100%); opacity: .3; }
   to { transform: translateX(0); opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -516,6 +575,11 @@ body:has(#app[data-animation-speed="fast"]) .field-drawer[open] { animation-dura
 .pile-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .pile-grid .hand-card { aspect-ratio: 2 / 3; min-height: 0; padding: 0; }
 .pile-grid p { grid-column: 1 / -1; }
+
+@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
+  .field-deck-drawer { width: clamp(30rem, 39vw, 50rem); }
+  .field-deck-drawer .pile-grid { gap: .65rem; }
+}
 
 .rotate-notice { display: none; }
 @media (max-height: 540px), (max-width: 960px) {
