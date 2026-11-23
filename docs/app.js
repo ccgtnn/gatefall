@@ -21,7 +21,7 @@ import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=l
 import { createSettings } from './ui/settings.js?v=robot-art-28';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
-import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=league-avatars-2';
+import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=league-screen-1';
 import { createRewardBook } from './ui/reward-book.js?v=monthly-ranks-1';
 import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=decorations-1';
 import { createResourceBar } from './ui/resources.js?v=interface-polish-1';
@@ -30,7 +30,7 @@ import { questComplete } from './game/tavern.js?v=robot-art-28';
 import { rankStanding, wonRounds } from './game/ranks.js?v=monthly-ranks-1';
 import { createFramePreferences, decorationsScreen, FRAME_STORAGE_KEY } from './ui/decorations.js?v=decorations-1';
 import { rankScreen } from './ui/rank-screen.js?v=monthly-ranks-1';
-import { leagueScreen } from './ui/league-screen.js?v=league-avatars-2';
+import { leagueScreen } from './ui/league-screen.js?v=league-screen-1';
 import { resetProgress } from './game/reset-progress.js?v=monthly-ranks-1';
 
 const app = document.querySelector('#app');

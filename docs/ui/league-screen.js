@@ -1,9 +1,9 @@
-import { DIAMOND, LEAGUES, LEAGUE_RULES, leagueOpponent, leagueStake, leagueTable, leagueTicket } from '../game/league.js?v=league-avatars-2';
-import { leagueCharacter, LORE_FACTIONS } from './league-character.js?v=league-characters-1';
+import { DIAMOND, LEAGUES, LEAGUE_RULES, leagueOpponent, leagueStake, leagueTable, leagueTicket } from '../game/league.js?v=league-screen-1';
+import { leagueAvatar, LORE_FACTIONS, setLeagueSpeech } from './league-character.js?v=league-screen-1';
+import { leagueProfile, leagueRecord, LEAGUE_DIFFICULTY_LABELS } from './league-profile.js?v=league-screen-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { sectionBack } from './resources.js?v=interface-polish-1';
 
-const difficulties = { easy: 'Лёгкий', normal: 'Обычный', hard: 'Сложный' };
 const actionErrors = {
   stale: 'Лига обновилась. Проверь текущий тур.',
   unaffordable: 'Не хватает золота на ставку.',
@@ -16,26 +16,48 @@ export function leagueScreen(phase, actions) {
   const content = element('div', 'league-content');
   const message = element('p', 'economy-status');
   message.setAttribute('role', 'status');
-  const countdown = element('p', 'muted league-countdown');
+  const heading = element('h2', null, 'Лига');
+  heading.tabIndex = -1;
+  const meta = element('p', 'muted');
+  const header = element('header', 'league-header');
+  const title = element('div');
+  title.append(heading, meta);
+  const countdown = element('div', 'league-countdown');
+  countdown.hidden = true;
+  const clockIcon = element('span', 'league-clock-icon', '⌛︎');
+  clockIcon.setAttribute('aria-hidden', 'true');
+  const clockLabel = element('strong');
+  const clockProgress = element('progress');
+  clockProgress.max = 1;
+  clockProgress.setAttribute('aria-label', 'Прошедшая часть недели');
+  countdown.append(clockIcon, clockLabel, clockProgress);
   let selectedDeck;
   let league;
   let busy = false;
   let resetting = false;
   let retryAt = 0;
+  let currentPlay;
   const back = sectionBack(actions.back);
-  panel.append(back, content, countdown, message);
+  header.append(back, title);
+  panel.append(header, content, countdown, message);
 
   function updateClock() {
     if (!league) {
-      if (!resetting && Date.now() >= retryAt) void sync();
+      if (!resetting && panel.isConnected && Date.now() >= retryAt) void sync();
       return;
     }
-    const remaining = Math.max(0, Math.floor((league.resetAt - Date.now()) / 1000));
-    const days = Math.floor(remaining / 86400);
-    const time = [Math.floor(remaining / 3600) % 24, Math.floor(remaining / 60) % 60, remaining % 60]
-      .map((part) => String(part).padStart(2, '0')).join(':');
-    countdown.textContent = 'До сброса недели · ' + (days ? `${days} д · ` : '') + time;
-    if (Date.now() >= Math.max(league.resetAt, retryAt) && !resetting && !busy) void sync();
+    const now = Date.now();
+    const remaining = Math.max(0, league.resetAt - now);
+    const minutes = Math.ceil(remaining / 60000);
+    const days = Math.floor(minutes / 1440);
+    const time = [Math.floor(minutes / 60) % 24, minutes % 60].map((part) => String(part).padStart(2, '0')).join(':');
+    const start = new Date(league.resetAt);
+    start.setDate(start.getDate() - 7);
+    clockLabel.textContent = 'Новая неделя через ' + (days ? `${days} д ` : '') + time;
+    clockProgress.value = Math.max(0, 1 - remaining / (league.resetAt - start.getTime()));
+    countdown.classList.toggle('is-urgent', remaining < 86400000);
+    countdown.hidden = false;
+    if (now >= Math.max(league.resetAt, retryAt) && !resetting && !busy) void sync();
   }
   async function sync() {
     resetting = true;
@@ -69,25 +91,31 @@ export function leagueScreen(phase, actions) {
   function update() {
     league = actions.read();
     if (!league) {
-      const heading = element('h2', null, 'Лига');
-      heading.tabIndex = -1;
-      content.replaceChildren(heading, element('p', 'muted', 'Загрузка таблицы…'));
+      heading.textContent = 'Лига';
+      meta.textContent = '';
+      content.replaceChildren(element('p', 'muted', 'Загрузка участников…'));
+      countdown.hidden = true;
       return;
     }
+    const openDialog = panel.querySelector('.league-profile[open]');
+    const ticket = leagueTicket(league);
     const { season, active, lastReward, lastSeason } = league;
     const { tier, round, number } = season;
     const { name, bots } = LEAGUES[tier];
     const bot = leagueOpponent(season);
-    const heading = element('h2', null, `${name} лига`);
-    heading.tabIndex = -1;
-    const meta = element('p', 'muted', `Сезон ${number} · Тур ${round + 1} из ${LEAGUE_RULES.rounds}`);
-    const table = standings(season, bots);
-    const opponent = element('div', 'league-opponent');
+    heading.textContent = `${name} лига`;
+    meta.textContent = `Сезон ${number} · Тур ${round + 1} из ${LEAGUE_RULES.rounds}`;
+    const opponent = element('section', 'league-opponent');
     const label = active ? 'Незавершённый матч' : 'Следующий соперник';
-    opponent.append(element('p', 'muted', label), leagueCharacter(bot, { line: bot.lines.start[0] }),
-      element('p', null, `${bot.deck.name} · ${difficulties[bot.difficulty]}`));
+    const challenger = button(undefined, () => openProfile(bot), 'league-challenger');
+    challenger.setAttribute('aria-haspopup', 'dialog');
+    challenger.append(leagueAvatar(bot), leagueIdentity(bot));
+    const greeting = element('blockquote', 'league-speech');
+    setLeagueSpeech(greeting, { line: bot.lines.start[0], telepathic: bot.telepathic });
+    opponent.append(element('h3', null, label), challenger, greeting,
+      element('p', 'muted', `${bot.deck.name} · ${LEAGUE_DIFFICULTY_LABELS[bot.difficulty]}`));
+    currentPlay = undefined;
     if (active) {
-      opponent.append(element('p', 'muted', 'Незавершённый матч нужно закрыть, чтобы перейти к следующему туру.'));
       const concede = button('Засчитать поражение', () => submit(() => actions.concede(active.id)));
       concede.disabled = busy;
       opponent.append(concede);
@@ -98,19 +126,39 @@ export function leagueScreen(phase, actions) {
       if (decks.some(({ id }) => id === selectedDeck)) picker.input.value = selectedDeck;
       picker.input.addEventListener('change', () => { selectedDeck = picker.input.value; });
       const stake = leagueStake(league);
-      const play = button(stake ? `Играть матч · ${stake} золота` : 'Играть матч', () =>
-        submit(() => actions.play(leagueTicket(league), bot, decks.find(({ id }) => id === picker.input.value))), 'button primary');
       const short = actions.gold() < stake;
-      play.disabled = busy || short || !decks.length;
+      currentPlay = {
+        label: stake ? `Играть против него · ${stake} золота` : 'Играть против него',
+        disabled: busy || short || !decks.length,
+        start: () => submit(() => actions.play(ticket, bot, decks.find(({ id }) => id === picker.input.value))),
+      };
+      const start = button(stake ? `Играть матч · ${stake} золота` : 'Играть матч', currentPlay.start, 'button primary');
+      start.disabled = currentPlay.disabled;
       picker.input.disabled = busy || !decks.length;
-      opponent.append(picker.field, play);
+      opponent.append(picker.field, start);
       if (short) opponent.append(element('p', 'muted', 'Не хватает золота на ставку.'));
     }
+    function openProfile(character) {
+      const play = character.id === bot.id && currentPlay && {
+        ...currentPlay,
+        start: () => {
+          if (ticket === leagueTicket(league) && !currentPlay?.disabled) currentPlay?.start();
+        },
+      };
+      const dialog = leagueProfile(character, season.scores[character.id], league.encounters?.[character.id], play);
+      dialog.dataset.ticket = ticket;
+      panel.append(dialog);
+      dialog.showModal();
+    }
+    const table = standings(season, bots, openProfile);
     const details = [
       lastSeason && element('p', 'muted', `Прошлый сезон · ${LEAGUES[lastSeason.tier].name} лига · место ${lastSeason.place}`),
       lastReward && element('p', 'muted', rewardText(lastReward)),
     ].filter(Boolean);
-    content.replaceChildren(heading, meta, ...details, table, opponent);
+    content.replaceChildren(...details, table, opponent);
+    if (openDialog && (openDialog.dataset.ticket !== ticket ||
+        (openDialog.querySelector('.button.primary') && !currentPlay))) openDialog.close();
+    updateClock();
   }
 
   panel.addEventListener('league-tick', updateClock);
@@ -125,35 +173,48 @@ export function leagueScreen(phase, actions) {
   return panel;
 }
 
-function standings(season, bots) {
-  const table = element('table', 'league-table');
-  table.setAttribute('aria-label', 'Турнирная таблица');
-  const head = table.createTHead().insertRow();
-  for (const label of ['Место', 'Игрок', 'Очки', 'Победы', 'Ничьи', 'Пораж.', 'Δ раундов']) {
-    const cell = element('th', null, label);
-    cell.scope = 'col';
-    head.append(cell);
-  }
-  const body = table.createTBody();
-  for (const [index, entry] of leagueTable(season).entries()) {
-    const { id, points, wins, draws, losses, difference } = entry;
-    const row = body.insertRow();
-    const human = id === 'human';
+function leagueIdentity(bot) {
+  const identity = element('span', 'league-identity');
+  identity.append(element('strong', 'league-name', bot?.name ?? 'Ты'),
+    element('small', 'muted', bot ? LORE_FACTIONS[bot.loreFaction] : 'Игрок'));
+  return identity;
+}
+
+function standings(season, bots, openProfile) {
+  const list = element('ol', 'league-standings');
+  list.setAttribute('aria-label', 'Участники лиги');
+  for (const [index, score] of leagueTable(season).entries()) {
+    const { id, points, difference } = score;
     const bot = bots.find((candidate) => candidate.id === id);
-    if (human) row.className = 'league-human';
-    if (season.tier !== DIAMOND && index < LEAGUE_RULES.promotionPlaces) row.classList.add('league-promotion');
-    const name = element('th', null, human ? 'Ты' : bot.name);
-    name.scope = 'row';
-    if (!human) name.title = LORE_FACTIONS[bot.loreFaction];
-    row.insertCell().textContent = index + 1;
-    row.append(name);
-    for (const value of [points, wins, draws, losses, difference > 0 ? '+' + difference : difference]) {
-      row.insertCell().textContent = value;
+    const item = element('li', 'league-entry');
+    const place = index + 1;
+    const promotion = season.tier !== DIAMOND && place <= LEAGUE_RULES.promotionPlaces;
+    if (promotion) item.dataset.promotion = place;
+    if (promotion && place === 1) item.append(element('span', 'league-promotion-label', 'Зона повышения ↑'));
+    const row = bot
+      ? button(undefined, () => openProfile(bot), 'league-standing')
+      : element('div', 'league-standing league-human');
+    if (bot) row.setAttribute('aria-haspopup', 'dialog');
+    else row.setAttribute('aria-current', 'true');
+    const rank = element('span', 'league-place', place);
+    const old = season.previousPlaces?.[id];
+    if (old && old !== place) {
+      const movement = old > place ? '▲' : '▼';
+      const change = element('small', old > place ? 'league-up' : 'league-down', movement);
+      change.setAttribute('aria-label', old > place ? 'Место повысилось' : 'Место понизилось');
+      change.title = `Изменение места: ${old} → ${place}`;
+      rank.append(change);
     }
+    const avatar = bot ? leagueAvatar(bot) : element('span', 'league-avatar', '♟');
+    if (!bot) avatar.setAttribute('aria-hidden', 'true');
+    const numbers = element('span', 'league-numbers');
+    numbers.append(element('strong', null, points), element('small', 'muted', 'очк.'),
+      element('small', 'league-record', `П–Н–П ${leagueRecord(score)} · Δ ${difference > 0 ? '+' : ''}${difference}`));
+    row.append(rank, avatar, leagueIdentity(bot), numbers);
+    item.append(row);
+    list.append(item);
   }
-  const scroll = element('div', 'league-table-scroll');
-  scroll.append(table);
-  return scroll;
+  return list;
 }
 
 function rewardText(reward) {

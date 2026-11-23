@@ -184,3 +184,24 @@ test('a league match uses its scheduled rival preset, even for same-faction oppo
   assert.deepEqual([...match.players.bot.hand, ...match.players.bot.deck].map(({ definition }) =>
     definition.id).sort(), [...rival.deck.cardIds].sort());
 });
+
+test('place changes compare the previous table and encounters survive season and week turnover', () => {
+  const league = createLeague(sunday);
+  delete league.encounters;
+  const openingOpponent = leagueOpponent(league.season).id;
+  const openingTable = leagueTable(league.season).map(({ id }) => id);
+  play(league, 'win', 2, 'opening');
+  assert.deepEqual(league.season.previousPlaces,
+    Object.fromEntries(openingTable.map((id, index) => [id, index + 1])));
+  assert.deepEqual(league.encounters[openingOpponent], { wins: 1, draws: 0, losses: 0 });
+  assert.equal(finishLeagueMatch(league, 'opening', 'win', 2, fixed), null);
+  assert.equal(league.encounters[openingOpponent].wins, 1);
+
+  for (let round = 1; round < 7; round += 1) play(league, 'win', 2);
+  assert.equal(league.season.previousPlaces, undefined);
+  assert.equal(league.encounters[openingOpponent].wins, 1);
+  const next = resetLeagueWeek(JSON.parse(JSON.stringify(league)), monday, fixed);
+  assert.deepEqual(next.encounters, league.encounters);
+  play(next, 'draw', 0);
+  assert.deepEqual(next.encounters[openingOpponent], { wins: 1, draws: 1, losses: 0 });
+});

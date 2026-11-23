@@ -11,7 +11,7 @@ export const LORE_FACTIONS = Object.freeze({
   void: 'Пустота',
 });
 
-function avatar(character) {
+export function leagueAvatar(character) {
   const badge = element('span', 'league-avatar', character.initials);
   badge.dataset.loreFaction = character.loreFaction;
   badge.setAttribute('aria-hidden', 'true');
@@ -39,6 +39,6 @@ export function leagueCharacter(character, { line, compact = false } = {}) {
   if (!compact) identity.append(element('span', 'muted', LORE_FACTIONS[character.loreFaction]));
   const speech = element('blockquote', 'league-speech');
   setLeagueSpeech(speech, line && { line, telepathic: character.telepathic });
-  node.append(avatar(character), identity, speech);
+  node.append(leagueAvatar(character), identity, speech);
   return node;
 }

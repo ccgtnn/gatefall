@@ -72,7 +72,7 @@ function newSeason(tier, number = 1) {
 export function createLeague(time) {
   return {
     ...leagueWeek(time), season: newSeason(0), best: { tier: 0, place: null }, played: false,
-    diamond: { wins: 0, losses: 0, streak: 0 }, active: null, lastReward: null,
+    diamond: { wins: 0, losses: 0, streak: 0 }, encounters: {}, active: null, lastReward: null,
   };
 }
 
@@ -150,6 +150,10 @@ export function finishLeagueMatch(league, id, result, difference, random = Math.
   const { tier, round, scores } = season;
   const { stake } = league.active;
   const [[, opponent], ...botPairs] = leagueSchedule(tier)[round];
+  season.previousPlaces = Object.fromEntries(leagueTable(season).map(({ id }, index) => [id, index + 1]));
+  const encounters = league.encounters ??= {};
+  const record = encounters[opponent] ??= { wins: 0, draws: 0, losses: 0 };
+  record[{ win: 'wins', draw: 'draws', loss: 'losses' }[result]] += 1;
   scorePair(scores, HUMAN, opponent, result, difference);
   const bots = new Map(LEAGUES[tier].bots.map((bot) => [bot.id, bot]));
   for (const [first, second] of botPairs) {
@@ -193,6 +197,7 @@ export function resetLeagueWeek(league, time, random = Math.random) {
   const { season } = league;
   if (season.round) recordBest(league, season.tier, humanPlace(season));
   const next = createLeague(time);
+  next.encounters = { ...league.encounters };
   if (league.played) {
     const { tier, place } = league.best;
     const multiplier = place === 1 ? LEAGUE_RULES.firstPlaceMultiplier : 1;
