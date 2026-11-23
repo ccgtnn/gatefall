@@ -372,7 +372,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'bot-3-2', name: "Первый Голос", tier: 3, loreFaction: 'choir', deckNow: 'formation-diamond',
-    strength: 3, initials: "ПГ", avatar: null,
+    strength: 3, initials: "ПГ", avatar: 'league/first-voice.webp',
     telepathic: true,
     character: "Глава Безмолвного хора, единственный, кто говорит вслух. Каждое слово — событие.",
     uniqueAbility: "видит руку игрока (рука игрока открыта для этого бота).",
@@ -453,7 +453,7 @@ export const LEAGUE_CHARACTERS = [
   },
   {
     id: 'frontier-rookie-1', name: "Сборщик-7", tier: 1, loreFaction: 'core', deckNow: 'protectorate',
-    strength: 2, initials: "С7", avatar: null,
+    strength: 2, initials: "С7", avatar: 'league/collector-7.webp',
     character: "Вежливый утильный дрон Ядра, собирает обломки после боёв. Говорит как служба поддержки.", uniqueAbility: null,
     lines: {
       start: ["Здравствуйте! Ваш бой важен для нас", "Сборщик-7 к вашим услугам. Начинаем?"],

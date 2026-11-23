@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { statSync } from 'node:fs';
 import { inspectDeck } from '../docs/game/decks.js';
 import { LEAGUE_CHARACTERS } from '../docs/game/league-characters.js';
 import { leagueDeckFor } from '../docs/game/league-decks.js';
@@ -21,7 +22,6 @@ test('all 31 characters have ranked places, eight occasions, and legal decks', (
     assert.deepEqual(bots.map(({ strength }) => strength).sort(), Array.from({ length: tier ? 8 : 7 }, (_, i) => i + 1));
     for (const bot of bots) {
       assert.ok(bot.name && bot.character && bot.initials);
-      assert.ok('avatar' in bot);
       assert.equal(bot.strengthScale, bots.length);
       assert.equal(Boolean(bot.uniqueAbility), tier === 3);
       assert.deepEqual(Object.keys(bot.lines), reasons);
@@ -31,6 +31,15 @@ test('all 31 characters have ranked places, eight occasions, and legal decks', (
     const difficulty = bots.slice().sort((a, b) => a.strength - b.strength).map((bot) => bot.difficulty);
     const [low, high] = [['easy', 'normal'], ['normal', 'hard'], ['hard', 'hard'], ['hard', 'hard']][tier];
     assert.deepEqual(difficulty, [...Array(4).fill(low), ...Array(tier ? 4 : 3).fill(high)]);
+  }
+});
+
+test('every league character has a portrait file', () => {
+  const art = new URL('../docs/art/', import.meta.url);
+  for (const { name, avatar } of LEAGUE_CHARACTERS) {
+    assert.ok(avatar, `${name} has no avatar`);
+    assert.ok(statSync(new URL(avatar, art), { throwIfNoEntry: false })?.isFile(),
+      `${name} avatar file is missing: ${avatar}`);
   }
 });
 
