@@ -1,6 +1,6 @@
 import { LEAGUE_CONTEXT_LINES } from './league-context-lines.js?v=hounds-tokens-1';
 import { leagueSchedule } from './league.js?v=sleeper-name-1';
-import { totalScore } from './match.js?v=choir-art-3';
+import { totalScore } from './match.js?v=choir-art-4';
 
 export const LEAGUE_DIALOGUE = Object.freeze({ chance: .35, strongSwing: 6, duration: 6500 });
 

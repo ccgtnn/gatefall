@@ -1,8 +1,8 @@
 import { FACTIONS, ROWS } from './cards.js?v=sleeper-name-1';
 import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=sleeper-name-1';
 import { collection, copyLimit } from './decks.js?v=sleeper-name-1';
-import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=choir-art-3';
-import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=choir-art-3';
+import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=choir-art-4';
+import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=choir-art-4';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };

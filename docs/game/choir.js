@@ -26,14 +26,13 @@ function tentacle(id, name, power, hit, stats = {}) {
   });
 }
 
-const tentacleArt = {
-  art: 'sleeper-tentacle.webp?v=choir-art-1', artCrop: 'sleeper-tentacle-crop.webp?v=choir-art-1',
-};
-
 export const TENTACLE = tentacle('ulmarin-tentacle', 'Щупальце Спящего', 2, 1, {
-  ...tentacleArt, rarity: 'bronze', provision: 4,
+  art: 'sleeper-tentacle.webp?v=choir-art-1', artCrop: 'sleeper-tentacle-crop.webp?v=choir-art-1',
+  rarity: 'bronze', provision: 4,
 });
-export const LARGE_TENTACLE = tentacle('ulmarin-large-tentacle', 'Большое щупальце Спящего', 8, 2, tentacleArt);
+export const LARGE_TENTACLE = tentacle('ulmarin-large-tentacle', 'Большое щупальце Спящего', 8, 2, {
+  art: 'sleeper-great-tentacle.webp?v=choir-art-4', artCrop: 'sleeper-great-tentacle-crop.webp?v=choir-art-4',
+});
 
 export const FANATIC = card({
   id: 'ulmarin-fanatic', name: 'Фанатик Спящего', rarity: 'bronze', provision: 4, power: 4, categories: [CULTIST],
@@ -114,6 +113,7 @@ export const CHOIR_CARDS = Object.freeze([
   }),
   card({
     id: 'abyss-shepherd', name: 'Пастырь бездны', rarity: 'gold', provision: 12, power: 4,
+    art: 'abyss-shepherd.webp?v=choir-art-4', artCrop: 'abyss-shepherd-crop.webp?v=choir-art-4',
     text: 'Одержимость (Псионика): при размещении захвати выбранный вражеский отряд с силой не выше 3 / 4 / 5 / 6 при 3 / 6 / 9 / 12 картах Псионики. При меньшем числе карт Захват не срабатывает.',
     keywords: ['Одержимость', PSIONICS, 'Захват'],
     deploy: ability([{ action: 'capture', target: victim }], [{
@@ -123,12 +123,14 @@ export const CHOIR_CARDS = Object.freeze([
   }),
   psionic({
     id: 'alien-dream', name: 'Чужой сон', rarity: 'bronze', provision: 5,
+    art: 'stranger-dream.webp?v=choir-art-4', artCrop: 'stranger-dream-crop.webp?v=choir-art-4',
     text: 'Покажи 3 случайные обычные карты фракции противника. Сотвори и сыграй одну из них.',
     keywords: [PSIONICS, 'Сотворение'],
     deploy: ability([{ action: 'create-play', faction: 'enemy', rarity: 'bronze', amount: 3 }]),
   }),
   psionic({
     id: 'sleeper-revelation', name: 'Откровение Спящего', rarity: 'gold', provision: 10,
+    art: 'sleeper-revelation.webp?v=choir-art-4', artCrop: 'sleeper-revelation-crop.webp?v=choir-art-4',
     text: 'Одержимость (Псионика): покажи 1 / 2 / 3 / 4 случайных легендарных эффекта любой фракции при 3 / 6 / 9 / 12 картах Псионики. Сотвори и сыграй один из них.',
     keywords: ['Одержимость', PSIONICS, 'Сотворение'],
     deploy: ability([{ action: 'create-play', rarity: 'gold', type: 'effect', amount: { ...obsession, cap: 4 } }]),
@@ -142,6 +144,7 @@ export const CHOIR_CARDS = Object.freeze([
   }),
   psionic({
     id: 'minor-offering', name: 'Малое подношение', rarity: 'bronze', provision: 4,
+    art: 'lesser-offering.webp?v=choir-art-4', artCrop: 'lesser-offering-crop.webp?v=choir-art-4',
     text: 'Нанеси 2 урона выбранному своему отряду, затем призови Щупальце Спящего в тот же ряд.',
     keywords: [PSIONICS, 'Урон', 'Порождение'],
     deploy: ability([{ action: 'remember-row', target: victim, ref: 'victimRow' }, damage(victim, 2),
@@ -150,6 +153,7 @@ export const CHOIR_CARDS = Object.freeze([
   }),
   psionic({
     id: 'great-sacrifice', name: 'Великая жертва', rarity: 'gold', provision: 9,
+    art: 'great-sacrifice.webp?v=choir-art-4', artCrop: 'great-sacrifice-crop.webp?v=choir-art-4',
     text: 'Нанеси по 2 урона трём разным своим отрядам, затем призови по Щупальцу Спящего в ряду каждой жертвы. При нехватке места используй другой ряд.',
     keywords: [PSIONICS, 'Урон', 'Порождение'],
     deploy: ability([
