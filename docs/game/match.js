@@ -1,9 +1,9 @@
-import { inspectDeck, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET } from './decks.js?v=failura-1';
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=failura-1';
-import { announcePlay, availableRows, cardType, changeCoins, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, refreshHoundAura, spendResilience, statusCount, takeCards } from './board.js?v=hounds-tokens-1';
-import { availableFees, availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=hounds-tokens-1';
+import { inspectDeck, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET } from './decks.js?v=suppressor-1';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=suppressor-1';
+import { announcePlay, availableRows, cardType, changeCoins, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, refreshHoundAura, spendResilience, statusCount, takeCards } from './board.js?v=suppressor-1';
+import { availableFees, availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=suppressor-1';
 
-export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=hounds-tokens-1';
+export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=suppressor-1';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;
@@ -409,7 +409,7 @@ export function applyAction(match, side, action, { random = Math.random, copy = 
     current.usedAbility = true;
     current.roundActed = true;
     next.effects.push({ ability: { ...fee, steps: [{ action: 'coins', amount: -fee.coins }, ...fee.steps] },
-      side, sourceId: cardId, requiredSource: true });
+      side, sourceId: cardId, requiredSource: true, cardAbility: true });
   } else {
     current.usedAbility = true;
     current.roundActed = true;
@@ -417,7 +417,7 @@ export function applyAction(match, side, action, { random = Math.random, copy = 
     const order = card.definition.order;
     card.readyAt = current.turns + (order.cooldown ?? 0) + 1;
     next.log.push({ type: 'order', side, name: card.definition.name, cardId: card.id });
-    next.effects.push({ ability: orderAbility(order), side, sourceId: card.id, requiredSource: true });
+    next.effects.push({ ability: orderAbility(order), side, sourceId: card.id, requiredSource: true, cardAbility: true });
   }
 
   progress(next, random);

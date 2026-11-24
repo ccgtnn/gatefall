@@ -1,12 +1,12 @@
 import { dialogClose } from './resources.js?v=essence-gain-1';
 import { button, element, selectField, setCardRarity } from './dom.js?v=opponent-reveal-1';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=failura-1';
-import { FACTION_CATALOG } from '../game/faction-catalog.js?v=failura-1';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=suppressor-1';
+import { FACTION_CATALOG } from '../game/faction-catalog.js?v=suppressor-1';
 import { HOUND_CATEGORY } from '../game/captains.js?v=hounds-tokens-1';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=hounds-tokens-1';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=suppressor-1';
 
-import { deathwishDefinitions } from '../game/events.js?v=helper-robot-1';
-import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=badge-depth-1';
+import { deathwishDefinitions } from '../game/events.js?v=suppressor-1';
+import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=suppressor-1';
 
 import { addCardCrop, cardArt, hasPremiumArt, selectPremiumArt, usesPremiumArt } from './card-art.js?v=failura-1';
 export { addCardCrop, cardArt } from './card-art.js?v=failura-1';
@@ -35,6 +35,7 @@ export function showCard(card, { leader = false, legacy = false,
   if (definition.scenario) stats.push(`Главы ${card.chapter ?? 0}/${definition.scenario.chapters.length}`);
   const infection = statusCount(card, 'infection');
   const marked = statusCount(card, 'target');
+  const locked = statusCount(card, 'lock');
   if (marked) stats.push('Цель');
   if (infection) stats.push('Заражение ' + infection);
   const hasShield = statusCount(card, 'shield');
@@ -45,8 +46,9 @@ export function showCard(card, { leader = false, legacy = false,
     const base = basePower(card);
     stats.push(power === base ? `Сила ${power}` : `Сила / база ${power} / ${base}`, `Броня ${armor ?? 0}`);
   }
-  if (counter > 0) stats.push(`Счётчик ${counter}`);
-  if (timer !== undefined) stats.push(`Таймер ${timer}`);
+  if (locked) stats.push('Блокировка');
+  if (!locked && counter > 0) stats.push(`Счётчик ${counter}`);
+  if (!locked && timer !== undefined) stats.push(`Таймер ${timer}`);
   const title = element('h2', null, definition.name);
   title.id = 'preview-title';
   title.tabIndex = -1;
@@ -62,7 +64,7 @@ export function showCard(card, { leader = false, legacy = false,
   }
   if (stats.length) body.append(element('p', 'preview-stats', stats.join(' · ')));
   body.append(element('p', 'preview-effect', definition.text || 'Без эффекта.'));
-  if (card.inheritedDeathwishes?.length) {
+  if (!locked && card.inheritedDeathwishes?.length) {
     const wishes = element('ul');
     wishes.append(...card.inheritedDeathwishes.map(({ name }) => element('li', null, name)));
     body.append(element('p', 'preview-stats', 'Полученные Завещания'), wishes);
@@ -70,6 +72,7 @@ export function showCard(card, { leader = false, legacy = false,
   const glossaryWords = new Set(definition.keywords);
   if (deathwishDefinitions(card).length) glossaryWords.add('Завещание');
   if (marked) glossaryWords.add('Цель');
+  if (locked) glossaryWords.add('Блокировка');
   if (infection || definition.id === 'carrier') glossaryWords.add('Заражение');
   if (hasShield || card.statuses?.shield === 0) glossaryWords.add('Силовой щит');
   if (definition.endTurn) glossaryWords.add('Конец хода');
@@ -276,6 +279,10 @@ function liveBadges(node, card, { orderOnField, showProvision, orderReady, order
   const infection = statusCount(card, 'infection');
   if (infection) node.append(statBadge('infection', 'Заражение ' + infection, infection));
 
+  if (statusCount(card, 'lock')) {
+    node.append(statBadge('lock', 'Блокировка'));
+    return;
+  }
   if (orderOnField) return;
   if (counter > 0 || timer !== undefined) {
     node.append(statBadge('hourglass', (timer === undefined ? 'Счётчик ' : 'Таймер ') + (timer ?? counter), timer ?? counter));
@@ -301,7 +308,8 @@ function legacyBadges(node, card, orderOnField) {
     mark.title = complete ? 'Все главы сыграны' : scenario ? 'Главы сценария' : CARD_TYPES[type];
     node.append(mark);
   }
-  if (!orderOnField) {
+  if (statusCount(card, 'lock')) node.append(statBadge('lock', 'Блокировка'));
+  else if (!orderOnField) {
     if (counter > 0 || timer !== undefined) {
       node.append(statBadge('hourglass', (timer === undefined ? 'Счётчик ' : 'Таймер ') + (timer ?? counter), timer ?? counter));
     } else if (definition.order) {
@@ -334,10 +342,13 @@ function cardLabel(card, showProvision) {
   if (statusCount(card, 'doomed')) details.push('Обречённая');
   const infection = statusCount(card, 'infection');
   if (infection) details.push('Заражение ' + infection);
-  if (deathwishDefinitions(card).length) details.push('Завещание');
-  if (counter > 0) details.push(`счётчик ${counter}`);
-  if (timer !== undefined) details.push(`таймер ${timer}`);
-  details.push(...keywordsFor(card).filter((word) => word !== 'Завещание' && (word !== 'Броня' || !armor)));
+  if (statusCount(card, 'lock')) details.push('Блокировка');
+  else {
+    if (deathwishDefinitions(card).length) details.push('Завещание');
+    if (counter > 0) details.push(`счётчик ${counter}`);
+    if (timer !== undefined) details.push(`таймер ${timer}`);
+    details.push(...keywordsFor(card).filter((word) => word !== 'Завещание' && (word !== 'Броня' || !armor)));
+  }
   return details.join(' · ');
 }
 

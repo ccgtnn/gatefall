@@ -1,8 +1,9 @@
-import { compareRollouts } from './bot-rollouts.js?v=hounds-tokens-1';
-import { ROWS } from './cards.js?v=failura-1';
-import { activeOrder, cardType, infectionDamage, opponent, placementSide, statusCount, units } from './board.js?v=hounds-tokens-1';
-import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, rowArmor, rowEffectValue } from './effects.js?v=hounds-tokens-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=hounds-tokens-1';
+import { compareRollouts } from './bot-rollouts.js?v=suppressor-1';
+import { ROWS } from './cards.js?v=suppressor-1';
+import { activeOrder, cardType, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js?v=suppressor-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, lockPriority, rowArmor, rowEffectValue } from './effects.js?v=suppressor-1';
+import { cardAbilities, isLocked } from './events.js?v=suppressor-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=suppressor-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -30,7 +31,8 @@ function margin(state) {
 }
 
 function potential(card) {
-  const { definition: { id, provision, deploy, endTurn, order } } = card;
+  const { id, provision } = card.definition;
+  const { deploy, endTurn, order } = cardAbilities(card);
   if (id === 'shield-overload' || id === 'broodlord') return 11;
   return (card.power ?? (provision ?? 5) * .7)
     + (deploy ? 1 : 0) + (endTurn || order ? 1.5 : 0);
@@ -50,15 +52,16 @@ function boardValue(state, side) {
   return units(state, side).reduce((sum, unit) => {
     const { card, row } = unit;
     const { definition, power, armor, counter, timer } = card;
+    const abilities = cardAbilities(card);
     return sum + (armor ?? 0) * .12 + (definition.id === 'larva' ? .12 : 0)
       + (ready.has(card.id) ? 1.15 : activeOrder(unit) ? .35 : 0)
-      + (row === 'orbit' && definition.fieldEvents?.['target-marked'] ? 1.25 : 0)
-      + (definition.endTurn && (definition.id !== 'spear-battery' || exposed) ? (timer === undefined ? 1.25 : .5 * Math.min(timer, 3)) : 0)
-      + (counter > 0 && player.deck.length ? 1.6 / counter : 0)
-      + (card.resilient && state.round < 3 ? (power ?? 0) * .4 : 0)
-      + (definition.scenario ? Math.min(definition.scenario.chapters.length - (card.chapter ?? 0),
+      + (row === 'orbit' && abilities.fieldEvents?.['target-marked'] ? 1.25 : 0)
+      + (abilities.endTurn && (definition.id !== 'spear-battery' || exposed) ? (timer === undefined ? 1.25 : .5 * Math.min(timer, 3)) : 0)
+      + (!isLocked(card) && counter > 0 && player.deck.length ? 1.6 / counter : 0)
+      + (!isLocked(card) && card.resilient && state.round < 3 ? (power ?? 0) * .4 : 0)
+      + (abilities.scenario ? Math.min(definition.scenario.chapters.length - (card.chapter ?? 0),
         player.hand.filter((entry) => entry.definition.categories?.includes(definition.scenario.category)).length) * 2.5 : 0)
-      + (definition.fieldEvents?.death && ROWS.some((row) =>
+      + (abilities.fieldEvents?.death && ROWS.some((row) =>
         enemy.board[row].some((entry) => entry.statuses?.infection)) ? 1.25 : 0)
       - .72 * infectionDamage(card);
   }, (player.leader?.charges ?? 0) * .9 + rot + (plans ? exposed * .65 : 0));
@@ -70,7 +73,7 @@ function value(state, round) {
   const future = state.phase !== 'playing' || human.passed ? 0 : boardValue(state, 'bot') - boardValue(state, 'human');
   const turnsToGrow = bot.passed || human.passed ? 0 : Math.min(4, Math.max(0, bot.hand.length - 1));
   return margin(state) + future + handWeight * bot.hand.reduce((sum, card) =>
-    sum + potential(card) + turnsToGrow * (card.definition.startTurnGrowth ?? 0), 0);
+    sum + potential(card) + turnsToGrow * (cardAbilities(card).startTurnGrowth ?? 0), 0);
 }
 
 function usesNeighbors(ability) {
@@ -82,9 +85,9 @@ function usesNeighbors(ability) {
 function positions(player, row, card) {
   const line = player.board[row];
   const valid = new Set([line.length, 0]);
-  const adjacent = usesNeighbors(card.definition.deploy) || usesNeighbors(card.definition.endTurn);
+  const adjacent = usesNeighbors(cardAbilities(card).deploy) || usesNeighbors(cardAbilities(card).endTurn);
   for (let i = 1; i < line.length; i += 1) {
-    const neighbors = [line[i - 1].definition, line[i].definition];
+    const neighbors = [line[i - 1], line[i]].map(cardAbilities);
     if (adjacent || neighbors.some((def) => usesNeighbors(def.endTurn) || def.neighborEvents)) valid.add(i);
   }
   return [...valid];
@@ -121,6 +124,11 @@ function abilities(state, side) {
 
 function choices(state) {
   const { kind, options, side, cardId, pile = 'deck' } = state.pending;
+  if (kind === 'lock') {
+    const priorities = options.map((id) => lockPriority(findUnit(state, id), side));
+    const best = Math.max(...priorities);
+    return options.filter((_, i) => priorities[i] === best).map((id) => ({ type: 'target', cardId: id }));
+  }
   if (kind === 'deck-placement') {
     const card = state.players[side][pile].find((item) => item.id === cardId);
     return placements(state, side, card, options).map((destination) => ({ type: 'place', ...destination }));

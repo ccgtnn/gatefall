@@ -1,7 +1,7 @@
 import { dialogClose } from './resources.js?v=essence-gain-1';
 import { button, element, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROW_LABELS } from '../game/cards.js?v=failura-1';
-import { cardButton, showCard } from './cards.js?v=hounds-tokens-1';
+import { ROW_LABELS } from '../game/cards.js?v=suppressor-1';
+import { cardButton, showCard } from './cards.js?v=suppressor-1';
 
 export function roundText(event) {
   const { scores, winner } = event;
@@ -42,6 +42,7 @@ export function eventText(event) {
         ? `«${event.name}»: силовой щит восстановлен.`
         : `«${event.name}»: силовой щит ${event.blockedDamage ? `поглотил ${event.blockedDamage} урона и ` : ''}погас.`;
       if (event.status === 'target') return `«${event.name}»: отмечен Целью.`;
+      if (event.status === 'lock') return `«${event.name}»: заблокирован до конца матча.`;
       if (event.status === 'infection') return event.tick
         ? `«${event.name}»: ${event.blocked ? 'тик Заражения поглощён силовым щитом' : 'Заражение снимает 1 силу'}${event.count ? ' · осталось ' + event.count : ' и заканчивается'}.`
         : `«${event.name}»: Заражение ${event.count}.`;

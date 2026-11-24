@@ -1,5 +1,5 @@
-import { ROWS } from './cards.js?v=failura-1';
-import { emit } from './events.js?v=helper-robot-1';
+import { ROWS } from './cards.js?v=suppressor-1';
+import { cardAbilities, emit, isLocked } from './events.js?v=suppressor-1';
 import { HOUND_CATEGORY } from './captains.js?v=hounds-tokens-1';
 
 export const ROW_LIMIT = 9;
@@ -9,7 +9,7 @@ export const opponent = (side) => side === 'human' ? 'bot' : 'human';
 
 export const cardType = ({ definition }) => definition.type ?? 'unit';
 export const activeOrder = ({ card, row }) => {
-  const { order } = card.definition;
+  const { order } = cardAbilities(card);
   return order && (!order.sourceRow || order.sourceRow === row) ? order : undefined;
 };
 export const isUnit = (card) => cardType(card) === 'unit';
@@ -29,19 +29,20 @@ export function createCard(id, definition) {
 export function restoreCard(previous) {
   const card = createCard(previous.id, previous.definition);
   if (previous.resilient === false) card.resilient = false;
+  if (isLocked(previous)) card.statuses = { lock: 1 };
   if (isUnit(card)) card.power = card.basePower = basePower(previous);
   return card;
 }
 
 export function spendResilience(card) {
-  if (!card.resilient) return false;
+  if (!card.resilient || isLocked(card)) return false;
   card.resilient = false;
   return true;
 }
 
 export function placeCards(player, row, position, cards) {
   for (const card of cards) {
-    if (card.definition.order) card.readyAt = player.turns + Number(!card.definition.zeal);
+    if (cardAbilities(card).order) card.readyAt = player.turns + Number(!card.definition.zeal);
   }
   player.board[row].splice(position, 0, ...cards);
 }
@@ -157,6 +158,7 @@ const STATUS_RULES = Object.freeze({
   shield: { read: (card) => Number(card.statuses?.shield ?? card.definition.shield ?? false),
     next: (_current, amount) => Number(amount > 0), unit: true },
   target: { read: (card) => card.statuses?.target ?? 0, next: (current, amount) => Math.max(current, Number(amount > 0)), unit: true },
+  lock: { read: (card) => Number(isLocked(card)), next: (current, amount) => Math.max(current, Number(amount > 0)), unit: true },
   infection: { read: (card) => card.statuses?.infection ?? 0,
     next: (current, amount) => Math.max(0, current + amount),
     unit: true, turnEnd: 'infection-tick' },
@@ -213,6 +215,7 @@ export function applyStatus(match, unit, status, amount, extra) {
     effects.push(...emit(match, { ...event, type: 'target-marked', side: extra.attacker }, { journal: false }));
   }
   match.effects.unshift(...effects);
+  if (status === 'lock' && card.definition.houndAura) refreshHoundAura(match, side, card.id);
   return before - count;
 }
 
@@ -248,9 +251,9 @@ export function removeUnit(match, unit, reason, consumerId, extra) {
   if (card.definition.houndAura) refreshHoundAura(match, side);
 }
 
-export function refreshHoundAura(match, side) {
+export function refreshHoundAura(match, side, preservePowerId) {
   const field = units(match, side);
-  const bonus = field.reduce((sum, { card }) => sum + (card.definition.houndAura ?? 0), 0);
+  const bonus = field.reduce((sum, { card }) => sum + (cardAbilities(card).houndAura ?? 0), 0);
   const fallen = [];
   for (const { card } of field) {
     if (!isUnit(card) || !card.definition.categories?.includes(HOUND_CATEGORY)) continue;
@@ -258,7 +261,8 @@ export function refreshHoundAura(match, side) {
     if (!delta) continue;
     if (bonus) card.houndBonus = bonus;
     else delete card.houndBonus;
-    card.power += delta;
+    // Lock removes the aura from other cards while preserving the target's current power.
+    if (card.id !== preservePowerId) card.power += delta;
     match.log.push({ type: 'aura-power', side, cardId: card.id, power: card.power, houndBonus: bonus });
     if (card.power <= 0) fallen.push(card.id);
   }
@@ -272,6 +276,7 @@ export function transformUnit(match, unit, definition) {
   const { side, row, position, card } = unit;
   const replacement = createCard(card.id, definition);
   if (card.owner) replacement.owner = card.owner;
+  if (isLocked(card)) replacement.statuses = { lock: 1 };
   match.players[side].board[row][position] = replacement;
   match.log.push({ type: 'transform', side, cardId: card.id, name: card.definition.name, card: { ...replacement } });
   refreshHoundAura(match, side);

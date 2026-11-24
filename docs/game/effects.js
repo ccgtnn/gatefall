@@ -1,10 +1,10 @@
-import { deathwishDefinitions, deathwishJobs, emit } from './events.js?v=helper-robot-1';
-import { ROWS, ROW_LABELS } from './cards.js?v=failura-1';
+import { cardAbilities, deathwishDefinitions, deathwishJobs, emit, isLocked } from './events.js?v=suppressor-1';
+import { ROWS, ROW_LABELS } from './cards.js?v=suppressor-1';
 import {
   activeOrder, announcePlay, applyStatus, availableRows, boost, cardType, changeCoins, consume, damage, damageOverflow, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, restoreCard, ROW_LIMIT,
   refreshHoundAura, setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, infectionDamage, transformUnit, units,
-} from './board.js?v=hounds-tokens-1';
+} from './board.js?v=suppressor-1';
 import { HOUND_CATEGORY } from './captains.js?v=hounds-tokens-1';
 
 function reference(match, job, key = 'source') {
@@ -33,7 +33,7 @@ function targets(match, job, query, choosing = false) {
     (!query.deathwish || deathwishDefinitions(unit.card).length > 0) &&
     (!row || unit.row === row) &&
     (!query.type || cardType(unit.card) === query.type) &&
-    (!query.unitOrOrder || isUnit(unit.card) || unit.card.definition.order) &&
+    (!query.unitOrOrder || isUnit(unit.card) || cardAbilities(unit.card).order) &&
     (!query.token || unit.card.definition.token) &&
     (!query.category || unit.card.definition.categories?.includes(query.category)) &&
     (query.infected === undefined || Boolean(statusCount(unit.card, 'infection')) === query.infected) &&
@@ -63,7 +63,7 @@ export function rowDamage(player, row, amount, armorStrip = 0) {
     const armor = Math.max(0, (card.armor ?? 0) - armorStrip);
     const shielded = statusCount(card, 'shield') > 0;
     const breaks = card.armor > 0 && armor <= (shielded ? 0 : amount) &&
-      card.definition.events?.['armor-break']?.steps.some((step) => step.action === 'discard' && step.target.scope === 'source');
+      cardAbilities(card).events?.['armor-break']?.steps.some((step) => step.action === 'discard' && step.target.scope === 'source');
     if (breaks) return sum + card.power;
     return sum + (shielded ? 0 : Math.min(card.power, Math.max(0, amount - armor)));
   }, 0);
@@ -80,6 +80,16 @@ export function infectionGain(card, amount, turns = Infinity) {
   const current = statusCount(card, 'infection');
   return Math.max(0, infectionDamage(card, Math.min(current + amount, turns)) -
     infectionDamage(card, Math.min(current, turns)));
+}
+
+export function lockPriority({ card, side }, actor) {
+  const locked = isLocked(card);
+  const { order, fee, houndAura, fieldEvents, neighborEvents, endTurn, startTurnGrowth, events } = cardAbilities(card);
+  const primary = Boolean(order || fee || houndAura || fieldEvents || neighborEvents || (!locked && card.timer > 0));
+  const secondary = Boolean(endTurn || startTurnGrowth || events ||
+    (!locked && (card.counter > 0 || card.resilient)) || deathwishDefinitions(card).length);
+  const value = Number(primary) * 3 + Number(secondary);
+  return side === actor ? -value : 5 + value;
 }
 
 export function rowArmor(player, row) {
@@ -131,18 +141,18 @@ function canStart(match, job) {
 }
 
 export function playTiming(match, side, card) {
-  return card.definition.initiative && !match.players[side].roundActed ? 'initiative' : 'deploy';
+  return cardAbilities(card).initiative && !match.players[side].roundActed ? 'initiative' : 'deploy';
 }
 
 export function canCast(match, side, card, pileChoices, timing = playTiming(match, side, card)) {
-  const ability = card.definition[timing];
+  const ability = cardAbilities(card)[timing];
   return Boolean(ability && canStart(match, { ability, side, pileChoices }));
 }
 
 export function leaderCooldown(player) {
   const { leader } = player;
   if (!leader?.order || leader.lastUsedTurn === undefined) return 0;
-  const accelerated = ROWS.some((row) => player.board[row].some(({ definition }) => definition.id === leader.order.quickenedBy));
+  const accelerated = ROWS.some((row) => player.board[row].some((card) => !isLocked(card) && card.definition.id === leader.order.quickenedBy));
   const recharge = accelerated ? 0 : leader.order.cooldown;
   return Math.max(0, leader.lastUsedTurn + recharge + 1 - player.turns);
 }
@@ -177,7 +187,7 @@ export function availableFees(match, side) {
   const player = match.players[side];
   return units(match, side).filter((unit) => {
     const { card, row } = unit;
-    const fee = card.definition.fee;
+    const fee = cardAbilities(card).fee;
     return fee && (player.coins ?? 0) >= fee.coins &&
       (!card.definition.requiredRow || row === card.definition.requiredRow) &&
       (!fee.needsSourceSpace || player.board[row].length < ROW_LIMIT) &&
@@ -187,8 +197,9 @@ export function availableFees(match, side) {
 }
 
 export function enqueueCardEffect(match, side, card, timing, requiredSource = true, priorCategoryPlays) {
-  const ability = card.definition[timing] ?? (timing === 'deploy' ? card.definition.scenario?.prologue : undefined);
-  if (ability) match.effects.push({ ability, side, sourceId: card.id, sourceDefinitionId: card.definition.id, requiredSource, priorCategoryPlays });
+  const abilities = cardAbilities(card);
+  const ability = abilities[timing] ?? (timing === 'deploy' ? abilities.scenario?.prologue : undefined);
+  if (ability) match.effects.push({ ability, side, sourceId: card.id, sourceDefinitionId: card.definition.id, requiredSource, cardAbility: true, priorCategoryPlays });
 }
 
 function valueOf(match, job, expression, target) {
@@ -309,9 +320,10 @@ function playFromPile(match, job, step, random) {
   match.effects.unshift(...reactions);
   if (step.after) match.effects.unshift({ side: job.side, sourceId: card.id, requiredSource: true,
     ability: { steps: [step.after] } });
-  const ability = card.definition.deploy ?? card.definition.scenario?.prologue;
+  const { deploy, scenario } = cardAbilities(card);
+  const ability = deploy ?? scenario?.prologue;
   if (ability) match.effects.unshift({ ability, side: job.side, sourceId: card.id,
-    sourceDefinitionId: card.definition.id, requiredSource: !isEffect, priorCategoryPlays });
+    sourceDefinitionId: card.definition.id, requiredSource: !isEffect, cardAbility: true, priorCategoryPlays });
   delete job.refs.deckCard;
   delete job.refs.deckPlacement;
   return true;
@@ -356,7 +368,7 @@ export function enqueueEndTurn(match, side) {
     { source: card, journal: false }));
   for (const { card } of field) {
     const steps = statusEndTurn(card);
-    if (card.counter > 0) steps.push({ action: 'counter', target: { scope: 'source' } });
+    if (!isLocked(card) && card.counter > 0) steps.push({ action: 'counter', target: { scope: 'source' } });
     if (steps.length) match.effects.push({
       ability: { steps },
       side, sourceId: card.id, requiredSource: true,
@@ -383,16 +395,16 @@ export function enqueueStartTurn(match, side) {
   const player = match.players[side];
   const field = units(match, side);
   for (const unit of [...field, ...units(match, opponent(side))]) {
-    if ((unit.card.owner ?? unit.side) === side) changeBasePower(match, unit, unit.card.definition.startTurnGrowth);
+    if ((unit.card.owner ?? unit.side) === side) changeBasePower(match, unit, cardAbilities(unit.card).startTurnGrowth);
   }
   for (const pile of ['deck', 'hand', 'discard']) {
-    for (const card of player[pile]) changeBasePower(match, { card, side, pile }, card.definition.startTurnGrowth);
+    for (const card of player[pile]) changeBasePower(match, { card, side, pile }, cardAbilities(card).startTurnGrowth);
   }
   for (const row of ROWS) {
     if (match.players[side].rowEffects?.[row]) match.effects.push({ side, row, rowTick: true });
   }
   for (const { card } of field) {
-    if (card.timer > 0 && (card.definition.startTurn || card.definition.startTurnPulse)) {
+    if (card.timer > 0 && (cardAbilities(card).startTurn || cardAbilities(card).startTurnPulse)) {
       match.effects.push({ side, sourceId: card.id, startTimer: true });
     }
   }
@@ -414,7 +426,8 @@ function playChapter(match, job) {
   const unit = findUnit(match, job.sourceId);
   if (!unit) return;
   const { card, side } = unit;
-  const chapters = card.definition.scenario.chapters;
+  const chapters = cardAbilities(card).scenario?.chapters;
+  if (!chapters) return;
   const chapter = (card.chapter ?? 0) + 1;
   if (chapter > chapters.length) return;
   card.chapter = chapter;
@@ -424,7 +437,7 @@ function playChapter(match, job) {
 }
 
 function tickTimer(match, { card, side }) {
-  if (!(card.timer > 0)) return false;
+  if (isLocked(card) || !(card.timer > 0)) return false;
   card.timer -= 1;
   match.log.push({ type: 'tick', side, name: card.definition.name, cardId: card.id, remaining: card.timer });
   return card.timer === 0;
@@ -443,11 +456,11 @@ const operations = {
   heal,
 
   counter: (match, { card, side }) => {
-    if (!(card.counter > 0)) return;
+    if (isLocked(card) || !(card.counter > 0)) return;
     card.counter -= 1;
     match.log.push({ type: 'counter', side, cardId: card.id, name: card.definition.name, remaining: card.counter });
     if (card.counter === 0) match.effects.unshift({ ability: card.definition.counter.effect,
-      side, sourceId: card.id, requiredSource: true });
+      side, sourceId: card.id, requiredSource: true, cardAbility: true });
   },
   armor: (match, target, amount, sourceDefinitionId) => applyStatus(match, target, 'armor', amount, { sourceDefinitionId }),
   'infection-tick': tickInfection,
@@ -466,14 +479,16 @@ export function runEffect(match, job, random) {
   if (job.scenarioChapter) return playChapter(match, job);
   if (job.startTimer) {
     const source = reference(match, job);
-    if (!source || !(source.card.timer > 0)) return;
+    if (!source || isLocked(source.card) || !(source.card.timer > 0)) return;
     const expired = tickTimer(match, source);
     enqueueCardEffect(match, job.side, source.card, 'startTurnPulse');
     if (expired) enqueueCardEffect(match, job.side, source.card, 'startTurn');
     return;
   }
+  const needsSource = job.requiredSource || job.ability.sourceRow;
+  const source = job.cardAbility || (!job.started && needsSource) ? reference(match, job) : undefined;
+  if (job.cardAbility && isLocked(source?.card)) return;
   if (!job.started) {
-    const source = job.requiredSource || job.ability.sourceRow ? reference(match, job) : undefined;
     if ((job.requiredSource && !source) || (job.ability.sourceRow && source?.row !== job.ability.sourceRow)) return;
     if (job.deathwish && !job.announced) {
       match.log.push({ type: 'deathwish', side: job.side, name: job.deathwish });
@@ -729,7 +744,7 @@ export function runEffect(match, job, random) {
     if (step.action === 'damage' && result && step.slay) {
       match.effects.splice(match.effects.indexOf(job), 0, {
         ability: step.slay, side: job.side, sourceId: job.sourceId, sourceDefinitionId: job.sourceDefinitionId,
-        refs: { slain: target.card.id }, results: { overflow },
+        cardAbility: job.cardAbility, refs: { slain: target.card.id }, results: { overflow },
       });
     }
   }
@@ -737,7 +752,7 @@ export function runEffect(match, job, random) {
 }
 
 function strongestDestruction(match, side, card) {
-  const ability = card.definition[playTiming(match, side, card)];
+  const ability = cardAbilities(card)[playTiming(match, side, card)];
   const step = ability?.steps.find(({ action, target }) => action === 'destroy' && target.strongest);
   if (!step) return;
   const options = targets(match, { side }, step.target);
@@ -760,7 +775,8 @@ export function destructionRolls(match, side, card) {
 
 // Estimate immediate score swing from public targets for the bot's existing pass calculation.
 export function effectSwing(match, side, card) {
-  const ability = card.definition.deploy ?? card.definition.scenario?.prologue;
+  const { deploy, scenario } = cardAbilities(card);
+  const ability = deploy ?? scenario?.prologue;
   const player = match.players[side];
   const job = { ability, side };
   let swing = destructionSwing(match, side, card) ?? 0;
@@ -852,8 +868,8 @@ export function effectSwing(match, side, card) {
 
 export function deckCardValue(match, side, card) {
   const { definition } = card;
-  const deploy = definition.deploy;
+  const { deploy, order, endTurn, scenario } = cardAbilities(card);
   const value = (card.power ?? 0) * (definition.enemySide ? -1 : 1) + (card.armor ?? 0) * .15;
   const swing = deploy?.steps.some((step) => step.fullDeck || step.action === 'play-from-discard') ? 0 : effectSwing(match, side, card);
-  return value + swing + Number(Boolean(deploy || definition.order || definition.endTurn || definition.scenario));
+  return value + swing + Number(Boolean(deploy || order || endTurn || scenario));
 }

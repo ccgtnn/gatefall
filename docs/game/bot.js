@@ -1,10 +1,10 @@
-import { ROWS } from './cards.js?v=failura-1';
-import { cardType, findUnit, isUnit, neighbors, restoreCard, statusCount, units } from './board.js?v=hounds-tokens-1';
-import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, rowArmor, rowDamage, rowEffectValue, rowScatterValue } from './effects.js?v=hounds-tokens-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=hounds-tokens-1';
+import { ROWS } from './cards.js?v=suppressor-1';
+import { cardType, findUnit, isUnit, neighbors, restoreCard, statusCount, units } from './board.js?v=suppressor-1';
+import { availableOrders, canUseLeader, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, rowArmor, rowDamage, rowEffectValue, rowScatterValue } from './effects.js?v=suppressor-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=suppressor-1';
 
-import { deathwishDefinitions } from './events.js?v=helper-robot-1';
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=hounds-tokens-1';
+import { deathwishDefinitions } from './events.js?v=suppressor-1';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=suppressor-1';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
@@ -201,6 +201,7 @@ export function pickBotTarget(match) {
     emp: ({ card }) => Math.min(card.power, 2 + (card.armor ?? 0)) + (card.armor ?? 0) * .1,
     consume: ({ card }) => sacrificePriority(card),
     deathwish: ({ card }) => deathwishDefinitions(card).length * 10 + card.power,
+    lock: (unit) => lockPriority(unit, match.pending.side),
     'spend-armor': ({ card }) => amount ? card.armor : card.armor * 100 + card.power,
     'ready-order': ({ card }) => card.definition.order && card.readyAt > player.turns ? 20 + (card.power ?? 0) : card.power ?? 0,
     'infection-target': ({ card }) => infectionGain(card, amount, Math.max(1, match.players[match.pending.side === 'human' ? 'bot' : 'human'].hand.length)),

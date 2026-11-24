@@ -161,6 +161,23 @@ test('Orders keep their ready and cooldown states, with one overlay for the fiel
   assert.equal(cooldown.children[1].textContent, 2);
 });
 
+test('lock has its own icon alongside statuses and replaces disabled ability badges', () => {
+  const card = makeCard('commander');
+  card.statuses = { lock: 1, target: 1, infection: 2 };
+  card.timer = 3;
+  for (const legacy of [false, true]) {
+    const face = new TestElement('button');
+    decorateCard(face, card, {}, { legacy, orderOnField: true });
+    const lock = byClass(face, 'stat-badge-lock');
+    assert.equal(lock.attributes['aria-label'], 'Блокировка');
+    assert.match(lock.children[0].children[0].attributes.href, /#lock$/);
+    assert.ok(byClass(face, 'stat-badge-target'));
+    assert.ok(byClass(face, legacy ? 'infection-badge' : 'stat-badge-infection'));
+    assert.equal(byClass(face, 'stat-badge-order'), undefined);
+    assert.equal(byClass(face, 'stat-badge-hourglass'), undefined);
+  }
+});
+
 test('all rarities use numeric power plates and the shared provision hexagon', () => {
   for (const [id, rarity] of [['infantry', 'bronze'], ['helper-robot', 'epic'], ['imperial-golem', 'gold']]) {
     const card = makeCard(id);

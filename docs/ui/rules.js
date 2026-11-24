@@ -1,5 +1,5 @@
 import { dialogClose } from './resources.js?v=essence-gain-1';
-import { KEYWORDS } from '../game/cards.js?v=failura-1';
+import { KEYWORDS } from '../game/cards.js?v=suppressor-1';
 import { element } from './dom.js?v=opponent-reveal-1';
 
 export function bindRulesMenu() {
