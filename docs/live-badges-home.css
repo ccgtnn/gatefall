@@ -140,6 +140,41 @@
   .preview-card-face { width: min(100%, 31vh); }
 }
 
+[data-faction-mark] {
+  --faction-mark-height: clamp(12px, 2.4vw, 17px);
+  --faction-mark-right: max(3px, 7%);
+  --faction-mark-bottom: max(3px, 4.5%);
+  --provision-bottom: calc(var(--faction-mark-bottom) + var(--faction-mark-height) + 2px);
+  --card-category-bottom: 17%;
+}
+.preview-card-face[data-faction-mark] {
+  --faction-mark-height: clamp(15px, 3vw, 23px);
+  --card-category-bottom: 21%;
+}
+.card-faction-mark {
+  position: absolute;
+  z-index: 3;
+  right: var(--faction-mark-right);
+  bottom: var(--faction-mark-bottom);
+  display: grid;
+  place-items: center;
+  width: calc(var(--faction-mark-height) * 1.45);
+  height: var(--faction-mark-height);
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  background: #101925ed;
+  color: var(--faction-edge, #c4a77c);
+  pointer-events: none;
+}
+.card-faction-mark > svg { width: 85%; height: 85%; }
+[data-faction-mark] > .stat-badge.stat-badge-provision {
+  right: var(--faction-mark-right);
+  bottom: var(--provision-bottom);
+}
+[data-faction-mark]:has(> .stat-badge-provision) > .card-category {
+  bottom: max(var(--card-category-bottom), calc(var(--provision-bottom) + var(--badge-size, 22px) * 1.16 + 2px));
+}
+
 :is([data-card-frame="protectorate-rampart"], :where(:root[data-card-frame-choice="protectorate-rampart"]) [data-card-face]:not([data-card-frame]))[data-rarity] {
   --decoration-frame: url('./art/frame-protectorate-rampart.webp');
   clip-path: polygon(3% .45%, 97% .45%, 99.45% 2%, 99.45% 98%, 97.5% 99.55%, 3% 99.55%, .55% 98%, .55% 2%);
@@ -163,7 +198,7 @@
   > .card-art-crop { scale: .97; }
   > :is(.stat-badge-power, .card-kind) { top: 4.5%; left: 7%; }
   > .stat-badge-armor { top: 4.5%; right: 7%; }
-  > .stat-badge-provision { right: 7%; bottom: 4.5%; }
+  &:not([data-faction-mark]) > .stat-badge-provision { right: 7%; bottom: 4.5%; }
   > :is(.card-state, .stat-order-control, .stat-badge-hourglass, .stat-badge-order, .stat-badge-infection, .stat-badge-lock) {
     bottom: var(--decoration-status-inset);
   }

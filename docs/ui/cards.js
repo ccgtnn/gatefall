@@ -2,8 +2,8 @@ import { dialogClose } from './resources.js?v=essence-gain-1';
 import { button, element, selectField, setCardRarity } from './dom.js?v=opponent-reveal-1';
 import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=fugitive-monk-1';
 import { FACTION_CATALOG } from '../game/faction-catalog.js?v=fugitive-monk-1';
-import { HOUND_CATEGORY } from '../game/captains.js?v=captains-independent-1';
 import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=fugitive-monk-1';
+import { resourceIcon } from './resource-icon.js?v=1';
 
 import { deathwishDefinitions } from '../game/events.js?v=suppressor-1';
 import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=suppressor-1';
@@ -86,7 +86,7 @@ export function showCard(card, { leader = false, legacy = false,
   const layout = element('div', 'preview-layout');
   if (!leader && !legacy) {
     const face = element('div', 'preview-card-face');
-    decorateCard(face, card, { factionId: definition.faction }, { showProvision: true, fullArt: true, orderReady, orderCooldown, frame });
+    decorateCard(face, card, { factionId: definition.faction }, { showProvision: true, showFaction: true, fullArt: true, orderReady, orderCooldown, frame });
     layout.append(face);
   } else if (definition.art) {
     layout.append(cardArt(definition, 'preview-art', { fullArt: true }));
@@ -223,26 +223,29 @@ function cardStats(card) {
   return stats;
 }
 
-export function cardCategories(categories, className, showBadge = false) {
-  const label = element('span', className, categories.join(' · '));
-  if (showBadge && categories.includes(HOUND_CATEGORY)) {
-    const badge = element('img', 'hound-category-badge');
-    badge.src = './art/black-hounds-emblem-small.webp';
-    badge.alt = '';
-    badge.width = badge.height = 32;
-    label.prepend(badge);
-  }
-  return label;
+function factionMark(faction) {
+  const badge = element('span', 'card-faction-mark');
+  badge.title = faction === NEUTRAL ? 'Нейтральная' : FACTION_CATALOG[faction].name;
+  badge.setAttribute('role', 'img');
+  badge.setAttribute('aria-label', badge.title);
+  badge.append(resourceIcon(faction, true));
+  return badge;
 }
 
 export function decorateCard(node, card, player, { orderOnField = false, legacy = false,
-  showProvision = false, fullArt = false, orderReady = false, orderCooldown = 0, frame } = {}) {
+  showProvision = false, showFaction = false, fullArt = false, orderReady = false, orderCooldown = 0, frame } = {}) {
   const { definition } = card;
   const type = cardType(card);
   node.dataset.type = type;
   if (definition.accent) node.dataset.accent = definition.accent;
   if (definition.enemySide) node.dataset.enemySide = 'true';
   node.dataset.faction = definition.faction === NEUTRAL ? NEUTRAL : player.factionId ?? '';
+  if (showFaction) {
+    const faction = Object.hasOwn(FACTION_CATALOG, definition.faction) ? definition.faction : NEUTRAL;
+    node.dataset.faction = faction;
+    node.dataset.factionMark = '';
+    node.append(factionMark(faction));
+  }
   node.setAttribute('aria-label', cardLabel(card, legacy || showProvision));
   if (legacy) legacyBadges(node, card, orderOnField);
   else {
@@ -251,7 +254,7 @@ export function decorateCard(node, card, player, { orderOnField = false, legacy 
     liveBadges(node, card, { orderOnField, showProvision, orderReady, orderCooldown });
   }
   if (statusCount(card, 'target')) node.append(statBadge('target', 'Отмечен Целью'));
-  if (definition.categories?.length) node.append(cardCategories(definition.categories, 'card-category', fullArt));
+  if (definition.categories?.length) node.append(element('span', 'card-category', definition.categories.join(' · ')));
   const alternateArt = definition.artStates?.[card.artState];
   const artwork = alternateArt ? { ...definition, art: alternateArt, artCrop: alternateArt } : definition;
   addCardCrop(node, artwork, { fullArt });
@@ -354,10 +357,10 @@ function cardLabel(card, showProvision) {
   return details.join(' · ');
 }
 
-export function cardButton(card, handler, player, placement = false, { showProvision = false, inspect } = {}) {
+export function cardButton(card, handler, player, placement = false, { showProvision = false, showFaction = false, inspect } = {}) {
   const node = button(undefined, handler, 'hand-card');
   node.dataset.cardId = card.id;
-  decorateCard(node, card, player, { showProvision });
+  decorateCard(node, card, player, { showProvision, showFaction });
   cardInspection(node, card, placement, inspect);
   return node;
 }

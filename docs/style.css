@@ -957,14 +957,6 @@ ul.deck-invalid { padding-inline-start: 1.1rem; margin: 0; font-size: .8rem; }
   pointer-events: none;
 }
 .catalog-category { color: #b4c8cb; font-size: .72rem; }
-:is(.card-category, .catalog-category):has(.hound-category-badge) {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: .25rem;
-}
-.hound-category-badge { width: 24px; height: 24px; }
-.preview-card-face .hound-category-badge { width: 32px; height: 32px; }
 
 :is([data-rarity='bronze'], [data-rarity='epic'], [data-rarity='gold']):not(.card-preview) { border: 0; }
 [data-rarity="bronze"] {

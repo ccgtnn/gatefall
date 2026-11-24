@@ -61,6 +61,27 @@ test('turret shows the default art and switches its face only when replay marks 
   assert.equal(byClass(field, 'card-art-crop').src, './art/broken-turret-failing.webp');
 });
 
+test('catalog and detail faces show the printed faction and keep Hound categories as text', () => {
+  for (const [id, faction] of [['bastion', 'protectorate'], ['cocoon', 'growth'],
+    ['hound-foreman', 'captains'], ['fugitive-monk', 'neutral']]) {
+    const catalog = drawable(id, { showProvision: true, showFaction: true });
+    showCard(makeCard(id));
+    for (const face of [catalog, byClass(preview, 'preview-card-face')]) {
+      const badge = byClass(face, 'card-faction-mark');
+      const icon = tree(badge).find(({ tag }) => tag === 'use');
+      assert.equal(face.dataset.faction, faction);
+      assert.equal(icon.attributes.href.split('#').at(-1), faction);
+      assert.ok(byClass(face, 'stat-badge-provision'));
+      if (faction === 'captains') {
+        const category = byClass(face, 'card-category');
+        assert.equal(category.textContent, 'Гончая');
+        assert.deepEqual(category.children, []);
+      }
+    }
+    assert.equal(byClass(drawable(id), 'card-faction-mark'), undefined);
+  }
+});
+
 test('live battlefield and hand faces hide provision, while catalog and preview show it', () => {
   const field = drawable('bastion', { orderOnField: false });
   const hand = drawable('bastion');
