@@ -1,5 +1,5 @@
 import { refreshPremiumArt, resumeCardVideos } from './card-art.js?v=failura-1';
-import { leagueCharacter } from './league-character.js?v=league-characters-1';
+import { leagueCharacter } from './league-character.js?v=oran-avatar-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { createCard } from '../game/board.js?v=failura-1';
 import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=failura-1';

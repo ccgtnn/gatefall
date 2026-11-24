@@ -1,4 +1,4 @@
-import { leagueCharacter } from './league-character.js?v=league-characters-1';
+import { leagueCharacter } from './league-character.js?v=oran-avatar-1';
 import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js?v=failura-1';
 import { insertionPoint, placementEffectRows } from '../card-placement.js?v=hounds-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';

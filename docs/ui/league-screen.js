@@ -1,6 +1,6 @@
 import { DIAMOND, LEAGUE_BOTS, LEAGUES, LEAGUE_RULES, leagueDivision, leagueOpponent, leagueStake, leagueTable, leagueTicket } from '../game/league.js?v=league-context-1';
-import { leagueAvatar, LORE_FACTIONS, setLeagueSpeech } from './league-character.js?v=league-screen-1';
-import { leagueProfile, leagueRecord, LEAGUE_DIFFICULTY_LABELS } from './league-profile.js?v=essence-gain-1';
+import { leagueAvatar, LORE_FACTIONS, setLeagueSpeech } from './league-character.js?v=oran-avatar-1';
+import { leagueProfile, leagueRecord, LEAGUE_DIFFICULTY_LABELS } from './league-profile.js?v=oran-avatar-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { sectionBack } from './resources.js?v=essence-gain-1';
 
@@ -274,9 +274,15 @@ function leagueIdentity(bot) {
 }
 
 function standings(season, openProfile) {
-  const list = element('ol', 'league-standings');
-  list.setAttribute('aria-label', 'Участники лиги');
   const table = leagueTable(season);
+  const standings = element('div', 'league-standings');
+  standings.setAttribute('role', 'group');
+  standings.setAttribute('aria-label', 'Участники лиги');
+  const laterPlaces = Math.ceil(table.length / 2);
+  const firstColumn = element('ol', 'league-standings-column');
+  const secondColumn = element('ol', 'league-standings-column');
+  secondColumn.start = laterPlaces + 1;
+  standings.append(firstColumn, secondColumn);
   const firstRelegation = table.length + 1 - LEAGUE_RULES.relegationPlaces;
   for (const [index, score] of table.entries()) {
     const { id, points } = score;
@@ -322,9 +328,9 @@ function standings(season, openProfile) {
     }
     row.append(rank, avatar, identity, numbers);
     item.append(row);
-    list.append(item);
+    (index < laterPlaces ? firstColumn : secondColumn).append(item);
   }
-  return list;
+  return standings;
 }
 
 function rewardText(reward) {
