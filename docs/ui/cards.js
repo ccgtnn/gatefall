@@ -2,7 +2,8 @@ import { dialogClose } from './resources.js?v=essence-gain-1';
 import { button, element, selectField, setCardRarity } from './dom.js?v=opponent-reveal-1';
 import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=failura-1';
 import { FACTION_CATALOG } from '../game/faction-catalog.js?v=failura-1';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=failura-1';
+import { HOUND_CATEGORY } from '../game/captains.js?v=hounds-tokens-1';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=hounds-tokens-1';
 
 import { deathwishDefinitions } from '../game/events.js?v=helper-robot-1';
 import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=badge-depth-1';
@@ -219,6 +220,18 @@ function cardStats(card) {
   return stats;
 }
 
+export function cardCategories(categories, className, showBadge = false) {
+  const label = element('span', className, categories.join(' · '));
+  if (showBadge && categories.includes(HOUND_CATEGORY)) {
+    const badge = element('img', 'hound-category-badge');
+    badge.src = './art/black-hounds-emblem-small.webp';
+    badge.alt = '';
+    badge.width = badge.height = 32;
+    label.prepend(badge);
+  }
+  return label;
+}
+
 export function decorateCard(node, card, player, { orderOnField = false, legacy = false,
   showProvision = false, fullArt = false, orderReady = false, orderCooldown = 0, frame } = {}) {
   const { definition } = card;
@@ -235,7 +248,7 @@ export function decorateCard(node, card, player, { orderOnField = false, legacy 
     liveBadges(node, card, { orderOnField, showProvision, orderReady, orderCooldown });
   }
   if (statusCount(card, 'target')) node.append(statBadge('target', 'Отмечен Целью'));
-  if (definition.categories?.length) node.append(element('span', 'card-category', definition.categories.join(' · ')));
+  if (definition.categories?.length) node.append(cardCategories(definition.categories, 'card-category', fullArt));
   addCardCrop(node, definition, { fullArt });
   if (!definition.art) node.append(element('span', 'card-art-placeholder', definition.name));
 }

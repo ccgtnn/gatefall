@@ -1,11 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { CAPTAIN_CARDS, HOUND, REINFORCED_HOUND } from '../docs/game/captains.js';
 import { FACTIONS, NEUTRAL_CARDS } from '../docs/game/cards.js';
 import { filterCatalog } from '../docs/ui/catalog-cards.js';
 import { setCardRarity } from '../docs/ui/dom.js';
 
 const cards = [...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool)];
 const ids = (filters) => filterCatalog(cards, filters).map(({ id }) => id);
+
+test('Hound tokens appear after collectible cards and outside inventory filters', () => {
+  const entries = [...CAPTAIN_CARDS, HOUND, REINFORCED_HOUND];
+  const owned = { [CAPTAIN_CARDS[0].id]: 1 };
+  const select = (filters) => filterCatalog(entries, { faction: 'captains', category: 'Гончая', owned, ...filters });
+  assert.deepEqual(select({}).slice(-2), [HOUND, REINFORCED_HOUND]);
+  assert.deepEqual(select({ availability: 'owned' }), [CAPTAIN_CARDS[0]]);
+  assert.equal(select({ availability: 'missing' }).length, CAPTAIN_CARDS.length - 1);
+  assert.ok(select({ provision: '5' }).every(({ provision }) => provision === 5));
+});
 
 test('catalog searches both name and card text, ignoring case and ё spelling', () => {
   assert.ok(ids({ query: '  АННИГИЛЯЦИЯ  ' }).includes('annihilation'));

@@ -1,6 +1,6 @@
 import { ROWS } from './cards.js?v=failura-1';
 import { emit } from './events.js?v=helper-robot-1';
-import { HOUND_CATEGORY } from './captains.js?v=hounds-1';
+import { HOUND_CATEGORY } from './captains.js?v=hounds-tokens-1';
 
 export const ROW_LIMIT = 9;
 export const HAND_LIMIT = 10;

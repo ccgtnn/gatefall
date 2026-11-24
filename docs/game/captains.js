@@ -1,9 +1,13 @@
 export const HOUND_CATEGORY = 'Гончая';
 
 const hound = { faction: 'captains', type: 'unit', categories: [HOUND_CATEGORY] };
-export const HOUND = Object.freeze({ ...hound, id: 'hound', name: 'Гончая', power: 2, text: 'Боец Чёрных гончих.', token: true });
+export const HOUND = Object.freeze({
+  ...hound, id: 'hound', name: 'Гончая', power: 2, text: 'Боец Чёрных гончих.', token: true,
+  art: 'hound.webp', artCrop: 'hound-crop.webp',
+});
 export const REINFORCED_HOUND = Object.freeze({
   ...hound, id: 'reinforced-hound', name: 'Усиленная гончая', power: 3, armor: 1, text: 'Броня 1.', keywords: ['Броня'], token: true,
+  art: 'reinforced-hound.webp', artCrop: 'reinforced-hound-crop.webp',
 });
 
 const source = { scope: 'source' };

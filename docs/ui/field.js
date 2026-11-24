@@ -1,12 +1,12 @@
 import { leagueCharacter } from './league-character.js?v=oran-avatar-1';
-import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js?v=failura-1';
+import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js?v=hounds-tokens-1';
 import { insertionPoint, placementEffectRows } from '../card-placement.js?v=hounds-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
 import { ROWS, ROW_LABELS } from '../game/cards.js?v=failura-1';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=failura-1';
-import { playerHand } from './hand.js?v=failura-1';
-import { availableFees, availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=failura-1';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=failura-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=hounds-tokens-1';
+import { playerHand } from './hand.js?v=hounds-tokens-1';
+import { availableFees, availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=hounds-tokens-1';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=hounds-tokens-1';
 
 import { orderBadge } from './stat-badges.js?v=badge-depth-1';
 

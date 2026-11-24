@@ -17,6 +17,14 @@ const reasons = ['start', 'botStrong', 'humanStrong', 'roundWin', 'roundLoss', '
 const telepath = LEAGUE_CHARACTERS.find(({ name }) => name === 'Первый Голос');
 const zero = () => 0;
 
+test('the renamed league rival retains his saved ID and contextual lines', () => {
+  const rival = LEAGUE_CHARACTERS.find(({ id }) => id === 'bot-2-1');
+  assert.equal(rival.name, 'Гаррет Шрайк');
+  assert.equal(rival.initials, 'ГШ');
+  assert.equal(rival.avatar, 'league/garrett-shrike.webp');
+  assert.ok(LEAGUE_CONTEXT_LINES[rival.id]);
+});
+
 test('league records display match results and the separate round totals', () => {
   assert.equal(leagueRecord({ wins: 3, draws: 2, losses: 1, difference: 4 }), 'В 3 · Н 2 · П 1');
   assert.equal(leagueRecord({ wins: 1 }), 'В 1 · Н 0 · П 0');

@@ -1,4 +1,4 @@
-import { REWARD_STORAGE_KEY } from './rewards.js?v=league-rounds-1';
+import { REWARD_STORAGE_KEY } from './rewards.js?v=hounds-tokens-1';
 
 export async function resetProgress(storage, locks) {
   function clearGameData() {

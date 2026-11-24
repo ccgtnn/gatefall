@@ -53,8 +53,8 @@ test('all ten Hound cards are in the collection but their faction has no preset 
   assert.equal(await economy.openPack('captains'), 'unknown');
 });
 
-test('all ten Hound cards use their own WebP and any focused crop exists', async () => {
-  for (const { id, art, artCrop } of CAPTAIN_CARDS) {
+test('Hound cards and both tokens use their own WebP and any focused crop exists', async () => {
+  for (const { id, art, artCrop } of [...CAPTAIN_CARDS, HOUND, REINFORCED_HOUND]) {
     assert.equal(art, `${id}.webp`);
     await access(new URL(`../docs/art/${art}`, import.meta.url));
     if (artCrop) {
@@ -62,6 +62,8 @@ test('all ten Hound cards use their own WebP and any focused crop exists', async
       await access(new URL(`../docs/art/${artCrop}`, import.meta.url));
     }
   }
+  await access(new URL('../docs/art/black-hounds-emblem.webp', import.meta.url));
+  await access(new URL('../docs/art/black-hounds-emblem-small.webp', import.meta.url));
 });
 
 test('Удачное дельце grants five coins up to nine, separately for each side', () => {

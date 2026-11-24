@@ -16,7 +16,7 @@ export function filterCatalog(cards, { query = '', faction = '', type = '', rari
   const terms = normalize(query).trim().split(/\s+/).filter(Boolean);
   const shown = cards.filter((card) =>
     (!faction || card.faction === faction) &&
-    matchesAvailability(availability, owned[card.id]) &&
+    (!availability || (!card.token && matchesAvailability(availability, owned[card.id]))) &&
     (!type || card.type === type) &&
     (!rarity || card.rarity === rarity) &&
     (!category || card.categories?.includes(category)) &&
@@ -28,5 +28,6 @@ export function filterCatalog(cards, { query = '', faction = '', type = '', rari
   if (sort === 'power') return shown.sort((a, b) =>
     Number(b.power !== undefined) - Number(a.power !== undefined) ||
     (b.power ?? 0) - (a.power ?? 0) || byName(a, b));
-  return shown.sort((a, b) => a.provision - b.provision || byName(a, b));
+  return shown.sort((a, b) =>
+    (a.provision ?? Number.MAX_SAFE_INTEGER) - (b.provision ?? Number.MAX_SAFE_INTEGER) || byName(a, b));
 }

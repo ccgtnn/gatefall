@@ -242,8 +242,8 @@ export const LEAGUE_CHARACTERS = [
     },
   },
   {
-    id: 'bot-2-1', name: "Дракс Морроу", tier: 2, loreFaction: 'captains', deckNow: 'orbit-gold',
-    strength: 1, initials: "ДМ", avatar: 'league/drax-morrow.webp',
+    id: 'bot-2-1', name: "Гаррет Шрайк", tier: 2, loreFaction: 'captains', deckNow: 'orbit-gold',
+    strength: 1, initials: "ГШ", avatar: 'league/garrett-shrike.webp',
     character: "Охотник за головами. Говорит мало, курит, ценит хорошую цель.",
     uniqueAbility: null,
     lines: {

@@ -1,25 +1,26 @@
 import { refreshPremiumArt, resumeCardVideos } from './card-art.js?v=failura-1';
 import { leagueCharacter } from './league-character.js?v=oran-avatar-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
-import { createCard } from '../game/board.js?v=failura-1';
+import { createCard } from '../game/board.js?v=hounds-tokens-1';
 import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=failura-1';
 import { FACTION_CATALOG } from '../game/faction-catalog.js?v=failura-1';
-import { CAPTAIN_CARDS } from '../game/captains.js?v=hounds-art-2';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=failura-1';
-import { logView, roundText } from './menu.js?v=failura-1';
-import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=collection-2';
+import { CAPTAIN_CARDS, HOUND, REINFORCED_HOUND } from '../game/captains.js?v=hounds-tokens-1';
+import { addCardCrop, cardButton, cardCategories, showCard } from './cards.js?v=hounds-tokens-1';
+import { logView, roundText } from './menu.js?v=hounds-tokens-1';
+import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=hounds-tokens-1';
 import { factionFilters } from './faction-filters.js?v=faction-catalog-2';
 import { copyLimit } from '../game/decks.js?v=failura-1';
-import { craftPrice, dismantleValue } from '../game/rewards.js?v=league-rounds-1';
+import { craftPrice, dismantleValue } from '../game/rewards.js?v=hounds-tokens-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 import { sectionBack } from './resources.js?v=essence-gain-1';
 
-const catalogCards = [...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool), ...CAPTAIN_CARDS];
+const catalogCards = [...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool),
+  ...CAPTAIN_CARDS, HOUND, REINFORCED_HOUND];
 const catalogFactions = [['', 'Все фракции'], [NEUTRAL, 'Нейтральные'],
   ...Object.entries(FACTION_CATALOG).map(([id, faction]) => [id, faction.name])];
 const categoryOptions = [...new Set(catalogCards.flatMap(({ categories }) => categories ?? []))]
   .sort((a, b) => a.localeCompare(b, 'ru')).map((category) => [category, category]);
-const provisionOptions = [...new Set(catalogCards.map(({ provision }) => provision))]
+const provisionOptions = [...new Set(catalogCards.map(({ provision }) => provision).filter(Number.isInteger))]
   .sort((a, b) => a - b).map((cost) => [String(cost), String(cost)]);
 
 export function catalogScreen(progress) {
@@ -57,12 +58,12 @@ export function catalogScreen(progress) {
   function createEntry(definition) {
     const card = createCard(definition.id, definition);
     const item = element('div', 'catalog-entry');
-    const inspect = () => openDetails(card);
+    const inspect = () => definition.token ? showCard(card) : openDetails(card);
     const face = cardButton(card, inspect, { factionId: definition.faction }, false, { showProvision: true, inspect });
     face.title = 'Подробнее';
     face.setAttribute('aria-haspopup', 'dialog');
     item.append(face, element('span', null, definition.name));
-    if (definition.categories?.length) item.append(element('span', 'catalog-category', definition.categories.join(' · ')));
+    if (definition.categories?.length) item.append(cardCategories(definition.categories, 'catalog-category', true));
     const quantity = element('span', 'catalog-quantity');
     item.append(quantity);
     return { item, quantity };
@@ -176,8 +177,8 @@ export function catalogScreen(progress) {
     const next = shown.map((definition) => {
       const { item, quantity } = items.get(definition.id);
       const copies = owned[definition.id];
-      item.classList.toggle('card-unavailable', !copies);
-      quantity.textContent = `В коллекции · ${copies}`;
+      item.classList.toggle('card-unavailable', !definition.token && !copies);
+      quantity.textContent = definition.token ? 'Токен' : `В коллекции · ${copies}`;
       return item;
     });
     if (!next.length) {

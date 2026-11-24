@@ -1,4 +1,4 @@
-import { recordCardPlay, spendResilience } from './game/board.js?v=failura-1';
+import { recordCardPlay, spendResilience } from './game/board.js?v=hounds-tokens-1';
 import { ROWS } from './game/cards.js?v=failura-1';
 
 export function motionDuration(speed, reduced) {

@@ -4,8 +4,8 @@ import {
   activeOrder, announcePlay, applyStatus, availableRows, boost, cardType, changeCoins, consume, damage, damageOverflow, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, restoreCard, ROW_LIMIT,
   refreshHoundAura, setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, infectionDamage, transformUnit, units,
-} from './board.js?v=failura-1';
-import { HOUND_CATEGORY } from './captains.js?v=hounds-1';
+} from './board.js?v=hounds-tokens-1';
+import { HOUND_CATEGORY } from './captains.js?v=hounds-tokens-1';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);
