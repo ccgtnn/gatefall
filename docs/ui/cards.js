@@ -1,8 +1,8 @@
 import { dialogClose } from './resources.js?v=essence-gain-1';
 import { button, element, selectField, setCardRarity } from './dom.js?v=opponent-reveal-1';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=ulmarin-1';
-import { FACTION_CATALOG } from '../game/faction-catalog.js?v=ulmarin-1';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=ulmarin-1';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=sleeper-name-1';
+import { FACTION_CATALOG } from '../game/faction-catalog.js?v=sleeper-name-1';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=sleeper-name-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 
 import { deathwishDefinitions } from '../game/events.js?v=ulmarin-1';

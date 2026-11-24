@@ -1,11 +1,11 @@
 import { cardAbilities, deathwishDefinitions, deathwishJobs, emit, isLocked } from './events.js?v=ulmarin-1';
-import { FACTIONS, NEUTRAL_CARDS, ROWS, ROW_LABELS } from './cards.js?v=ulmarin-1';
+import { FACTIONS, NEUTRAL_CARDS, ROWS, ROW_LABELS } from './cards.js?v=sleeper-name-1';
 import {
   activeOrder, announcePlay, appearanceJobs, applyStatus, availableRows, boost, capture, captureDestination, cardType, createCard, changeCoins, cleansableStatuses, cleanse, consume, damage, damageOverflow, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, restoreCard, ROW_LIMIT,
   refreshHoundAura, refreshShipRowBonus, setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, infectionDamage, transformUnit, units, weaken,
-} from './board.js?v=ulmarin-1';
-import { CHOIR_CARDS } from './choir.js?v=ulmarin-1';
+} from './board.js?v=sleeper-name-1';
+import { CHOIR_CARDS } from './choir.js?v=sleeper-name-1';
 import { CAPTAIN_CARDS, HOUND_CATEGORY } from './captains.js?v=captains-independent-1';
 
 function reference(match, job, key = 'source') {

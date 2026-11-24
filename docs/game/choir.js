@@ -1,5 +1,5 @@
 export const PSIONICS = 'Псионика';
-export const CULTIST = 'Культист Ульмаринготха';
+export const CULTIST = 'Культист Спящего';
 export const TENTACLE_CATEGORY = 'Щупальце';
 
 const self = { scope: 'source' };
@@ -26,20 +26,20 @@ function tentacle(id, name, power, hit, stats = {}) {
   });
 }
 
-export const TENTACLE = tentacle('ulmarin-tentacle', 'Щупальце Ульмаринготха', 2, 1, { rarity: 'bronze', provision: 4 });
-export const LARGE_TENTACLE = tentacle('ulmarin-large-tentacle', 'Большое щупальце Ульмаринготха', 8, 2);
+export const TENTACLE = tentacle('ulmarin-tentacle', 'Щупальце Спящего', 2, 1, { rarity: 'bronze', provision: 4 });
+export const LARGE_TENTACLE = tentacle('ulmarin-large-tentacle', 'Большое щупальце Спящего', 8, 2);
 
 export const FANATIC = card({
-  id: 'ulmarin-fanatic', name: 'Фанатик Ульмаринготха', rarity: 'bronze', provision: 4, power: 4, categories: [CULTIST],
-  text: 'Когда сила падает ниже 2 и отряд выживает, превращается в Щупальце Ульмаринготха с базовой силой.',
+  id: 'ulmarin-fanatic', name: 'Фанатик Спящего', rarity: 'bronze', provision: 4, power: 4, categories: [CULTIST],
+  text: 'Когда сила падает ниже 2 и отряд выживает, превращается в Щупальце Спящего с базовой силой.',
   events: { 'power-loss': { ...ability([{ action: 'transform', target: self, card: TENTACLE }]),
     when: { targets: { ...self, powerAtMost: 1 } } } },
 });
 const fanaticToken = card({ ...FANATIC, token: true });
 
 export const SLEEPER = card({
-  id: 'ulmarin-sleeper', name: 'Ульмаринготх, Спящий под Вратами', rarity: 'gold', power: 8, doomed: true, token: true,
-  text: 'Обречённость. В конце твоего хода: нанеси 1 урон каждому соседу. Если нанёс урон, усиль себя на суммарный урон и восстанови Приказ. Приказ: нанеси сильнейшему вражескому отряду урон, равный числу твоих культистов Ульмаринготха и Щупалец.',
+  id: 'ulmarin-sleeper', name: 'Спящий под Вратами', rarity: 'gold', power: 8, doomed: true, token: true,
+  text: 'Обречённость. В конце твоего хода: нанеси 1 урон каждому соседу. Если нанёс урон, усиль себя на суммарный урон и восстанови Приказ. Приказ: нанеси сильнейшему вражескому отряду урон, равный числу твоих культистов Спящего и Щупалец.',
   keywords: ['Обречённость', 'Конец хода', 'Соседи', 'Урон', 'Усиление', 'Приказ'],
   endTurn: ability([
     { ...damage(nearby, 1), save: 'dealt', measureDamage: true },
@@ -54,8 +54,8 @@ export const SLEEPER = card({
 });
 
 export const AWAKENING = psionic({
-  id: 'ulmarin-awakening', name: 'Пробуждение Ульмаринготха', type: 'artifact', rarity: 'gold', provision: 12, resilience: true,
-  text: 'Стойкость. Главы открываются по одной при появлении нового Щупальца на твоей стороне. Пролог: призови по Фанатику Ульмаринготха слева и справа. Глава 1: усиль на 1 всех культистов Ульмаринготха в своей колоде. Глава 2: выбери свой отряд. Когда он погибнет или будет уничтожен, призови Большое щупальце Ульмаринготха на Поверхность. Глава 3: если за матч сыграно хотя бы 7 эффектов Псионики, призови Ульмаринготха, Спящего под Вратами в ряд сценария.',
+  id: 'ulmarin-awakening', name: 'Пробуждение Спящего', type: 'artifact', rarity: 'gold', provision: 12, resilience: true,
+  text: 'Стойкость. Главы открываются по одной при появлении нового Щупальца на твоей стороне. Пролог: призови по Фанатику Спящего слева и справа. Глава 1: усиль на 1 всех культистов Спящего в своей колоде. Глава 2: выбери свой отряд. Когда он погибнет или будет уничтожен, призови Большое щупальце Спящего на Поверхность. Глава 3: если за матч сыграно хотя бы 7 эффектов Псионики, призови Спящего под Вратами в ряд сценария.',
   keywords: ['Стойкость', 'Сценарий', PSIONICS, TENTACLE_CATEGORY],
   scenario: {
     trigger: 'appearance', category: TENTACLE_CATEGORY,
@@ -128,7 +128,7 @@ export const CHOIR_CARDS = Object.freeze([
   }),
   psionic({
     id: 'minor-offering', name: 'Малое подношение', rarity: 'bronze', provision: 4,
-    text: 'Нанеси 2 урона выбранному своему отряду, затем призови Щупальце Ульмаринготха в тот же ряд.',
+    text: 'Нанеси 2 урона выбранному своему отряду, затем призови Щупальце Спящего в тот же ряд.',
     keywords: [PSIONICS, 'Урон', 'Порождение'],
     deploy: ability([{ action: 'remember-row', target: victim, ref: 'victimRow' }, damage(victim, 2),
       { ...spawn(TENTACLE, undefined), rowRef: 'victimRow' }],
@@ -136,7 +136,7 @@ export const CHOIR_CARDS = Object.freeze([
   }),
   psionic({
     id: 'great-sacrifice', name: 'Великая жертва', rarity: 'gold', provision: 9,
-    text: 'Нанеси по 2 урона трём разным своим отрядам, затем призови по Щупальцу Ульмаринготха в ряду каждой жертвы. При нехватке места используй другой ряд.',
+    text: 'Нанеси по 2 урона трём разным своим отрядам, затем призови по Щупальцу Спящего в ряду каждой жертвы. При нехватке места используй другой ряд.',
     keywords: [PSIONICS, 'Урон', 'Порождение'],
     deploy: ability([
       ...[1, 2, 3].map((i) => ({ action: 'remember-row', target: ref('victim' + i), ref: 'row' + i })),

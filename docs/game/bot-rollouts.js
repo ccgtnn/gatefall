@@ -1,8 +1,8 @@
-import { FACTIONS, ROWS } from './cards.js?v=ulmarin-1';
-import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=ulmarin-1';
-import { collection, copyLimit } from './decks.js?v=ulmarin-1';
-import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=ulmarin-1';
-import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=ulmarin-1';
+import { FACTIONS, ROWS } from './cards.js?v=sleeper-name-1';
+import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=sleeper-name-1';
+import { collection, copyLimit } from './decks.js?v=sleeper-name-1';
+import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=sleeper-name-1';
+import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=sleeper-name-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };

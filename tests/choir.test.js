@@ -64,6 +64,20 @@ test('Choir cards are visible as unowned catalog entries only, with all new glos
   for (const word of [PSIONICS, CULTIST, 'Щупальце', 'Одержимость', 'Захват', 'Сотворение']) assert.ok(KEYWORDS[word]);
 });
 
+test('The Sleeper names and Cultist glossary use the same text while card IDs stay stable', () => {
+  assert.equal(CULTIST, 'Культист Спящего');
+  assert.match(KEYWORDS[CULTIST], /Приказ Спящего/);
+  for (const [id, name] of [
+    ['ulmarin-fanatic', 'Фанатик Спящего'],
+    ['ulmarin-tentacle', 'Щупальце Спящего'],
+    ['ulmarin-large-tentacle', 'Большое щупальце Спящего'],
+    ['ulmarin-awakening', 'Пробуждение Спящего'],
+    ['ulmarin-sleeper', 'Спящий под Вратами'],
+  ]) assert.equal(cards.get(id).name, name);
+  assert.match(AWAKENING.text, /призови Спящего под Вратами/);
+  assert.match(SLEEPER.text, /культистов Спящего/);
+});
+
 test('Obsession counts printed starting category including scenarios, unaffected by changing the deck', () => {
   for (const [count, expected] of [[0, 0], [2, 0], [3, 1], [5, 1], [6, 2], [9, 3], [12, 4]]) {
     const match = setup({ count, hand: [cards.get('depth-neophyte')], deck: [AWAKENING, AWAKENING] });

@@ -1,9 +1,9 @@
-import { inspectDeck, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET } from './decks.js?v=ulmarin-1';
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=ulmarin-1';
-import { announcePlay, availableRows, cardType, changeCoins, createCard, discardCard, findUnit, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, refreshHoundAura, refreshShipRowBonus, spendResilience, statusCount, takeCards } from './board.js?v=ulmarin-1';
-import { availableFees, availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=ulmarin-1';
+import { inspectDeck, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET } from './decks.js?v=sleeper-name-1';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=sleeper-name-1';
+import { announcePlay, availableRows, cardType, changeCoins, createCard, discardCard, findUnit, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, refreshHoundAura, refreshShipRowBonus, spendResilience, statusCount, takeCards } from './board.js?v=sleeper-name-1';
+import { availableFees, availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=sleeper-name-1';
 
-export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=ulmarin-1';
+export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=sleeper-name-1';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;
