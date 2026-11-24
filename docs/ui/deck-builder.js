@@ -1,8 +1,8 @@
-import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=choir-art-6';
-import { FACTION_CATALOG, UPCOMING_FACTIONS } from '../game/faction-catalog.js?v=choir-art-6';
-import { createCard } from '../game/board.js?v=choir-art-6';
-import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=choir-art-6';
-import { addCardCrop, cardButton } from './cards.js?v=choir-art-6';
+import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=world-gates-premium-1';
+import { FACTION_CATALOG, UPCOMING_FACTIONS } from '../game/faction-catalog.js?v=world-gates-premium-1';
+import { createCard } from '../game/board.js?v=world-gates-premium-1';
+import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=world-gates-premium-1';
+import { addCardCrop, cardButton } from './cards.js?v=world-gates-premium-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { factionFilters } from './faction-filters.js?v=faction-catalog-2';
 import { resourceIcon } from './resource-icon.js?v=faction-catalog-2';

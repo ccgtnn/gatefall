@@ -1,4 +1,4 @@
-import { inspectDeck, PRESETS } from '../game/decks.js?v=choir-art-6';
+import { inspectDeck, PRESETS } from '../game/decks.js?v=world-gates-premium-1';
 
 const STORAGE_KEY = 'gatefall.decks';
 const RECENT_KEY = 'gatefall.recent-decks';

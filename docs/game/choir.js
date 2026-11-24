@@ -38,9 +38,9 @@ export const LARGE_TENTACLE = tentacle('ulmarin-large-tentacle', 'Большое
 export const FANATIC = card({
   id: 'ulmarin-fanatic', name: 'Фанатик Спящего', rarity: 'bronze', provision: 4, power: 4, categories: [CULTIST],
   art: 'sleeper-fanatic.webp?v=choir-art-1', artCrop: 'sleeper-fanatic-crop.webp?v=choir-art-1',
-  text: 'Когда сила падает ниже 2 и отряд выживает, превращается в Щупальце Спящего с базовой силой.',
+  text: 'Когда сила падает до 2 или ниже и отряд выживает, превращается в Щупальце Спящего с базовой силой.',
   events: { 'power-loss': { ...ability([{ action: 'transform', target: self, card: TENTACLE }]),
-    when: { targets: { ...self, powerAtMost: 1 } } } },
+    when: { targets: { ...self, powerAtMost: 2 } } } },
 });
 const fanaticToken = card({ ...FANATIC, token: true });
 

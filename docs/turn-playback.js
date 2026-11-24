@@ -1,5 +1,5 @@
-import { recordCardPlay, spendResilience } from './game/board.js?v=choir-art-6';
-import { ROWS } from './game/cards.js?v=choir-art-6';
+import { recordCardPlay, spendResilience } from './game/board.js?v=world-gates-premium-1';
+import { ROWS } from './game/cards.js?v=world-gates-premium-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;

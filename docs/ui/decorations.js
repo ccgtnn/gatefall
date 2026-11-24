@@ -1,6 +1,6 @@
-import { FACTIONS } from '../game/cards.js?v=choir-art-6';
-import { createCard } from '../game/board.js?v=choir-art-6';
-import { decorateCard } from './cards.js?v=choir-art-6';
+import { FACTIONS } from '../game/cards.js?v=world-gates-premium-1';
+import { createCard } from '../game/board.js?v=world-gates-premium-1';
+import { decorateCard } from './cards.js?v=world-gates-premium-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { sectionBack } from './resources.js?v=essence-gain-1';
 

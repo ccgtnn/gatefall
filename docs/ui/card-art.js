@@ -5,6 +5,7 @@ const clips = new Map([
   ['synaptic-parasite', { small: 'synaptic-parasite-hand.mp4', large: 'synaptic-parasite-preview.mp4' }],
   ['carrion-devourer', { small: 'carrion-devourer-card.mp4', large: 'carrion-devourer-preview.mp4' }],
   ['falura', { small: 'falura-card.mp4', large: 'falura-preview.mp4' }],
+  ['world-gates', { small: 'world-gates-card.mp4', large: 'world-gates-preview.mp4' }],
 ]);
 const premiumCards = new Set();
 try {

@@ -1,10 +1,10 @@
-import { ROWS } from './cards.js?v=choir-art-6';
-import { cardType, findUnit, isUnit, neighbors, restoreCard, statusCount, units } from './board.js?v=choir-art-6';
-import { availableOrders, canUseLeader, cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, rowArmor, rowDamage, rowEffectValue, rowScatterValue } from './effects.js?v=choir-art-6';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=choir-art-6';
+import { ROWS } from './cards.js?v=world-gates-premium-1';
+import { cardType, findUnit, isUnit, neighbors, restoreCard, statusCount, units } from './board.js?v=world-gates-premium-1';
+import { availableOrders, canUseLeader, cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, rowArmor, rowDamage, rowEffectValue, rowScatterValue } from './effects.js?v=world-gates-premium-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=world-gates-premium-1';
 
 import { deathwishDefinitions } from './events.js?v=ulmarin-1';
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=choir-art-6';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=world-gates-premium-1';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;

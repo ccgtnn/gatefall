@@ -1,4 +1,4 @@
-import { CHOIR_CARDS } from './choir.js?v=choir-art-6';
+import { CHOIR_CARDS } from './choir.js?v=world-gates-premium-1';
 
 export const ROWS = Object.freeze(['orbit', 'surface']);
 

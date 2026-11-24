@@ -1,4 +1,4 @@
-import { PRESETS } from './decks.js?v=choir-art-6';
+import { PRESETS } from './decks.js?v=world-gates-premium-1';
 
 const presets = Object.fromEntries(PRESETS.map((deck) => [deck.id, deck]));
 

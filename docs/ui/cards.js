@@ -1,16 +1,16 @@
 import { dialogClose } from './resources.js?v=essence-gain-1';
 import { button, element, selectField, setCardRarity } from './dom.js?v=opponent-reveal-1';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=choir-art-6';
-import { FACTION_CATALOG } from '../game/faction-catalog.js?v=choir-art-6';
-import { basePower, cardType, createCard, isUnit, statusCount } from '../game/board.js?v=choir-art-6';
-import { relatedEffectCards } from '../game/effects.js?v=choir-art-6';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=world-gates-premium-1';
+import { FACTION_CATALOG } from '../game/faction-catalog.js?v=world-gates-premium-1';
+import { basePower, cardType, createCard, isUnit, statusCount } from '../game/board.js?v=world-gates-premium-1';
+import { relatedEffectCards } from '../game/effects.js?v=world-gates-premium-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 
 import { deathwishDefinitions } from '../game/events.js?v=ulmarin-1';
 import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=suppressor-1';
 
-import { addCardCrop, cardArt, hasPremiumArt, selectPremiumArt, usesPremiumArt } from './card-art.js?v=choir-playable-1';
-export { addCardCrop, cardArt } from './card-art.js?v=choir-playable-1';
+import { addCardCrop, cardArt, hasPremiumArt, selectPremiumArt, usesPremiumArt } from './card-art.js?v=world-gates-premium-1';
+export { addCardCrop, cardArt } from './card-art.js?v=world-gates-premium-1';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';

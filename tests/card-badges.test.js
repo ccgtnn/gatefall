@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { access } from 'node:fs/promises';
 import test from 'node:test';
 import { createCard } from '../docs/game/board.js';
 import { FACTIONS, NEUTRAL_CARDS } from '../docs/game/cards.js';
@@ -100,7 +101,7 @@ test('live battlefield and hand faces hide provision, while catalog and preview 
 test('premium selection updates existing copies and persists independently for both cards', async () => {
   const id = 'synaptic-parasite';
   const devourer = 'carrion-devourer';
-  const { PREMIUM_ART_KEY, selectPremiumArt } = await import('../docs/ui/card-art.js?v=choir-playable-1');
+  const { PREMIUM_ART_KEY, selectPremiumArt } = await import('../docs/ui/card-art.js?v=world-gates-premium-1');
   const saved = new Map();
   globalThis.localStorage = { getItem: (key) => saved.get(key), setItem: (key, value) => saved.set(key, value) };
   const face = drawable(id);
@@ -142,8 +143,32 @@ test('premium selection updates existing copies and persists independently for b
   }
 });
 
+test('World Gates uses its own premium clips on the small and full card faces', async () => {
+  const id = 'world-gates';
+  const { selectPremiumArt } = await import('../docs/ui/card-art.js?v=world-gates-premium-1');
+  const face = drawable(id);
+  document.body.append(face);
+  try {
+    showCard(makeCard(id));
+    assert.equal(byClass(face, 'card-art-crop').src, './art/world-gates.webp');
+    const mode = tree(preview).find(({ tag }) => tag === 'select');
+    assert.equal(mode.value, 'regular');
+    mode.value = 'premium';
+    mode.listeners.change();
+    for (const [root, file] of [[face, 'world-gates-card.mp4'], [preview, 'world-gates-preview.mp4']]) {
+      const video = byClass(root, 'card-art-video');
+      assert.equal(video.src, `./art/${file}?v=loop-1`);
+      assert.ok(video.loop && video.muted && video.playsInline);
+      await access(new URL(`../docs/art/${file}`, import.meta.url));
+    }
+  } finally {
+    selectPremiumArt(id, false);
+    document.body.replaceChildren(preview);
+  }
+});
+
 test('filtered or moved video resumes after layout only while it is visible and attached', async () => {
-  const { resumeCardVideos } = await import('../docs/ui/card-art.js?v=choir-playable-1');
+  const { resumeCardVideos } = await import('../docs/ui/card-art.js?v=world-gates-premium-1');
   const frames = [];
   const played = [];
   const video = (name, isConnected, visible) => ({

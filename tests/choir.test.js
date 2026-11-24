@@ -265,9 +265,9 @@ test('Capture moves the exact card with its strength, armor, statuses and owner,
   assert.equal(findUnit(play(blocked, 'surface'), 'enemy-0').side, 'bot');
 });
 
-test('Fanatic transforms at one power in place, but not on lethal damage or while locked', () => {
+test('Fanatic transforms at two power or less in place, but not on lethal damage or while locked', () => {
   const match = setup({ surface: [unit(9), FANATIC, unit(9)] });
-  hit(match, 'surface-1', 2);
+  hit(match, 'surface-1', 1);
   assert.equal(get(match, 'surface-1').definition.id, FANATIC.id);
   hit(match, 'surface-1', 1);
   assert.deepEqual(human(match).board.surface.map(({ definition, power }) => [definition.id, power]),
@@ -280,7 +280,7 @@ test('Fanatic transforms at one power in place, but not on lethal damage or whil
 
   const locked = setup({ orbit: [FANATIC] });
   applyStatus(locked, findUnit(locked, 'orbit-0'), 'lock', 1);
-  hit(locked, 'orbit-0', 3);
+  hit(locked, 'orbit-0', 2);
   assert.equal(get(locked, 'orbit-0').definition.id, FANATIC.id);
 
   const reduced = setup({ orbit: [FANATIC] });
@@ -313,7 +313,7 @@ test('Scenario prologue surrounds the artifact and Fanatic transformation trigge
   assert.equal(row[0].definition.token, true);
   assert.equal(row[2].definition.token, true);
   assert.equal(get(match, 'hand-0').playedEffects, 0);
-  const result = hit(match, row[0].id, 3);
+  const result = hit(match, row[0].id, 2);
   assert.equal(get(result, 'hand-0').chapter, 1);
   assert.deepEqual(human(result).deck.map(({ power, basePower }) => [power, basePower]), [[5, 5], [4, 4]]);
 });
