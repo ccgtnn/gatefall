@@ -85,12 +85,14 @@ const victim = ref('victim');
 export const CHOIR_CARDS = Object.freeze([
   card({
     id: 'whisper-interpreter', name: 'Толкователь шёпота', rarity: 'bronze', provision: 5, power: 1,
+    art: 'whisper-interpreter.webp?v=choir-art-2', artCrop: 'whisper-interpreter-crop.webp?v=choir-art-2',
     text: 'При размещении: сыграй карту Псионики из руки, затем возьми карту.', keywords: [PSIONICS],
     deploy: ability([{ action: 'play-from-hand', filter: { anyType: true, category: PSIONICS },
       prompt: 'Выбери карту Псионики из руки.' }, { action: 'draw', amount: 1 }]),
   }),
   card({
     id: 'forbidden-scroll-keeper', name: 'Хранитель запретных свитков', rarity: 'epic', provision: 7, power: 1,
+    art: 'forbidden-scroll-keeper.webp?v=choir-art-2', artCrop: 'forbidden-scroll-keeper-crop.webp?v=choir-art-2',
     text: 'При размещении: сыграй карту Псионики из колоды.', keywords: [PSIONICS],
     deploy: ability([{ action: 'play-from-deck', chooseAll: true, filter: { anyType: true, category: PSIONICS },
       prompt: 'Выбери карту Псионики из колоды.' }]),
@@ -98,6 +100,7 @@ export const CHOIR_CARDS = Object.freeze([
   FANATIC,
   card({
     id: 'depth-neophyte', name: 'Неофит глубин', rarity: 'bronze', provision: 5, power: 4, categories: [CULTIST],
+    art: 'depth-neophyte.webp?v=choir-art-2', artCrop: 'depth-neophyte-crop.webp?v=choir-art-2',
     text: 'Одержимость (Псионика): при размещении усиль себя на 1 за каждые 3 карты Псионики.',
     keywords: ['Одержимость', PSIONICS, 'Усиление'], deploy: ability([boost(obsession)]),
   }),
@@ -131,6 +134,7 @@ export const CHOIR_CARDS = Object.freeze([
   }),
   card({
     id: 'altar-guardian', name: 'Страж алтаря', rarity: 'epic', provision: 8, power: 4, armor: 2, categories: [CULTIST],
+    art: 'altar-guardian.webp?v=choir-art-2', artCrop: 'altar-guardian-crop.webp?v=choir-art-2',
     text: 'Броня 2. Уязвимость. Одержимость (Псионика): усиль себя на 2 за каждые 3 карты Псионики.',
     keywords: ['Броня', 'Уязвимость', 'Одержимость', PSIONICS, 'Усиление'],
     events: { 'armor-break': ability([boost({ ...obsession, scale: 2 })]) },

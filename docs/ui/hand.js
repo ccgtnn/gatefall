@@ -1,7 +1,7 @@
 import { placementEffectRows } from '../card-placement.js?v=hounds-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { availableRows, cardType, placementSide } from '../game/board.js?v=sleeper-name-1';
-import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=choir-art-1';
+import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=choir-art-2';
 import { cardButton, showCard } from './cards.js?v=sleeper-name-1';
 
 export function updatePlacementSelection(screen, match, selectedCardId) {

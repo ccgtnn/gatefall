@@ -5,7 +5,7 @@ import {
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, restoreCard, ROW_LIMIT,
   refreshHoundAura, refreshShipRowBonus, setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, infectionDamage, transformUnit, units, weaken,
 } from './board.js?v=sleeper-name-1';
-import { CHOIR_CARDS } from './choir.js?v=choir-art-1';
+import { CHOIR_CARDS } from './choir.js?v=choir-art-2';
 import { CAPTAIN_CARDS, HOUND_CATEGORY } from './captains.js?v=captains-independent-1';
 
 function reference(match, job, key = 'source') {

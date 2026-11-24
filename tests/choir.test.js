@@ -71,6 +71,10 @@ test('Illustrated Choir cards have versioned full art and crops in the catalog',
     ['ulmarin-large-tentacle', 'sleeper-tentacle'],
     ['ulmarin-sleeper', 'sleeper-under-gates'],
     ['ulmarin-awakening', 'sleeper-awakening'],
+    ['depth-neophyte', 'depth-neophyte'],
+    ['altar-guardian', 'altar-guardian'],
+    ['forbidden-scroll-keeper', 'forbidden-scroll-keeper'],
+    ['whisper-interpreter', 'whisper-interpreter'],
   ]);
   for (const { id, art, artCrop } of CHOIR_CARDS) {
     const stem = artwork.get(id);
