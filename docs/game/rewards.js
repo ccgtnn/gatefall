@@ -1,6 +1,6 @@
 import { rankRewards, syncRanks } from './ranks.js?v=monthly-ranks-1';
 import { advanceTavern, questComplete, replaceTavernQuest, syncTavern, TAVERN_QUEST_BY_ID, tavernEventAmounts, trackTavernMatch } from './tavern.js?v=failura-1';
-import { createLeague, DIAMOND, finishLeagueMatch, leagueStake, needsLeagueReset, reserveLeagueMatch, resetLeagueWeek, upgradeLeague } from './league.js?v=league-context-1';
+import { createLeague, DIAMOND, finishLeagueMatch, leagueStake, needsLeagueReset, reserveLeagueMatch, resetLeagueWeek, upgradeLeague } from './league.js?v=league-rounds-1';
 import { victoryGold, weeklyReward } from './outpost.js?v=base-outpost-1';
 import { advanceProduction, productionView, readProduction, takeProduction } from './base-production.js?v=tavern-1';
 import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=tavern-1';
@@ -681,20 +681,23 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
         return outcome;
       });
     },
-    settleLeagueMatch(id, result, difference, factionId, rounds = 0) {
+    settleLeagueMatch(id, result, difference, factionId, rounds) {
+      const opposingRounds = rounds - difference;
       if (!['win', 'loss', 'draw'].includes(result) || !Number.isInteger(difference) || Math.abs(difference) > 2 ||
-        !Number.isInteger(rounds) || rounds < 0 || rounds > 2) {
+        Math.sign(difference) !== { win: 1, loss: -1, draw: 0 }[result] ||
+        (rounds !== undefined && (!Number.isInteger(rounds) || rounds < 0 || rounds > 2 ||
+          opposingRounds < 0 || opposingRounds > 2))) {
         return Promise.resolve('invalid-result');
       }
       return transact((state, _previousAt, time, enqueueReward) => {
         if (!state.league) return 'stale';
-        const settled = finishLeagueMatch(state.league, id, result, difference, random);
+        const settled = finishLeagueMatch(state.league, id, result, difference, random, rounds);
         if (!settled) return 'stale';
         const regularGold = result === 'win' && settled.tier !== DIAMOND ? victoryGold(state.base.buildings.outpost?.level) : 0;
         state.rewardGold += settled.payout + regularGold;
         if (regularGold) enqueueReward({ title: 'Золото за победу', source: 'Итоги матча', reward: { gold: regularGold } });
         if (settled.payout) enqueueReward({ title: 'Выплата Алмазной лиги', source: 'Алмазная лига', reward: { gold: settled.payout } });
-        if (!creditRankRounds(state, id, rounds, time, enqueueReward)) return 'unavailable';
+        if (!creditRankRounds(state, id, rounds ?? 0, time, enqueueReward)) return 'unavailable';
         rollTavern(state, time);
         trackTavernMatch(state.tavern, id, result, factionId, true);
         const rollover = rollLeague(state, time, enqueueReward);

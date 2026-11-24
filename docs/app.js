@@ -1,5 +1,5 @@
 import { keepCardVideos, resumeCardVideos } from './ui/card-art.js?v=failura-1';
-import { createLeagueDialogue, LEAGUE_DIALOGUE } from './game/league-dialogue.js?v=league-context-1';
+import { createLeagueDialogue, LEAGUE_DIALOGUE } from './game/league-dialogue.js?v=league-rounds-1';
 import { setLeagueSpeech } from './ui/league-character.js?v=oran-avatar-1';
 import { createBaseScreen } from './ui/base-screen.js?v=failura-1';
 import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=home-panels-1';
@@ -18,21 +18,21 @@ import { cardArt, preview, showCard } from './ui/cards.js?v=failura-1';
 import { createBattlefield } from './ui/field.js?v=oran-avatar-1';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=failura-1';
 import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=failura-1';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=oran-avatar-1';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=league-rounds-1';
 import { createSettings } from './ui/settings.js?v=failura-1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
-import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=league-context-1';
-import { createRewardBook } from './ui/reward-book.js?v=league-context-1';
-import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=oran-avatar-1';
+import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=league-rounds-1';
+import { createRewardBook } from './ui/reward-book.js?v=league-rounds-1';
+import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=league-rounds-1';
 import { createResourceBar, showEssenceGain } from './ui/resources.js?v=essence-gain-1';
 import { aimAnchor, aimTone, bindTargeting } from './ui/targeting.js?v=targeting-1';
 import { questComplete } from './game/tavern.js?v=failura-1';
 import { rankStanding, wonRounds } from './game/ranks.js?v=monthly-ranks-1';
 import { BATTLEFIELD_STORAGE_KEY, createBattlefieldPreferences, createFramePreferences, decorationsScreen, FRAME_STORAGE_KEY } from './ui/decorations.js?v=failura-1';
 import { rankScreen } from './ui/rank-screen.js?v=essence-gain-1';
-import { leagueScreen, LEAGUE_OVERVIEW_QUERY } from './ui/league-screen.js?v=oran-avatar-1';
-import { resetProgress } from './game/reset-progress.js?v=league-context-1';
+import { leagueScreen, LEAGUE_OVERVIEW_QUERY } from './ui/league-screen.js?v=league-rounds-1';
+import { resetProgress } from './game/reset-progress.js?v=league-rounds-1';
 import { createRewardReveal, enqueueReward } from './ui/reward-reveal.js?v=essence-gain-1';
 
 const app = document.querySelector('#app');

@@ -8,7 +8,7 @@ import { LEAGUE_CHARACTERS } from '../docs/game/league-characters.js';
 import { LEAGUE_CONTEXT_LINES } from '../docs/game/league-context-lines.js';
 import { leagueDeckFor } from '../docs/game/league-decks.js';
 import { createLeagueDialogue, pickLeagueLine } from '../docs/game/league-dialogue.js';
-import { leagueRecord } from '../docs/ui/league-profile.js';
+import { leagueRecord, leagueRoundRecord } from '../docs/ui/league-profile.js';
 import {
   createLeague, finishLeagueMatch, LEAGUES, leagueSchedule, leagueTicket, reserveLeagueMatch,
 } from '../docs/game/league.js';
@@ -17,11 +17,12 @@ const reasons = ['start', 'botStrong', 'humanStrong', 'roundWin', 'roundLoss', '
 const telepath = LEAGUE_CHARACTERS.find(({ name }) => name === 'Первый Голос');
 const zero = () => 0;
 
-test('league records label wins, draws, losses and the signed round difference', () => {
-  assert.equal(leagueRecord({ difference: 0 }), 'В 0 · Н 0 · П 0 · ±0');
-  assert.equal(leagueRecord({ wins: 3, draws: 2, losses: 1, difference: 4 }), 'В 3 · Н 2 · П 1 · +4');
-  assert.equal(leagueRecord({ losses: 1, difference: -2 }), 'В 0 · Н 0 · П 1 · −2');
+test('league records display match results and the separate round totals', () => {
+  assert.equal(leagueRecord({ wins: 3, draws: 2, losses: 1, difference: 4 }), 'В 3 · Н 2 · П 1');
   assert.equal(leagueRecord({ wins: 1 }), 'В 1 · Н 0 · П 0');
+  assert.equal(leagueRoundRecord({ roundsWon: 0, roundsLost: 0 }), '0–0');
+  assert.equal(leagueRoundRecord({ roundsWon: 8, roundsLost: 4 }), '8–4');
+  assert.equal(leagueRoundRecord({ difference: 4 }), '—');
 });
 
 test('all 31 characters have ranked places, eight occasions, and legal decks', () => {

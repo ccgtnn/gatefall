@@ -4,11 +4,12 @@ import { leagueAvatar, LORE_FACTIONS, setLeagueSpeech } from './league-character
 
 export const LEAGUE_DIFFICULTY_LABELS = { easy: 'Лёгкий', normal: 'Обычный', hard: 'Сложный' };
 
-export function leagueRecord({ wins = 0, draws = 0, losses = 0, difference } = {}) {
-  const record = `В ${wins} · Н ${draws} · П ${losses}`;
-  if (difference === undefined) return record;
-  const delta = difference === 0 ? '±0' : (difference > 0 ? '+' : '−') + Math.abs(difference);
-  return `${record} · ${delta}`;
+export function leagueRecord({ wins = 0, draws = 0, losses = 0 } = {}) {
+  return `В ${wins} · Н ${draws} · П ${losses}`;
+}
+
+export function leagueRoundRecord({ roundsWon, roundsLost }) {
+  return roundsWon === undefined || roundsLost === undefined ? '—' : `${roundsWon}–${roundsLost}`;
 }
 
 export function leagueProfile(bot, score, encounters, play) {
@@ -35,6 +36,7 @@ export function leagueProfile(bot, score, encounters, play) {
     ['Уровень бота', [LEAGUE_DIFFICULTY_LABELS[bot.difficulty]]],
     ['Колода сейчас', [bot.deck.name]],
     ['Сезон', [`${leagueRecord(score)} · Очки: ${score.points}`]],
+    ['Раунды (выиграно–проиграно)', [leagueRoundRecord(score)]],
     ['Личные встречи', [`${leagueRecord(encounters)} · Всего: ${meetings}`]],
   ];
   for (const [label, values] of entries) {

@@ -1,6 +1,6 @@
-import { DIAMOND, LEAGUE_BOTS, LEAGUES, LEAGUE_RULES, leagueDivision, leagueOpponent, leagueStake, leagueTable, leagueTicket } from '../game/league.js?v=league-context-1';
+import { DIAMOND, LEAGUE_BOTS, LEAGUES, LEAGUE_RULES, leagueDivision, leagueOpponent, leagueStake, leagueTable, leagueTicket } from '../game/league.js?v=league-rounds-1';
 import { leagueAvatar, LORE_FACTIONS, setLeagueSpeech } from './league-character.js?v=oran-avatar-1';
-import { leagueProfile, leagueRecord, LEAGUE_DIFFICULTY_LABELS } from './league-profile.js?v=oran-avatar-1';
+import { leagueProfile, leagueRecord, leagueRoundRecord, LEAGUE_DIFFICULTY_LABELS } from './league-profile.js?v=league-rounds-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { sectionBack } from './resources.js?v=essence-gain-1';
 
@@ -221,6 +221,9 @@ export function leagueScreen(phase, actions) {
       tables.append(standings(leagueDivision(league, viewedTier), openProfile));
     }
     const details = [
+      element('p', 'muted league-scoring', season.roundScoring
+        ? `За выигранный раунд +${LEAGUE_RULES.roundPoints}, за победу в матче ещё +${LEAGUE_RULES.winBonus}.`
+        : 'В этом сезоне за победу в матче +3, за ничью +1. Очки за раунды начнут начисляться со следующего сезона.'),
       lastSeason && element('p', 'muted', `Прошлый сезон · ${LEAGUES[lastSeason.tier].name} лига · место ${lastSeason.place}`),
       lastReward && element('p', 'muted', rewardText(lastReward)),
     ].filter(Boolean);
@@ -275,14 +278,17 @@ function leagueIdentity(bot) {
 
 function standings(season, openProfile) {
   const table = leagueTable(season);
-  const standings = element('div', 'league-standings');
-  standings.setAttribute('role', 'group');
-  standings.setAttribute('aria-label', 'Участники лиги');
+  const container = element('div', 'league-standings');
+  container.setAttribute('role', 'group');
+  container.setAttribute('aria-label', 'Участники лиги');
+  const roundsHeading = element('div', 'league-rounds-heading muted');
+  roundsHeading.setAttribute('aria-hidden', 'true');
+  roundsHeading.append(element('span', null, 'Раунды'), element('span', null, 'Раунды'));
   const laterPlaces = Math.ceil(table.length / 2);
   const firstColumn = element('ol', 'league-standings-column');
   const secondColumn = element('ol', 'league-standings-column');
   secondColumn.start = laterPlaces + 1;
-  standings.append(firstColumn, secondColumn);
+  container.append(roundsHeading, firstColumn, secondColumn);
   const firstRelegation = table.length + 1 - LEAGUE_RULES.relegationPlaces;
   for (const [index, score] of table.entries()) {
     const { id, points } = score;
@@ -302,7 +308,8 @@ function standings(season, openProfile) {
     if (bot) row.setAttribute('aria-haspopup', 'dialog');
     else row.setAttribute('aria-current', 'true');
     const record = leagueRecord(score);
-    row.title = `${bot?.name ?? 'Ты'} · ${bot ? LORE_FACTIONS[bot.loreFaction] : 'Игрок'}\n${record}`;
+    const rounds = leagueRoundRecord(score);
+    row.title = `${bot?.name ?? 'Ты'} · ${bot ? LORE_FACTIONS[bot.loreFaction] : 'Игрок'}\n${record}\nРаунды (выиграно–проиграно): ${rounds}`;
     const rank = element('span', 'league-place', place);
     const old = season.previousPlaces?.[id];
     if (old && old !== place) {
@@ -326,11 +333,13 @@ function standings(season, openProfile) {
       marker.setAttribute('aria-label', label);
       identity.firstChild.append(' ', marker);
     }
-    row.append(rank, avatar, identity, numbers);
+    const roundScore = element('span', 'league-round-score', rounds);
+    roundScore.setAttribute('aria-label', `Раунды (выиграно–проиграно): ${rounds}`);
+    row.append(rank, avatar, identity, numbers, roundScore);
     item.append(row);
     (index < laterPlaces ? firstColumn : secondColumn).append(item);
   }
-  return standings;
+  return container;
 }
 
 function rewardText(reward) {

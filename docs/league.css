@@ -12,12 +12,16 @@
 .league-header .section-back { position: static; flex: none; margin: 0; }
 .league-content { display: grid; gap: .9rem; }
 .league-content > p { margin: 0; }
+.league-scoring { font-size: .82rem; }
 .league-standings {
   --standings-gap: .4rem;
+  --rounds-width: 3.6rem;
+  --rounds-inset: .55rem;
   position: relative;
   display: grid;
   align-items: start;
   gap: var(--standings-gap);
+  padding-top: 1.35rem;
 }
 .league-standings-column {
   display: grid;
@@ -26,11 +30,22 @@
   margin: 0;
   padding: 0;
 }
-.league-standings:has([data-promotion]) { padding-top: 1.35rem; }
 .league-entry { min-width: 0; }
-.league-promotion-label {
+.league-rounds-heading {
   position: absolute;
   inset: 0 0 auto;
+  display: grid;
+  gap: var(--standings-gap);
+  padding-inline: var(--rounds-inset);
+  justify-items: end;
+  font-size: .72rem;
+}
+.league-rounds-heading span, .league-round-score { text-align: center; width: var(--rounds-width); }
+.league-rounds-heading span + span { display: none; }
+.league-round-score { font-size: .83em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.league-promotion-label {
+  position: absolute;
+  inset: 0 calc(var(--rounds-width) + var(--rounds-inset) + .35rem) auto 0;
   display: flex;
   align-items: center;
   gap: .6rem;
@@ -46,11 +61,11 @@
 }
 .league-standing {
   display: grid;
-  grid-template-columns: 1.85rem auto minmax(0, 1fr) auto;
+  grid-template-columns: 1.85rem auto minmax(0, 1fr) auto var(--rounds-width);
   align-items: center;
   gap: clamp(.35rem, 1.4vw, .85rem);
   width: 100%;
-  padding: .42rem .55rem;
+  padding: .42rem var(--rounds-inset);
   color: #edf5ff;
   font: inherit;
   text-align: left;
@@ -119,7 +134,9 @@ button.league-standing:is(:hover, :focus-visible), .league-challenger:is(:hover,
 .league-ability p { margin-top: .25rem; }
 @media (orientation: landscape) and (max-height: 650px) {
   .league-standings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .league-promotion-label { right: calc(50% + .2rem); }
+  .league-rounds-heading { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: calc(var(--standings-gap) + 2 * var(--rounds-inset)); }
+  .league-rounds-heading span + span { display: block; }
+  .league-promotion-label { right: calc(50% + var(--standings-gap) / 2 + var(--rounds-width) + var(--rounds-inset) + .35rem); }
   .league-standing { padding-block: .24rem; font-size: .84rem; }
   .league-standing .league-avatar { width: 2.22rem; }
   .league-header { margin-bottom: .65rem; }
@@ -301,16 +318,20 @@ body:has(.in-league-match) #new-game { display: none; }
 }
 .league-division .league-standings {
   --standings-gap: .24rem;
+  --rounds-width: 3rem;
+  --rounds-inset: .35rem;
   grid-template-columns: minmax(0, 1fr);
   padding-top: 1.15rem;
 }
-.league-division .league-promotion-label { right: 0; }
+.league-division .league-promotion-label { right: calc(var(--rounds-width) + var(--rounds-inset) + .35rem); }
+.league-division .league-rounds-heading { grid-template-columns: minmax(0, 1fr); }
+.league-division .league-rounds-heading span + span { display: none; }
 .league-division .league-relegation-label { margin-top: .3rem; }
 .league-division .league-standing {
-  grid-template-columns: 1.25rem auto minmax(0, 1fr) auto;
+  grid-template-columns: 1.25rem auto minmax(0, 1fr) auto var(--rounds-width);
   gap: .4rem;
   min-height: 2rem;
-  padding: .24rem .35rem;
+  padding: .24rem var(--rounds-inset);
   font-size: .86rem;
 }
 .league-division .league-place { width: .9rem; font-size: 1rem; }

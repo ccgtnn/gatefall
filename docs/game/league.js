@@ -2,7 +2,7 @@ import { LEAGUE_CHARACTERS } from './league-characters.js?v=failura-1';
 import { leagueDeckFor } from './league-decks.js?v=failura-1';
 
 export const LEAGUE_RULES = Object.freeze({
-  rounds: 7, promotionPlaces: 2, relegationPlaces: 2, winPoints: 3, drawPoints: 1,
+  rounds: 7, promotionPlaces: 2, relegationPlaces: 2, roundPoints: 1, winBonus: 1,
   minimumStake: 100, stakeStep: 25, bonusStep: 50, bonusStreakLimit: 4,
   firstPlaceMultiplier: 1.5,
   simulationTierStep: 2, simulationSwing: 9, simulationDrawMargin: .55, simulationSweepMargin: 3,
@@ -73,11 +73,12 @@ export function leagueSchedule(season) {
   });
 }
 
-function newSeason(tier, number, ids, arrivals = {}) {
+function newSeason(tier, number, ids, arrivals = {}, roundScoring = true) {
   const scores = Object.fromEntries(ids.map((id) => [id, {
     id, points: 0, wins: 0, draws: 0, losses: 0, difference: 0,
+    ...(roundScoring ? { roundsWon: 0, roundsLost: 0 } : {}),
   }]));
-  return { tier, number, round: 0, scores, arrivals };
+  return { tier, number, round: 0, scores, arrivals, roundScoring };
 }
 
 function setSeasons(league, seasons) {
@@ -108,7 +109,7 @@ export function upgradeLeague(league) {
   rosters[playerTier] = Object.keys(league.season.scores);
   const seasons = rosters.map((ids, tier) => {
     if (tier === playerTier) return { ...league.season, arrivals: {} };
-    const season = newSeason(tier, number, ids);
+    const season = newSeason(tier, number, ids, {}, false);
     const schedule = leagueSchedule(season);
     while (season.round < round) {
       recordPlaces(season);
@@ -123,9 +124,12 @@ export function upgradeLeague(league) {
 }
 
 export function leagueTable(season) {
-  return Object.values(season.scores).sort((a, b) => b.points - a.points ||
-    b.wins - a.wins || b.difference - a.difference ||
-    Number(a.id === HUMAN) - Number(b.id === HUMAN));
+  return Object.values(season.scores).sort((a, b) => {
+    const wins = (b.wins ?? 0) - (a.wins ?? 0);
+    const difference = (b.difference ?? 0) - (a.difference ?? 0);
+    return b.points - a.points || (season.roundScoring ? difference || wins : wins || difference) ||
+      Number(a.id === HUMAN) - Number(b.id === HUMAN);
+  });
 }
 
 export function leagueDivision(league, tier) {
@@ -171,22 +175,39 @@ export function reserveLeagueMatch(league, ticket, id, gold) {
   return 'done';
 }
 
-function scorePair(scores, first, second, result, difference) {
-  const a = scores[first];
-  const b = scores[second];
-  a.difference += difference;
-  b.difference -= difference;
+function scorePair(season, first, second, result, difference, rounds) {
+  const a = season.scores[first];
+  const b = season.scores[second];
+  a.difference = (a.difference ?? 0) + difference;
+  b.difference = (b.difference ?? 0) - difference;
+  // Saves without roundScoring finish the season under the original rules.
+  if (season.roundScoring) {
+    const opposingRounds = rounds - difference;
+    a.roundsWon += rounds;
+    a.roundsLost += opposingRounds;
+    b.roundsWon += opposingRounds;
+    b.roundsLost += rounds;
+    a.points += rounds * LEAGUE_RULES.roundPoints;
+    b.points += opposingRounds * LEAGUE_RULES.roundPoints;
+  }
   if (result === 'draw') {
-    a.points += LEAGUE_RULES.drawPoints;
-    b.points += LEAGUE_RULES.drawPoints;
-    a.draws += 1;
-    b.draws += 1;
+    if (!season.roundScoring) {
+      a.points += 1;
+      b.points += 1;
+    }
+    a.draws = (a.draws ?? 0) + 1;
+    b.draws = (b.draws ?? 0) + 1;
     return;
   }
   const [winner, loser] = result === 'win' ? [a, b] : [b, a];
-  winner.points += LEAGUE_RULES.winPoints;
-  winner.wins += 1;
-  loser.losses += 1;
+  winner.points += season.roundScoring ? LEAGUE_RULES.winBonus : 3;
+  winner.wins = (winner.wins ?? 0) + 1;
+  loser.losses = (loser.losses ?? 0) + 1;
+}
+
+function simulatedRounds(result, difference) {
+  if (result === 'draw') return 1;
+  return result === 'win' ? 2 : 2 + difference;
 }
 
 function simulatePair(first, second, random) {
@@ -202,7 +223,7 @@ function simulatePair(first, second, random) {
 function playBotPairs(season, pairs, random) {
   for (const [first, second] of pairs) {
     const { result, difference } = simulatePair(first, second, random);
-    scorePair(season.scores, first, second, result, difference);
+    scorePair(season, first, second, result, difference, simulatedRounds(result, difference));
   }
 }
 
@@ -228,10 +249,11 @@ function nextSeason(league) {
   recordBest(league, league.season.tier, null);
 }
 
-export function finishLeagueMatch(league, id, result, difference, random = Math.random) {
+export function finishLeagueMatch(league, id, result, difference, random = Math.random,
+  rounds = simulatedRounds(result, difference)) {
   if (!league.active || league.active.id !== id) return null;
   const { season } = league;
-  const { tier, round, scores } = season;
+  const { tier, round } = season;
   const { stake } = league.active;
   const [[, opponent], ...botPairs] = leagueSchedule(season)[round];
   recordPlaces(season);
@@ -239,7 +261,7 @@ export function finishLeagueMatch(league, id, result, difference, random = Math.
   const record = encounters[opponent] ??= { wins: 0, draws: 0, losses: 0 };
   record[{ win: 'wins', draw: 'draws', loss: 'losses' }[result]] += 1;
   record.last = result;
-  scorePair(scores, HUMAN, opponent, result, difference);
+  scorePair(season, HUMAN, opponent, result, difference, rounds);
   playBotPairs(season, botPairs, random);
   for (const division of Object.values(league.divisions)) {
     recordPlaces(division);
