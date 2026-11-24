@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { access } from 'node:fs/promises';
 import test from 'node:test';
 import { createCard, findUnit, removeUnit, statusCount } from '../docs/game/board.js';
 import { CAPTAIN_CARDS, HOUND, HOUND_CATEGORY, REINFORCED_HOUND } from '../docs/game/captains.js';
@@ -39,10 +40,9 @@ const pass = (match, side = 'human') => applyAction(match, side, { type: 'pass' 
 test('all ten Hound cards are in the collection but their faction has no preset or booster', async () => {
   const economy = createRewardProgress();
   assert.equal(CAPTAIN_CARDS.length, 10);
-  for (const { id, faction, categories, art } of CAPTAIN_CARDS) {
+  for (const { id, faction, categories } of CAPTAIN_CARDS) {
     assert.equal(faction, 'captains');
     assert.ok(categories.includes(HOUND_CATEGORY));
-    assert.equal(art, undefined);
     assert.ok(economy.inventory().owned[id] > 0);
   }
   for (const keyword of ['Прибыль', 'Плата', 'Взнос']) assert.ok(KEYWORDS[keyword]);
@@ -51,6 +51,19 @@ test('all ten Hound cards are in the collection but their faction has no preset 
   assert.equal(createDeckMatch({ factionId: 'captains', name: 'Гончие', cardIds: [] }), null);
   assert.equal(await economy.buyPack('captains'), 'unknown');
   assert.equal(await economy.openPack('captains'), 'unknown');
+});
+
+test('illustrated Hound cards use their own WebP and any focused crop exists', async () => {
+  const illustrated = CAPTAIN_CARDS.filter(({ art }) => art);
+  assert.equal(illustrated.length, 5);
+  for (const { id, art, artCrop } of illustrated) {
+    assert.equal(art, `${id}.webp`);
+    await access(new URL(`../docs/art/${art}`, import.meta.url));
+    if (artCrop) {
+      assert.equal(artCrop, `${id}-crop.webp`);
+      await access(new URL(`../docs/art/${artCrop}`, import.meta.url));
+    }
+  }
 });
 
 test('Удачное дельце grants five coins up to nine, separately for each side', () => {

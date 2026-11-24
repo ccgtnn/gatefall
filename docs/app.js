@@ -18,7 +18,7 @@ import { cardArt, preview, showCard } from './ui/cards.js?v=failura-1';
 import { createBattlefield } from './ui/field.js?v=oran-avatar-1';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=failura-1';
 import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=failura-1';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=league-rounds-1';
+import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=hounds-art-1';
 import { createSettings } from './ui/settings.js?v=failura-1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';

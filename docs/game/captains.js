@@ -31,27 +31,32 @@ const claw = Object.freeze({
 export const CAPTAIN_CARDS = Object.freeze([
   {
     id: 'hound-foreman', name: 'Бригадир гончих', power: 3, provision: 5, rarity: 'bronze',
+    art: 'hound-foreman.webp', artCrop: 'hound-foreman-crop.webp',
     text: 'Плата 2: призвать Гончую рядом.', keywords: ['Плата', 'Соседи'],
     fee: fee(2, [adjacent()], { needsSourceSpace: true }),
   },
   {
     id: 'hound-captain', name: 'Капитан гончих', power: 4, provision: 8, rarity: 'epic',
+    art: 'hound-captain.webp', artCrop: 'hound-captain-crop.webp',
     text: 'Пока на поле, все твои Гончие получают +1 к силе.', houndAura: 1,
   },
   {
     id: 'hound-recruiter', name: 'Вербовщик гончих', power: 3, provision: 8, rarity: 'epic',
+    art: 'hound-recruiter.webp', artCrop: 'hound-recruiter-crop.webp',
     text: 'Взнос 3: призвать 2 Гончие рядом. Взнос 6: призвать 4 Гончие рядом.',
     keywords: ['Взнос', 'Соседи'],
     deploy: ability([{ action: 'choose-tribute', tiers: { 3: 2, 6: 4 }, spawn: adjacent() }]),
   },
   {
     id: 'hound-pack', name: 'Стая', provision: 4, rarity: 'bronze', type: 'effect',
+    art: 'hound-pack.webp',
     text: 'Призвать в выбранный свой ряд 3 Гончие.', keywords: ['Порождение'],
     deploy: ability([{ action: 'select-row', ref: 'row', filter: 'space', prompt: 'Выбери свой ряд для трёх Гончих.' },
       { action: 'spawn', rowRef: 'row', amount: 3, card: HOUND }]),
   },
   {
     id: 'hound-good-deal', name: 'Удачное дельце', provision: 4, rarity: 'bronze', type: 'effect',
+    art: 'hound-good-deal.webp',
     text: 'Прибыль 5.', keywords: ['Прибыль'], deploy: ability([{ action: 'coins', amount: 5 }]),
   },
   {
