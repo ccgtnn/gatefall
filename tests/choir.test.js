@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { access } from 'node:fs/promises';
 import test from 'node:test';
 import { announcePlay, applyStatus, createCard, damage, findUnit, removeUnit, spawnCards, statusCount, weaken } from '../docs/game/board.js';
 import { chooseBotTurn, pickBotTarget } from '../docs/game/bot.js';
@@ -56,12 +57,36 @@ test('Choir cards are visible as unowned catalog entries only, with all new glos
   assert.deepEqual(collection('choir'), []);
   assert.ok(!PRESETS.some(({ factionId }) => factionId === 'choir'));
   const economy = createRewardProgress();
-  for (const { id, art } of CHOIR_CARDS) {
-    assert.equal(art, undefined);
+  for (const { id } of CHOIR_CARDS) {
     assert.equal(economy.inventory().owned[id], undefined);
   }
   assert.equal(await economy.buyPack('choir'), 'unknown');
   for (const word of [PSIONICS, CULTIST, 'Щупальце', 'Одержимость', 'Захват', 'Сотворение']) assert.ok(KEYWORDS[word]);
+});
+
+test('Illustrated Choir cards have versioned full art and crops in the catalog', async () => {
+  const artwork = new Map([
+    ['ulmarin-fanatic', 'sleeper-fanatic'],
+    ['ulmarin-tentacle', 'sleeper-tentacle'],
+    ['ulmarin-large-tentacle', 'sleeper-tentacle'],
+    ['ulmarin-sleeper', 'sleeper-under-gates'],
+    ['ulmarin-awakening', 'sleeper-awakening'],
+  ]);
+  for (const { id, art, artCrop } of CHOIR_CARDS) {
+    const stem = artwork.get(id);
+    if (!stem) {
+      assert.equal(art, undefined, id);
+      assert.equal(artCrop, undefined, id);
+      continue;
+    }
+    assert.equal(art?.split('?')[0], `${stem}.webp`, id);
+    assert.equal(artCrop?.split('?')[0], `${stem}-crop.webp`, id);
+    for (const file of [art, artCrop]) {
+      const url = new URL(`../docs/art/${file}`, import.meta.url);
+      assert.match(url.searchParams.get('v') ?? '', /^choir-art-\d+$/, id);
+      await access(url);
+    }
+  }
 });
 
 test('The Sleeper names and Cultist glossary use the same text while card IDs stay stable', () => {

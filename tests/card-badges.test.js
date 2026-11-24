@@ -288,12 +288,12 @@ test('the battlefield choice persists independently of the card frame', async ()
   assert.equal(root.dataset.battlefieldChoice, 'standard');
 });
 
-test('Awakening shows its Psionics tag, placeholder and live scenario counter', () => {
+test('Awakening shows its Psionics tag, full art and live scenario counter', () => {
   const card = createCard(AWAKENING.id, AWAKENING);
   card.playedEffects = 6;
   showCard(card);
   assert.equal(byClass(preview, 'card-category').textContent, 'Псионика');
   assert.equal(byClass(preview, 'scenario-play-count').textContent, '6/7');
   assert.match(byClass(preview, 'preview-details').textContent, /Сценарий.*Безмолвный хор/);
-  assert.equal(byClass(preview, 'card-art-placeholder').textContent, AWAKENING.name);
+  assert.equal(byClass(preview, 'card-art-crop').src, './art/' + AWAKENING.art);
 });

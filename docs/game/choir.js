@@ -26,11 +26,18 @@ function tentacle(id, name, power, hit, stats = {}) {
   });
 }
 
-export const TENTACLE = tentacle('ulmarin-tentacle', 'Щупальце Спящего', 2, 1, { rarity: 'bronze', provision: 4 });
-export const LARGE_TENTACLE = tentacle('ulmarin-large-tentacle', 'Большое щупальце Спящего', 8, 2);
+const tentacleArt = {
+  art: 'sleeper-tentacle.webp?v=choir-art-1', artCrop: 'sleeper-tentacle-crop.webp?v=choir-art-1',
+};
+
+export const TENTACLE = tentacle('ulmarin-tentacle', 'Щупальце Спящего', 2, 1, {
+  ...tentacleArt, rarity: 'bronze', provision: 4,
+});
+export const LARGE_TENTACLE = tentacle('ulmarin-large-tentacle', 'Большое щупальце Спящего', 8, 2, tentacleArt);
 
 export const FANATIC = card({
   id: 'ulmarin-fanatic', name: 'Фанатик Спящего', rarity: 'bronze', provision: 4, power: 4, categories: [CULTIST],
+  art: 'sleeper-fanatic.webp?v=choir-art-1', artCrop: 'sleeper-fanatic-crop.webp?v=choir-art-1',
   text: 'Когда сила падает ниже 2 и отряд выживает, превращается в Щупальце Спящего с базовой силой.',
   events: { 'power-loss': { ...ability([{ action: 'transform', target: self, card: TENTACLE }]),
     when: { targets: { ...self, powerAtMost: 1 } } } },
@@ -39,6 +46,7 @@ const fanaticToken = card({ ...FANATIC, token: true });
 
 export const SLEEPER = card({
   id: 'ulmarin-sleeper', name: 'Спящий под Вратами', rarity: 'gold', power: 8, doomed: true, token: true,
+  art: 'sleeper-under-gates.webp?v=choir-art-1', artCrop: 'sleeper-under-gates-crop.webp?v=choir-art-1',
   text: 'Обречённость. В конце твоего хода: нанеси 1 урон каждому соседу. Если нанёс урон, усиль себя на суммарный урон и восстанови Приказ. Приказ: нанеси сильнейшему вражескому отряду урон, равный числу твоих культистов Спящего и Щупалец.',
   keywords: ['Обречённость', 'Конец хода', 'Соседи', 'Урон', 'Усиление', 'Приказ'],
   endTurn: ability([
@@ -55,6 +63,7 @@ export const SLEEPER = card({
 
 export const AWAKENING = psionic({
   id: 'ulmarin-awakening', name: 'Пробуждение Спящего', type: 'artifact', rarity: 'gold', provision: 12, resilience: true,
+  art: 'sleeper-awakening.webp?v=choir-art-1', artCrop: 'sleeper-awakening-crop.webp?v=choir-art-1',
   text: 'Стойкость. Главы открываются по одной при появлении нового Щупальца на твоей стороне. Пролог: призови по Фанатику Спящего слева и справа. Глава 1: усиль на 1 всех культистов Спящего в своей колоде. Глава 2: выбери свой отряд. Когда он погибнет или будет уничтожен, призови Большое щупальце Спящего на Поверхность. Глава 3: если за матч сыграно хотя бы 7 эффектов Псионики, призови Спящего под Вратами в ряд сценария.',
   keywords: ['Стойкость', 'Сценарий', PSIONICS, TENTACLE_CATEGORY],
   scenario: {
