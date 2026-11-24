@@ -123,7 +123,7 @@ function abilities(state, side) {
 }
 
 function choices(state) {
-  const { kind, options, side, cardId, pile = 'deck' } = state.pending;
+  const { kind, options, side, cardId, cards, pile = 'deck' } = state.pending;
   if (kind === 'lock' || kind === 'cleanse') {
     const priority = kind === 'lock' ? lockPriority : cleansePriority;
     const priorities = options.map((id) => priority(findUnit(state, id), side));
@@ -131,7 +131,7 @@ function choices(state) {
     return options.filter((_, i) => priorities[i] === best).map((id) => ({ type: 'target', cardId: id }));
   }
   if (kind === 'deck-placement') {
-    const card = state.players[side][pile].find((item) => item.id === cardId);
+    const card = (cards ?? state.players[side][pile]).find((item) => item.id === cardId);
     return placements(state, side, card, options).map((destination) => ({ type: 'place', ...destination }));
   }
   if (state.pending.fullDeck) {

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { announcePlay, applyStatus, createCard, damage, findUnit, removeUnit, spawnCards, statusCount, weaken } from '../docs/game/board.js';
-import { pickBotTarget } from '../docs/game/bot.js';
+import { chooseBotTurn, pickBotTarget } from '../docs/game/bot.js';
 import { KEYWORDS } from '../docs/game/cards.js';
 import { AWAKENING, CHOIR_CARDS, CULTIST, FANATIC, LARGE_TENTACLE, PSIONICS, SLEEPER, TENTACLE } from '../docs/game/choir.js';
 import { collection, PRESETS } from '../docs/game/decks.js';
@@ -322,4 +322,22 @@ test('Awakening survives one round and round cleanup does not count as a sacrifi
   assert.equal(retained.resilient, false);
   assert.equal(retained.scenarioSacrifice, undefined);
   assert.equal(human(after).board.surface.length, 0);
+});
+
+test('The bot completes placement of a created unit at all difficulties', () => {
+  const initial = setup({});
+  initial.turn = 'bot';
+  initial.players.human.factionId = 'protectorate';
+  initial.players.bot.factionId = 'choir';
+  initial.players.bot.leader = null;
+  initial.players.bot.hand = [createCard('alien-dream', cards.get('alien-dream')), createCard('extra', unit(3))];
+  const choosing = applyAction(initial, 'bot', { type: 'play', cardId: 'alien-dream' }, { random: fixed });
+  const unitChoice = choosing.pending.cards.find(({ definition }) => definition.type === 'unit');
+  const placing = applyAction(choosing, 'bot', { type: 'target', cardId: unitChoice.id }, { random: fixed });
+  for (const difficulty of ['easy', 'normal', 'hard']) {
+    const move = chooseBotTurn(placing, difficulty);
+    assert.equal(move.type, 'place');
+    const played = applyAction(placing, 'bot', move, { random: fixed });
+    assert.equal(findUnit(played, unitChoice.id).side, 'bot');
+  }
 });

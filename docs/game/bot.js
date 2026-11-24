@@ -4,7 +4,7 @@ import { availableOrders, canUseLeader, cleansePriority, deckCardValue, destruct
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=ulmarin-1';
 
 import { deathwishDefinitions } from './events.js?v=ulmarin-1';
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=ulmarin-1';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=ulmarin-2';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
