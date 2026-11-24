@@ -110,7 +110,7 @@ test('legacy buildings start producing at the first checkpoint and reset clears 
   assert.equal(reopen().inventory().gold, 1030);
   await resetProgress(storage);
   assert.deepEqual(reopen().production(), {});
-  assert.equal(reopen().inventory().gold, 10000);
+  assert.equal(reopen().inventory().gold, 0);
 });
 
 test('the Outpost produces a key in eight hours and collection feeds the reward book', async () => {

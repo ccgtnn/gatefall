@@ -86,6 +86,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
         else if (!pending && !isReplaying() && getSelectedCardId() === undefined) inspect();
       }, 'unit-face');
       decorateCard(face, card, player, { orderOnField: Boolean(card.definition.order) });
+      if (statusCount(card, 'lock')) face.classList.add('is-locked');
       if (target) {
         face.classList.add('effect-target');
         face.dataset.aimTarget = card.id;

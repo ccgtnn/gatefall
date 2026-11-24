@@ -3,14 +3,14 @@ import { advanceTavern, questComplete, replaceTavernQuest, syncTavern, TAVERN_QU
 import { createLeague, DIAMOND, finishLeagueMatch, leagueStake, needsLeagueReset, reserveLeagueMatch, resetLeagueWeek, upgradeLeague } from './league.js?v=world-gates-premium-1';
 import { victoryGold, weeklyReward } from './outpost.js?v=base-outpost-1';
 import { advanceProduction, productionView, readProduction, takeProduction } from './base-production.js?v=tavern-1';
-import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=tavern-1';
+import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=match-rewards-1';
 import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=world-gates-premium-1';
 import { copyLimit, inspectDeck } from './decks.js?v=world-gates-premium-1';
 import { CAPTAIN_CARDS } from './captains.js?v=captains-independent-1';
 
-export const STARTING_KEYS = 10000;
-export const STARTING_GOLD = 10000;
-export const STARTING_ESSENCE = 10000;
+export const STARTING_KEYS = 0;
+export const STARTING_GOLD = 0;
+export const STARTING_ESSENCE = 0;
 const LEGACY_STARTING_KEYS = 25;
 const LEGACY_STARTING_ESSENCE = 800;
 export const BOOSTER_PRICE = 100;
@@ -329,6 +329,7 @@ const definitions = new Map([
   ...Object.values(FACTIONS).flatMap(({ pool }) => pool), ...NEUTRAL_CARDS, ...CAPTAIN_CARDS,
 ].map((card) => [card.id, card]));
 const count = (value) => Number.isSafeInteger(value) && value > 0 ? value : 0;
+const startingBalance = (value, legacyAmount) => Number.isSafeInteger(value) && value >= 0 ? value : legacyAmount;
 
 function countsFor(keys, values) {
   return Object.fromEntries([...keys].map((id) => [id, count(values?.[id])]));
@@ -392,14 +393,14 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
     const base = readBase(snapshot.base, fresh);
     // One-time full collection grant. Keep resource balances and discard the old copy ledger.
     const hasFullCollection = snapshot.fullCollection === true;
-    const startingKeys = fresh ? STARTING_KEYS : count(snapshot.startingKeys) || LEGACY_STARTING_KEYS;
+    const startingKeys = fresh ? STARTING_KEYS : startingBalance(snapshot.startingKeys, LEGACY_STARTING_KEYS);
     const producedKeys = count(snapshot.producedKeys);
     const tavernKeys = count(snapshot.tavernKeys);
     const rankKeys = count(snapshot.rankKeys);
     return {
       startingGold: fresh ? STARTING_GOLD : count(snapshot.startingGold),
       startingKeys,
-      startingEssence: fresh ? STARTING_ESSENCE : count(snapshot.startingEssence) || LEGACY_STARTING_ESSENCE,
+      startingEssence: fresh ? STARTING_ESSENCE : startingBalance(snapshot.startingEssence, LEGACY_STARTING_ESSENCE),
       progress: readProgress(snapshot.unlocked, startingKeys + producedKeys + tavernKeys + rankKeys),
       producedKeys, tavernKeys, rankKeys,
       ranks: snapshot.ranks ?? null,

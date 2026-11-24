@@ -45,6 +45,7 @@ test('the neutral bronze Monk appears in boosters and both cards have WebP art',
   const bronzes = NEUTRAL_CARDS.filter(({ rarity }) => rarity === 'bronze');
   const rolls = [0, (bronzes.indexOf(monk) + .5) / bronzes.length];
   const progress = createRewardProgress(undefined, null, { random: () => rolls.shift() ?? 0 });
+  for (let win = 0; win < 5; win++) await progress.rewardMatch('win-' + win, 'win', 'growth');
   assert.equal(await progress.buyPack('neutral'), 'done');
   assert.equal(await progress.openPack('neutral'), 'done');
   assert.ok(progress.inventory().pendingPack.cards.includes(monk.id));

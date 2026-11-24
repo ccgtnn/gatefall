@@ -487,6 +487,9 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
 .field-center .unit-face {
   filter: drop-shadow(0 2px 3px #000b);
 }
+.field-center .unit-face.is-locked > :is(.card-art-crop, .card-art-placeholder) {
+  filter: brightness(.78) saturate(.82);
+}
 .battle-hand-cards > .hand-card[aria-pressed="true"]:not(.is-dragged) {
   transform: translateY(-1px) scale(1.04);
   z-index: 2;

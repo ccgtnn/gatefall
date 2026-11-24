@@ -15,14 +15,14 @@ import { inspectDeck, PRESETS } from './game/decks.js?v=world-gates-premium-1';
 import { applyAction, createDeckMatch } from './game/match.js?v=world-gates-premium-1';
 import { element, iconButton } from './ui/dom.js?v=opponent-reveal-1';
 import { cardArt, preview, showCard } from './ui/cards.js?v=world-gates-premium-1';
-import { createBattlefield } from './ui/field.js?v=world-gates-premium-1';
+import { createBattlefield } from './ui/field.js?v=match-rewards-1';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=world-gates-premium-1';
 import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=world-gates-premium-1';
 import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=world-gates-premium-1';
 import { createSettings } from './ui/settings.js?v=world-gates-premium-1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
-import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=world-gates-premium-1';
+import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=match-rewards-1';
 import { createRewardBook } from './ui/reward-book.js?v=world-gates-premium-1';
 import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=world-gates-premium-1';
 import { createResourceBar, showEssenceGain } from './ui/resources.js?v=essence-gain-1';
@@ -78,7 +78,11 @@ const settings = createSettings(app, leaveMatch, async () => {
   await resetProgress(storage, navigator.locks);
   window.location.reload();
 });
-const rewardReveal = createRewardReveal({ motion: settings.motion, canShow: () => !match, showEssence: showEssenceGain });
+const rewardReveal = createRewardReveal({
+  motion: settings.motion,
+  canShow: () => !match || (match.phase === 'finished' && matchSettlement === 'done'),
+  showEssence: showEssenceGain,
+});
 const progress = createRewardProgress(storage, navigator.locks, { enqueueReward });
 const openBase = createBaseScreen(progress);
 void progress.checkpointProduction();
@@ -368,12 +372,9 @@ function placeSelected(row, side) {
 }
 
 async function replayMatch() {
-  const deck = matchDeck;
-  if (rewardReveal.hasPending()) {
-    await leaveMatch();
-    await rewardReveal.whenIdle();
-  }
-  if (!match || match.phase === 'finished') start(deck);
+  const finished = match;
+  await rewardReveal.whenIdle();
+  if (match === finished && match?.phase === 'finished') start(matchDeck);
 }
 
 function setMulliganField(visible) {

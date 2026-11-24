@@ -12,8 +12,10 @@ import { TAVERN_QUESTS, tavernEventAmounts } from '../docs/game/tavern.js';
 const midnight = new Date(2026, 10, 24).getTime();
 const previousDay = midnight - 2 * 3_600_000;
 
-function setup(quest = 'wins', snapshot = null) {
-  let saved = snapshot && JSON.stringify(snapshot);
+function setup(quest = 'wins', snapshot = {
+  startingGold: 3000, base: { materials: { steel: 2000, energyCells: 800, gateShards: 7 } },
+}) {
+  let saved = JSON.stringify(snapshot);
   let time = previousDay;
   let roll = (TAVERN_QUESTS.findIndex(({ id }) => id === quest) + .1) / TAVERN_QUESTS.length;
   const storage = {

@@ -4,8 +4,8 @@ import { BOOSTER_FACTIONS, craftPrice, dismantleValue, createRewardProgress, dra
 import { copyLimit } from '../docs/game/decks.js';
 import { FACTIONS, NEUTRAL_CARDS, RARITY_LABELS } from '../docs/game/cards.js';
 
-function localStorage() {
-  const values = new Map();
+function localStorage(snapshot) {
+  const values = new Map(snapshot ? [[REWARD_STORAGE_KEY, JSON.stringify(snapshot)]] : []);
   return {
     getItem: (key) => values.get(key) ?? null,
     setItem: (key, value) => values.set(key, value),
@@ -16,7 +16,7 @@ const chapters = REWARD_SECTIONS.flatMap((section) => section.chapters);
 
 test('the book has two sections, five chapters and reachable rare rewards', () => {
   const storage = localStorage();
-  assert.equal(createRewardProgress(storage).get().keys, 10000);
+  assert.equal(createRewardProgress(storage).get().keys, 0);
   assert.deepEqual(REWARD_SECTIONS.map(({ chapters }) => chapters.length), [3, 2]);
   assert.deepEqual(BOOSTER_FACTIONS.map(({ id }) => id), ['protectorate', 'growth', 'neutral']);
   assert.equal(new Set(chapters.flatMap(({ nodes }) => nodes.map(({ id }) => id))).size, 120);
@@ -39,7 +39,7 @@ test('the book has two sections, five chapters and reachable rare rewards', () =
   assert.deepEqual(chapters.map(({ nodes }) => nodes.filter(({ finale }) => finale).length), [2, 1, 2, 1, 2]);
 });
 
-test('every frontier route is eighteen stops long and starting keys can reach each finale', async () => {
+test('every frontier route is eighteen stops long and a funded wallet can reach each finale', async () => {
   for (const { nodes } of REWARD_SECTIONS[1].chapters) {
     const byId = new Map(nodes.map((node) => [node.id, node]));
     function routes(node) {
@@ -49,7 +49,7 @@ test('every frontier route is eighteen stops long and starting keys can reach ea
     for (const finale of nodes.filter(({ finale }) => finale)) {
       for (const route of routes(finale)) {
         assert.equal(route.length, 18);
-        const storage = localStorage();
+        const storage = localStorage({ startingKeys: 120 });
         const wallet = createRewardProgress(storage);
         let keys = wallet.get().keys;
         for (const node of route) {
@@ -83,7 +83,7 @@ test('previous frontier saves retain purchases and balances through changed link
 });
 
 test('spending needs an unlocked parent and persists across pages and reloads', async () => {
-  const storage = localStorage();
+  const storage = localStorage({ startingKeys: 25 });
   const first = createRewardProgress(storage);
   assert.equal(await first.unlock('protectorate:supply'), 'locked');
   assert.equal(await first.unlock('protectorate:signal'), 'opened');
@@ -92,7 +92,7 @@ test('spending needs an unlocked parent and persists across pages and reloads', 
   assert.equal(await first.unlock('protectorate:supply'), 'opened');
 
   const reloaded = createRewardProgress(storage);
-  assert.deepEqual(reloaded.get(), { keys: 9996, unlocked: new Set(['protectorate:signal', 'growth:signal', 'protectorate:supply']) });
+  assert.deepEqual(reloaded.get(), { keys: 21, unlocked: new Set(['protectorate:signal', 'growth:signal', 'protectorate:supply']) });
   assert.equal(rewardState(chapters[0].nodes[2], reloaded.get()), 'available');
 });
 
@@ -117,15 +117,15 @@ test('duplicate and unknown saved nodes cannot spend keys twice', () => {
 });
 
 test('a failing storage write leaves the balance and route unchanged', async () => {
-  const storage = localStorage();
+  const storage = localStorage({ startingKeys: 25 });
   storage.setItem = () => { throw new Error('storage is full'); };
   const wallet = createRewardProgress(storage);
   assert.equal(await wallet.unlock('growth:signal'), 'unavailable');
-  assert.deepEqual(wallet.get(), { keys: 10000, unlocked: new Set() });
+  assert.deepEqual(wallet.get(), { keys: 25, unlocked: new Set() });
 });
 
 test('wallet instances share a lock and both openings survive concurrent writes', async () => {
-  const storage = localStorage();
+  const storage = localStorage({ startingKeys: 25 });
   let queue = Promise.resolve();
   const locks = { request(name, commit) {
     assert.equal(name, REWARD_STORAGE_KEY);
@@ -136,15 +136,17 @@ test('wallet instances share a lock and both openings survive concurrent writes'
   const first = createRewardProgress(storage, locks);
   const second = createRewardProgress(storage, locks);
   assert.deepEqual(await Promise.all([first.unlock('growth:signal'), second.unlock('neutral:signal')]), ['opened', 'opened']);
-  assert.deepEqual(first.get(), { keys: 9998, unlocked: new Set(['growth:signal', 'neutral:signal']) });
+  assert.deepEqual(first.get(), { keys: 23, unlocked: new Set(['growth:signal', 'neutral:signal']) });
 });
 
-test('a fresh wallet starts with 10000 gold and keeps its balance after spending and reopening', async () => {
+test('a fresh wallet starts at zero, keeps earned gold and saves zero starting balances', async () => {
   const storage = localStorage();
   const wallet = createRewardProgress(storage);
-  assert.equal(wallet.inventory().gold, 10000);
-  assert.equal(await wallet.buyPack('growth'), 'done');
-  assert.equal(createRewardProgress(storage).inventory().gold, 9900);
+  assert.equal(wallet.inventory().gold, 0);
+  assert.equal(await wallet.buyPack('growth'), 'unaffordable');
+  assert.equal(await wallet.rewardMatch('first-win', 'win', 'growth'), 'done');
+  const { gold, keys, essence } = createRewardProgress(storage).inventory();
+  assert.deepEqual({ gold, keys, essence }, { gold: 20, keys: 0, essence: 0 });
 });
 
 test('already opened rewards fund the shop once and persist a faction booster purchase', async () => {
@@ -199,7 +201,7 @@ test('last slot upgrades an all-common draw, and exhausted rarities fall back to
 });
 
 test('opening consumes one booster and grants five distinct faction cards before the reveal', async () => {
-  const storage = localStorage();
+  const storage = localStorage({ startingKeys: 10 });
   const wallet = createRewardProgress(storage, undefined, { random: () => 0 });
   const before = wallet.inventory();
   assert.equal(await wallet.openPack('growth'), 'empty');
@@ -258,7 +260,7 @@ test('concurrent pack opening charges once, and a failed craft leaves essence un
 });
 
 test('dismantling pays per copy, persists starter losses and supports crafting them back', async () => {
-  const storage = localStorage();
+  const storage = localStorage({ startingEssence: 680 });
   const wallet = createRewardProgress(storage);
   const base = wallet.inventory();
   const gold = 'annihilation';
@@ -280,7 +282,7 @@ test('dismantling pays per copy, persists starter losses and supports crafting t
 });
 
 test('extra copies pay on reveal and close exactly once across reloads', async () => {
-  const storage = localStorage();
+  const storage = localStorage({ startingKeys: 10 });
   const common = NEUTRAL_CARDS.find(({ rarity }) => rarity === 'bronze');
   const epic = NEUTRAL_CARDS.find(({ rarity }) => rarity === 'epic');
   const gold = NEUTRAL_CARDS.find(({ rarity }) => rarity === 'gold');
@@ -316,7 +318,7 @@ test('extra copies pay on reveal and close exactly once across reloads', async (
 });
 
 test('failed pack writes leave boosters, cards and auto-dismantle essence intact', async () => {
-  const storage = localStorage();
+  const storage = localStorage({ startingKeys: 10 });
   const wallet = createRewardProgress(storage, undefined, { random: () => 0.99 });
   await wallet.unlock('neutral:signal');
   await wallet.unlock('neutral:supply');
@@ -362,7 +364,7 @@ test('legacy rare rewards and balances survive the expanded book', async () => {
 });
 
 test('booster rewards in two chapters share the same faction inventory', async () => {
-  const storage = localStorage();
+  const storage = localStorage({ startingKeys: 10 });
   const wallet = createRewardProgress(storage, undefined, { random: () => 0 });
   for (const id of ['neutral:signal', 'neutral:supply', 'debris-belt:signal', 'debris-belt:drift-cache', 'debris-belt:supply']) {
     assert.equal(await wallet.unlock(id), 'opened');

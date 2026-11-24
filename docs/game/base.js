@@ -6,7 +6,7 @@ export const MATERIALS = Object.freeze({
   gateShards: 'Осколки врат',
 });
 const LEGACY_MATERIALS = Object.freeze({ steel: 200, energyCells: 100, gateShards: 5 });
-export const STARTING_MATERIALS = Object.freeze({ steel: 10000, energyCells: 10000, gateShards: 10000 });
+export const STARTING_MATERIALS = Object.freeze({ steel: 0, energyCells: 0, gateShards: 0 });
 export const MAX_BUILDING_LEVEL = 5;
 export const BUILDINGS = Object.freeze({
   outpost: { name: 'Форпост', art: 'outpost', cost: { gold: 500, steel: 150, energyCells: 100 }, production: { keys: 1 / 8 } },
