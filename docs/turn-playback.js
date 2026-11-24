@@ -1,5 +1,5 @@
-import { recordCardPlay, spendResilience } from './game/board.js?v=sleeper-name-1';
-import { ROWS } from './game/cards.js?v=sleeper-name-1';
+import { recordCardPlay, spendResilience } from './game/board.js?v=choir-playable-1';
+import { ROWS } from './game/cards.js?v=choir-playable-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;

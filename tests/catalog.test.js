@@ -8,11 +8,11 @@ import { setCardRarity } from '../docs/ui/dom.js';
 const cards = [...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool)];
 const ids = (filters) => filterCatalog(cards, filters).map(({ id }) => id);
 
-test('Hound tokens appear after collectible cards and outside inventory filters', () => {
+test('Hound tokens stay outside the catalog with or without inventory filters', () => {
   const entries = [...CAPTAIN_CARDS, HOUND, REINFORCED_HOUND];
   const owned = { [CAPTAIN_CARDS[0].id]: 1 };
   const select = (filters) => filterCatalog(entries, { faction: 'captains', category: 'Гончая', owned, ...filters });
-  assert.deepEqual(select({}).slice(-2), [HOUND, REINFORCED_HOUND]);
+  assert.deepEqual(select({}), filterCatalog(CAPTAIN_CARDS, { category: 'Гончая' }));
   assert.deepEqual(select({ availability: 'owned' }), [CAPTAIN_CARDS[0]]);
   assert.equal(select({ availability: 'missing' }).length, entries.filter(({ categories, token }) => !token && categories?.includes('Гончая')).length - 1);
   assert.ok(select({ provision: '5' }).every(({ provision }) => provision === 5));
@@ -26,8 +26,8 @@ test('catalog searches both name and card text, ignoring case and ё spelling', 
   assert.deepEqual(ids({ query: 'неттакойкарты' }), []);
 });
 
-test('all 25 gold cards are included and catalog filters combine across factions', () => {
-  assert.equal(ids({ rarity: 'gold' }).length, 25);
+test('all collectible gold cards are included and catalog filters combine across factions', () => {
+  assert.equal(ids({ rarity: 'gold' }).length, 29);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'artifact', category: 'Пустота', provision: '19' }),
     ['falura']);
   assert.deepEqual(ids({ faction: 'growth', rarity: 'gold', type: 'artifact', category: 'Пустота', provision: '19' }), []);

@@ -61,7 +61,7 @@ export function cardArt(definition, className, { fullArt = false, doc = document
 }
 
 export function addCardCrop(node, definition, { fullArt = false } = {}) {
-  setCardRarity(node, definition.rarity);
+  setCardRarity(node, definition.rarity ?? (definition.token ? 'bronze' : undefined));
   if (!definition.art) return;
   node.classList.add('has-art');
   node.prepend(cardArt(definition, 'card-art-crop', { fullArt }));

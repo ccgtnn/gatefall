@@ -58,7 +58,7 @@ test('each selectable deck has unique instances and legal card quantities', () =
     const cards = [...match.players.human.hand, ...match.players.human.deck];
     assert.equal(cards.length, faction.deck.length);
     assert.equal(new Set(cards.map(({ id }) => id)).size, cards.length);
-    assert.equal(cards.filter(({ definition }) => definition.faction === NEUTRAL).length, key === 'protectorate' ? 6 : 5);
+    assert.equal(cards.filter(({ definition }) => definition.faction === NEUTRAL).length, { protectorate: 6, growth: 5, choir: 7 }[key]);
     assert.equal(cards.filter(({ definition }) => definition.rarity === 'gold').length, key === 'protectorate' ? 6 : 5);
     for (const { definition } of cards) {
       assert.equal('row' in definition, false);
@@ -67,7 +67,7 @@ test('each selectable deck has unique instances and legal card quantities', () =
         (definition.rarity === 'bronze' ? 2 : 1));
     }
     assert.equal(match.players.human.leader.name, faction.leader.name);
-    assert.equal(match.players.human.leader.charges, 2);
+    assert.equal(match.players.human.leader.charges, faction.leader.ability ? 2 : 0);
     assert.notEqual(match.players.bot.faction, match.players.human.faction);
   }
 });

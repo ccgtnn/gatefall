@@ -15,8 +15,9 @@ export function filterCatalog(cards, { query = '', faction = '', type = '', rari
   category = '', provision = '', sort = 'provision', availability = '', owned = {} } = {}) {
   const terms = normalize(query).trim().split(/\s+/).filter(Boolean);
   const shown = cards.filter((card) =>
+    !card.token &&
     (!faction || card.faction === faction) &&
-    (!availability || (!card.token && matchesAvailability(availability, owned[card.id]))) &&
+    matchesAvailability(availability, owned[card.id]) &&
     (!type || card.type === type) &&
     (!rarity || card.rarity === rarity) &&
     (!category || card.categories?.includes(category)) &&

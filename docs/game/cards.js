@@ -1,3 +1,5 @@
+import { CHOIR_CARDS } from './choir.js?v=choir-art-5';
+
 export const ROWS = Object.freeze(['orbit', 'surface']);
 
 export const ROW_LABELS = Object.freeze({
@@ -629,7 +631,24 @@ function faction(id, name, strategy, entries, leaders, extras = []) {
 const plagueCards = plague.map(([cardId, label, provision, power, description, rules]) =>
   [cardId, label, provision, power, description, { categories: ['Гниль'], rarity: 'bronze', ...rules }]);
 
+const choirPool = Object.freeze(CHOIR_CARDS.filter(({ token }) => !token));
+const choirLeader = Object.freeze({
+  id: 'choir-leader', name: 'Лидер Хора', provisionBonus: 15, text: 'Без активной способности.',
+  art: 'abyss-shepherd.webp?v=choir-art-4',
+});
+const choirCardsById = new Map([...choirPool, ...NEUTRAL_CARDS].map((card) => [card.id, card]));
+const choirDeck = Object.freeze([
+  'whisper-interpreter', 'whisper-interpreter', 'forbidden-scroll-keeper', 'ulmarin-fanatic', 'ulmarin-fanatic',
+  'depth-neophyte', 'depth-neophyte', 'cult-dreamer', 'abyss-shepherd', 'altar-guardian',
+  'alien-dream', 'sleeper-revelation', 'minor-offering', 'great-sacrifice', 'call-of-the-deep',
+  'mind-strike', 'sleeper-litany', 'ulmarin-awakening', 'annihilation',
+  'suppressor', 'veteran-mercenary', 'veteran-mercenary', 'fugitive-monk', 'recon-drone', 'recon-drone',
+].map((id) => choirCardsById.get(id)));
+
 export const FACTIONS = Object.freeze({
   protectorate: faction('protectorate', 'Протекторат', 'Строй', protectorate, protectorateLeaders, protectorateExtras),
   growth: faction('growth', 'Поросль', 'Пожирание', growth, growthLeaders, [...plagueCards, ...rebirth]),
+  choir: { name: 'Безмолвный хор', strategy: 'Псионика', description: 'Псионики-аскеты, черпающие силу в космосе',
+    pool: choirPool, deck: choirDeck,
+    leader: choirLeader, leaders: Object.freeze([choirLeader]) },
 });

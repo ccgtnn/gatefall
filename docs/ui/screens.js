@@ -1,22 +1,21 @@
-import { refreshPremiumArt, resumeCardVideos } from './card-art.js?v=failura-1';
+import { refreshPremiumArt, resumeCardVideos } from './card-art.js?v=choir-playable-1';
 import { leagueCharacter } from './league-character.js?v=oran-avatar-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
-import { createCard } from '../game/board.js?v=sleeper-name-1';
-import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=sleeper-name-1';
-import { FACTION_CATALOG } from '../game/faction-catalog.js?v=sleeper-name-1';
-import { CHOIR_CARDS } from '../game/choir.js?v=choir-art-5';
-import { CAPTAIN_CARDS, HOUND, REINFORCED_HOUND } from '../game/captains.js?v=captains-independent-1';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=sleeper-name-1';
-import { logView, roundText } from './menu.js?v=sleeper-name-1';
-import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=hounds-tokens-1';
+import { createCard } from '../game/board.js?v=choir-playable-1';
+import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=choir-playable-1';
+import { FACTION_CATALOG } from '../game/faction-catalog.js?v=choir-playable-1';
+import { CAPTAIN_CARDS } from '../game/captains.js?v=captains-independent-1';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=choir-playable-1';
+import { logView, roundText } from './menu.js?v=choir-playable-1';
+import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=choir-playable-1';
 import { factionFilters } from './faction-filters.js?v=faction-catalog-2';
-import { copyLimit } from '../game/decks.js?v=sleeper-name-1';
-import { craftPrice, dismantleValue } from '../game/rewards.js?v=sleeper-name-1';
+import { copyLimit } from '../game/decks.js?v=choir-playable-1';
+import { craftPrice, dismantleValue } from '../game/rewards.js?v=choir-playable-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 import { sectionBack } from './resources.js?v=essence-gain-1';
 
 const catalogCards = [...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool),
-  ...CAPTAIN_CARDS, HOUND, REINFORCED_HOUND, ...CHOIR_CARDS];
+  ...CAPTAIN_CARDS].filter(({ token }) => !token);
 const catalogFactions = [['', 'Все фракции'], [NEUTRAL, 'Нейтральные'],
   ...Object.entries(FACTION_CATALOG).map(([id, faction]) => [id, faction.name])];
 const categoryOptions = [...new Set(catalogCards.flatMap(({ categories }) => categories ?? []))]
@@ -59,7 +58,7 @@ export function catalogScreen(progress) {
   function createEntry(definition) {
     const card = createCard(definition.id, definition);
     const item = element('div', 'catalog-entry');
-    const inspect = () => definition.token || definition.faction === 'choir' ? showCard(card) : openDetails(card);
+    const inspect = () => openDetails(card);
     const face = cardButton(card, inspect, { factionId: definition.faction }, false, { showProvision: true, showFaction: true, inspect });
     face.title = 'Подробнее';
     face.setAttribute('aria-haspopup', 'dialog');
@@ -178,8 +177,8 @@ export function catalogScreen(progress) {
     const next = shown.map((definition) => {
       const { item, quantity } = items.get(definition.id);
       const copies = owned[definition.id];
-      item.classList.toggle('card-unavailable', !definition.token && !copies);
-      quantity.textContent = definition.token ? 'Токен' : definition.faction === 'choir' ? 'Скоро' : `В коллекции · ${copies}`;
+      item.classList.toggle('card-unavailable', !copies);
+      quantity.textContent = `В коллекции · ${copies}`;
       return item;
     });
     if (!next.length) {

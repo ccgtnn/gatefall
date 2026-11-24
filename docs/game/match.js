@@ -1,9 +1,9 @@
-import { inspectDeck, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET } from './decks.js?v=sleeper-name-1';
-import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=sleeper-name-1';
-import { announcePlay, availableRows, cardType, changeCoins, createCard, discardCard, findUnit, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, refreshHoundAura, refreshShipRowBonus, spendResilience, statusCount, takeCards } from './board.js?v=sleeper-name-1';
-import { availableFees, availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=choir-art-5';
+import { inspectDeck, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET } from './decks.js?v=choir-playable-1';
+import { FACTIONS, FIRST_SIGNAL, ROWS } from './cards.js?v=choir-playable-1';
+import { announcePlay, availableRows, cardType, changeCoins, createCard, discardCard, findUnit, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, refreshHoundAura, refreshShipRowBonus, spendResilience, statusCount, takeCards } from './board.js?v=choir-playable-1';
+import { availableFees, availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=choir-playable-1';
 
-export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=sleeper-name-1';
+export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=choir-playable-1';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;
@@ -52,7 +52,7 @@ function createPlayer(side, definitions, random, factionId, leader, charges) {
     usedAbility: false,
     roundActed: false,
     extraSwaps: 0,
-    leader: leader ? { ...leader, charges } : null,
+    leader: leader ? { ...leader, charges: leader.ability ? charges : 0 } : null,
     faction: faction?.name,
     factionId,
     passed: false,
@@ -73,7 +73,7 @@ export function createMatch({ decks, humanFaction = decks ? undefined : 'protect
   const starter = random() < 0.5 ? 'human' : 'bot';
   if (bot) {
     const leader = bot.leaders.find(({ id }) => id === botLeader) ?? bot.leaders[Math.floor(random() * bot.leaders.length)];
-    players.bot.leader = { ...leader, charges: settings.leaderCharges };
+    players.bot.leader = { ...leader, charges: leader.ability ? settings.leaderCharges : 0 };
   }
   return {
     rules: settings,

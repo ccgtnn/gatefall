@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCard } from '../docs/game/board.js';
 import { FACTIONS, NEUTRAL_CARDS } from '../docs/game/cards.js';
-import { AWAKENING } from '../docs/game/choir.js';
+import { AWAKENING, LARGE_TENTACLE } from '../docs/game/choir.js';
 import { CAPTAIN_CARDS } from '../docs/game/captains.js';
 
 class TestElement {
@@ -100,7 +100,7 @@ test('live battlefield and hand faces hide provision, while catalog and preview 
 test('premium selection updates existing copies and persists independently for both cards', async () => {
   const id = 'synaptic-parasite';
   const devourer = 'carrion-devourer';
-  const { PREMIUM_ART_KEY, selectPremiumArt } = await import('../docs/ui/card-art.js?v=failura-1');
+  const { PREMIUM_ART_KEY, selectPremiumArt } = await import('../docs/ui/card-art.js?v=choir-playable-1');
   const saved = new Map();
   globalThis.localStorage = { getItem: (key) => saved.get(key), setItem: (key, value) => saved.set(key, value) };
   const face = drawable(id);
@@ -143,7 +143,7 @@ test('premium selection updates existing copies and persists independently for b
 });
 
 test('filtered or moved video resumes after layout only while it is visible and attached', async () => {
-  const { resumeCardVideos } = await import('../docs/ui/card-art.js?v=failura-1');
+  const { resumeCardVideos } = await import('../docs/ui/card-art.js?v=choir-playable-1');
   const frames = [];
   const played = [];
   const video = (name, isConnected, visible) => ({
@@ -296,4 +296,31 @@ test('Awakening shows its Psionics tag, full art and live scenario counter', () 
   assert.equal(byClass(preview, 'scenario-play-count').textContent, '6/7');
   assert.match(byClass(preview, 'preview-details').textContent, /Сценарий.*Безмолвный хор/);
   assert.equal(byClass(preview, 'card-art-crop').src, './art/' + AWAKENING.art);
+});
+
+test('scenario details link to each granted card and tokens have a frame', () => {
+  showCard(createCard(AWAKENING.id, AWAKENING));
+  const related = byClass(preview, 'preview-related');
+  const faces = tree(related).filter(({ dataset }) => dataset.cardId);
+  assert.deepEqual(faces.map(({ dataset }) => dataset.cardId), [
+    'ulmarin-fanatic', 'ulmarin-sleeper', LARGE_TENTACLE.id,
+  ]);
+  faces.at(-1).listeners.click();
+  assert.equal(byClass(preview, 'preview-card-face').dataset.rarity, 'bronze');
+  assert.match(byClass(preview, 'preview-details').textContent, /Токен/);
+  assert.equal(byClass(preview, 'card-art-crop').src, './art/' + LARGE_TENTACLE.art);
+  byClass(preview, 'preview-back').listeners.click();
+  assert.equal(byClass(preview, 'card-art-crop').src, './art/' + AWAKENING.art);
+});
+
+test('creation previews list matching possibilities only after expansion', () => {
+  const effect = FACTIONS.choir.pool.find(({ id }) => id === 'sleeper-revelation');
+  showCard(createCard(effect.id, effect));
+  const options = byClass(preview, 'preview-related-options');
+  assert.equal(options.children.length, 1);
+  options.open = true;
+  options.listeners.toggle();
+  const choices = tree(byClass(options, 'preview-related')).filter(({ dataset }) => dataset.cardId);
+  assert.ok(choices.some(({ dataset }) => dataset.cardId === 'annihilation'));
+  assert.ok(choices.every(({ dataset }) => dataset.cardId !== effect.id && dataset.type === 'effect' && dataset.rarity === 'gold'));
 });

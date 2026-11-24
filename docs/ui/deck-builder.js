@@ -1,12 +1,12 @@
-import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=sleeper-name-1';
-import { FACTION_CATALOG, UPCOMING_FACTIONS } from '../game/faction-catalog.js?v=sleeper-name-1';
-import { createCard } from '../game/board.js?v=sleeper-name-1';
-import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=sleeper-name-1';
-import { addCardCrop, cardButton } from './cards.js?v=sleeper-name-1';
+import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=choir-playable-1';
+import { FACTION_CATALOG, UPCOMING_FACTIONS } from '../game/faction-catalog.js?v=choir-playable-1';
+import { createCard } from '../game/board.js?v=choir-playable-1';
+import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=choir-playable-1';
+import { addCardCrop, cardButton } from './cards.js?v=choir-playable-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { factionFilters } from './faction-filters.js?v=faction-catalog-2';
 import { resourceIcon } from './resource-icon.js?v=faction-catalog-2';
-import { availabilityOptions, matchesAvailability } from './catalog-cards.js?v=hounds-tokens-1';
+import { availabilityOptions, matchesAvailability } from './catalog-cards.js?v=choir-playable-1';
 import { campaignShelf } from './campaigns.js?v=home-base-1';
 import { sectionBack } from './resources.js?v=essence-gain-1';
 

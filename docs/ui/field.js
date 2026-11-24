@@ -1,12 +1,12 @@
 import { leagueCharacter } from './league-character.js?v=oran-avatar-1';
-import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js?v=sleeper-name-1';
+import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js?v=choir-playable-1';
 import { insertionPoint, placementEffectRows } from '../card-placement.js?v=hounds-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=sleeper-name-1';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=sleeper-name-1';
-import { playerHand } from './hand.js?v=choir-art-5';
-import { availableFees, availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=choir-art-5';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=choir-art-5';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=choir-playable-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=choir-playable-1';
+import { playerHand } from './hand.js?v=choir-playable-1';
+import { availableFees, availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=choir-playable-1';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=choir-playable-1';
 
 import { orderBadge } from './stat-badges.js?v=suppressor-1';
 
@@ -174,6 +174,8 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     if (leader.art) portrait.append(cardArt(leader, 'leader-image'));
     else portrait.append(element('span', 'leader-placeholder', '♜'));
     cardInspection(portrait, { definition: leader }, false, () => showCard({ definition: leader }, { leader: true }));
+    panel.append(portrait);
+    if (!leader.ability) return panel;
     const cooldown = leaderCooldown(player);
     const power = button(leader.order ? (cooldown ? '◷ ' + cooldown : '⚑') : 'ϟ ' + leader.charges,
       () => playHuman({ type: 'leader' }), 'leader-power');
@@ -182,7 +184,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       ? cooldown ? 'Перезарядка приказа: ' + cooldown : 'Приказ лидера'
       : 'зарядов ' + leader.charges));
     power.disabled = side !== 'human' || !humanCanAct() || !canUseLeader(match, side);
-    panel.append(portrait, power);
+    panel.append(power);
     return panel;
   }
 

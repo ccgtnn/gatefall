@@ -77,7 +77,7 @@ test('Carrier infects its target and adjacent units only', () => {
 
 test('strategic bots simulate favorable uses and legal choices for all six leaders', () => {
   for (const [faction, { leaders }] of Object.entries(FACTIONS)) {
-    for (const leader of leaders) {
+    for (const leader of leaders.filter(({ ability }) => ability)) {
       const match = fixture(faction, leader.id);
       const { human, bot } = match.players;
       bot.leader = { ...leader, charges: 1 };

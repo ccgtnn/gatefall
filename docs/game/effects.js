@@ -1,11 +1,10 @@
 import { cardAbilities, deathwishDefinitions, deathwishJobs, emit, isLocked } from './events.js?v=ulmarin-1';
-import { FACTIONS, NEUTRAL_CARDS, ROWS, ROW_LABELS } from './cards.js?v=sleeper-name-1';
+import { FACTIONS, NEUTRAL_CARDS, ROWS, ROW_LABELS } from './cards.js?v=choir-playable-1';
 import {
   activeOrder, announcePlay, appearanceJobs, applyStatus, availableRows, boost, capture, captureDestination, cardType, createCard, changeCoins, cleansableStatuses, cleanse, consume, damage, damageOverflow, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, restoreCard, ROW_LIMIT,
   refreshHoundAura, refreshShipRowBonus, setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, infectionDamage, transformUnit, units, weaken,
-} from './board.js?v=sleeper-name-1';
-import { CHOIR_CARDS } from './choir.js?v=choir-art-5';
+} from './board.js?v=choir-playable-1';
 import { CAPTAIN_CARDS, HOUND_CATEGORY } from './captains.js?v=captains-independent-1';
 
 function reference(match, job, key = 'source') {
@@ -117,15 +116,19 @@ export function rowArmor(player, row) {
   return player.board[row].reduce((sum, card) => sum + (card.armor ?? 0), 0);
 }
 
-function pileCandidates(cards, filter) {
-  return cards.filter(({ definition }) => (filter.anyType || (definition.type ?? 'unit') === 'unit') &&
+function matchesPileFilter(definition, filter) {
+  return (filter.anyType || (definition.type ?? 'unit') === 'unit') &&
     (!filter.rarity || definition.rarity === filter.rarity) &&
     (!filter.category || definition.categories?.includes(filter.category)) &&
     (!filter.definitionId || definition.id === filter.definitionId) &&
     (!filter.faction || definition.faction === filter.faction) &&
     (filter.provision === undefined || definition.provision === filter.provision) &&
     (filter.maxProvision === undefined || definition.provision <= filter.maxProvision || definition.id === filter.provisionException) &&
-    (filter.maxPower === undefined || definition.power <= filter.maxPower));
+    (filter.maxPower === undefined || definition.power <= filter.maxPower);
+}
+
+function pileCandidates(cards, filter) {
+  return cards.filter(({ definition }) => matchesPileFilter(definition, filter));
 }
 
 function eligiblePileCards(match, side, pile, step, piles = {}) {
@@ -182,7 +185,7 @@ export function leaderCooldown(player) {
 export function canUseLeader(match, side) {
   const player = match.players[side];
   const { leader } = player;
-  if (!leader) return false;
+  if (!leader?.ability) return false;
   const ready = leader.order ? leaderCooldown(player) === 0 : !match.playedCard && leader.charges > 0;
   return ready && canStart(match, { ability: leader.ability, side });
 }
@@ -309,15 +312,48 @@ function pause(match, job, kind, key, options, prompt, extra) {
 }
 
 const playPiles = { 'play-from-deck': 'deck', 'play-from-discard': 'discard', 'play-from-hand': 'hand', 'create-play': 'created' };
-const creatableCards = [...Object.values(FACTIONS).flatMap(({ pool }) => pool), ...NEUTRAL_CARDS, ...CAPTAIN_CARDS, ...CHOIR_CARDS];
+const creatableCards = [...Object.values(FACTIONS).flatMap(({ pool }) => pool), ...NEUTRAL_CARDS, ...CAPTAIN_CARDS];
+
+function creationCandidates(sourceId, step, faction) {
+  return creatableCards.filter((definition) => !definition.token &&
+    definition.id !== sourceId && definition.rarity === step.rarity &&
+    (!faction || definition.faction === faction) && (!step.type || definition.type === step.type));
+}
+
+export function relatedEffectCards(definition) {
+  const fixed = new Map();
+  const possible = new Map();
+  const visited = new WeakSet();
+  function visit(node) {
+    if (node === null || typeof node !== 'object' || visited.has(node)) return;
+    visited.add(node);
+    if (['spawn', 'transform'].includes(node.action) && node.card) fixed.set(node.card.id, node.card);
+    if (node.action === 'create-play') {
+      for (const card of creationCandidates(definition.id, node)) {
+        if (node.faction !== 'enemy' || Object.hasOwn(FACTIONS, card.faction)) possible.set(card.id, card);
+      }
+    }
+    if (node.action === 'summon-from-deck' && node.filter) {
+      const pool = FACTIONS[definition.faction]?.pool ?? creatableCards;
+      const matches = node.filter.definitionId ? creatableCards : new Set([...pool, ...NEUTRAL_CARDS]);
+      for (const card of matches) {
+        if (matchesPileFilter(card, node.filter)) (node.filter.definitionId ? fixed : possible).set(card.id, card);
+      }
+    }
+    for (const [key, child] of Object.entries(node)) if (key !== 'card') visit(child);
+  }
+  visit(definition);
+  fixed.delete(definition.id);
+  possible.delete(definition.id);
+  for (const id of fixed.keys()) possible.delete(id);
+  return { fixed: [...fixed.values()], possible: [...possible.values()] };
+}
 
 function createOffer(match, job, step, random) {
   const other = match.players[opponent(job.side)];
   const faction = step.faction === 'enemy' ? other.factionId : undefined;
   if (step.faction === 'enemy' && !faction) return [];
-  const candidates = creatableCards.filter((definition) => !definition.token &&
-    definition.id !== job.sourceDefinitionId && definition.rarity === step.rarity &&
-    (!faction || definition.faction === faction) && (!step.type || definition.type === step.type))
+  const candidates = creationCandidates(job.sourceDefinitionId, step, faction)
     .map((definition) => createCard(definition.id, definition));
   const eligible = candidates.filter((card) => cardType(card) === 'effect' ||
     availableRows(match.players[placementSide(job.side, card)], card).length);

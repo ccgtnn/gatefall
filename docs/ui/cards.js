@@ -1,15 +1,16 @@
 import { dialogClose } from './resources.js?v=essence-gain-1';
 import { button, element, selectField, setCardRarity } from './dom.js?v=opponent-reveal-1';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=sleeper-name-1';
-import { FACTION_CATALOG } from '../game/faction-catalog.js?v=sleeper-name-1';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=sleeper-name-1';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=choir-playable-1';
+import { FACTION_CATALOG } from '../game/faction-catalog.js?v=choir-playable-1';
+import { basePower, cardType, createCard, isUnit, statusCount } from '../game/board.js?v=choir-playable-1';
+import { relatedEffectCards } from '../game/effects.js?v=choir-playable-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 
 import { deathwishDefinitions } from '../game/events.js?v=ulmarin-1';
 import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=suppressor-1';
 
-import { addCardCrop, cardArt, hasPremiumArt, selectPremiumArt, usesPremiumArt } from './card-art.js?v=failura-1';
-export { addCardCrop, cardArt } from './card-art.js?v=failura-1';
+import { addCardCrop, cardArt, hasPremiumArt, selectPremiumArt, usesPremiumArt } from './card-art.js?v=choir-playable-1';
+export { addCardCrop, cardArt } from './card-art.js?v=choir-playable-1';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';
@@ -21,13 +22,13 @@ preview.addEventListener('click', (event) => {
 preview.addEventListener('close', () => {
   if (!preview.open) preview.querySelector('.card-art-video')?.pause();
 });
-export function showCard(card, { leader = false, legacy = false,
-  orderReady = false, orderCooldown = 0, actions, frame } = {}) {
+export function showCard(card, options = {}) {
+  const { leader = false, legacy = false, orderReady = false, orderCooldown = 0, actions, frame, back } = options;
   const { definition, power, armor, timer, counter } = card;
   setCardRarity(preview, definition.rarity);
   const faction = definition.faction === NEUTRAL ? 'Нейтральная' : FACTION_CATALOG[definition.faction]?.name;
   const details = leader ? ['Лидер'] : [definition.scenario ? 'Сценарий' : CARD_TYPES[cardType(card)], faction, RARITY_LABELS[definition.rarity],
-    definition.stratagem ? 'Стратагема' : definition.provision === undefined ? 'Токен'
+    definition.stratagem ? 'Стратагема' : definition.token ? 'Токен' : definition.provision === undefined ? ''
       : `Провизия ${definition.provision}`].filter(Boolean);
   details.push(...(definition.categories ?? []));
   if (definition.shipClass) details.push(definition.shipClass);
@@ -56,6 +57,7 @@ export function showCard(card, { leader = false, legacy = false,
   title.autofocus = true;
   const body = element('div', 'preview-body');
   if (definition.accent) body.dataset.accent = definition.accent;
+  if (back) body.append(button('Назад к карте', back, 'button preview-back'));
   body.append(title, element('p', 'muted preview-details', details.join(' · ')));
   if (hasPremiumArt(definition.id)) {
     const { field, input } = selectField('Версия карты', [['regular', 'Обычная'], ['premium', 'Премиальная']]);
@@ -65,6 +67,17 @@ export function showCard(card, { leader = false, legacy = false,
   }
   if (stats.length) body.append(element('p', 'preview-stats', stats.join(' · ')));
   body.append(element('p', 'preview-effect', definition.text || 'Без эффекта.'));
+  const { fixed, possible } = relatedEffectCards(definition);
+  const backToCard = () => showCard(card, options);
+  if (fixed.length) body.append(relatedCards(fixed, backToCard));
+  if (possible.length) {
+    const choices = element('details', 'preview-related-options');
+    choices.append(element('summary', null, 'Возможные карты'));
+    choices.addEventListener('toggle', () => {
+      if (choices.open && choices.children.length === 1) choices.append(relatedCards(possible, backToCard));
+    });
+    body.append(choices);
+  }
   if (!locked && card.inheritedDeathwishes?.length) {
     const wishes = element('ul');
     wishes.append(...card.inheritedDeathwishes.map(({ name }) => element('li', null, name)));
@@ -87,7 +100,7 @@ export function showCard(card, { leader = false, legacy = false,
   const layout = element('div', 'preview-layout');
   if (!leader && !legacy) {
     const face = element('div', 'preview-card-face');
-    decorateCard(face, card, { factionId: definition.faction }, { showProvision: true, showFaction: true, fullArt: true, orderReady, orderCooldown, frame });
+    decorateCard(face, card, { factionId: definition.faction }, { showProvision: !definition.token, showFaction: true, fullArt: true, orderReady, orderCooldown, frame });
     layout.append(face);
   } else if (definition.art) {
     layout.append(cardArt(definition, 'preview-art', { fullArt: true }));
@@ -109,6 +122,23 @@ export function showCard(card, { leader = false, legacy = false,
   if (!preview.open) preview.showModal();
   else title.focus({ preventScroll: true });
   preview.scrollTop = 0;
+}
+
+function relatedCards(definitions, back) {
+  const list = element('div', 'preview-related');
+  list.setAttribute('role', 'group');
+  list.setAttribute('aria-label', 'Связанные карты');
+  for (const definition of definitions) {
+    const card = createCard(definition.id, definition);
+    const entry = element('div', 'preview-related-entry');
+    const face = button(undefined, () => showCard(card, { back }), 'hand-card');
+    face.dataset.cardId = definition.id;
+    decorateCard(face, card, { factionId: definition.faction },
+      { showProvision: !definition.token, showFaction: true });
+    entry.append(face, element('span', null, definition.name));
+    list.append(entry);
+  }
+  return list;
 }
 
 export function cardInspection(node, card, placement = false, show = () => showCard(card)) {

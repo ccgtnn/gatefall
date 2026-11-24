@@ -1,4 +1,4 @@
-import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=sleeper-name-1';
+import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=choir-playable-1';
 
 export const MIN_CARDS = 25;
 export const MIN_UNITS = 13;
@@ -15,13 +15,16 @@ export function copyLimit(card) {
   return card.rarity === 'bronze' ? 2 : 1;
 }
 
-const factionPresets = [...groups].map(([factionId, faction]) => Object.freeze({
-  id: 'preset-' + factionId,
-  name: faction.name + ' · ' + faction.strategy,
-  factionId,
-  leaderId: faction.leader.id,
-  cardIds: Object.freeze(faction.deck.map(({ id }) => id)),
-}));
+function factionPreset(factionId) {
+  const faction = groups.get(factionId);
+  return Object.freeze({
+    id: 'preset-' + factionId,
+    name: faction.name + ' · ' + faction.strategy,
+    factionId,
+    leaderId: faction.leader.id,
+    cardIds: Object.freeze(faction.deck.map(({ id }) => id)),
+  });
+}
 const plaguePreset = Object.freeze({
   id: 'preset-growth-plague', name: 'Поросль · Чума', factionId: 'growth', leaderId: 'carrier',
   cardIds: Object.freeze([
@@ -53,7 +56,9 @@ export const REBIRTH_PRESET = Object.freeze({
   ]),
 });
 
-export const PRESETS = Object.freeze([...factionPresets, plaguePreset, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET]);
+export const PRESETS = Object.freeze([
+  factionPreset('protectorate'), factionPreset('growth'), plaguePreset, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET, factionPreset('choir'),
+]);
 
 export function inspectDeck(deck, owned) {
   const faction = groups.get(deck?.factionId);

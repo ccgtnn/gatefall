@@ -5,9 +5,9 @@ import { announcePlay, applyStatus, createCard, damage, findUnit, removeUnit, sp
 import { chooseBotTurn, pickBotTarget } from '../docs/game/bot.js';
 import { KEYWORDS } from '../docs/game/cards.js';
 import { AWAKENING, CHOIR_CARDS, CULTIST, FANATIC, LARGE_TENTACLE, PSIONICS, SLEEPER, TENTACLE } from '../docs/game/choir.js';
-import { collection, copyLimit, PRESETS } from '../docs/game/decks.js';
-import { availableOrders, enqueueEndTurn, runEffect } from '../docs/game/effects.js';
-import { applyAction, createMatch } from '../docs/game/match.js';
+import { collection, copyLimit, inspectDeck, PRESETS } from '../docs/game/decks.js';
+import { availableOrders, canUseLeader, enqueueEndTurn, runEffect } from '../docs/game/effects.js';
+import { applyAction, createDeckMatch, createMatch } from '../docs/game/match.js';
 import { createRewardProgress } from '../docs/game/rewards.js';
 import { filterCatalog } from '../docs/ui/catalog-cards.js';
 import { applyJournalEvent, createPlaybackState } from '../docs/turn-playback.js';
@@ -51,15 +51,22 @@ function hit(match, id, amount) {
   return drain(match);
 }
 
-test('Choir cards are visible as unowned catalog entries only, with all new glossary terms', async () => {
-  assert.equal(filterCatalog(CHOIR_CARDS, { faction: 'choir' }).length, 18);
+test('Choir collectible cards are owned by default and can start a match', async () => {
+  assert.equal(filterCatalog(CHOIR_CARDS, { faction: 'choir' }).length, 15);
   assert.equal(filterCatalog(CHOIR_CARDS, { faction: 'choir', category: PSIONICS }).length, 8);
-  assert.deepEqual(collection('choir'), []);
-  assert.ok(!PRESETS.some(({ factionId }) => factionId === 'choir'));
+  assert.ok(collection('choir').every(({ token }) => !token));
   const economy = createRewardProgress();
-  for (const { id } of CHOIR_CARDS) {
-    assert.equal(economy.inventory().owned[id], undefined);
+  const { owned } = economy.inventory();
+  for (const card of CHOIR_CARDS) {
+    assert.equal(owned[card.id], card.token ? undefined : copyLimit(card));
   }
+  const deck = PRESETS.find(({ factionId }) => factionId === 'choir');
+  assert.equal(inspectDeck(deck, owned).valid, true);
+  assert.equal(inspectDeck({ ...deck, cardIds: [...deck.cardIds, TENTACLE.id] }, owned).issues.foreign, true);
+  const match = createDeckMatch(deck, { random: fixed });
+  assert.equal(match.players.human.factionId, 'choir');
+  assert.equal(match.players.human.startingCategories[PSIONICS], 8);
+  assert.equal(canUseLeader(match, 'human'), false);
   assert.equal(await economy.buyPack('choir'), 'unknown');
   for (const word of [PSIONICS, CULTIST, 'Щупальце', 'Одержимость', 'Захват', 'Сотворение']) assert.ok(KEYWORDS[word]);
 });
