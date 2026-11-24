@@ -53,10 +53,8 @@ test('all ten Hound cards are in the collection but their faction has no preset 
   assert.equal(await economy.openPack('captains'), 'unknown');
 });
 
-test('illustrated Hound cards use their own WebP and any focused crop exists', async () => {
-  const illustrated = CAPTAIN_CARDS.filter(({ art }) => art);
-  assert.equal(illustrated.length, 5);
-  for (const { id, art, artCrop } of illustrated) {
+test('all ten Hound cards use their own WebP and any focused crop exists', async () => {
+  for (const { id, art, artCrop } of CAPTAIN_CARDS) {
     assert.equal(art, `${id}.webp`);
     await access(new URL(`../docs/art/${art}`, import.meta.url));
     if (artCrop) {

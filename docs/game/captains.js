@@ -21,6 +21,7 @@ const fang = {
 const destroyHound = { action: 'destroy', target: victim };
 const claw = Object.freeze({
   ...hound, id: 'hound-claw', name: 'Коготь', power: 5, provision: 5, rarity: 'bronze',
+  art: 'hound-claw.webp',
   shipClass: 'Лёгкий корабль',
   text: 'В конце твоего хода: усилить себя на 1, если на поле есть «Чёрная гончая» или на твоём поле только карты категории «Гончая».',
   keywords: ['Конец хода', 'Усиление'],
@@ -61,6 +62,7 @@ export const CAPTAIN_CARDS = Object.freeze([
   },
   {
     id: 'black-hound', name: 'Чёрная гончая', power: 5, provision: 12, rarity: 'gold',
+    art: 'black-hound.webp', artCrop: 'black-hound-crop.webp',
     shipClass: 'Тяжёлый корабль', shield: true, requiredRow: 'orbit', preferredRow: 'orbit',
     text: 'Орбита. Силовой щит. Плата 4: призвать справа корабль «Коготь».',
     keywords: ['Орбита', 'Силовой щит', 'Плата', 'Тяжёлый корабль'],
@@ -69,11 +71,13 @@ export const CAPTAIN_CARDS = Object.freeze([
   claw,
   {
     ...fang, id: 'hound-right-fang', name: 'Правый Клык', shipClass: 'Лёгкий корабль',
+    art: 'hound-right-fang.webp',
     text: 'Орбита. Приказ: уничтожить свою Гончую, взять карту, затем поместить выбранную карту из руки на дно колоды. Плата 5: восстановить Приказ.',
     order: ability([destroyHound, { action: 'draw', amount: 1 }, { action: 'choose-hand-bottom' }], [houndChoice]),
   },
   {
     ...fang, id: 'hound-left-fang', name: 'Левый Клык', shipClass: 'Лёгкий корабль',
+    art: 'hound-left-fang.webp',
     text: 'Орбита. Приказ: уничтожить свою Гончую и нанести 1 урон каждому отряду в выбранном ряду противника. Плата 5: восстановить Приказ.',
     order: ability([destroyHound,
       { action: 'select-row', ref: 'row', filter: 'units', prompt: 'Выбери вражеский ряд для 1 урона каждому отряду.' },
@@ -81,6 +85,7 @@ export const CAPTAIN_CARDS = Object.freeze([
   },
   {
     id: 'hound-eyes', name: 'Глаза гончей', power: 6, provision: 10, rarity: 'gold',
+    art: 'hound-eyes.webp', artCrop: 'hound-eyes-crop.webp',
     shipClass: 'Лёгкий корабль', text: 'Плата 2: превратить выбранную свою Гончую в Усиленную гончую.',
     keywords: ['Плата'],
     fee: fee(2, [{ action: 'transform', target: victim, card: REINFORCED_HOUND }], { select: [{
