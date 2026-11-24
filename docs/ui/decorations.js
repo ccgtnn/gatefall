@@ -56,7 +56,7 @@ function createChoicePreferences(storage, root, key, attribute, choices) {
 
 export function decorationsScreen(phase, framesPreference, battlefieldPreference, back) {
   phase.textContent = '';
-  const panel = element('section', 'panel decorations-panel');
+  const panel = element('section', 'decorations-panel');
   const heading = element('h2', null, 'Украшения');
   heading.tabIndex = -1;
   const status = element('p', 'economy-status');

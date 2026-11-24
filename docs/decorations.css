@@ -1,28 +1,31 @@
 .decorations-panel {
-  width: min(100%, 46rem);
-  margin: 1rem auto;
-  padding: clamp(.75rem, 3vw, 1.5rem);
+  display: grid;
+  gap: clamp(.8rem, 2vw, 1.45rem);
+  padding-block: .35rem;
+  min-width: 0;
 }
 .decoration-options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(.55rem, 2vw, 1rem);
-  margin-block: .9rem;
+  gap: clamp(.55rem, 1.35vw, 1rem);
+  margin-block-start: .65rem;
 }
 .button.decoration-option {
+  --rim: linear-gradient(150deg, #7188a3, #354760 74%, #576b89);
+  --face: radial-gradient(ellipse at 50% 35%, #38678a99, transparent 74%), linear-gradient(#172a40ed, #0b1525f2);
   display: grid;
   justify-items: center;
-  align-content: start;
+  align-content: space-between;
   gap: .65rem;
   min-width: 0;
   padding: clamp(.5rem, 2vw, 1rem);
-  background: #141e2a;
-  border: 1px solid #52677f;
   text-align: center;
 }
-.button.decoration-option[aria-pressed="true"] {
-  background: #1c2e3e;
-  border-color: #e5c680;
+.button.decoration-option[aria-pressed="true"]:not(:disabled) {
+  --rim: linear-gradient(140deg, #f9dea2, #8b6539 62%, #ecca86);
+  --edge-light: #f3d397c9;
+  --idle-light: #e8be646b;
+  color: #ffe5ac;
 }
 .decoration-option > strong { line-height: 1.25; }
 .decoration-option .decoration-face {
@@ -35,9 +38,10 @@
   --badge-size: clamp(17px, 3vw, 24px);
 }
 .decoration-header { display: flex; align-items: center; gap: .75rem; }
-.decoration-header h2 { margin: 0; }
-.decoration-header .section-back { position: static; }
-.decoration-section h3 { margin-block: .9rem 0; }
+.decoration-header h2 { margin: 0; font-size: clamp(1.45rem, 2vw, 2rem); }
+.decoration-header .section-back { position: static; flex: none; }
+.decoration-section h3 { margin: 0; font-size: 1.05rem; }
+.decorations-panel > .economy-status:empty { display: none; }
 .decoration-field {
   display: block;
   width: 100%;
@@ -45,6 +49,11 @@
   object-fit: cover;
   border: 1px solid #52677f;
   border-radius: 4px;
+}
+
+@media (min-width: 48rem) {
+  .decoration-options { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .decoration-option .decoration-face { width: min(100%, 9.5rem); }
 }
 
 @media (min-width: 64rem) and (hover: hover) and (pointer: fine) {

@@ -29,9 +29,9 @@ import { createResourceBar, showEssenceGain } from './ui/resources.js?v=essence-
 import { aimAnchor, aimTone, bindTargeting } from './ui/targeting.js?v=targeting-1';
 import { questComplete } from './game/tavern.js?v=world-gates-premium-1';
 import { rankStanding, wonRounds } from './game/ranks.js?v=monthly-ranks-1';
-import { BATTLEFIELD_STORAGE_KEY, createBattlefieldPreferences, createFramePreferences, decorationsScreen, FRAME_STORAGE_KEY } from './ui/decorations.js?v=world-gates-premium-1';
-import { rankScreen } from './ui/rank-screen.js?v=essence-gain-1';
-import { leagueScreen, LEAGUE_OVERVIEW_QUERY } from './ui/league-screen.js?v=world-gates-premium-1';
+import { BATTLEFIELD_STORAGE_KEY, createBattlefieldPreferences, createFramePreferences, decorationsScreen, FRAME_STORAGE_KEY } from './ui/decorations.js?v=section-layout-1';
+import { rankScreen } from './ui/rank-screen.js?v=section-layout-1';
+import { leagueScreen, LEAGUE_OVERVIEW_QUERY } from './ui/league-screen.js?v=section-layout-1';
 import { resetProgress } from './game/reset-progress.js?v=world-gates-premium-1';
 import { createRewardReveal, enqueueReward } from './ui/reward-reveal.js?v=essence-gain-1';
 

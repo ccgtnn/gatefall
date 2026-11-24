@@ -1,16 +1,15 @@
 .league-panel {
   --league-rim: #829fb555;
   --league-glass: linear-gradient(150deg, #223b59cc, #101e33f0 68%);
-  width: min(100%, 800px);
-  margin: 1rem auto;
-  padding: clamp(.7rem, 2vw, 1.45rem);
-  background: radial-gradient(ellipse at 60% 0%, #243b5b80, transparent 65%), #101827;
+  width: 100%;
+  padding-block: .35rem;
 }
-.league-header { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; }
+.league-header { display: flex; align-items: center; gap: .75rem; margin-bottom: .65rem; }
+.league-header h2 { font-size: clamp(1.45rem, 2vw, 2rem); }
 .league-header h2, .league-header p { margin: 0; }
 .league-header p { margin-top: .18rem; }
 .league-header .section-back { position: static; flex: none; margin: 0; }
-.league-content { display: grid; gap: .9rem; }
+.league-content { display: grid; gap: .65rem; min-width: 0; }
 .league-content > p { margin: 0; }
 .league-scoring { font-size: .82rem; }
 .league-standings {
@@ -86,7 +85,14 @@ button.league-standing:is(:hover, :focus-visible), .league-challenger:is(:hover,
 .league-numbers { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; line-height: 1.1; }
 .league-numbers strong { font-size: 1.25rem; margin-inline-end: .22em; }
 .league-numbers .league-record { display: block; color: #b9cbe0; margin-top: .15rem; font-size: .69rem; }
-.league-opponent { display: grid; justify-items: start; gap: .55rem; padding: .8rem; }
+.league-opponent { display: flex; flex-wrap: wrap; align-items: end; gap: .5rem 1rem; padding: .65rem .8rem; }
+.league-opponent h3 { flex-basis: 100%; font-size: .95rem; }
+.league-opponent-details, .league-opponent-controls { display: flex; flex-wrap: wrap; gap: .5rem .75rem; min-width: 0; }
+.league-opponent-details { align-items: center; }
+.league-opponent-summary { display: grid; justify-items: start; gap: .3rem; min-width: 0; }
+.league-opponent-info { font-size: .78rem; }
+.league-opponent-controls { align-items: end; margin-inline-start: auto; }
+.league-opponent-controls > p { flex-basis: 100%; }
 .league-opponent :is(h3, p, blockquote) { margin: 0; }
 .league-challenger {
   display: flex;
@@ -100,8 +106,9 @@ button.league-standing:is(:hover, :focus-visible), .league-challenger:is(:hover,
   border-radius: .55rem;
   padding: .3rem .65rem .3rem .3rem;
 }
-.league-challenger .league-avatar { width: 3.6rem; }
-.league-opponent .deck-field { width: min(100%, 26rem); }
+.league-challenger .league-avatar { width: 2.65rem; }
+.league-opponent .deck-field { width: min(100%, 15rem); min-width: 0; }
+.league-opponent .deck-field select { width: 100%; }
 .league-countdown { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .3rem .65rem; padding: .55rem .8rem; margin-top: .75rem; font-variant-numeric: tabular-nums; }
 .league-countdown[hidden] { display: none; }
 .league-clock-icon { grid-row: span 2; align-self: center; color: #a4caef; }
@@ -199,7 +206,7 @@ body:has(.in-league-match) #new-game { display: none; }
 }
 .league-telepathy { font-style: italic; }
 :is(.league-opponent, .finish) .league-character { flex-wrap: wrap; }
-.league-opponent .league-speech { margin-left: .3rem; padding: .32em .65em; }
+.league-opponent .league-speech { max-width: min(28rem, 100% - .3rem); margin-left: .3rem; }
 .league-battle {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -281,10 +288,12 @@ body:has(.in-league-match) #new-game { display: none; }
 .league-entry[data-relegation] .league-place { color: #efaa9e; }
 .league-arrival { white-space: nowrap; }
 
-#app:has(.league-panel[data-overview]) {
-  width: min(100% - 1.5rem, 104rem);
+#app:has(#screen > .league-panel) {
+  width: min(calc(100% - clamp(1rem, 2vw, 2.5rem)), 52rem);
 }
-.league-panel[data-overview] { width: 100%; }
+#app:has(#screen > .league-panel[data-overview]) {
+  width: min(calc(100% - clamp(1rem, 2vw, 2.5rem)), 112rem);
+}
 .league-panel[data-overview] .league-divisions {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -295,7 +304,7 @@ body:has(.in-league-match) #new-game { display: none; }
   padding: .5rem;
   border: 1px solid var(--league-rim);
   border-radius: .65rem;
-  background: #101b2d;
+  background: #101b2dd9;
 }
 .league-division[data-home] {
   border-color: #e5b75e;
@@ -344,9 +353,6 @@ body:has(.in-league-match) #new-game { display: none; }
 }
 .league-division .league-numbers strong { margin: 0; font-size: 1rem; }
 .league-division :is(.league-faction, .league-record, .league-points-label) { display: none; }
-.league-panel[data-overview] .league-opponent {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr) auto;
-  align-items: center;
+@media (max-width: 42rem) {
+  .league-opponent-controls { margin-inline-start: 0; }
 }
-.league-panel[data-overview] .league-opponent :is(h3, .league-opponent-info) { grid-column: 1 / -1; }
-.league-panel[data-overview] .league-opponent-info { grid-row: 3; }

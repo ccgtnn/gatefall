@@ -224,10 +224,13 @@
   width: min(calc(100% - 2rem), 68rem);
   padding: clamp(1rem, 3vw, 2rem) 0 2rem;
 }
-body:has(.is-deck-home) {
+body:has(.is-deck-home, #screen > :is(.league-panel, .rank-panel, .decorations-panel)) {
   min-height: 100dvh;
   background: linear-gradient(180deg, #08121b10, #09111c50 65%, #0b121e),
     url('./art/home-nebula.webp') center top / cover fixed no-repeat, #0b121e;
+}
+#app:has(#screen > :is(.rank-panel, .decorations-panel)) {
+  width: min(calc(100% - clamp(1rem, 4vw, 4rem)), 90rem);
 }
 .is-deck-home .masthead { border-color: #9bbcd544; align-items: flex-start; }
 .is-deck-home .brand { display: grid; gap: 0; }

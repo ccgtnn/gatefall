@@ -8,7 +8,7 @@ const leagueTabs = [
   ['Бронза', '🥉'], ['Серебро', '🥈'], ['Золото', '🥇'], ['Алмаз', '💎'],
 ];
 
-export const LEAGUE_OVERVIEW_QUERY = '(min-width: 80rem) and (pointer: fine)';
+export const LEAGUE_OVERVIEW_QUERY = '(min-width: 72rem) and (pointer: fine)';
 
 const actionErrors = {
   stale: 'Лига обновилась. Проверь текущий тур.',
@@ -18,7 +18,7 @@ const actionErrors = {
 
 export function leagueScreen(phase, actions) {
   phase.textContent = '';
-  const panel = element('section', 'panel league-panel');
+  const panel = element('section', 'league-panel');
   const content = element('div', 'league-content');
   const nav = element('div', 'league-tabs');
   nav.setAttribute('role', 'tablist');
@@ -173,12 +173,17 @@ export function leagueScreen(phase, actions) {
       challenger.append(leagueAvatar(bot), leagueIdentity(bot));
       const greeting = element('blockquote', 'league-speech');
       setLeagueSpeech(greeting, { line: bot.lines.start[0], telepathic: bot.telepathic });
-      opponent.append(element('h3', null, label), challenger, greeting,
+      const details = element('div', 'league-opponent-details');
+      const identity = element('div', 'league-opponent-summary');
+      identity.append(challenger,
         element('p', 'muted league-opponent-info', `${bot.deck.name} · ${LEAGUE_DIFFICULTY_LABELS[bot.difficulty]}`));
+      details.append(identity, greeting);
+      const controls = element('div', 'league-opponent-controls');
+      opponent.append(element('h3', null, label), details, controls);
       if (active) {
         const concede = button('Засчитать поражение', () => submit(() => actions.concede(active.id)));
         concede.disabled = busy;
-        opponent.append(concede);
+        controls.append(concede);
       } else {
         const decks = actions.decks();
         const picker = selectField('Твоя колода', decks.length
@@ -195,8 +200,8 @@ export function leagueScreen(phase, actions) {
         const start = button(stake ? `Играть матч · ${stake} золота` : 'Играть матч', currentPlay.start, 'button primary');
         start.disabled = currentPlay.disabled;
         picker.input.disabled = busy || !decks.length;
-        opponent.append(picker.field, start);
-        if (short) opponent.append(element('p', 'muted', 'Не хватает золота на ставку.'));
+        controls.append(picker.field, start);
+        if (short) controls.append(element('p', 'muted', 'Не хватает золота на ставку.'));
       }
       return opponent;
     }
