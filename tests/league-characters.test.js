@@ -5,6 +5,7 @@ import { inspectDeck } from '../docs/game/decks.js';
 import { FACTIONS } from '../docs/game/cards.js';
 import { FACTION_CATALOG } from '../docs/game/faction-catalog.js';
 import { LEAGUE_CHARACTERS } from '../docs/game/league-characters.js';
+import { LEAGUE_CONTEXT_LINES } from '../docs/game/league-context-lines.js';
 import { leagueDeckFor } from '../docs/game/league-decks.js';
 import { createLeagueDialogue, pickLeagueLine } from '../docs/game/league-dialogue.js';
 import { leagueRecord } from '../docs/ui/league-profile.js';
@@ -103,6 +104,50 @@ test('lines match their reason, skip the previous line, and use a 35 percent opt
   for (const reason of ['start', 'win', 'loss']) {
     assert.equal(pickLeagueLine(telepath, reason, undefined, () => .99), telepath.lines[reason][1]);
   }
+});
+
+test('all 31 league characters have lines for all five opening contexts', () => {
+  const contexts = ['gloat', 'promoted', 'relegated', 'respect', 'revenge'];
+  assert.equal(Object.keys(LEAGUE_CONTEXT_LINES).length, 31);
+  for (const { id } of LEAGUE_CHARACTERS) {
+    const lines = LEAGUE_CONTEXT_LINES[id];
+    assert.deepEqual(Object.keys(lines).sort(), contexts, id);
+    for (const context of contexts) {
+      assert.ok(lines[context].length > 0 && lines[context].every((line) => typeof line === 'string' && line.trim()), id);
+    }
+  }
+});
+
+test('arrival takes priority in the first meeting, then respect and the last player result', () => {
+  const { id } = telepath;
+  const league = {
+    season: { round: 0, arrivals: { [id]: 1 }, scores: { human: {}, [id]: {} } },
+    encounters: { [id]: { wins: 3, last: 'loss' } },
+  };
+  const start = (random = zero) => createLeagueDialogue(telepath, random).start(league);
+  const promoted = start();
+  assert.equal(promoted.reason, 'promoted');
+  assert.equal(promoted.line, LEAGUE_CONTEXT_LINES[id].promoted[0]);
+  assert.equal(promoted.telepathic, true);
+  assert.equal(start(() => .699).reason, 'promoted');
+  assert.equal(start(() => .7).reason, 'start');
+
+  league.season.arrivals[id] = -1;
+  assert.equal(start().reason, 'relegated');
+  league.season.round = 1;
+  assert.equal(start().reason, 'respect');
+
+  league.encounters[id].wins = 2;
+  assert.equal(start().reason, 'gloat');
+  league.encounters[id].last = 'win';
+  assert.equal(start().reason, 'revenge');
+  league.encounters[id].last = 'draw';
+  assert.equal(start().reason, 'start');
+  delete league.encounters[id].last;
+  delete league.season.arrivals;
+  assert.equal(start().reason, 'start');
+  league.encounters[id].wins = 3;
+  assert.equal(start().reason, 'respect');
 });
 
 function scenario(humanPower = 0, botPower = 0, turns = 0) {

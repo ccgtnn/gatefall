@@ -1,3 +1,5 @@
+import { LEAGUE_CONTEXT_LINES } from './league-context-lines.js?v=league-context-1';
+import { leagueSchedule } from './league.js?v=league-context-1';
 import { totalScore } from './match.js?v=failura-1';
 
 export const LEAGUE_DIALOGUE = Object.freeze({ chance: .35, strongSwing: 6, duration: 6500 });
@@ -12,20 +14,38 @@ export function pickLeagueLine(character, reason, previous, random = Math.random
   return lines[Math.floor(random() * lines.length)];
 }
 
+function greetingContext(league, id) {
+  const season = league?.season;
+  const arrival = season?.arrivals?.[id];
+  if ((arrival === 1 || arrival === -1) &&
+      !leagueSchedule(season).slice(0, season.round).some(([playerPair]) => playerPair.includes(id))) {
+    return arrival === 1 ? 'promoted' : 'relegated';
+  }
+
+  const record = league?.encounters?.[id];
+  if (record?.wins >= 3) return 'respect';
+  if (record?.last === 'loss') return 'gloat';
+  if (record?.last === 'win') return 'revenge';
+}
+
 export function createLeagueDialogue(character, random = Math.random) {
   let previous;
   let voicedTurn;
   let pendingPlay;
 
-  function speak(reason) {
-    const line = pickLeagueLine(character, reason, previous, random);
+  function speak(reason, line = pickLeagueLine(character, reason, previous, random)) {
     if (!line) return null;
     previous = line;
     return { type: 'league-speech', side: 'bot', name: character.name, reason, line, telepathic: character.telepathic };
   }
 
   return {
-    start: () => speak('start'),
+    start(league) {
+      const reason = greetingContext(league, character.id);
+      const lines = LEAGUE_CONTEXT_LINES[character.id]?.[reason];
+      if (lines?.length && random() < .7) return speak(reason, lines[Math.floor(random() * lines.length)]);
+      return speak('start');
+    },
     concede: () => speak('win'),
     cancelPlay: () => { pendingPlay = undefined; },
     transition(before, next, journal) {

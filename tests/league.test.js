@@ -195,7 +195,7 @@ test('place changes compare the previous table and encounters survive season and
   play(league, 'win', 2, 'opening');
   assert.deepEqual(league.season.previousPlaces,
     Object.fromEntries(openingTable.map((id, index) => [id, index + 1])));
-  assert.deepEqual(league.encounters[openingOpponent], { wins: 1, draws: 0, losses: 0 });
+  assert.deepEqual(league.encounters[openingOpponent], { wins: 1, draws: 0, losses: 0, last: 'win' });
   assert.equal(finishLeagueMatch(league, 'opening', 'win', 2, fixed), null);
   assert.equal(league.encounters[openingOpponent].wins, 1);
 
@@ -205,7 +205,15 @@ test('place changes compare the previous table and encounters survive season and
   const next = resetLeagueWeek(JSON.parse(JSON.stringify(league)), monday, fixed);
   assert.deepEqual(next.encounters, league.encounters);
   play(next, 'draw', 0);
-  assert.deepEqual(next.encounters[openingOpponent], { wins: 1, draws: 1, losses: 0 });
+  assert.deepEqual(next.encounters[openingOpponent], { wins: 1, draws: 1, losses: 0, last: 'draw' });
+});
+
+test('a legacy encounter keeps its totals and records the latest result on settlement', () => {
+  const league = JSON.parse(JSON.stringify(createLeague(sunday)));
+  const opponent = leagueOpponent(league.season).id;
+  league.encounters[opponent] = { wins: 2, draws: 1, losses: 0 };
+  play(league, 'loss', -2);
+  assert.deepEqual(league.encounters[opponent], { wins: 2, draws: 1, losses: 1, last: 'loss' });
 });
 
 function divisions(league) {

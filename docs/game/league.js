@@ -238,6 +238,7 @@ export function finishLeagueMatch(league, id, result, difference, random = Math.
   const encounters = league.encounters ??= {};
   const record = encounters[opponent] ??= { wins: 0, draws: 0, losses: 0 };
   record[{ win: 'wins', draw: 'draws', loss: 'losses' }[result]] += 1;
+  record.last = result;
   scorePair(scores, HUMAN, opponent, result, difference);
   playBotPairs(season, botPairs, random);
   for (const division of Object.values(league.divisions)) {
