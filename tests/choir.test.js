@@ -75,6 +75,7 @@ test('Illustrated Choir cards have versioned full art and crops in the catalog',
     ['altar-guardian', 'altar-guardian'],
     ['forbidden-scroll-keeper', 'forbidden-scroll-keeper'],
     ['whisper-interpreter', 'whisper-interpreter'],
+    ['cult-dreamer', 'cult-dreamer'],
   ]);
   for (const { id, art, artCrop } of CHOIR_CARDS) {
     const stem = artwork.get(id);

@@ -106,6 +106,7 @@ export const CHOIR_CARDS = Object.freeze([
   }),
   card({
     id: 'cult-dreamer', name: 'Сновидец культа', rarity: 'epic', provision: 7, power: 3,
+    art: 'cult-dreamer.webp?v=choir-art-3', artCrop: 'cult-dreamer-crop.webp?v=choir-art-3',
     text: 'Одержимость (Псионика): при размещении возьми по карте за каждые 3 карты Псионики. Верни столько же выбранных карт из руки в случайные места колоды.',
     keywords: ['Одержимость', PSIONICS],
     deploy: ability([{ action: 'draw', amount: obsession, save: 'drawn' },
