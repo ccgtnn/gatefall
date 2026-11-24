@@ -124,7 +124,6 @@ button:not(:disabled) { cursor: pointer; }
   border-radius: 4px;
 }
 
-.row-line.is-available { background: #313131; box-shadow: inset 0 0 0 1px #797979; }
 .slot {
   display: grid;
   place-items: center;
@@ -139,12 +138,14 @@ button:not(:disabled) { cursor: pointer; }
 .slot.filled { border: 1px solid #747474; background: var(--card); }
 .drop-marker {
   position: absolute;
+  z-index: 4;
   top: 50%;
   width: 3px;
   height: calc(100% - .3rem);
   transform: translate(-50%, -50%);
   border-radius: 3px;
-  background: #fff;
+  background: #c8f8ff;
+  box-shadow: 0 0 .55rem #64d9ffbf;
   pointer-events: none;
 }
 
@@ -152,8 +153,9 @@ button:not(:disabled) { cursor: pointer; }
   width: var(--slot-width);
   height: auto;
   aspect-ratio: 1;
-  border: 2px solid #fff;
-  background: #ffffff20;
+  border: 1px solid #abedff;
+  background: #90e5ff14;
+  box-shadow: inset 0 0 .8rem #64d9ff40, 0 0 .55rem #64d9ff65;
 }
 
 .turn {
@@ -372,7 +374,6 @@ button:not(:disabled) { cursor: pointer; }
 .faction-label { color: #e9e9e9; }
 
 .row-line.is-selectable { background: #263c40; box-shadow: inset 0 0 0 1px #7ec7d0; cursor: pointer; }
-.row-line.is-cast-target { background: #214b56; box-shadow: inset 0 0 0 2px #99e9ff; }
 .hand .hand-card.is-unavailable, .mulligan .hand-card.is-unavailable { opacity: .64; cursor: default; }
 .unit-face.is-artifact { background: #30373c; }
 .timer-mark { color: #e3dcfb; }

@@ -315,6 +315,7 @@ async function leaveMatch(surrender = false) {
       hideNotice(coinNotice);
       hideNotice(turnNotice);
       hideNotice(roundNotice);
+      app.querySelector('.round-transition')?.remove();
       showLeagueSpeech();
       replaying = false;
       const speech = leagueDialogue?.concede();
@@ -494,6 +495,18 @@ async function showRoundResult(event, state, duration) {
   await new Promise((resolve) => setTimeout(resolve, ROUND_RESULT_MS));
 }
 
+async function showRoundTransition(round, duration) {
+  const overlay = element('div', 'motion-overlay round-transition');
+  overlay.setAttribute('role', 'status');
+  overlay.append(element('span', 'round-transition-title', `Раунд ${round}`));
+  app.append(overlay);
+  if (duration) {
+    await overlay.animate([{ opacity: 0 }, { opacity: 1 }], { duration, easing: 'ease-out' }).finished;
+  }
+  await new Promise((resolve) => setTimeout(resolve, duration ? 360 : 600));
+  return overlay;
+}
+
 function playBotTurn() {
   let trace;
   const options = settings.showBotThoughts() ? { onDecision: (decision) => { trace = decision; } } : {};
@@ -526,6 +539,7 @@ async function updateMatch(next) {
   void progress.recordTavernEvents(matchRewardId, before.log.length, journal);
   const events = journal.filter(({ type }) => type !== 'bot-thought' && type !== 'league-speech');
   const duration = settings.motion();
+  let roundTransition;
   if ((before.phase === 'playing' && events.length && duration) || events.some(({ type }) => type === 'round-end')) {
     replaying = true;
     screen.classList.add('is-replaying');
@@ -545,6 +559,9 @@ async function updateMatch(next) {
           if (session === matchSession) renderPlayback(state);
         }, duration);
       });
+      if (session === matchSession && next.phase === 'mulligan' && next.round > before.round) {
+        roundTransition = await showRoundTransition(next.round, duration);
+      }
     } catch (error) {
       console.warn('Playback stopped early', error);
     } finally {
@@ -562,6 +579,16 @@ async function updateMatch(next) {
     mulliganFieldVisible = false;
   }
   render();
+  if (roundTransition) {
+    if (duration) {
+      const fade = roundTransition.animate([{ opacity: 1 }, { opacity: 0 }], {
+        duration, easing: 'ease-in', fill: 'forwards',
+      });
+      void fade.finished.then(() => roundTransition.remove(), () => roundTransition.remove());
+    } else {
+      roundTransition.remove();
+    }
+  }
   const changedTurn = match.phase === 'playing' && match.turn !== before.turn;
   const turnStarted = match.phase === 'playing' && (before.phase !== 'playing' || changedTurn ||
     match.players[match.turn].turns !== before.players[match.turn].turns);

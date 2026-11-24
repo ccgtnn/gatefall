@@ -124,7 +124,18 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   background: transparent;
 }
 .field-center .row-label:enabled { background: #263c40; }
-/* Gold signals that the card's ability uses this row. Teal remains the normal drop cue. */
+#screen.is-dragging-card .field-center .board-row:has(.is-available) {
+  --drop-line: #78d7ed9c;
+  --drop-glow: #63dfff26;
+}
+#screen.is-dragging-card .field-center .board-row:has(.is-cast-target) {
+  --drop-line: #b9f4ff;
+  --drop-glow: #63dfff65;
+}
+.field-center .row-line.is-available {
+  box-shadow: inset 0 0 0 1px var(--drop-line), inset 0 0 .85rem var(--drop-glow);
+}
+/* Gold signals that the card's ability uses this row. */
 .field-center .board-row:has(.is-drag-effect-row),
 #screen:not(.is-dragging-card) .field-center .board-row:has(.is-placement-effect-row) {
   --lane-line: #ebc578;
@@ -133,7 +144,7 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
 }
 .field-center .board-row:has(.is-drag-effect-row) .row-label,
 #screen:not(.is-dragging-card) .field-center .board-row:has(.is-placement-effect-row) .row-label {
-  background: #514027;
+  background: #eec06830;
 }
 .row-icon, .field-center .row-score {
   color: var(--lane-light);
@@ -166,8 +177,7 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   min-height: 0;
   aspect-ratio: 2 / 3;
 }
-.field-center .slot:not(.filled) { visibility: hidden; border-color: #a7daed84; }
-.field-center .is-available > .slot:not(.filled) { visibility: visible; }
+.field-center .slot:not(.filled) { visibility: hidden; }
 .field-center .slot.filled { background: transparent; }
 .force-shield-aura {
   position: absolute;
@@ -203,6 +213,24 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   pointer-events: none;
 }
 #match-notice, #coin-notice, #round-notice { z-index: 4; }
+.motion-overlay.round-transition {
+  display: grid;
+  place-items: center;
+  inset: 0;
+  z-index: 21;
+  background: radial-gradient(ellipse at center, #0b1830ed, #03070dfc 70%);
+  color: #f5e7c5;
+  text-align: center;
+}
+.round-transition-title {
+  padding: .45em 1.45em;
+  border-block: 1px solid #d8b87980;
+  font-size: clamp(1.75rem, 7vmin, 4.75rem);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  text-shadow: 0 0 .6em #ffcd7670;
+}
 #round-notice {
   padding: .45em .9em;
   border-color: #c19c59;
@@ -454,6 +482,9 @@ body:has(.in-match) { overflow: hidden; overscroll-behavior: none; }
   height: 100%;
   min-height: 0;
   padding: 0;
+}
+.battle-hand-cards > .hand-card,
+.field-center .unit-face {
   filter: drop-shadow(0 2px 3px #000b);
 }
 .battle-hand-cards > .hand-card[aria-pressed="true"]:not(.is-dragged) {
@@ -599,7 +630,7 @@ body:has(#app[data-animation-speed="fast"]) .field-drawer[open] { animation-dura
   .field-score .field-total { font-size: clamp(1rem, 5dvh, 1.25rem); }
 }
 @media (orientation: portrait) and (max-width: 739px) {
-  .match-screen > :not(.rotate-notice), #match-notice, #coin-notice, #round-notice { visibility: hidden; }
+  .match-screen > :not(.rotate-notice), #match-notice, #coin-notice, #round-notice, .round-transition { visibility: hidden; }
   .rotate-notice {
     position: absolute;
     inset: 0;
