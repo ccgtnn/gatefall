@@ -5,6 +5,7 @@ export const TENTACLE_CATEGORY = 'Щупальце';
 const self = { scope: 'source' };
 const allies = { scope: 'ally', type: 'unit' };
 const enemies = { scope: 'enemy', type: 'unit' };
+const fieldUnits = { scope: 'field', type: 'unit' };
 const nearby = { scope: 'neighbors', type: 'unit' };
 const ref = (ref) => ({ scope: 'ref', ref });
 const obsession = { startingCategory: PSIONICS, every: 3 };
@@ -164,6 +165,30 @@ export const CHOIR_CARDS = Object.freeze([
       ...sacrifice('victim' + i, `Выбери свою жертву ${i} из 3.`),
       targets: { ...allies, excludeRefs: ['victim1', 'victim2', 'victim3'] },
     }))),
+  }),
+  psionic({
+    id: 'call-of-the-deep', name: 'Зов глубин', rarity: 'bronze', provision: 6,
+    art: 'call-of-the-deep.webp?v=choir-art-5', artCrop: 'call-of-the-deep-crop.webp?v=choir-art-5',
+    text: 'Преврати выбранный отряд в Щупальце Спящего с базовой силой на той же стороне и на том же месте, затем усиль его на 4.',
+    keywords: [PSIONICS, TENTACLE_CATEGORY, 'Усиление'],
+    deploy: ability([
+      { action: 'transform', target: victim, card: TENTACLE },
+      { action: 'boost', target: victim, amount: 4 },
+    ], [{ ref: 'victim', kind: 'transform', prompt: 'Выбери отряд для превращения в Щупальце Спящего.', targets: fieldUnits }]),
+  }),
+  psionic({
+    id: 'mind-strike', name: 'Ментальный удар', rarity: 'bronze', provision: 5,
+    art: 'mind-strike.webp?v=choir-art-5', artCrop: 'mind-strike-crop.webp?v=choir-art-5',
+    text: 'Нанеси 5 урона выбранному отряду.',
+    keywords: [PSIONICS, 'Урон'],
+    deploy: ability([damage(victim, 5)], [{ ref: 'victim', kind: 'damage', amount: 5, targets: fieldUnits }]),
+  }),
+  psionic({
+    id: 'sleeper-litany', name: 'Литания Спящего', rarity: 'bronze', provision: 4,
+    art: 'sleeper-litany.webp?v=choir-art-5', artCrop: 'sleeper-litany-crop.webp?v=choir-art-5',
+    text: 'Усиль на 1 всех культистов Спящего на своей стороне.',
+    keywords: [PSIONICS, CULTIST, 'Усиление'],
+    deploy: ability([{ action: 'boost', target: { ...allies, category: CULTIST }, amount: 1 }]),
   }),
   TENTACLE, LARGE_TENTACLE, AWAKENING, SLEEPER,
 ]);

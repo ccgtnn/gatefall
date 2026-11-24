@@ -4,9 +4,9 @@ import { insertionPoint, placementEffectRows } from '../card-placement.js?v=houn
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
 import { ROWS, ROW_LABELS } from '../game/cards.js?v=sleeper-name-1';
 import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=sleeper-name-1';
-import { playerHand } from './hand.js?v=choir-art-4';
-import { availableFees, availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=choir-art-4';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=choir-art-4';
+import { playerHand } from './hand.js?v=choir-art-5';
+import { availableFees, availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=choir-art-5';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=choir-art-5';
 
 import { orderBadge } from './stat-badges.js?v=suppressor-1';
 

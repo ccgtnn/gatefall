@@ -5,7 +5,7 @@ import { announcePlay, applyStatus, createCard, damage, findUnit, removeUnit, sp
 import { chooseBotTurn, pickBotTarget } from '../docs/game/bot.js';
 import { KEYWORDS } from '../docs/game/cards.js';
 import { AWAKENING, CHOIR_CARDS, CULTIST, FANATIC, LARGE_TENTACLE, PSIONICS, SLEEPER, TENTACLE } from '../docs/game/choir.js';
-import { collection, PRESETS } from '../docs/game/decks.js';
+import { collection, copyLimit, PRESETS } from '../docs/game/decks.js';
 import { availableOrders, enqueueEndTurn, runEffect } from '../docs/game/effects.js';
 import { applyAction, createMatch } from '../docs/game/match.js';
 import { createRewardProgress } from '../docs/game/rewards.js';
@@ -52,8 +52,8 @@ function hit(match, id, amount) {
 }
 
 test('Choir cards are visible as unowned catalog entries only, with all new glossary terms', async () => {
-  assert.equal(filterCatalog(CHOIR_CARDS, { faction: 'choir' }).length, 15);
-  assert.equal(filterCatalog(CHOIR_CARDS, { faction: 'choir', category: PSIONICS }).length, 5);
+  assert.equal(filterCatalog(CHOIR_CARDS, { faction: 'choir' }).length, 18);
+  assert.equal(filterCatalog(CHOIR_CARDS, { faction: 'choir', category: PSIONICS }).length, 8);
   assert.deepEqual(collection('choir'), []);
   assert.ok(!PRESETS.some(({ factionId }) => factionId === 'choir'));
   const economy = createRewardProgress();
@@ -81,6 +81,9 @@ test('All Choir cards have versioned full art and crops in the catalog', async (
     ['sleeper-revelation', 'sleeper-revelation'],
     ['minor-offering', 'lesser-offering'],
     ['great-sacrifice', 'great-sacrifice'],
+    ['call-of-the-deep', 'call-of-the-deep'],
+    ['mind-strike', 'mind-strike'],
+    ['sleeper-litany', 'sleeper-litany'],
   ]);
   for (const { id, art, artCrop } of CHOIR_CARDS) {
     const stem = artwork.get(id);
@@ -93,6 +96,87 @@ test('All Choir cards have versioned full art and crops in the catalog', async (
       await access(url);
     }
   }
+});
+
+test('The three bronze Psionic effects count toward starting-deck Obsession', () => {
+  const definitions = [
+    ['call-of-the-deep', 6], ['mind-strike', 5], ['sleeper-litany', 4],
+  ].map(([id, provision]) => {
+    const definition = cards.get(id);
+    assert.equal(definition.type, 'effect');
+    assert.equal(definition.rarity, 'bronze');
+    assert.equal(definition.provision, provision);
+    assert.equal(copyLimit(definition), 2);
+    assert.deepEqual(definition.categories, [PSIONICS]);
+    return definition;
+  });
+  const match = setup({ hand: [cards.get('depth-neophyte')] });
+  const startingMatch = createMatch({ decks: { human: definitions, bot: [] }, random: fixed });
+  human(match).startingCategories = human(startingMatch).startingCategories;
+  assert.equal(human(match).startingCategories[PSIONICS], 3);
+  assert.equal(get(play(match), 'hand-0').power, 5);
+});
+
+test('Call of the Deep transforms and boosts the selected unit in place on either side', () => {
+  for (const [id, side, chapter] of [['orbit-1', 'human', 1], ['enemy-1', 'bot', 0]]) {
+    const initial = setup({
+      hand: [cards.get('call-of-the-deep')],
+      orbit: [unit(3), unit(10), unit(8)], surface: [AWAKENING],
+      enemies: [unit(3), unit(10), unit(8)],
+    });
+    const before = findUnit(initial, id);
+    const choosing = play(initial);
+    assert.ok(choosing.pending.options.includes('orbit-1'));
+    assert.ok(choosing.pending.options.includes('enemy-1'));
+    assert.ok(!choosing.pending.options.includes('surface-0'));
+    const result = pick(choosing, id);
+    const { card, side: boardSide, row, position } = findUnit(result, id);
+    assert.deepEqual([boardSide, row, position], [side, before.row, before.position]);
+    assert.equal(card.definition.id, TENTACLE.id);
+    assert.equal(card.definition.token, true);
+    assert.equal(card.power, TENTACLE.power + 4);
+    const events = result.log.filter(({ cardId }) => cardId === id).map(({ type, card, amount }) =>
+      [type, card?.power ?? amount]);
+    assert.deepEqual(events, [['transform', TENTACLE.power], ['boost', 4]]);
+    assert.equal(get(result, 'surface-0').chapter, chapter);
+    assert.equal(get(result, 'surface-0').playedEffects, 1);
+  }
+});
+
+test('A friendly Call of the Deep appearance can complete Awakening as the seventh Psionic effect', () => {
+  const initial = setup({ hand: [cards.get('call-of-the-deep')], orbit: [unit(10)], surface: [AWAKENING] });
+  get(initial, 'surface-0').chapter = 2;
+  for (let i = 0; i < 6; i++) announcePlay(initial, 'human', createCard(`previous-${i}`, quiet));
+  const result = pick(play(initial), 'orbit-0');
+  assert.equal(get(result, 'surface-0').playedEffects, 7);
+  assert.equal(get(result, 'surface-0').chapter, 3);
+  assert.ok(human(result).board.surface.some(({ definition }) => definition.id === SLEEPER.id));
+});
+
+test('Mind Strike deals five damage to one selected unit on either side', () => {
+  const armored = { ...unit(8), armor: 2 };
+  const effect = cards.get('mind-strike');
+  const choosing = play(setup({ hand: [effect], orbit: [armored], surface: [AWAKENING], enemies: [armored] }));
+  assert.deepEqual(choosing.pending.options.sort(), ['enemy-0', 'orbit-0']);
+  for (const [target, other] of [['enemy-0', 'orbit-0'], ['orbit-0', 'enemy-0']]) {
+    const result = pick(choosing, target);
+    assert.deepEqual([get(result, target).power, get(result, target).armor], [5, 0]);
+    assert.deepEqual([get(result, other).power, get(result, other).armor], [8, 2]);
+    assert.equal(get(result, 'surface-0').playedEffects, 1);
+  }
+});
+
+test('Sleeper Litany boosts every friendly Cultist across rows and counts as a played Psionic effect', () => {
+  const result = play(setup({
+    hand: [cards.get('sleeper-litany')],
+    orbit: [FANATIC, TENTACLE], surface: [AWAKENING, cards.get('depth-neophyte'), unit(8)], enemies: [FANATIC],
+  }));
+  assert.equal(get(result, 'orbit-0').power, FANATIC.power + 1);
+  assert.equal(get(result, 'surface-1').power, cards.get('depth-neophyte').power + 1);
+  assert.equal(get(result, 'orbit-1').power, TENTACLE.power);
+  assert.equal(get(result, 'surface-2').power, 8);
+  assert.equal(get(result, 'enemy-0').power, FANATIC.power);
+  assert.equal(get(result, 'surface-0').playedEffects, 1);
 });
 
 test('The Sleeper names and Cultist glossary use the same text while card IDs stay stable', () => {
