@@ -1,9 +1,9 @@
-import { compareRollouts } from './bot-rollouts.js?v=fugitive-monk-1';
-import { ROWS } from './cards.js?v=fugitive-monk-1';
-import { activeOrder, cardType, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js?v=fugitive-monk-1';
-import { availableOrders, canUseLeader, cleansePriority, deckCardValue, destructionRolls, destructionSwing, lockPriority, rowArmor, rowEffectValue } from './effects.js?v=fugitive-monk-1';
-import { cardAbilities, isLocked } from './events.js?v=suppressor-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=fugitive-monk-1';
+import { compareRollouts } from './bot-rollouts.js?v=ulmarin-1';
+import { ROWS } from './cards.js?v=ulmarin-1';
+import { activeOrder, cardType, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js?v=ulmarin-1';
+import { availableOrders, canUseLeader, cleansePriority, deckCardValue, destructionRolls, destructionSwing, lockPriority, rowArmor, rowEffectValue } from './effects.js?v=ulmarin-1';
+import { cardAbilities, isLocked } from './events.js?v=ulmarin-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=ulmarin-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };

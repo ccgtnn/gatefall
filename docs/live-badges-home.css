@@ -88,6 +88,20 @@
 
 :where(.hand-card, .unit-face, .preview-card-face) > .stat-badge { position: absolute; z-index: 1; }
 .stat-badge-chapters { top: 1px; }
+.scenario-play-count {
+  position: absolute;
+  z-index: 2;
+  top: max(3px, 5%);
+  right: max(3px, 7%);
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: #101925ed;
+  color: #e0e8ff;
+  font-size: clamp(8px, 1.5vw, 12px);
+  font-weight: 700;
+  line-height: 1.15;
+  pointer-events: none;
+}
 .stat-badge-infection { left: 1px; }
 .stat-badge-infection, .stat-badge-hourglass, .stat-badge-order, .stat-badge-lock { bottom: 1px; }
 :is(.hand-card, .unit-face, .preview-card-face) > :is(.stat-badge-hourglass, .stat-badge-order, .stat-badge-chapters, .stat-badge-lock) {

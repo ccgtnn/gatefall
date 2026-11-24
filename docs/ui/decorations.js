@@ -1,6 +1,6 @@
-import { FACTIONS } from '../game/cards.js?v=fugitive-monk-1';
-import { createCard } from '../game/board.js?v=fugitive-monk-1';
-import { decorateCard } from './cards.js?v=card-factions-1';
+import { FACTIONS } from '../game/cards.js?v=ulmarin-1';
+import { createCard } from '../game/board.js?v=ulmarin-1';
+import { decorateCard } from './cards.js?v=ulmarin-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { sectionBack } from './resources.js?v=essence-gain-1';
 

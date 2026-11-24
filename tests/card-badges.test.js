@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCard } from '../docs/game/board.js';
 import { FACTIONS, NEUTRAL_CARDS } from '../docs/game/cards.js';
+import { AWAKENING } from '../docs/game/choir.js';
 import { CAPTAIN_CARDS } from '../docs/game/captains.js';
 
 class TestElement {
@@ -285,4 +286,14 @@ test('the battlefield choice persists independently of the card frame', async ()
   values.delete(BATTLEFIELD_STORAGE_KEY);
   battlefield.refresh();
   assert.equal(root.dataset.battlefieldChoice, 'standard');
+});
+
+test('Awakening shows its Psionics tag, placeholder and live scenario counter', () => {
+  const card = createCard(AWAKENING.id, AWAKENING);
+  card.playedEffects = 6;
+  showCard(card);
+  assert.equal(byClass(preview, 'card-category').textContent, 'Псионика');
+  assert.equal(byClass(preview, 'scenario-play-count').textContent, '6/7');
+  assert.match(byClass(preview, 'preview-details').textContent, /Сценарий.*Безмолвный хор/);
+  assert.equal(byClass(preview, 'card-art-placeholder').textContent, AWAKENING.name);
 });

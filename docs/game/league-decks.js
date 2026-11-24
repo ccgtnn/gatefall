@@ -1,4 +1,4 @@
-import { PRESETS } from './decks.js?v=fugitive-monk-1';
+import { PRESETS } from './decks.js?v=ulmarin-1';
 
 const presets = Object.fromEntries(PRESETS.map((deck) => [deck.id, deck]));
 

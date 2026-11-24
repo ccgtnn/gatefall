@@ -1,5 +1,5 @@
-import { recordCardPlay, spendResilience } from './game/board.js?v=fugitive-monk-1';
-import { ROWS } from './game/cards.js?v=fugitive-monk-1';
+import { recordCardPlay, spendResilience } from './game/board.js?v=ulmarin-1';
+import { ROWS } from './game/cards.js?v=ulmarin-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;
@@ -50,10 +50,13 @@ export function applyJournalEvent(state, event) {
   if (!player) return;
 
   if (type === 'coins') player.coins = event.coins;
-  if (type === 'hand-bottom') {
+  if (type === 'hand-bottom' || type === 'hand-return') {
     const card = player.hand.find(({ id }) => id === cardId);
     player.hand = player.hand.filter(({ id }) => id !== cardId);
-    if (card) player.deck = [...player.deck, card];
+    if (card) {
+      player.deck = [...player.deck];
+      player.deck.splice(event.position ?? player.deck.length, 0, card);
+    }
     return;
   }
   if (type === 'pass') player.passed = true;
@@ -68,10 +71,17 @@ export function applyJournalEvent(state, event) {
     return;
   }
   if (type === 'play') {
-    recordCardPlay(player, event.card);
     const pile = event.from ?? 'hand';
-    player[pile] = player[pile].filter(({ id }) => id !== cardId);
+    if (pile !== 'created') player[pile] = player[pile].filter(({ id }) => id !== cardId);
     if (row) state.players[event.boardSide ?? side].board[row].splice(event.position, 0, { ...event.card });
+    recordCardPlay(player, event.card);
+    return;
+  }
+  if (type === 'capture') {
+    const previous = state.players[event.fromSide].board[event.fromRow];
+    const index = previous.findIndex(({ id }) => id === cardId);
+    if (index >= 0) previous.splice(index, 1);
+    player.board[row].splice(event.position, 0, { ...event.card });
     return;
   }
   if (type === 'row-effect') {

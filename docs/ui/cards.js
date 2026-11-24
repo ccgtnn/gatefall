@@ -1,11 +1,11 @@
 import { dialogClose } from './resources.js?v=essence-gain-1';
 import { button, element, selectField, setCardRarity } from './dom.js?v=opponent-reveal-1';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=fugitive-monk-1';
-import { FACTION_CATALOG } from '../game/faction-catalog.js?v=fugitive-monk-1';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=fugitive-monk-1';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=ulmarin-1';
+import { FACTION_CATALOG } from '../game/faction-catalog.js?v=ulmarin-1';
+import { basePower, cardType, isUnit, statusCount } from '../game/board.js?v=ulmarin-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 
-import { deathwishDefinitions } from '../game/events.js?v=suppressor-1';
+import { deathwishDefinitions } from '../game/events.js?v=ulmarin-1';
 import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=suppressor-1';
 
 import { addCardCrop, cardArt, hasPremiumArt, selectPremiumArt, usesPremiumArt } from './card-art.js?v=failura-1';
@@ -26,13 +26,14 @@ export function showCard(card, { leader = false, legacy = false,
   const { definition, power, armor, timer, counter } = card;
   setCardRarity(preview, definition.rarity);
   const faction = definition.faction === NEUTRAL ? 'Нейтральная' : FACTION_CATALOG[definition.faction]?.name;
-  const details = leader ? ['Лидер'] : [CARD_TYPES[cardType(card)], faction, RARITY_LABELS[definition.rarity],
+  const details = leader ? ['Лидер'] : [definition.scenario ? 'Сценарий' : CARD_TYPES[cardType(card)], faction, RARITY_LABELS[definition.rarity],
     definition.stratagem ? 'Стратагема' : definition.provision === undefined ? 'Токен'
       : `Провизия ${definition.provision}`].filter(Boolean);
   details.push(...(definition.categories ?? []));
   if (definition.shipClass) details.push(definition.shipClass);
   const stats = [];
   if (definition.scenario) stats.push(`Главы ${card.chapter ?? 0}/${definition.scenario.chapters.length}`);
+  if (definition.scenario?.countPlayedEffects) stats.push(psionicCountLabel(card));
   const infection = statusCount(card, 'infection');
   const marked = statusCount(card, 'target');
   const locked = statusCount(card, 'lock');
@@ -69,7 +70,7 @@ export function showCard(card, { leader = false, legacy = false,
     wishes.append(...card.inheritedDeathwishes.map(({ name }) => element('li', null, name)));
     body.append(element('p', 'preview-stats', 'Полученные Завещания'), wishes);
   }
-  const glossaryWords = new Set(definition.keywords);
+  const glossaryWords = new Set([...(definition.keywords ?? []), ...(definition.categories ?? [])]);
   if (deathwishDefinitions(card).length) glossaryWords.add('Завещание');
   if (marked) glossaryWords.add('Цель');
   if (locked) glossaryWords.add('Блокировка');
@@ -261,6 +262,11 @@ export function decorateCard(node, card, player, { orderOnField = false, legacy 
   if (!definition.art) node.append(element('span', 'card-art-placeholder', definition.name));
 }
 
+function psionicCountLabel(card) {
+  const { countPlayedEffects, finalChapterMinimum } = card.definition.scenario;
+  return `Сыграно эффектов «${countPlayedEffects}»: ${card.playedEffects ?? 0} / ${finalChapterMinimum}`;
+}
+
 function liveBadges(node, card, { orderOnField, showProvision, orderReady, orderCooldown }) {
   const { definition, armor, counter, timer } = card;
   if (isUnit(card)) {
@@ -281,6 +287,11 @@ function liveBadges(node, card, { orderOnField, showProvision, orderReady, order
   }
   if (definition.scenario) node.append(scenarioBadge(card.chapter ?? 0, definition.scenario.chapters.length));
   else if (!isUnit(card)) node.append(element('span', 'card-kind', cardType(card) === 'artifact' ? '◇' : '✦'));
+  if (definition.scenario?.countPlayedEffects) {
+    const counter = element('span', 'scenario-play-count', `${card.playedEffects ?? 0}/${definition.scenario.finalChapterMinimum}`);
+    counter.title = psionicCountLabel(card);
+    node.append(counter);
+  }
   const infection = statusCount(card, 'infection');
   if (infection) node.append(statBadge('infection', 'Заражение ' + infection, infection));
 
@@ -334,10 +345,11 @@ function legacyBadges(node, card, orderOnField) {
 
 function cardLabel(card, showProvision) {
   const { definition, power, armor, timer, counter } = card;
-  const details = [definition.name, CARD_TYPES[cardType(card)]];
+  const details = [definition.name, definition.scenario ? 'Сценарий' : CARD_TYPES[cardType(card)]];
   if (definition.faction === NEUTRAL) details.push('Нейтральная');
   details.push(...(definition.categories ?? []));
   if (definition.scenario) details.push(`главы ${card.chapter ?? 0}/${definition.scenario.chapters.length}`);
+  if (definition.scenario?.countPlayedEffects) details.push(psionicCountLabel(card));
   if (definition.enemySide) details.push('на сторону противника');
   if (isUnit(card)) details.push(`сила ${power}`);
   if (armor) details.push(`броня ${armor}`);

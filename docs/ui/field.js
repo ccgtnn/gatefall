@@ -1,12 +1,12 @@
 import { leagueCharacter } from './league-character.js?v=oran-avatar-1';
-import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js?v=fugitive-monk-1';
+import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js?v=ulmarin-1';
 import { insertionPoint, placementEffectRows } from '../card-placement.js?v=hounds-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=fugitive-monk-1';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=card-factions-1';
-import { playerHand } from './hand.js?v=card-factions-1';
-import { availableFees, availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=fugitive-monk-1';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=fugitive-monk-1';
+import { ROWS, ROW_LABELS } from '../game/cards.js?v=ulmarin-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=ulmarin-1';
+import { playerHand } from './hand.js?v=ulmarin-1';
+import { availableFees, availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=ulmarin-1';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=ulmarin-1';
 
 import { orderBadge } from './stat-badges.js?v=suppressor-1';
 
@@ -59,7 +59,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     const cards = player.board[row];
     slots.classList.toggle('is-selectable', Boolean(rowTarget || deckPlacement));
     if (deckPlacement) {
-      const card = match.players.human[pending.pile ?? 'deck'].find(({ id }) => id === pending.cardId);
+      const card = (pending.cards ?? match.players.human[pending.pile ?? 'deck']).find(({ id }) => id === pending.cardId);
       if (card && placementEffectRows(card.definition).includes(row)) slots.classList.add('is-placement-effect-row');
     }
     slots.dataset.playRow = row;
@@ -277,7 +277,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     const choices = element('div', 'deck-choice-cards');
     const pile = pending.pile ?? 'deck';
     const options = new Set(pending.options);
-    const selectable = human[pile].filter(({ id }) => pending.fullDeck || options.has(id));
+    const selectable = (pending.cards ?? human[pile]).filter(({ id }) => pending.fullDeck || options.has(id));
     const scrollable = pending.fullDeck || pending.kind === 'deck-top' || pile === 'discard' || pile === 'hand';
     if (scrollable) {
       panel.classList.add('pile-offer');
@@ -322,10 +322,10 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     const humanOrders = readyOrderIds(match, 'human');
     center.append(sideView(match, 'bot', readyOrderIds(match, 'bot')), sideView(match, 'human', humanOrders));
     if (!isReplaying() && pending?.side === 'human') {
-      if (['deck-card', 'deck-top', 'hand-bottom'].includes(pending.kind)) center.append(deckChoice(match));
+      if (['deck-card', 'deck-top', 'hand-bottom', 'hand-return'].includes(pending.kind)) center.append(deckChoice(match));
       else if (pending.kind === 'tribute') center.append(tributeChoice(pending));
       else {
-        const picked = pending.kind === 'deck-placement' && players.human[pending.pile ?? 'deck'].find(({ id }) => id === pending.cardId);
+        const picked = pending.kind === 'deck-placement' && (pending.cards ?? players.human[pending.pile ?? 'deck']).find(({ id }) => id === pending.cardId);
         const prompt = picked ? picked.definition.name + ' · ' + pending.prompt : pending.prompt;
         center.append(element('p', 'field-message target-prompt', prompt));
       }

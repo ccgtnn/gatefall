@@ -1,4 +1,4 @@
-import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=fugitive-monk-1';
+import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=ulmarin-1';
 
 export const MIN_CARDS = 25;
 export const MIN_UNITS = 13;

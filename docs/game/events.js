@@ -5,7 +5,7 @@ export const isLocked = (card) => Boolean(card?.statuses?.lock);
 export const cardAbilities = (card) => !card || isLocked(card) ? noAbilities : card.definition;
 
 function watches(match, event, played, firstLegendary) {
-  if (!['play', 'death', 'first-infection', 'target-marked'].includes(event.type)) return [];
+  if (!['play', 'death', 'first-infection', 'target-marked', 'appearance', 'destroy', 'discard'].includes(event.type)) return [];
   const jobs = [];
   for (const side of sides) {
     const player = match.players[side];
@@ -20,10 +20,19 @@ function watches(match, event, played, firstLegendary) {
             sourceDefinitionId: card.definition.id, requiredSource: true, cardAbility: true });
         }
         const scenario = abilities.scenario;
-        if (event.type === 'play' && side === event.side && card.id !== played?.id &&
-            scenario && played?.definition.categories?.includes(scenario.category) &&
-            (card.chapter ?? 0) < scenario.chapters.length) {
-          jobs.push({ side, sourceId: card.id, scenarioChapter: true });
+        if (!scenario) continue;
+        const { category, trigger = 'play', countPlayedEffects } = scenario;
+        if (event.type === trigger && side === event.side && card.id !== played?.id &&
+            played?.definition.categories?.includes(category) && (card.chapter ?? 0) < scenario.chapters.length) {
+          jobs.push({ side, sourceId: card.id, scenarioChapter: true,
+            playedEffects: player.effectCategoryPlays?.[countPlayedEffects] ?? 0 });
+        }
+        if (card.scenarioSacrifice === event.cardId && ['death', 'destroy', 'discard'].includes(event.type)) {
+          delete card.scenarioSacrifice;
+          if (event.type !== 'discard' && scenario.onSacrifice) {
+            jobs.push({ side, sourceId: card.id, ability: scenario.onSacrifice,
+              requiredSource: true, cardAbility: true, sourceDefinitionId: card.definition.id });
+          }
         }
       }
     }

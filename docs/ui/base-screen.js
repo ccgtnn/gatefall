@@ -1,4 +1,4 @@
-import { createBaseGrid } from './base-grid.js?v=fugitive-monk-1';
+import { createBaseGrid } from './base-grid.js?v=ulmarin-1';
 import { BASE_OVERLAYS, BASE_POSITIONS, baseLayout, overlayStyle } from './base-layout.js?v=base-mine-1';
 import { BASE_PLOTS, BUILDING_BY_PLOT, BUILDINGS, MATERIALS, buildingEffect, constructionShortages } from '../game/base.js?v=tavern-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';

@@ -1,10 +1,10 @@
-import { ROWS } from './cards.js?v=fugitive-monk-1';
-import { cardType, findUnit, isUnit, neighbors, restoreCard, statusCount, units } from './board.js?v=fugitive-monk-1';
-import { availableOrders, canUseLeader, cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, rowArmor, rowDamage, rowEffectValue, rowScatterValue } from './effects.js?v=fugitive-monk-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=fugitive-monk-1';
+import { ROWS } from './cards.js?v=ulmarin-1';
+import { cardType, findUnit, isUnit, neighbors, restoreCard, statusCount, units } from './board.js?v=ulmarin-1';
+import { availableOrders, canUseLeader, cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, rowArmor, rowDamage, rowEffectValue, rowScatterValue } from './effects.js?v=ulmarin-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=ulmarin-1';
 
-import { deathwishDefinitions } from './events.js?v=suppressor-1';
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=fugitive-monk-1';
+import { deathwishDefinitions } from './events.js?v=ulmarin-1';
+import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js?v=ulmarin-1';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
@@ -26,7 +26,8 @@ export function createBotView(match) {
         const swing = card.definition.deploy?.sourceRow && !row ? 0 : effectSwing(match, 'bot', card);
         return { ...card, preferredRow: row, swing: (card.power ?? 0) + swing };
       }
-      if (card.definition.deploy?.steps.some((step) => step.amount?.playedCategory)) {
+      if (card.definition.deploy?.steps.some((step) => step.amount?.playedCategory || step.amount?.startingCategory ||
+          step.action === 'play-from-hand' || step.chooseAll)) {
         return { ...card, swing: (card.power ?? 0) + effectSwing(match, 'bot', card) };
       }
       if (card.definition.deploy?.steps.some((step) => step.status === 'infection' || step.action === 'replace-leader')) {
@@ -164,10 +165,16 @@ export function pickBotTarget(match) {
       ? rowScatterValue(enemy, row, amount) : rowDamage(enemy, row, amount, armorStrip));
     return { type: 'target', cardId: row };
   }
+  if (kind === 'hand-return') {
+    const eligible = player.hand.filter(({ id }) => options.includes(id));
+    const card = bestTarget(eligible, (card) => -deckCardValue(match, match.pending.side, card));
+    return { type: 'target', cardId: card.id };
+  }
   if (kind === 'deck-card' || kind === 'deck-top') {
     const optionsSet = new Set(options);
-    const candidates = player[match.pending.pile ?? 'deck'].filter(({ id }) => optionsSet.has(id));
+    const candidates = (match.pending.cards ?? player[match.pending.pile ?? 'deck']).filter(({ id }) => optionsSet.has(id));
     const card = bestTarget(candidates, (card) => {
+      if (['created', 'hand'].includes(match.pending.pile)) return deckCardValue(match, match.pending.side, card);
       if (match.pending.pile === 'discard') return deckCardValue(match, match.pending.side, restoreCard(card));
       if (match.pending.fullDeck) return deckCardValue(match, match.pending.side, card);
       const { definition, power } = card;
@@ -177,7 +184,7 @@ export function pickBotTarget(match) {
   }
   if (kind === 'deck-placement') {
     const recipient = match.players[match.pending.selectionSide ?? match.pending.side];
-    const card = player[match.pending.pile ?? 'deck'].find(({ id }) => id === match.pending.cardId);
+    const card = (match.pending.cards ?? player[match.pending.pile ?? 'deck']).find(({ id }) => id === match.pending.cardId);
     const preferred = card?.definition.preferredRow;
     const row = options.includes(preferred) ? preferred : bestTarget(options, (row) => -recipient.board[row].length);
     return { type: 'place', row, position: recipient.board[row].length };
@@ -200,6 +207,7 @@ export function pickBotTarget(match) {
     },
     emp: ({ card }) => Math.min(card.power, 2 + (card.armor ?? 0)) + (card.armor ?? 0) * .1,
     consume: ({ card }) => sacrificePriority(card),
+    sacrifice: ({ card }) => -card.power,
     deathwish: ({ card }) => deathwishDefinitions(card).length * 10 + card.power,
     lock: (unit) => lockPriority(unit, match.pending.side),
     cleanse: (unit) => cleansePriority(unit, match.pending.side),
@@ -239,7 +247,7 @@ function chooseEasyTurn(match) {
   if (!alreadyWon) {
     if (order) {
       const damage = order.card.definition.order.steps.find(({ action }) => action === 'damage');
-      if (!damage || enemies.some(({ card }) => lethalDamage(card, damage.amount) || (card.armor ?? 0) <= 1)) {
+      if (!damage || damage.amount?.count || enemies.some(({ card }) => lethalDamage(card, damage.amount) || (card.armor ?? 0) <= 1)) {
         return { type: 'order', cardId: order.card.id };
       }
     }
@@ -253,7 +261,9 @@ export function chooseBotTurn(match, difficulty = 'easy', options = {}) {
   let decision;
   const strategy = { ...options, pickTarget: pickBotTarget, onDecision: (trace) => { decision = trace; } };
   let action;
-  if (match.pending && (difficulty !== 'easy' || match.pending.kind === 'deck-placement')) {
+  if (match.pending?.kind === 'sacrifice') {
+    action = pickBotTarget(match);
+  } else if (match.pending && (difficulty !== 'easy' || match.pending.kind === 'deck-placement')) {
     action = chooseStrategicTarget(match, pickBotTarget, difficulty, strategy);
   } else {
     const fallback = chooseEasyTurn(match);

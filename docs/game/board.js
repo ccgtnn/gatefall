@@ -1,5 +1,5 @@
-import { ROWS } from './cards.js?v=fugitive-monk-1';
-import { cardAbilities, emit, isLocked } from './events.js?v=suppressor-1';
+import { ROWS } from './cards.js?v=ulmarin-1';
+import { cardAbilities, emit, isLocked } from './events.js?v=ulmarin-1';
 import { HOUND_CATEGORY } from './captains.js?v=captains-independent-1';
 
 export const ROW_LIMIT = 9;
@@ -74,6 +74,17 @@ export function recordCardPlay(player, card) {
     const counts = { ...player.categoryPlays };
     for (const category of new Set(categories)) counts[category] = (counts[category] ?? 0) + 1;
     player.categoryPlays = counts;
+    if (cardType(card) === 'effect') {
+      const effectCounts = { ...player.effectCategoryPlays };
+      for (const category of new Set(categories)) effectCounts[category] = (effectCounts[category] ?? 0) + 1;
+      player.effectCategoryPlays = effectCounts;
+    }
+  }
+  for (const line of Object.values(player.board)) {
+    for (const scenario of line) {
+      const category = scenario.definition.scenario?.countPlayedEffects;
+      if (category) scenario.playedEffects = player.effectCategoryPlays?.[category] ?? 0;
+    }
   }
   const firstLegendary = card?.definition.rarity === 'gold' && !player.playedLegendary;
   if (firstLegendary) player.playedLegendary = true;
@@ -89,8 +100,48 @@ export function announcePlay(match, side, card, destination, extra) {
   if (card.armor) emit(match, { type: 'armor', side: boardSide ?? side, name: card.definition.name, cardId: card.id,
     armor: card.armor, amount: card.armor });
   if (boardSide && card.definition.categories?.includes(HOUND_CATEGORY)) refreshHoundAura(match, boardSide);
-  if (boardSide) refreshShipRowBonus(match, boardSide, destination.row);
+  if (boardSide) {
+    refreshShipRowBonus(match, boardSide, destination.row);
+    reactions.push(...appearanceJobs(match, boardSide, card));
+    const category = card.definition.scenario?.countPlayedEffects;
+    if (category) card.playedEffects = match.players[boardSide].effectCategoryPlays?.[category] ?? 0;
+  }
   return reactions;
+}
+
+export function appearanceJobs(match, side, card) {
+  if (!isUnit(card) || !findUnit(match, card.id)) return [];
+  return emit(match, { type: 'appearance', side }, { played: card, journal: false });
+}
+
+export function captureDestination(match, side, unit) {
+  const player = match.players[side];
+  return [unit.row, ...ROWS.filter((row) => row !== unit.row)].find((row) => player.board[row].length < ROW_LIMIT);
+}
+
+export function capture(match, side, unit) {
+  if (!isUnit(unit.card) || unit.side === side) return;
+  const row = captureDestination(match, side, unit);
+  if (!row) return;
+  const { card } = unit;
+  const previous = match.players[unit.side];
+  const player = match.players[side];
+  previous.board[unit.row].splice(unit.position, 1);
+  card.owner ??= unit.side;
+  card.readyAt = player.turns + Math.max(0, card.readyAt - previous.turns);
+  const position = player.board[row].length;
+  player.board[row].push(card);
+  match.log.push({ type: 'capture', side, row, position, fromSide: unit.side, fromRow: unit.row,
+    cardId: card.id, name: card.definition.name, card: { ...card } });
+  refreshHoundAura(match, unit.side);
+  refreshHoundAura(match, side, card.id);
+  refreshShipRowBonus(match, unit.side, unit.row);
+  refreshShipRowBonus(match, side, row, card.id);
+  match.effects.unshift(...appearanceJobs(match, side, card));
+}
+
+function onPowerLoss(match, unit) {
+  match.effects.unshift(...emit(match, { type: 'power-loss', side: unit.side }, { source: unit.card, journal: false }));
 }
 
 export function units(match, side, rows = ROWS) {
@@ -131,6 +182,7 @@ export function weaken(match, unit, amount) {
   card.power -= lost;
   match.log.push({ type: 'weaken', side, name: card.definition.name, cardId: card.id, power: card.power, amount: lost });
   if (card.power === 0) removeUnit(match, unit, 'weaken');
+  else onPowerLoss(match, unit);
 }
 
 export function changeBasePower(match, unit, amount) {
@@ -273,6 +325,7 @@ export function tickInfection(match, unit) {
   else card.power -= 1;
   applyStatus(match, unit, 'infection', -1, { ...cause, tick: true, blocked, power: card.power });
   if (card.power === 0) removeUnit(match, unit, 'infection', undefined, { infection, ...cause });
+  else if (!blocked) onPowerLoss(match, unit);
 }
 
 export function removeUnit(match, unit, reason, consumerId, extra) {
@@ -343,6 +396,7 @@ export function transformUnit(match, unit, definition) {
   match.log.push({ type: 'transform', side, cardId: card.id, name: card.definition.name, card: { ...replacement } });
   refreshHoundAura(match, side);
   refreshShipRowBonus(match, side, row);
+  match.effects.unshift(...appearanceJobs(match, side, replacement));
 }
 
 export function discardCard(match, side, card, exile = false) {
@@ -365,7 +419,12 @@ export function damage(match, unit, amount, sourceDefinitionId, extra) {
   const lost = Math.min(unit.card.power, amount - absorbed);
   unit.card.power -= lost;
   emit(match, { type: 'damage', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, power: unit.card.power, amount, absorbed, lost, sourceDefinitionId, ...extra });
-  if (unit.card.power > 0) return 0;
+  if (unit.card.power > 0) {
+    if (lost) onPowerLoss(match, unit);
+    if (lost || absorbed) match.effects.unshift(...emit(match, { type: 'damage', side: unit.side },
+      { source: unit.card, journal: false }));
+    return 0;
+  }
   removeUnit(match, unit, 'damage', undefined, { sourceDefinitionId, ...extra });
   return 1;
 }
@@ -399,4 +458,5 @@ export function spawnCards(match, side, row, position, count, definition) {
   emit(match, { type: 'spawn', side, row, count: added, name: definition.name, position, cards: tokens.map((card) => ({ ...card })) });
   if (definition.categories?.includes(HOUND_CATEGORY)) refreshHoundAura(match, side);
   refreshShipRowBonus(match, side, row);
+  match.effects.unshift(...tokens.flatMap((card) => appearanceJobs(match, side, card)));
 }
