@@ -1,4 +1,4 @@
-import { ROWS } from './cards.js?v=choir-playable-1';
+import { ROWS } from './cards.js?v=choir-art-6';
 import { cardAbilities, emit, isLocked } from './events.js?v=ulmarin-1';
 import { HOUND_CATEGORY } from './captains.js?v=captains-independent-1';
 

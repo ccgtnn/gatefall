@@ -1,4 +1,4 @@
-import { REWARD_STORAGE_KEY } from './rewards.js?v=choir-playable-1';
+import { REWARD_STORAGE_KEY } from './rewards.js?v=choir-art-6';
 
 export async function resetProgress(storage, locks) {
   function clearGameData() {

@@ -1,9 +1,9 @@
-import { compareRollouts } from './bot-rollouts.js?v=choir-playable-1';
-import { ROWS } from './cards.js?v=choir-playable-1';
-import { activeOrder, cardType, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js?v=choir-playable-1';
-import { availableOrders, canUseLeader, cleansePriority, deckCardValue, destructionRolls, destructionSwing, lockPriority, rowArmor, rowEffectValue } from './effects.js?v=choir-playable-1';
+import { compareRollouts } from './bot-rollouts.js?v=choir-art-6';
+import { ROWS } from './cards.js?v=choir-art-6';
+import { activeOrder, cardType, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js?v=choir-art-6';
+import { availableOrders, canUseLeader, cleansePriority, deckCardValue, destructionRolls, destructionSwing, lockPriority, rowArmor, rowEffectValue } from './effects.js?v=choir-art-6';
 import { cardAbilities, isLocked } from './events.js?v=ulmarin-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=choir-playable-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=choir-art-6';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };

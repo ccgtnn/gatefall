@@ -1,6 +1,6 @@
 import { setCardRarity } from './ui/dom.js?v=opponent-reveal-1';
 import { cardArt } from './ui/card-art.js?v=choir-playable-1';
-import { NEUTRAL } from './game/cards.js?v=choir-playable-1';
+import { NEUTRAL } from './game/cards.js?v=choir-art-6';
 import { burstParticles } from './particles.js?v=step-14';
 
 const VISUAL_EVENTS = new Set([

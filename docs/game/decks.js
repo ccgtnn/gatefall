@@ -1,4 +1,4 @@
-import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=choir-playable-1';
+import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=choir-art-6';
 
 export const MIN_CARDS = 25;
 export const MIN_UNITS = 13;

@@ -1,5 +1,5 @@
 import { LEAGUE_CHARACTERS } from './league-characters.js?v=hounds-tokens-1';
-import { leagueDeckFor } from './league-decks.js?v=choir-playable-1';
+import { leagueDeckFor } from './league-decks.js?v=choir-art-6';
 
 export const LEAGUE_RULES = Object.freeze({
   rounds: 7, promotionPlaces: 2, relegationPlaces: 2, roundPoints: 1, winBonus: 1,

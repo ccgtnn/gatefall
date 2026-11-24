@@ -28,7 +28,7 @@ function tentacle(id, name, power, hit, stats = {}) {
 }
 
 export const TENTACLE = tentacle('ulmarin-tentacle', 'Щупальце Спящего', 2, 1, {
-  art: 'sleeper-tentacle.webp?v=choir-art-1', artCrop: 'sleeper-tentacle-crop.webp?v=choir-art-1',
+  art: 'sleeper-tentacle.webp?v=choir-art-6', artCrop: 'sleeper-tentacle-crop.webp?v=choir-art-6',
   rarity: 'bronze', provision: 4,
 });
 export const LARGE_TENTACLE = tentacle('ulmarin-large-tentacle', 'Большое щупальце Спящего', 8, 2, {
