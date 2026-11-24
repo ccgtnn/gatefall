@@ -6,7 +6,7 @@ import { advanceProduction, productionView, readProduction, takeProduction } fro
 import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=tavern-1';
 import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=suppressor-1';
 import { copyLimit, inspectDeck } from './decks.js?v=suppressor-1';
-import { CAPTAIN_CARDS } from './captains.js?v=hounds-tokens-1';
+import { CAPTAIN_CARDS } from './captains.js?v=captains-independent-1';
 
 export const STARTING_KEYS = 10000;
 export const STARTING_GOLD = 10000;

@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
 import test from 'node:test';
-import { createCard, findUnit, removeUnit, statusCount } from '../docs/game/board.js';
+import { applyStatus, createCard, findUnit, removeUnit, spawnCards, statusCount, transformUnit } from '../docs/game/board.js';
 import { CAPTAIN_CARDS, HOUND, HOUND_CATEGORY, REINFORCED_HOUND } from '../docs/game/captains.js';
-import { KEYWORDS } from '../docs/game/cards.js';
+import { KEYWORDS, NEUTRAL_CARDS } from '../docs/game/cards.js';
 import { PRESETS } from '../docs/game/decks.js';
 import { availableFees, availableOrders } from '../docs/game/effects.js';
 import { applyAction, createDeckMatch, createMatch } from '../docs/game/match.js';
@@ -39,10 +39,10 @@ const pass = (match, side = 'human') => applyAction(match, side, { type: 'pass' 
 
 test('all ten Hound cards are in the collection but their faction has no preset or booster', async () => {
   const economy = createRewardProgress();
-  assert.equal(CAPTAIN_CARDS.length, 10);
-  for (const { id, faction, categories } of CAPTAIN_CARDS) {
+  const hounds = CAPTAIN_CARDS.filter(({ categories }) => categories?.includes(HOUND_CATEGORY));
+  assert.equal(hounds.length, 10);
+  for (const { id, faction } of hounds) {
     assert.equal(faction, 'captains');
-    assert.ok(categories.includes(HOUND_CATEGORY));
     assert.ok(economy.inventory().owned[id] > 0);
   }
   for (const keyword of ['Прибыль', 'Плата', 'Взнос']) assert.ok(KEYWORDS[keyword]);
@@ -53,14 +53,15 @@ test('all ten Hound cards are in the collection but their faction has no preset 
   assert.equal(await economy.openPack('captains'), 'unknown');
 });
 
-test('Hound cards and both tokens use their own WebP and any focused crop exists', async () => {
-  for (const { id, art, artCrop } of [...CAPTAIN_CARDS, HOUND, REINFORCED_HOUND]) {
+test('Captain cards and both tokens use their own WebP and alternate art exists', async () => {
+  for (const { id, art, artCrop, artStates } of [...CAPTAIN_CARDS, HOUND, REINFORCED_HOUND]) {
     assert.equal(art, `${id}.webp`);
     await access(new URL(`../docs/art/${art}`, import.meta.url));
     if (artCrop) {
       assert.equal(artCrop, `${id}-crop.webp`);
       await access(new URL(`../docs/art/${artCrop}`, import.meta.url));
     }
+    for (const file of Object.values(artStates ?? {})) await access(new URL(`../docs/art/${file}`, import.meta.url));
   }
   await access(new URL('../docs/art/black-hounds-emblem.webp', import.meta.url));
   await access(new URL('../docs/art/black-hounds-emblem-small.webp', import.meta.url));
@@ -221,4 +222,123 @@ test('Глаза гончей transform a chosen basic token into a 3-power, 1-a
   assert.deepEqual([transformed.definition.id, transformed.power, transformed.armor], [REINFORCED_HOUND.id, 3, 1]);
   assert.equal(human(match).coins, 2);
   assert.equal(availableFees(match, 'human').length, 0);
+});
+
+const debtor = byId.get('debtor');
+const pilot = byId.get('scrapped-pilot');
+const turret = byId.get('broken-turret');
+const lightShip = byId.get('hound-claw');
+const heavyShip = byId.get('black-hound');
+
+test('the three independent bronzes are collectible and outside booster pools', async () => {
+  const economy = createRewardProgress();
+  assert.equal(CAPTAIN_CARDS.length, 13);
+  for (const card of [debtor, pilot, turret]) {
+    assert.deepEqual([card.faction, card.rarity, card.provision, card.categories], ['captains', 'bronze', 4, undefined]);
+    assert.ok(economy.inventory().owned[card.id] > 0);
+    assert.ok(!NEUTRAL_CARDS.some(({ id }) => id === card.id));
+  }
+  assert.deepEqual([debtor.type, debtor.power, pilot.type, pilot.power, turret.type, turret.power],
+    ['unit', 6, 'unit', 3, 'artifact', undefined]);
+  assert.equal(await economy.openPack('captains'), 'unknown');
+});
+
+test('Debtor pays exactly two coins or loses three current power without paying', () => {
+  for (const [coins, remaining, power] of [[0, 0, 3], [1, 1, 3], [2, 0, 6], [9, 7, 6]]) {
+    const before = setup({ hand: [{ ...debtor, armor: 2, shield: true }], coins });
+    const match = play(before);
+    const { card } = findUnit(match, 'hand-1');
+    assert.deepEqual([human(match).coins, card.power, card.basePower, card.armor, statusCount(card, 'shield')],
+      [remaining, power, 6, 2, 1]);
+    assert.equal(match.log.filter(({ type }) => type === 'coins').length, Number(coins >= 2));
+    assert.equal(match.log.filter(({ type }) => type === 'weaken').length, Number(coins < 2));
+    assert.equal(human(before).coins, coins);
+  }
+});
+
+test('Scrapped Pilot can play in either row and counts only friendly ships there, once', () => {
+  for (const row of ['orbit', 'surface']) {
+    const otherRow = row === 'orbit' ? 'surface' : 'orbit';
+    const before = setup({ hand: [pilot] });
+    spawnCards(before, 'bot', row, 0, 1, lightShip);
+    spawnCards(before, 'human', otherRow, 0, 1, lightShip);
+    const match = play(before, row);
+    const { card } = findUnit(match, 'hand-1');
+    assert.equal(card.power, 3);
+    const first = { ...lightShip };
+    const second = row === 'orbit' ? heavyShip : lightShip;
+    spawnCards(match, 'human', row, 0, 1, first);
+    assert.equal(card.power, 6);
+    spawnCards(match, 'human', row, 0, 1, second);
+    assert.equal(card.power, 6);
+    const [latest, earlier] = human(match).board[row];
+    removeUnit(match, findUnit(match, latest.id), 'damage');
+    assert.equal(card.power, 6);
+    removeUnit(match, findUnit(match, earlier.id), 'destroy');
+    assert.equal(card.power, 3);
+  }
+});
+
+test('an existing heavy ship boosts the pilot and transform or lock updates its effect', () => {
+  const match = play(setup({ hand: [pilot], orbit: [heavyShip] }), 'orbit');
+  const { card } = findUnit(match, 'hand-1');
+  assert.equal(card.power, 6);
+  transformUnit(match, findUnit(match, 'orbit-1'), ordinary);
+  assert.equal(card.power, 3);
+  transformUnit(match, findUnit(match, 'orbit-1'), lightShip);
+  assert.equal(card.power, 6);
+  applyStatus(match, findUnit(match, card.id), 'lock', 1);
+  assert.equal(card.shipRowBonus, undefined);
+  removeUnit(match, findUnit(match, 'orbit-1'), 'damage');
+  assert.equal(card.power, 6);
+});
+
+const turretShot = (event) => event.type === 'damage' && event.visual === 'turret';
+const playBotSpare = (match, random) => applyAction(match, 'bot',
+  { type: 'play', cardId: 'bot-hand-1', row: 'orbit', position: 0 }, { random });
+
+test('Broken Turret repeats targets, retargets deaths and only fires at enemies on placement', () => {
+  const before = setup({ hand: [turret], surface: [ordinary], foes: [{ ...ordinary, power: 2 }, ordinary] });
+  const match = applyAction(before, 'human', { type: 'play', cardId: 'hand-1', row: 'surface', position: 1 }, { random: () => 0 });
+  assert.equal(match.turn, 'bot');
+  assert.deepEqual(match.log.filter(turretShot).map(({ cardId }) => cardId),
+    ['foe-0', 'foe-0', 'foe-1', 'foe-1', 'foe-1']);
+  assert.equal(findUnit(match, 'foe-1').card.power, 2);
+  assert.equal(findUnit(match, 'surface-1').card.power, 5);
+  assert.equal(findUnit(match, 'hand-1').card.timer, 1);
+  assert.equal(findUnit(match, 'hand-1').card.artState, undefined);
+});
+
+test('on its next owner turn the turret changes art, shoots one random ally, then disappears', () => {
+  const deployed = play(setup({ hand: [turret], orbit: [ordinary], surface: [ordinary] }));
+  assert.ok(!deployed.log.some(turretShot));
+  const next = playBotSpare(deployed, () => .99);
+  const events = next.log.slice(deployed.log.length);
+  const art = events.findIndex(({ type }) => type === 'art-state');
+  const shot = events.findIndex(turretShot);
+  const destroy = events.findIndex(({ type, cardId }) => type === 'destroy' && cardId === 'hand-1');
+  assert.ok(art >= 0 && shot > art && destroy > shot);
+  assert.deepEqual([events[shot].cardId, events[shot].side, events[shot].amount, events[shot].sourceId],
+    ['surface-1', 'human', 1, 'hand-1']);
+  const replay = createPlaybackState(deployed);
+  events.slice(0, shot).forEach((event) => applyJournalEvent(replay, event));
+  assert.equal(findUnit(replay, 'hand-1').card.artState, 'failing');
+  assert.equal(findUnit(replay, 'surface-1').card.power, 5);
+  events.slice(shot).forEach((event) => applyJournalEvent(replay, event));
+  assert.equal(findUnit(replay, 'surface-1').card.power, 4);
+  assert.equal(findUnit(replay, 'hand-1'), undefined);
+  assert.equal(findUnit(next, 'orbit-1').card.power, 5);
+  assert.equal(findUnit(next, 'hand-1'), undefined);
+  assert.ok(human(next).exile.some(({ id }) => id === 'hand-1'));
+});
+
+test('a turret with no allied target still breaks and one removed early cannot fire', () => {
+  const deployed = play(setup({ hand: [turret] }));
+  const noAlly = playBotSpare(deployed, () => 0);
+  assert.ok(noAlly.log.some(({ type }) => type === 'art-state'));
+  assert.ok(!noAlly.log.some(turretShot));
+  assert.equal(findUnit(noAlly, 'hand-1'), undefined);
+  removeUnit(deployed, findUnit(deployed, 'hand-1'), 'destroy');
+  const removed = playBotSpare(deployed, () => 0);
+  assert.ok(!removed.log.some(({ type }) => type === 'art-state'));
 });

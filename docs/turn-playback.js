@@ -1,4 +1,4 @@
-import { recordCardPlay, spendResilience } from './game/board.js?v=suppressor-1';
+import { recordCardPlay, spendResilience } from './game/board.js?v=captains-independent-1';
 import { ROWS } from './game/cards.js?v=suppressor-1';
 
 export function motionDuration(speed, reduced) {
@@ -110,14 +110,17 @@ export function applyJournalEvent(state, event) {
     }
     if (type === 'inherit-deathwishes') line[index].inheritedDeathwishes = event.inheritedDeathwishes;
     if (type === 'transform') line[index] = { ...event.card };
+    if (type === 'art-state') line[index].artState = event.artState;
     if (type === 'aura-power') {
       line[index].power = event.power;
-      if (event.houndBonus) line[index].houndBonus = event.houndBonus;
-      else delete line[index].houndBonus;
+      for (const bonus of ['houndBonus', 'shipRowBonus']) {
+        if (event[bonus]) line[index][bonus] = event[bonus];
+        else if (event[bonus] === 0) delete line[index][bonus];
+      }
     }
     if (type === 'scenario-chapter') line[index].chapter = event.chapter;
     if (type === 'base-power') line[index].basePower = event.basePower;
-    if (['boost', 'damage', 'base-power', 'heal'].includes(type)) line[index].power = event.power;
+    if (['boost', 'weaken', 'damage', 'base-power', 'heal'].includes(type)) line[index].power = event.power;
     if (type === 'armor') line[index].armor = event.armor;
     if (type === 'status') {
       const card = line[index];

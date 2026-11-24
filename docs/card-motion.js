@@ -4,7 +4,7 @@ import { NEUTRAL } from './game/cards.js?v=suppressor-1';
 import { burstParticles } from './particles.js?v=step-14';
 
 const VISUAL_EVENTS = new Set([
-  'play', 'damage', 'boost', 'armor', 'status', 'death', 'destroy', 'discard', 'spawn', 'deathwish', 'consume', 'consume-group', 'leader', 'order', 'aura-power', 'transform',
+  'play', 'damage', 'boost', 'weaken', 'armor', 'status', 'death', 'destroy', 'discard', 'spawn', 'deathwish', 'consume', 'consume-group', 'leader', 'order', 'aura-power', 'transform',
 ]);
 
 function rects(screen) {
@@ -244,10 +244,12 @@ function orbitalBeam(screen, rect, duration) {
 
 function projectile(screen, event, entry, duration) {
   if (!entry) return Promise.resolve();
+  const sourceCard = event.sourceId && rects(screen).get(event.sourceId)?.node;
   const sourceLine = screen.querySelector('[data-side="' + event.attacker + '"] [data-row="' + event.sourceRow + '"]');
   const floor = screen.querySelector('.field-center');
-  if (!floor) return Promise.resolve();
-  const from = center((sourceLine ?? floor).getBoundingClientRect());
+  const source = sourceCard ?? sourceLine ?? floor;
+  if (!source) return Promise.resolve();
+  const from = center(source.getBoundingClientRect());
   const to = center(entry.rect);
   const shot = floatNode(screen, 'motion-projectile', '', from);
   return animate(shot, [
@@ -438,6 +440,16 @@ export function animateTurnSparks(screen, side, duration) {
 }
 
 export async function presentJournalEvent(screen, event, commit, render, duration) {
+  if (event.type === 'art-state') {
+    if (!duration) {
+      commit();
+      return;
+    }
+    render(commit());
+    const image = rects(screen).get(event.cardId)?.node.querySelector('img.card-art-crop');
+    if (image?.decode) await image.decode().catch(() => {});
+    return;
+  }
   if (event.type === 'coins') {
     render(commit());
     const counter = screen.querySelector(`[data-coins-side="${event.side}"]`);
@@ -522,6 +534,9 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
       break;
     case 'boost':
       motions.push(...floatingNumber(screen, entry, '+' + event.amount, 'boost', duration));
+      break;
+    case 'weaken':
+      motions.push(...floatingNumber(screen, entry, '−' + event.amount, 'damage', duration));
       break;
     case 'discard':
     case 'death':

@@ -120,3 +120,28 @@ test('a row effect updates the field immediately on application and expiry', asy
   }
   assert.deepEqual(trace, [{ type: 'rot', remaining: 3 }, null]);
 });
+
+test('turret playback waits for its alternate art before the shot, with no wait at zero duration', async () => {
+  const trace = [];
+  let finishDecode;
+  const decoded = new Promise((resolve) => { finishDecode = resolve; });
+  const image = { decode: () => { trace.push('decode'); return decoded; } };
+  const turret = {
+    dataset: { boardCard: 'turret' },
+    getBoundingClientRect: () => ({}),
+    querySelector: () => image,
+  };
+  const screen = { querySelectorAll: () => [turret] };
+  const artSwap = { type: 'art-state', cardId: 'turret', artState: 'failing' };
+  const commit = () => { trace.push('commit'); return artSwap; };
+  const render = () => trace.push('render');
+  const pending = presentJournalEvent(screen, artSwap, commit, render, 320)
+    .then(() => trace.push('next event'));
+  assert.deepEqual(trace, ['commit', 'render', 'decode']);
+  finishDecode();
+  await pending;
+  assert.deepEqual(trace, ['commit', 'render', 'decode', 'next event']);
+  trace.length = 0;
+  await presentJournalEvent(screen, artSwap, commit, render, 0);
+  assert.deepEqual(trace, ['commit']);
+});

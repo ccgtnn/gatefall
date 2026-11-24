@@ -1,7 +1,7 @@
 import { dialogClose } from './resources.js?v=essence-gain-1';
 import { button, element, sideLabel } from './dom.js?v=opponent-reveal-1';
 import { ROW_LABELS } from '../game/cards.js?v=suppressor-1';
-import { cardButton, showCard } from './cards.js?v=suppressor-1';
+import { cardButton, showCard } from './cards.js?v=captains-independent-1';
 
 export function roundText(event) {
   const { scores, winner } = event;
@@ -58,6 +58,7 @@ export function eventText(event) {
       : `Приказ карты «${event.name}» готов.`;
     case 'armor': return `${side}, «${event.name}»: броня ${event.amount > 0 ? '+' : '−'}${Math.abs(event.amount)}.`;
     case 'boost': return `${side}, «${event.name}»: усиление +${event.amount}.`;
+    case 'weaken': return `${side}, «${event.name}»: сила −${event.amount}.`;
     case 'damage': return `${side}, «${event.name}»: урон ${event.amount}, броня поглотила ${event.absorbed}, потеря силы ${event.lost}.`;
     case 'death': return `«${event.name}» погибает и ${event.exile ? 'уходит из игры' : 'попадает в сброс'}.`;
     case 'discard': return `«${event.name}» отправляется в сброс.`;

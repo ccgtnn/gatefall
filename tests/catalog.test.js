@@ -14,7 +14,7 @@ test('Hound tokens appear after collectible cards and outside inventory filters'
   const select = (filters) => filterCatalog(entries, { faction: 'captains', category: 'Гончая', owned, ...filters });
   assert.deepEqual(select({}).slice(-2), [HOUND, REINFORCED_HOUND]);
   assert.deepEqual(select({ availability: 'owned' }), [CAPTAIN_CARDS[0]]);
-  assert.equal(select({ availability: 'missing' }).length, CAPTAIN_CARDS.length - 1);
+  assert.equal(select({ availability: 'missing' }).length, entries.filter(({ categories, token }) => !token && categories?.includes('Гончая')).length - 1);
   assert.ok(select({ provision: '5' }).every(({ provision }) => provision === 5));
 });
 

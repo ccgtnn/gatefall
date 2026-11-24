@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCard } from '../docs/game/board.js';
 import { FACTIONS, NEUTRAL_CARDS } from '../docs/game/cards.js';
+import { CAPTAIN_CARDS } from '../docs/game/captains.js';
 
 class TestElement {
   constructor(tag) {
@@ -39,7 +40,7 @@ globalThis.document = {
 };
 const { decorateCard, preview, showCard } = await import('../docs/ui/cards.js');
 const { orderBadge } = await import('../docs/ui/stat-badges.js');
-const decks = [...NEUTRAL_CARDS, ...FACTIONS.protectorate.pool, ...FACTIONS.growth.pool];
+const decks = [...NEUTRAL_CARDS, ...FACTIONS.protectorate.pool, ...FACTIONS.growth.pool, ...CAPTAIN_CARDS];
 const makeCard = (id) => createCard(id, decks.find((entry) => entry.id === id));
 const tree = (root) => [root, ...root.children.flatMap(tree)];
 const byClass = (node, name) => tree(node).find((child) => child.className.split(' ').includes(name));
@@ -48,6 +49,17 @@ const drawable = (id, options) => {
   decorateCard(node, makeCard(id), {}, options);
   return node;
 };
+
+test('turret shows the default art and switches its face only when replay marks it as failing', () => {
+  const card = makeCard('broken-turret');
+  assert.equal(byClass(drawable('broken-turret'), 'card-art-crop').src, './art/broken-turret.webp');
+  showCard(card);
+  assert.equal(byClass(preview, 'card-art-crop').src, './art/broken-turret.webp');
+  card.artState = 'failing';
+  const field = new TestElement('button');
+  decorateCard(field, card, {});
+  assert.equal(byClass(field, 'card-art-crop').src, './art/broken-turret-failing.webp');
+});
 
 test('live battlefield and hand faces hide provision, while catalog and preview show it', () => {
   const field = drawable('bastion', { orderOnField: false });

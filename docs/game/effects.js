@@ -3,9 +3,9 @@ import { ROWS, ROW_LABELS } from './cards.js?v=suppressor-1';
 import {
   activeOrder, announcePlay, applyStatus, availableRows, boost, cardType, changeCoins, consume, damage, damageOverflow, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, restoreCard, ROW_LIMIT,
-  refreshHoundAura, setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, infectionDamage, transformUnit, units,
-} from './board.js?v=suppressor-1';
-import { HOUND_CATEGORY } from './captains.js?v=hounds-tokens-1';
+  refreshHoundAura, refreshShipRowBonus, setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, infectionDamage, transformUnit, units, weaken,
+} from './board.js?v=captains-independent-1';
+import { HOUND_CATEGORY } from './captains.js?v=captains-independent-1';
 
 function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);
@@ -360,6 +360,7 @@ function placeSummonedCard(match, side, row, index, selected) {
   match.log.push({ type: 'spawn', from: 'deck', side, row, position: index,
     name: card.definition.name, count: 1, cards: [{ ...card }] });
   if (card.definition.categories?.includes(HOUND_CATEGORY)) refreshHoundAura(match, side);
+  refreshShipRowBonus(match, side, row);
 }
 
 export function enqueueEndTurn(match, side) {
@@ -454,6 +455,7 @@ function reduceOrderCooldown(match, unit, amount) {
 const operations = {
   'base-power': changeBasePower,
   heal,
+  weaken,
 
   counter: (match, { card, side }) => {
     if (isLocked(card) || !(card.counter > 0)) return;
@@ -507,8 +509,10 @@ export function runEffect(match, job, random) {
   if (!step) return;
   const holdsCategory = step.when?.orAlliesCategory &&
     units(match, job.side).every(({ card }) => card.definition.categories?.includes(step.when.orAlliesCategory));
+  const coins = match.players[job.side].coins ?? 0;
   if ((step.sourceRow && reference(match, job)?.row !== step.sourceRow) ||
-      (step.when && !holdsCategory && !targets(match, job, step.when.targets).length)) {
+      (step.when?.targets && !holdsCategory && !targets(match, job, step.when.targets).length) ||
+      coins < (step.when?.coinsAtLeast ?? 0) || coins >= (step.when?.coinsBelow ?? Infinity)) {
     job.index += 1;
     match.effects.unshift(job);
     return;
@@ -646,8 +650,9 @@ export function runEffect(match, job, random) {
   if (step.action === 'scatter') {
     job.hits ??= valueOf(match, job, step.amount);
     const rows = step.rowRef ? [job.refs[step.rowRef]].filter(Boolean) : ROWS;
-    const enemies = units(match, opponent(job.side), rows).filter(({ card }) => isUnit(card));
-    if (!enemies.length || job.hits <= 0) {
+    const side = step.side === 'ally' ? job.side : opponent(job.side);
+    const candidates = units(match, side, rows).filter(({ card }) => isUnit(card));
+    if (!candidates.length || job.hits <= 0) {
       delete job.hits;
       job.index += 1;
       match.effects.unshift(job);
@@ -655,9 +660,10 @@ export function runEffect(match, job, random) {
     }
     job.hits -= 1;
     match.effects.unshift(job);
-    damage(match, enemies[Math.floor(random() * enemies.length)], 1, job.sourceDefinitionId, {
+    damage(match, candidates[Math.floor(random() * candidates.length)], 1, job.sourceDefinitionId, {
       scattered: true, attacker: job.side, sourceRow: step.rowRef ? reference(match, job)?.row : job.refs.row,
       ...(step.visual && { visual: step.visual }),
+      ...(step.visual === 'turret' && { sourceId: job.sourceId }),
     });
     return;
   }
@@ -722,6 +728,9 @@ export function runEffect(match, job, random) {
     result = consume(match, target, receiver, step);
   } else if (step.action === 'transform') {
     transformUnit(match, target, step.card);
+  } else if (step.action === 'art-state') {
+    target.card.artState = step.state;
+    match.log.push({ type: 'art-state', side: target.side, cardId: target.card.id, artState: step.state });
   } else if (step.action === 'activate-deathwish') {
     match.effects.unshift(...deathwishJobs(target.card, {
       side: target.side, row: target.row, position: target.position, sourceId: target.card.id,

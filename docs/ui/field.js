@@ -1,12 +1,12 @@
 import { leagueCharacter } from './league-character.js?v=oran-avatar-1';
-import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js?v=suppressor-1';
+import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js?v=captains-independent-1';
 import { insertionPoint, placementEffectRows } from '../card-placement.js?v=hounds-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
 import { ROWS, ROW_LABELS } from '../game/cards.js?v=suppressor-1';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=suppressor-1';
-import { playerHand } from './hand.js?v=suppressor-1';
-import { availableFees, availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=suppressor-1';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=suppressor-1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=captains-independent-1';
+import { playerHand } from './hand.js?v=captains-independent-1';
+import { availableFees, availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=captains-independent-1';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=captains-independent-1';
 
 import { orderBadge } from './stat-badges.js?v=suppressor-1';
 

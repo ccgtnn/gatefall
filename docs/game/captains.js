@@ -33,7 +33,7 @@ const claw = Object.freeze({
     when: { targets: { scope: 'field', definitionId: 'black-hound' }, orAlliesCategory: HOUND_CATEGORY } }]),
 });
 
-export const CAPTAIN_CARDS = Object.freeze([
+const houndCards = [
   {
     id: 'hound-foreman', name: 'Бригадир гончих', power: 3, provision: 5, rarity: 'bronze',
     art: 'hound-foreman.webp', artCrop: 'hound-foreman-crop.webp',
@@ -97,4 +97,35 @@ export const CAPTAIN_CARDS = Object.freeze([
       prompt: 'Выбери Гончую для превращения в Усиленную гончую.',
     }] }),
   },
-].map((card) => Object.freeze({ ...hound, ...card })));
+].map((card) => ({ ...hound, ...card }));
+
+export const CAPTAIN_CARDS = Object.freeze([
+  ...houndCards,
+  {
+    id: 'debtor', name: 'Должник', faction: 'captains', type: 'unit', rarity: 'bronze', provision: 4, power: 6,
+    art: 'debtor.webp',
+    text: 'При розыгрыше: потеряй 2 боевые монеты. Если их меньше 2, вместо этого потеряй 3 силы.',
+    deploy: ability([
+      { action: 'weaken', target: source, amount: 3, when: { coinsBelow: 2 } },
+      { action: 'coins', amount: -2, when: { coinsAtLeast: 2 } },
+    ]),
+  },
+  {
+    id: 'scrapped-pilot', name: 'Списанный пилот', faction: 'captains', type: 'unit', rarity: 'bronze', provision: 4, power: 3,
+    art: 'scrapped-pilot.webp', shipRowBonus: 3,
+    text: 'Пока в его ряду есть твой Лёгкий или Тяжёлый корабль, получает +3 силы.',
+    keywords: ['Усиление'],
+  },
+  {
+    id: 'broken-turret', name: 'Сломанная турель', faction: 'captains', type: 'artifact', rarity: 'bronze', provision: 4,
+    art: 'broken-turret.webp', artStates: { failing: 'broken-turret-failing.webp' }, timer: 1,
+    text: 'При размещении: 5 раз нанеси 1 урон случайному вражескому отряду. Цели могут повторяться. В начале твоего следующего хода нанеси 1 урон случайному союзному отряду и уничтожь турель.',
+    keywords: ['Урон', 'Уничтожение'],
+    deploy: ability([{ action: 'scatter', amount: 5, visual: 'turret' }]),
+    startTurn: ability([
+      { action: 'art-state', target: source, state: 'failing' },
+      { action: 'scatter', side: 'ally', amount: 1, visual: 'turret' },
+      { action: 'destroy', target: source },
+    ]),
+  },
+].map((card) => Object.freeze(card)));

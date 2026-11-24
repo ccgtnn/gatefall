@@ -1,6 +1,6 @@
 import { ROWS } from './cards.js?v=suppressor-1';
 import { cardAbilities, emit, isLocked } from './events.js?v=suppressor-1';
-import { HOUND_CATEGORY } from './captains.js?v=hounds-tokens-1';
+import { HOUND_CATEGORY } from './captains.js?v=captains-independent-1';
 
 export const ROW_LIMIT = 9;
 export const HAND_LIMIT = 10;
@@ -89,6 +89,7 @@ export function announcePlay(match, side, card, destination, extra) {
   if (card.armor) emit(match, { type: 'armor', side: boardSide ?? side, name: card.definition.name, cardId: card.id,
     armor: card.armor, amount: card.armor });
   if (boardSide && card.definition.categories?.includes(HOUND_CATEGORY)) refreshHoundAura(match, boardSide);
+  if (boardSide) refreshShipRowBonus(match, boardSide, destination.row);
   return reactions;
 }
 
@@ -123,6 +124,15 @@ export function boost(match, unit, amount, sourceDefinitionId) {
   match.log.push({ type: 'boost', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, power: unit.card.power, amount, ...(sourceDefinitionId && { sourceDefinitionId }) });
 }
 
+export function weaken(match, unit, amount) {
+  if (!unit || !isUnit(unit.card) || !(amount > 0)) return;
+  const { card, side } = unit;
+  const lost = Math.min(card.power, amount);
+  card.power -= lost;
+  match.log.push({ type: 'weaken', side, name: card.definition.name, cardId: card.id, power: card.power, amount: lost });
+  if (card.power === 0) removeUnit(match, unit, 'weaken');
+}
+
 export function changeBasePower(match, unit, amount) {
   if (!unit || !isUnit(unit.card) || !Number.isInteger(amount) || !amount) return;
   const { card, side, pile } = unit;
@@ -138,7 +148,7 @@ export function changeBasePower(match, unit, amount) {
 export function heal(match, unit) {
   if (!unit || !isUnit(unit.card)) return;
   const { card, side } = unit;
-  card.power = basePower(card) + (card.houndBonus ?? 0);
+  card.power = basePower(card) + (card.houndBonus ?? 0) + (card.shipRowBonus ?? 0);
   match.log.push({ type: 'heal', side, cardId: card.id, power: card.power });
 }
 
@@ -216,6 +226,7 @@ export function applyStatus(match, unit, status, amount, extra) {
   }
   match.effects.unshift(...effects);
   if (status === 'lock' && card.definition.houndAura) refreshHoundAura(match, side, card.id);
+  if (status === 'lock' && card.definition.shipRowBonus) refreshShipRowBonus(match, side, unit.row, card.id);
   return before - count;
 }
 
@@ -249,6 +260,28 @@ export function removeUnit(match, unit, reason, consumerId, extra) {
     infection: statusCount(card, 'infection'), exile, reason, ...extra,
   }, { source: card, death }));
   if (card.definition.houndAura) refreshHoundAura(match, side);
+  if (card.definition.shipClass) refreshShipRowBonus(match, side, row);
+}
+
+export function refreshShipRowBonus(match, side, row, preservePowerId) {
+  const line = match.players[side].board[row];
+  const hasShip = line.some((card) => isUnit(card) &&
+    ['Лёгкий корабль', 'Тяжёлый корабль'].includes(card.definition.shipClass));
+  const fallen = [];
+  for (const card of line) {
+    const bonus = hasShip ? cardAbilities(card).shipRowBonus ?? 0 : 0;
+    const delta = bonus - (card.shipRowBonus ?? 0);
+    if (!delta) continue;
+    if (bonus) card.shipRowBonus = bonus;
+    else delete card.shipRowBonus;
+    if (card.id !== preservePowerId) card.power = Math.max(0, card.power + delta);
+    match.log.push({ type: 'aura-power', side, cardId: card.id, power: card.power, shipRowBonus: bonus });
+    if (card.power === 0) fallen.push(card.id);
+  }
+  for (const id of fallen) {
+    const unit = findUnit(match, id);
+    if (unit?.card.power === 0) removeUnit(match, unit, 'aura');
+  }
 }
 
 export function refreshHoundAura(match, side, preservePowerId) {
@@ -280,6 +313,7 @@ export function transformUnit(match, unit, definition) {
   match.players[side].board[row][position] = replacement;
   match.log.push({ type: 'transform', side, cardId: card.id, name: card.definition.name, card: { ...replacement } });
   refreshHoundAura(match, side);
+  refreshShipRowBonus(match, side, row);
 }
 
 export function discardCard(match, side, card, exile = false) {
@@ -335,4 +369,5 @@ export function spawnCards(match, side, row, position, count, definition) {
   placeCards(match.players[side], row, position, tokens);
   emit(match, { type: 'spawn', side, row, count: added, name: definition.name, position, cards: tokens.map((card) => ({ ...card })) });
   if (definition.categories?.includes(HOUND_CATEGORY)) refreshHoundAura(match, side);
+  refreshShipRowBonus(match, side, row);
 }

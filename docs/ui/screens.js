@@ -1,16 +1,16 @@
 import { refreshPremiumArt, resumeCardVideos } from './card-art.js?v=failura-1';
 import { leagueCharacter } from './league-character.js?v=oran-avatar-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
-import { createCard } from '../game/board.js?v=suppressor-1';
+import { createCard } from '../game/board.js?v=captains-independent-1';
 import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=suppressor-1';
 import { FACTION_CATALOG } from '../game/faction-catalog.js?v=suppressor-1';
-import { CAPTAIN_CARDS, HOUND, REINFORCED_HOUND } from '../game/captains.js?v=hounds-tokens-1';
-import { addCardCrop, cardButton, cardCategories, showCard } from './cards.js?v=suppressor-1';
-import { logView, roundText } from './menu.js?v=suppressor-1';
+import { CAPTAIN_CARDS, HOUND, REINFORCED_HOUND } from '../game/captains.js?v=captains-independent-1';
+import { addCardCrop, cardButton, cardCategories, showCard } from './cards.js?v=captains-independent-1';
+import { logView, roundText } from './menu.js?v=captains-independent-1';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=hounds-tokens-1';
 import { factionFilters } from './faction-filters.js?v=faction-catalog-2';
 import { copyLimit } from '../game/decks.js?v=suppressor-1';
-import { craftPrice, dismantleValue } from '../game/rewards.js?v=suppressor-1';
+import { craftPrice, dismantleValue } from '../game/rewards.js?v=captains-independent-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 import { sectionBack } from './resources.js?v=essence-gain-1';
 
