@@ -1,5 +1,5 @@
-import { recordCardPlay, spendResilience } from './game/board.js?v=captains-independent-1';
-import { ROWS } from './game/cards.js?v=suppressor-1';
+import { recordCardPlay, spendResilience } from './game/board.js?v=fugitive-monk-1';
+import { ROWS } from './game/cards.js?v=fugitive-monk-1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;
@@ -127,6 +127,12 @@ export function applyJournalEvent(state, event) {
       card.statuses = { ...card.statuses, [event.status]: event.count };
       if (event.status === 'infection' && !event.count) delete card.statuses.infection;
       if (event.tick) card.power = event.power;
+    }
+    if (type === 'cleanse') {
+      const card = line[index];
+      card.statuses = { ...event.statuses };
+      if (event.removed.includes('infection')) delete card.infectionSource;
+      if (event.inherited) delete card.inheritedDeathwishes;
     }
     if (type === 'order-ready') line[index].readyAt = event.readyAt;
     if (type === 'tick') line[index].timer = event.remaining;

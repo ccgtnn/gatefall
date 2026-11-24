@@ -1,4 +1,4 @@
-import { REWARD_STORAGE_KEY } from './rewards.js?v=captains-independent-1';
+import { REWARD_STORAGE_KEY } from './rewards.js?v=fugitive-monk-1';
 
 export async function resetProgress(storage, locks) {
   function clearGameData() {

@@ -1,4 +1,4 @@
-import { DIAMOND, LEAGUE_BOTS, LEAGUES, LEAGUE_RULES, leagueDivision, leagueOpponent, leagueStake, leagueTable, leagueTicket } from '../game/league.js?v=suppressor-1';
+import { DIAMOND, LEAGUE_BOTS, LEAGUES, LEAGUE_RULES, leagueDivision, leagueOpponent, leagueStake, leagueTable, leagueTicket } from '../game/league.js?v=fugitive-monk-1';
 import { leagueAvatar, LORE_FACTIONS, setLeagueSpeech } from './league-character.js?v=oran-avatar-1';
 import { leagueProfile, leagueRecord, leagueRoundRecord, LEAGUE_DIFFICULTY_LABELS } from './league-profile.js?v=league-rounds-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';

@@ -30,7 +30,8 @@ export const KEYWORDS = Object.freeze({
   'Заражение': 'В конце хода владельца отряд теряет 1 силу в обход брони. Силовой щит поглощает один тик и исчезает. При повторном наложении счётчики складываются. После каждого тика счётчик уменьшается на 1.',
   'Обречённость': 'При гибели карта уходит из игры, а её Завещание срабатывает.',
   'Приказ': 'Готов со следующего хода владельца. После применения в этом ходу нельзя пасовать.',
-  'Блокировка': 'До конца матча отряд теряет все способности. Его текущая сила, броня и другие статусы сохраняются. Повторная Блокировка ничего не меняет.',
+  'Блокировка': 'До конца матча способности отряда отключены. Очищение снимает Блокировку раньше. Текущая сила, броня и другие статусы сохраняются. Повторная Блокировка ничего не меняет.',
+  'Очищение': 'Снимает наложенные эффекты, включая Блокировку, Заражение, Цель и выданный Силовой щит. Врождённый щит, текущая сила, броня и собственные способности отряда сохраняются. Очищение чистого отряда ничего не меняет.',
   'Рвение': 'Приказ готов сразу после появления карты на поле.',
   'Соседи': 'Две ближайшие позиции слева и справа в том же ряду. Артефакты тоже занимают позиции.',
   'Гниение': 'В начале хода владельца ряда случайный отряд получает Заражение 2 либо 2 урона, если уже заражён. Длительность уменьшается и обнуляется в конце раунда.',
@@ -52,6 +53,7 @@ const self = { scope: 'source' };
 const adjacent = { scope: 'neighbors', type: 'unit' };
 const allies = { scope: 'ally', type: 'unit' };
 const enemies = { scope: 'enemy', type: 'unit' };
+const fieldUnits = { scope: 'field', type: 'unit' };
 const larvae = { ...allies, definitionId: LARVA.id };
 const otherAlly = { ...allies, exclude: 'source' };
 const allyRow = { ...allies, row: 'source' };
@@ -283,8 +285,9 @@ export const NEUTRAL_CARDS = Object.freeze([
   ANNIHILATION,
   ...[
     ['suppressor', 'Подавитель', 'epic', 6, 5, 'При розыгрыше: наложи Блокировку на выбранный отряд любой стороны.', {
+      art: 'suppressor.webp',
       deploy: ability([{ ...action('status', chosen('locked'), 1), status: 'lock' }],
-        [choice('locked', { scope: 'field', type: 'unit' }, 'Выбери отряд для Блокировки.', { kind: 'lock' })]),
+        [choice('locked', fieldUnits, 'Выбери отряд для Блокировки.', { kind: 'lock' })]),
       keywords: ['Блокировка'],
     }],
     ['veteran-mercenary', 'Наёмник-ветеран', 'bronze', 4, 3, 'Нанеси 2 урона своему отряду. Усиль себя на 3.', {
@@ -292,6 +295,15 @@ export const NEUTRAL_CARDS = Object.freeze([
       deploy: ability([action('damage', chosen('ally'), 2), action('boost', self, 3)],
         [choice('ally', allies, 'Выбери свой отряд для 2 урона.', { kind: 'friendly-damage', amount: 2 })]),
       keywords: ['Урон', 'Усиление'],
+    }],
+    ['fugitive-monk', 'Монах-беглец', 'bronze', 5, 3, 'При розыгрыше: Очищение выбранного отряда любой стороны.', {
+      art: 'fugitive-monk.webp',
+      deploy: {
+        ...ability([{ action: 'cleanse', target: chosen('cleansed') }],
+          [choice('cleansed', fieldUnits, 'Выбери отряд для Очищения.', { kind: 'cleanse' })]),
+        when: { targets: { ...fieldUnits, cleansable: true }, selectable: true },
+      },
+      keywords: ['Очищение'],
     }],
     ['smuggler', 'Контрабандист', 'bronze', 4, 3, 'Инициатива: усиль себя на 3.', {
       art: 'smuggler.webp?v=neutral-palette-1',

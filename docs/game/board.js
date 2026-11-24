@@ -1,4 +1,4 @@
-import { ROWS } from './cards.js?v=suppressor-1';
+import { ROWS } from './cards.js?v=fugitive-monk-1';
 import { cardAbilities, emit, isLocked } from './events.js?v=suppressor-1';
 import { HOUND_CATEGORY } from './captains.js?v=captains-independent-1';
 
@@ -181,6 +181,35 @@ export function statusEndTurn(card) {
 
 export function statusCount(card, status) {
   return STATUS_RULES[status]?.read(card) ?? 0;
+}
+
+export function cleansableStatuses(card) {
+  return Object.entries(card.statuses ?? {}).filter(([status, count]) =>
+    Boolean(count) && status !== 'armor' && (status !== 'doomed' || !card.definition.doomed))
+    .map(([status]) => status);
+}
+
+export function cleanse(match, unit) {
+  if (!unit || !isUnit(unit.card)) return;
+  const { card, side, row } = unit;
+  const removed = cleansableStatuses(card);
+  const inherited = Boolean(card.inheritedDeathwishes?.length);
+  if (!removed.length && !inherited) return;
+
+  const statuses = { ...card.statuses };
+  for (const status of removed) {
+    // A stored active shield was granted after creation. A spent native shield stays spent.
+    if (status === 'shield' && card.definition.shield) statuses.shield = 0;
+    else delete statuses[status];
+  }
+  card.statuses = statuses;
+  if (removed.includes('infection')) delete card.infectionSource;
+  if (inherited) delete card.inheritedDeathwishes;
+  match.log.push({ type: 'cleanse', side, cardId: card.id, name: card.definition.name, statuses, removed, inherited });
+  if (removed.includes('lock')) {
+    if (card.definition.houndAura) refreshHoundAura(match, side, card.id);
+    if (card.definition.shipRowBonus) refreshShipRowBonus(match, side, row, card.id);
+  }
 }
 
 export function applyStatus(match, unit, status, amount, extra) {

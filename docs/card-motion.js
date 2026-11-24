@@ -1,10 +1,10 @@
 import { setCardRarity } from './ui/dom.js?v=opponent-reveal-1';
 import { cardArt } from './ui/card-art.js?v=failura-1';
-import { NEUTRAL } from './game/cards.js?v=suppressor-1';
+import { NEUTRAL } from './game/cards.js?v=fugitive-monk-1';
 import { burstParticles } from './particles.js?v=step-14';
 
 const VISUAL_EVENTS = new Set([
-  'play', 'damage', 'boost', 'weaken', 'armor', 'status', 'death', 'destroy', 'discard', 'spawn', 'deathwish', 'consume', 'consume-group', 'leader', 'order', 'aura-power', 'transform',
+  'play', 'damage', 'boost', 'weaken', 'armor', 'status', 'cleanse', 'death', 'destroy', 'discard', 'spawn', 'deathwish', 'consume', 'consume-group', 'leader', 'order', 'aura-power', 'transform',
 ]);
 
 function rects(screen) {
@@ -500,6 +500,7 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
 
   switch (event.type) {
     case 'aura-power':
+    case 'cleanse':
     case 'transform':
       break;
     case 'play':

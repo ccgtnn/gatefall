@@ -1,9 +1,9 @@
-import { compareRollouts } from './bot-rollouts.js?v=captains-independent-1';
-import { ROWS } from './cards.js?v=suppressor-1';
-import { activeOrder, cardType, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js?v=captains-independent-1';
-import { availableOrders, canUseLeader, deckCardValue, destructionRolls, destructionSwing, lockPriority, rowArmor, rowEffectValue } from './effects.js?v=captains-independent-1';
+import { compareRollouts } from './bot-rollouts.js?v=fugitive-monk-1';
+import { ROWS } from './cards.js?v=fugitive-monk-1';
+import { activeOrder, cardType, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js?v=fugitive-monk-1';
+import { availableOrders, canUseLeader, cleansePriority, deckCardValue, destructionRolls, destructionSwing, lockPriority, rowArmor, rowEffectValue } from './effects.js?v=fugitive-monk-1';
 import { cardAbilities, isLocked } from './events.js?v=suppressor-1';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=captains-independent-1';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=fugitive-monk-1';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -124,8 +124,9 @@ function abilities(state, side) {
 
 function choices(state) {
   const { kind, options, side, cardId, pile = 'deck' } = state.pending;
-  if (kind === 'lock') {
-    const priorities = options.map((id) => lockPriority(findUnit(state, id), side));
+  if (kind === 'lock' || kind === 'cleanse') {
+    const priority = kind === 'lock' ? lockPriority : cleansePriority;
+    const priorities = options.map((id) => priority(findUnit(state, id), side));
     const best = Math.max(...priorities);
     return options.filter((_, i) => priorities[i] === best).map((id) => ({ type: 'target', cardId: id }));
   }

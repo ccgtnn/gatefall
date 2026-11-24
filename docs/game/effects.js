@@ -1,10 +1,10 @@
 import { cardAbilities, deathwishDefinitions, deathwishJobs, emit, isLocked } from './events.js?v=suppressor-1';
-import { ROWS, ROW_LABELS } from './cards.js?v=suppressor-1';
+import { ROWS, ROW_LABELS } from './cards.js?v=fugitive-monk-1';
 import {
-  activeOrder, announcePlay, applyStatus, availableRows, boost, cardType, changeCoins, consume, damage, damageOverflow, findUnit,
+  activeOrder, announcePlay, applyStatus, availableRows, boost, cardType, changeCoins, cleansableStatuses, cleanse, consume, damage, damageOverflow, findUnit,
   changeBasePower, findInPiles, heal, isUnit, neighbors, opponent, placementSide, placeCards, playDestination, removeUnit, restoreCard, ROW_LIMIT,
   refreshHoundAura, refreshShipRowBonus, setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, infectionDamage, transformUnit, units, weaken,
-} from './board.js?v=captains-independent-1';
+} from './board.js?v=fugitive-monk-1';
 import { HOUND_CATEGORY } from './captains.js?v=captains-independent-1';
 
 function reference(match, job, key = 'source') {
@@ -34,6 +34,7 @@ function targets(match, job, query, choosing = false) {
     (!row || unit.row === row) &&
     (!query.type || cardType(unit.card) === query.type) &&
     (!query.unitOrOrder || isUnit(unit.card) || cardAbilities(unit.card).order) &&
+    (!query.cleansable || cleansableStatuses(unit.card).length > 0 || unit.card.inheritedDeathwishes?.length > 0) &&
     (!query.token || unit.card.definition.token) &&
     (!query.category || unit.card.definition.categories?.includes(query.category)) &&
     (query.infected === undefined || Boolean(statusCount(unit.card, 'infection')) === query.infected) &&
@@ -92,6 +93,17 @@ export function lockPriority({ card, side }, actor) {
   return side === actor ? -value : 5 + value;
 }
 
+export function cleansePriority({ card, side }, actor) {
+  const statuses = cleansableStatuses(card);
+  let value = card.inheritedDeathwishes?.length ? 2 : 0;
+  if (statuses.includes('shield')) value += 2;
+  if (statuses.includes('lock')) value -= 5;
+  if (statuses.includes('infection')) value -= Math.min(4, statusCount(card, 'infection')) + 1;
+  if (statuses.includes('target')) value -= 2;
+  if (statuses.includes('doomed')) value -= 1;
+  return side === actor ? -value : value;
+}
+
 export function rowArmor(player, row) {
   return player.board[row].reduce((sum, card) => sum + (card.armor ?? 0), 0);
 }
@@ -136,7 +148,7 @@ function canStart(match, job) {
     !eligiblePileCards(match, job.side, 'deck', step, job.pileChoices).length) ||
     (step.action === 'play-from-discard' && !eligiblePileCards(match, job.side, 'discard', step, job.pileChoices).length))) return false;
   if (steps.some((step) => step.action === 'select-row' && !eligibleRows(match.players[rowSide(job.side, step)], step.filter).length)) return false;
-  return (!when || targets(match, job, when.targets).length >= (when.atLeast ?? 1)) &&
+  return (!when || targets(match, job, when.targets, when.selectable).length >= (when.atLeast ?? 1)) &&
     (!select?.length || viableChoices(match, job, 0).length > 0);
 }
 
@@ -456,6 +468,7 @@ const operations = {
   'base-power': changeBasePower,
   heal,
   weaken,
+  cleanse,
 
   counter: (match, { card, side }) => {
     if (isLocked(card) || !(card.counter > 0)) return;
@@ -498,7 +511,7 @@ export function runEffect(match, job, random) {
     }
     const { when, requiresResult } = job.ability;
     if (requiresResult && !job.results?.[requiresResult]) return;
-    if (when && targets(match, job, when.targets).length < (when.atLeast ?? 1)) return;
+    if (when && targets(match, job, when.targets, when.selectable).length < (when.atLeast ?? 1)) return;
     if (!selectTargets(match, job, random)) return;
     job.started = true;
     job.index = 0;
