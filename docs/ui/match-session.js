@@ -107,6 +107,7 @@ export function createMatchSession({
         turns.reset({ ...current, phase: 'finished', result: 'loss', surrendered: true,
           log: speech ? [...current.log, speech] : current.log });
         matchSettlement = outcome;
+        settings.close();
         render();
         screen.querySelector('h2')?.focus({ preventScroll: true });
         return;
