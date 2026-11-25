@@ -9,7 +9,7 @@ const profiles = {
   ]],
   bot: ['Стратегия и симуляции бота', [
     'docs/game/bot.js', 'docs/game/bot-strategy.js', 'docs/game/bot-rollouts.js',
-    'docs/game/bot-effect-value.js', 'tests/bot-strategy.test.js',
+    'docs/game/bot-effect-value.js', 'docs/game/bot-leaders.js', 'tests/bot-strategy.test.js',
   ]],
   economy: ['Сохранения, награды и экономика', [
     'docs/game/rewards.js', 'docs/game/collection-economy.js', 'docs/game/base.js',

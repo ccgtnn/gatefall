@@ -15,7 +15,7 @@ test('the shared registry resolves unique card IDs and preserves collection boun
   assert.equal(findCardDefinition(HOUND.id), undefined);
   assert.equal(findCardDefinition(REINFORCED_HOUND.id), undefined);
   assert.deepEqual(cardsForFaction('captains'), CAPTAIN_CARDS);
-  assert.deepEqual(collection('captains'), []);
+  assert.deepEqual(collection('captains').filter(({ faction }) => faction === 'captains'), CAPTAIN_CARDS);
   assert.ok(collection('choir').includes(findCardDefinition('helper-robot')));
 });
 

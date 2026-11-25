@@ -31,6 +31,10 @@ function shuffle(cards, random) {
   return cards;
 }
 
+function createLeader(leader, charges) {
+  return leader ? { ...leader, charges: leader.ability ? (leader.charges ?? charges) : 0 } : null;
+}
+
 function createPlayer(side, definitions, random, factionId, leader, charges) {
   const faction = FACTIONS[factionId];
   const cards = definitions.map((definition, index) => createCard(`${side}-${index + 1}`, definition));
@@ -53,7 +57,7 @@ function createPlayer(side, definitions, random, factionId, leader, charges) {
     usedAbility: false,
     roundActed: false,
     extraSwaps: 0,
-    leader: leader ? { ...leader, charges: leader.ability ? charges : 0 } : null,
+    leader: createLeader(leader, charges),
     faction: faction?.name,
     factionId,
     passed: false,
@@ -74,7 +78,7 @@ export function createMatch({ decks, humanFaction = decks ? undefined : 'protect
   const starter = random() < 0.5 ? 'human' : 'bot';
   if (bot) {
     const leader = bot.leaders.find(({ id }) => id === botLeader) ?? bot.leaders[Math.floor(random() * bot.leaders.length)];
-    players.bot.leader = { ...leader, charges: leader.ability ? settings.leaderCharges : 0 };
+    players.bot.leader = createLeader(leader, settings.leaderCharges);
   }
   return {
     rules: settings,
@@ -97,7 +101,6 @@ export function createMatch({ decks, humanFaction = decks ? undefined : 'protect
 export function createDeckMatch(deck, options = {}) {
   const result = inspectDeck(deck);
   if (!result.valid) return null;
-  const botFaction = deck.factionId === 'growth' ? 'protectorate' : 'growth';
   const random = options.random ?? Math.random;
   if (options.botDeck) {
     const rival = inspectDeck(options.botDeck);
@@ -110,15 +113,19 @@ export function createDeckMatch(deck, options = {}) {
     });
   }
   const roll = random();
+  const faction = deck.factionId;
+  const botFaction = faction === 'growth' ? 'protectorate'
+    : faction === 'choir' && roll >= .5 ? 'captains'
+      : faction === 'captains' && roll >= .5 ? 'choir' : 'growth';
   const alternate = botFaction === 'protectorate'
     ? (roll < .5 && ORBITAL_STRIKE_PRESET)
-    : (roll >= .5 && REBIRTH_PRESET);
+    : (botFaction === 'growth' && roll >= .5 && REBIRTH_PRESET);
   const botPreset = alternate ? inspectDeck(alternate) : null;
   return createMatch({
     random,
     rules: options.rules,
     decks: { human: result.cards, bot: botPreset?.cards ?? FACTIONS[botFaction].deck },
-    botLeader: botPreset?.leader.id,
+    botFaction, botLeader: botPreset?.leader.id,
     humanFaction: deck.factionId,
     humanLeader: result.leader.id,
   });
@@ -413,9 +420,11 @@ export function applyAction(match, side, action, { random = Math.random, copy = 
     current.roundActed = true;
     const { leader } = current;
     if (leader.order) leader.lastUsedTurn = current.turns;
-    else leader.charges -= 1;
+    const spendsCharge = !leader.order || leader.order.usesCharges;
+    if (spendsCharge) leader.charges -= 1;
     const sourceDefinitionId = leader.order?.sourceDefinitionId;
-    next.log.push({ type: 'leader', side, name: leader.name, ...(sourceDefinitionId && { sourceDefinitionId, lastUsedTurn: leader.lastUsedTurn }) });
+    next.log.push({ type: 'leader', side, name: leader.name, ...(sourceDefinitionId && { sourceDefinitionId }),
+      ...(leader.order && { lastUsedTurn: leader.lastUsedTurn }), ...(spendsCharge && { charges: leader.charges }) });
     next.effects.push({ ability: leader.ability, side, sourceDefinitionId });
   } else if (type === 'fee') {
     current.usedAbility = true;

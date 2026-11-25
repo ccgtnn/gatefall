@@ -5,6 +5,7 @@ import { collection, copyLimit } from './decks.js';
 import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js';
 import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
+import { preferredLeaderUse } from './bot-leaders.js';
 import { effectSwing, infectionGain, shouldProtectArmor } from './bot-effect-value.js';
 
 const PASS = { type: 'pass' };
@@ -158,8 +159,11 @@ function quickAction(match, side, pickTarget) {
   const player = match.players[side];
   const enemy = match.players[opponent(side)];
   const lead = totalScore(player) - totalScore(enemy);
-  if (player.leader?.order && !(enemy.passed && lead > 0) && canUseLeader(match, side) &&
-      unitsCanTakeLeaderDamage(enemy)) return { type: 'leader' };
+  const leaderPreference = preferredLeaderUse(match, side);
+  if (!(enemy.passed && lead > 0) && (leaderPreference ??
+      (player.leader?.order && canUseLeader(match, side) && unitsCanTakeLeaderDamage(enemy)))) {
+    return { type: 'leader' };
+  }
   if (match.playedCard) {
     const [order] = availableOrders(match, side);
     return order && !(enemy.passed && lead > 0) ? { type: 'order', cardId: order.card.id } : END;
@@ -185,7 +189,7 @@ function quickAction(match, side, pickTarget) {
         (match.round === 2 || plays.toSorted((a, b) => b.points - a.points).slice(0, 2)
           .reduce((sum, play) => sum + play.points, lead) < 1)) return PASS;
   }
-  if (!enemy.passed && (match.round === 3 || (match.round === 2 && player.lives === 1)) && canUseLeader(match, side) &&
+  if (!enemy.passed && (match.round === 3 || (match.round === 2 && player.lives === 1)) && leaderPreference === undefined && canUseLeader(match, side) &&
       (player.leader.ability.select?.[0]?.kind !== 'marshal' || ROWS.some((row) => player.board[row].length > 1))) {
     return { type: 'leader' };
   }
@@ -208,7 +212,7 @@ function assessment(match, round) {
   }
   if (!last) return Math.tanh((totalScore(bot) - totalScore(human)) / 18) * .5;
   const worth = (player) => player.hand.reduce((sum, card) => sum + 3.5 + printedValue(card) * .6, 0)
-    + (player.leader?.order ? 4.5 : (player.leader?.charges ?? 0) * 4.5);
+    + (player.leader?.order && !player.leader.order.usesCharges ? 4.5 : (player.leader?.charges ?? 0) * 4.5);
   const cards = worth(bot) - worth(human);
   // A life lead means the opponent needs both remaining rounds. Extra cards carry over.
   const lives = (bot.lives - human.lives) * (round === 1 ? 12 : 4);

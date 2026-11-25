@@ -1,10 +1,8 @@
-import { CAPTAIN_CARDS } from './captains.js';
 import { NEUTRAL } from './card-metadata.js';
 import { FACTIONS, NEUTRAL_CARDS } from './cards.js';
 
 const factionPools = new Map(Object.entries(FACTIONS).map(([id, { pool }]) => [id, pool]));
 factionPools.set(NEUTRAL, NEUTRAL_CARDS);
-factionPools.set('captains', CAPTAIN_CARDS);
 
 const emptyPool = Object.freeze([]);
 export function cardsForFaction(id) {

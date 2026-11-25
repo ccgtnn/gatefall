@@ -205,7 +205,7 @@ export function deckEditor(phaseLabel, deck, { save, play, back, inventory }) {
   const leaders = FACTIONS[deck.factionId]?.leaders ?? [];
   const leader = selectField('Лидер', leaders.map(({ id, name, provisionBonus }) =>
     [id, name + ' (+' + provisionBonus + ')']));
-  leader.input.value = deck.leaderId;
+  leader.input.value = inspectDeck(deck).leader?.id ?? deck.leaderId;
   const totals = element('div', 'deck-totals');
   totals.setAttribute('aria-live', 'polite');
   const errors = element('ul', 'deck-invalid');

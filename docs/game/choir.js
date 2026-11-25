@@ -80,6 +80,19 @@ export const AWAKENING = psionic({
   },
 });
 
+const offering = ref('offering');
+export const HIGH_PRIEST = Object.freeze({
+  id: 'high-priest', legacyId: 'choir-leader', name: 'Верховный жрец', provisionBonus: 15, charges: 2,
+  order: { cooldown: 0, usesCharges: true }, art: 'high-priest.webp', artFocus: '50% 24%', artZoom: 1.85,
+  text: 'Приказ (2 заряда): нанеси 2 урона выбранному своему отряду. Призови Щупальце Спящего справа от него или на его месте, если отряд погиб.',
+  aiHints: { leaderOffering: true },
+  ability: ability([
+    { ...damage(offering, 2), savePosition: 'offeringPosition' },
+    { ...spawn(TENTACLE, 'source', 1, 'right'), of: 'offering', fallbackPosition: 'offeringPosition' },
+  ], [{ ref: 'offering', targets: allies, kind: 'leader-offering', amount: 2,
+    prompt: 'Выбери свой отряд для 2 урона и призыва Щупальца Спящего.' }]),
+});
+
 const victim = ref('victim');
 
 export const CHOIR_CARDS = Object.freeze([

@@ -11,7 +11,7 @@ export function aimTone(kind, side) {
   if (['target-mark', 'mark-row'].includes(kind)) return 'mark';
   if (['infection', 'infection-target', 'row-effect'].includes(kind)) return 'infection';
   if (['boost', 'armor', 'marshal', 'ready-order'].includes(kind)) return 'boost';
-  if (side === 'bot' || ['damage', 'friendly-damage', 'consume', 'emp', 'spend-armor'].includes(kind)) return 'damage';
+  if (side === 'bot' || ['damage', 'friendly-damage', 'leader-offering', 'consume', 'emp', 'spend-armor'].includes(kind)) return 'damage';
   return 'neutral';
 }
 

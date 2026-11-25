@@ -64,10 +64,11 @@ async function run({ root, trials, rolloutSamples, trace, collectCards, progress
       plague && faction === 'growth' ? plague.leader.id : FACTIONS[faction].leaders[humanLeader]?.id });
     if (botLeader !== undefined) {
       const player = match.players.bot;
-      player.leader = { ...FACTIONS[player.factionId].leaders[botLeader], charges: match.rules.leaderCharges };
+      const leader = FACTIONS[player.factionId].leaders[botLeader];
+      player.leader = { ...leader, charges: leader.charges ?? match.rules.leaderCharges };
     }
     if (plague && faction === 'protectorate') {
-      match.players.bot.leader = { ...plague.leader, charges: match.rules.leaderCharges };
+      match.players.bot.leader = { ...plague.leader, charges: plague.leader.charges ?? match.rules.leaderCharges };
     }
     match.starter = starter;
     const start = performance.now();

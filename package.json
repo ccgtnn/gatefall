@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "test:battle": "node --test tests/match.test.js tests/round-rules.test.js tests/effects.test.js tests/card-placement.test.js tests/card-motion.test.js tests/turn-playback.test.js tests/match-turn.test.js",
+    "test:battle": "node --test tests/match.test.js tests/round-rules.test.js tests/effects.test.js tests/leader-factions.test.js tests/card-placement.test.js tests/card-motion.test.js tests/turn-playback.test.js tests/match-turn.test.js",
     "test:economy": "node --test tests/app-timers.test.js tests/rewards.test.js tests/reward-reveal.test.js tests/match-result.test.js tests/reset-progress.test.js tests/base.test.js tests/base-production.test.js tests/tavern.test.js tests/league.test.js tests/ranks.test.js",
     "test:bot": "node --test tests/bot.test.js tests/bot-strategy.test.js tests/arena-cards.test.js",
     "arena": "node tools/arena.mjs",

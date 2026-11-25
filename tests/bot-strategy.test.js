@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCard } from '../docs/game/board.js';
 import { chooseBotTurn, createBotView } from '../docs/game/bot.js';
+import { AWAKENING } from '../docs/game/choir.js';
 import { FACTIONS, LARVA } from '../docs/game/cards.js';
 import { applyAction, confirmMulligan, createMatch } from '../docs/game/match.js';
 
@@ -251,5 +252,35 @@ test('the bot prioritizes new infection over refreshing an already infected enem
   const pending = applyAction(match, 'bot', { type: 'order', cardId: 'spitter' });
   for (const difficulty of ['easy', 'normal', 'hard']) {
     assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'fresh' });
+  }
+});
+
+test('all difficulties use Skara at low coins and save her charge near the cap', () => {
+  for (const mode of ['easy', 'normal', 'hard']) {
+    const match = position(3);
+    match.players.bot.leader = { ...FACTIONS.captains.leader, charges: 1 };
+    match.players.bot.coins = 2;
+    const action = chooseBotTurn(match, mode);
+    assert.equal(action.type, 'leader');
+    const pending = applyAction(match, 'bot', action);
+    assert.ok(pending.pending.options.includes(chooseBotTurn(pending, mode).cardId));
+    match.players.bot.coins = 8;
+    assert.notEqual(chooseBotTurn(match, mode).type, 'leader');
+  }
+});
+
+test('all difficulties prefer weak offerings and use the Priest to open an Awakening chapter', () => {
+  for (const mode of ['easy', 'normal', 'hard']) {
+    const match = position(3);
+    match.players.bot.leader = { ...FACTIONS.choir.leader };
+    match.players.bot.board.surface = [plain('strong', 6), plain('weak', 1)];
+    const action = chooseBotTurn(match, mode);
+    assert.equal(action.type, 'leader');
+    const pending = applyAction(match, 'bot', action);
+    assert.deepEqual(chooseBotTurn(pending, mode), { type: 'target', cardId: 'weak' });
+    match.players.bot.board.surface.pop();
+    assert.notEqual(chooseBotTurn(match, mode).type, 'leader');
+    match.players.bot.board.orbit.push(createCard('scenario', AWAKENING));
+    assert.equal(chooseBotTurn(match, mode).type, 'leader');
   }
 });

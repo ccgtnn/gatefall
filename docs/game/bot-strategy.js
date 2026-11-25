@@ -1,3 +1,4 @@
+import { offeringPriority, preferredLeaderUse } from './bot-leaders.js';
 import { compareRollouts } from './bot-rollouts.js';
 import { ROWS } from './card-metadata.js';
 import { activeOrder, cardType, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js';
@@ -120,14 +121,15 @@ function plays(state, side) {
 
 function abilities(state, side) {
   const actions = availableOrders(state, side).map(({ card }) => ({ type: 'order', cardId: card.id }));
-  if (canUseLeader(state, side)) actions.push({ type: 'leader' });
+  if (preferredLeaderUse(state, side) ?? canUseLeader(state, side)) actions.push({ type: 'leader' });
   return actions;
 }
 
 function choices(state) {
   const { kind, options, side, cardId, cards, pile = 'deck' } = state.pending;
-  if (kind === 'lock' || kind === 'cleanse') {
-    const priority = kind === 'lock' ? lockPriority : cleansePriority;
+  if (kind === 'lock' || kind === 'cleanse' || kind === 'leader-offering') {
+    const priority = kind === 'lock' ? lockPriority : kind === 'cleanse' ? cleansePriority
+      : (unit) => offeringPriority(state, side, unit, state.pending.amount);
     const priorities = options.map((id) => priority(findUnit(state, id), side));
     const best = Math.max(...priorities);
     return options.filter((_, i) => priorities[i] === best).map((id) => ({ type: 'target', cardId: id }));
@@ -331,6 +333,9 @@ export function chooseStrategicTurn(match, difficulty, oldAction, options = {}) 
     return decide(PASS, 'Достигнут лимит карт на первый раунд.');
   }
 
+  if (!(human.passed && lead > 0) && preferredLeaderUse(match, 'bot')) {
+    return decide({ type: 'leader' }, 'Использую подходящий момент для способности лидера.');
+  }
   const state = publicMatch(match);
   if (match.playedCard) {
     if (human.passed && lead > 0) return decide(END, 'Очков уже достаточно. Сохраняю Приказы.');

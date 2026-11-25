@@ -37,8 +37,10 @@ const fee = (match, cardId) => applyAction(match, 'human', { type: 'fee', cardId
 const order = (match, cardId) => applyAction(match, 'human', { type: 'order', cardId });
 const pass = (match, side = 'human') => applyAction(match, side, { type: 'pass' });
 
-test('all ten Hound cards are in the collection but their faction has no preset or booster', async () => {
-  const economy = createRewardProgress();
+test('all ten Hound cards are collectible and the Captains have a preset and booster', async () => {
+  let saved = JSON.stringify({ startingGold: 100 });
+  const storage = { getItem: () => saved, setItem: (_, value) => { saved = value; } };
+  const economy = createRewardProgress(storage, undefined, { random: () => 0 });
   const hounds = CAPTAIN_CARDS.filter(({ categories }) => categories?.includes(HOUND_CATEGORY));
   assert.equal(hounds.length, 10);
   for (const { id, faction } of hounds) {
@@ -47,10 +49,15 @@ test('all ten Hound cards are in the collection but their faction has no preset 
   }
   for (const keyword of ['Прибыль', 'Плата', 'Взнос']) assert.ok(KEYWORDS[keyword]);
   assert.deepEqual([HOUND.power, HOUND.provision, REINFORCED_HOUND.power, REINFORCED_HOUND.armor], [2, undefined, 3, 1]);
-  assert.ok(!PRESETS.some(({ factionId }) => factionId === 'captains'));
+  const preset = PRESETS.find(({ factionId }) => factionId === 'captains');
+  assert.equal(createDeckMatch(preset).players.human.factionId, 'captains');
   assert.equal(createDeckMatch({ factionId: 'captains', name: 'Гончие', cardIds: [] }), null);
-  assert.equal(await economy.buyPack('captains'), 'unknown');
-  assert.equal(await economy.openPack('captains'), 'unknown');
+  assert.equal(await economy.buyPack('captains'), 'done');
+  assert.equal(await economy.openPack('captains'), 'done');
+  const pack = economy.inventory().pendingPack;
+  assert.equal(pack.faction, 'captains');
+  assert.equal(pack.cards.length, 5);
+  assert.ok(pack.cards.every((id) => byId.has(id)));
 });
 
 test('Captain cards and both tokens use their own WebP and alternate art exists', async () => {
@@ -230,7 +237,7 @@ const turret = byId.get('broken-turret');
 const lightShip = byId.get('hound-claw');
 const heavyShip = byId.get('black-hound');
 
-test('the three independent bronzes are collectible and outside booster pools', async () => {
+test('the three independent bronzes are collectible faction cards', () => {
   const economy = createRewardProgress();
   assert.equal(CAPTAIN_CARDS.length, 13);
   for (const card of [debtor, pilot, turret]) {
@@ -240,7 +247,6 @@ test('the three independent bronzes are collectible and outside booster pools', 
   }
   assert.deepEqual([debtor.type, debtor.power, pilot.type, pilot.power, turret.type, turret.power],
     ['unit', 6, 'unit', 3, 'artifact', undefined]);
-  assert.equal(await economy.openPack('captains'), 'unknown');
 });
 
 test('Debtor pays exactly two coins or loses three current power without paying', () => {
