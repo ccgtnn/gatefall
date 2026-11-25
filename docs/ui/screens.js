@@ -6,7 +6,8 @@ import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../
 import { FACTION_CATALOG } from '../game/faction-catalog.js?v=world-gates-premium-1-nc1';
 import { CAPTAIN_CARDS } from '../game/captains.js?v=captains-independent-1';
 import { addCardCrop, cardButton, showCard } from './cards.js?v=world-gates-premium-1-nc1';
-import { logView, roundText } from './menu.js?v=world-gates-premium-1-nc1';
+import { logView } from './menu.js?v=world-gates-premium-1-nc1';
+import { roundText } from './match-log.js';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=choir-playable-1';
 import { factionFilters } from './faction-filters.js?v=faction-catalog-2';
 import { copyLimit } from '../game/decks.js?v=world-gates-premium-1-nc1';

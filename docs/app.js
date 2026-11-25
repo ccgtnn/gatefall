@@ -5,20 +5,19 @@ import { createBaseScreen } from './ui/base-screen.js?v=world-gates-premium-1-nc
 import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=world-gates-premium-1-nc1';
 import { createDeckStorage } from './ui/deck-storage.js?v=world-gates-premium-1-nc1';
 import { bindCardPlacement } from './card-placement.js?v=hounds-1';
-import { animateCoin, animateHandTurn, animateLifeLoss, animateTurnSparks, presentJournalEvent } from './card-motion.js?v=world-gates-premium-1-nc1';
+import { animateCoin } from './card-motion.js?v=world-gates-premium-1-nc1';
 import { clearParticles } from './particles.js?v=step-14';
-import { playJournal } from './turn-playback.js?v=world-gates-premium-1-nc1';
-import { BOT_DELAY_MS, chooseBotTurn } from './game/bot.js?v=world-gates-premium-1-nc1';
 import { findInPiles, placementSide } from './game/board.js?v=world-gates-premium-1-nc1';
 import { FACTIONS } from './game/cards.js?v=world-gates-premium-1-nc1';
 import { inspectDeck, PRESETS } from './game/decks.js?v=world-gates-premium-1-nc1';
-import { applyAction, createDeckMatch } from './game/match.js?v=world-gates-premium-1-nc1';
+import { createDeckMatch } from './game/match.js?v=world-gates-premium-1-nc1';
 import { element, iconButton } from './ui/dom.js?v=opponent-reveal-1';
 import { cardArt, preview, showCard } from './ui/cards.js?v=world-gates-premium-1-nc1';
 import { createBattlefield } from './ui/field.js?v=match-rewards-1-nc1';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=world-gates-premium-1-nc1';
 import { describeFinishedMatch, settleFinishedMatch } from './ui/match-result.js?v=match-result-1';
-import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=world-gates-premium-1-nc1';
+import { createMatchTurn } from './ui/match-turn.js';
+import { createMatchMenu } from './ui/menu.js?v=world-gates-premium-1-nc1';
 import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=world-gates-premium-1-nc1';
 import { createSettings } from './ui/settings.js?v=world-gates-premium-1-nc1';
 
@@ -46,28 +45,20 @@ const phaseLabel = document.querySelector('#phase');
 const turnNotice = document.querySelector('#match-notice');
 const coinNotice = document.querySelector('#coin-notice');
 const roundNotice = document.querySelector('#round-notice');
-const ROUND_RESULT_MS = 1500;
 const noticeTimers = new Map();
 const announcement = document.querySelector('#announcement');
-let match;
 let menuView = 'decks';
 let selectedFaction;
 let editedDeck;
 let matchDeck;
-let matchSession = 0;
 let matchRewardId;
 let leagueMatch;
 let leagueDialogue;
 let leagueSpeech;
 let speechTimer;
 let matchSettlement;
-let timer;
 let selectedCardId;
-let replaying = false;
-let targetAction;
-let confirmingTarget = false;
-let retryRolls = [];
-const aim = bindTargeting(screen, cancelTargeting);
+const aim = bindTargeting(screen, () => turns.cancelTargeting());
 let mulliganFieldVisible = false;
 let storage;
 try { storage = window.localStorage; } catch {}
@@ -79,9 +70,30 @@ const settings = createSettings(app, leaveMatch, async () => {
   await resetProgress(storage, navigator.locks);
   window.location.reload();
 });
+const turns = createMatchTurn({
+  app, screen, settings, aim, notices: { turnNotice, coinNotice, roundNotice }, announcement,
+  showNotice, hideNotice, render,
+  difficulty: () => leagueMatch?.difficulty ?? settings.difficulty(),
+  battlefieldStyle: battlefieldPreferences.current,
+  onCancelTargeting: () => leagueDialogue?.cancelPlay(),
+  recordJournal(before, next, journal) {
+    const speech = leagueDialogue?.transition(before, next, journal);
+    if (speech) {
+      next.log.push(speech);
+      journal.push(speech);
+    }
+    void progress.recordTavernEvents(matchRewardId, before.log.length, journal);
+    return speech;
+  },
+  onMatchChanged(before, next, speech) {
+    if (speech && next.phase !== 'finished') showLeagueSpeech(speech);
+    if (next.phase === 'finished' && before.phase !== 'finished') void saveMatchResult();
+    if (next.phase === 'mulligan') mulliganFieldVisible = false;
+  },
+});
 const rewardReveal = createRewardReveal({
   motion: settings.motion,
-  canShow: () => !match || (match.phase === 'finished' && matchSettlement === 'done'),
+  canShow: () => !turns.match || (turns.match.phase === 'finished' && matchSettlement === 'done'),
   showEssence: showEssenceGain,
 });
 const progress = createRewardProgress(storage, navigator.locks, { enqueueReward });
@@ -144,25 +156,26 @@ setInterval(() => {
   if (tavernResetAt && Date.now() >= Math.max(tavernResetAt, retryTavernAt)) void checkpointTavern();
   if (Date.now() >= Math.max(rankResetAt, retryRanksAt)) void checkpointRanks();
 }, 1000);
-const menu = createMatchMenu(() => match, () => settings.showBotThoughts());
+const { humanCanAct, playHuman, updateMatch } = turns;
+const menu = createMatchMenu(() => turns.match, () => settings.showBotThoughts());
 const { drawer } = menu;
 const hand = {
-  getMatch: () => match,
-  setMatch: (next) => { match = next; },
+  getMatch: () => turns.match,
+  setMatch: turns.setMatch,
   updateMatch, setMulliganField, settingsButton, motion: () => settings.motion(),
 };
 const battlefield = createBattlefield({
-  getMatch: () => match,
+  getMatch: () => turns.match,
   getLeagueOpponent: () => leagueMatch,
   getLeagueSpeech: () => leagueSpeech,
-  isReplaying: () => replaying,
+  isReplaying: () => turns.replaying,
   getSelectedCardId: () => selectedCardId,
   isMulliganFieldVisible: () => mulliganFieldVisible,
   setMulliganField, playHuman, humanCanAct, placeSelected, settingsButton,
   showDrawer: menu.showDrawer,
   selectCard: (id) => {
     selectedCardId = selectedCardId === id ? undefined : id;
-    updatePlacementSelection(screen, match, selectedCardId);
+    updatePlacementSelection(screen, turns.match, selectedCardId);
   },
   mulliganScreen: () => mulliganScreen(hand),
 });
@@ -176,22 +189,18 @@ for (const surface of [screen, drawer, preview]) {
 const cancelPlacement = bindCardPlacement(screen, (cardId, row, position) => {
   playHuman({ type: 'play', cardId, row, position });
 }, (node) => {
-  const card = match.players.human.hand.find(({ id }) => id === node.dataset.cardId);
-  if (card && !replaying) showCard(card);
+  const card = turns.match?.players.human.hand.find(({ id }) => id === node.dataset.cardId);
+  if (card && !turns.replaying) showCard(card);
 });
 
 screen.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape' || !selectedCardId || !humanCanAct()) return;
   selectedCardId = undefined;
-  updatePlacementSelection(screen, match);
+  updatePlacementSelection(screen, turns.match);
 });
 
 function settingsButton() {
   return iconButton('⚙', 'Настройки', settings.showSettings, 'field-settings');
-}
-
-function humanCanAct() {
-  return !replaying && match.phase === 'playing' && match.turn === 'human' && !match.pending;
 }
 
 function hideNotice(notice) {
@@ -271,14 +280,12 @@ function start(deck, league) {
   if (!next) return;
   deckStore.recordPlay(deck.id);
   matchDeck = structuredClone(deck);
-  match = next;
-  targetAction = undefined;
-  retryRolls = [];
+  turns.reset(next);
   matchRewardId = league?.id ?? matchId();
   leagueMatch = league?.bot;
   leagueDialogue = leagueMatch && createLeagueDialogue(leagueMatch);
   const greeting = leagueDialogue?.start(progress.league());
-  if (greeting) match.log.push(greeting);
+  if (greeting) next.log.push(greeting);
   showLeagueSpeech(greeting);
   matchSettlement = undefined;
   selectedFaction = undefined;
@@ -287,7 +294,7 @@ function start(deck, league) {
   mulliganFieldVisible = false;
   announcement.textContent = '';
   render();
-  const first = match.starter === 'human';
+  const first = next.starter === 'human';
   const label = element('span', 'coin-result', 'Монетка: ты ходишь ' + (first ? 'первым' : 'вторым'));
   const coin = element('span', 'tossed-coin ' + (first ? 'coin-first' : 'coin-second'), first ? '✦' : '◈');
   coin.setAttribute('aria-hidden', 'true');
@@ -305,6 +312,7 @@ function start(deck, league) {
 
 async function leaveMatch(surrender = false) {
   const returnTo = leagueMatch ? 'league' : 'decks';
+  const { match } = turns;
   if (leagueMatch && (match?.phase === 'playing' || match?.phase === 'mulligan')) {
     const id = matchRewardId;
     const outcome = await progress.settleLeagueMatch(id, 'loss', -2);
@@ -313,19 +321,17 @@ async function leaveMatch(surrender = false) {
       showNotice(turnNotice, 'Не удалось сохранить результат. Попробуй выйти снова.', 3000);
       return;
     }
-    if (outcome === 'done') stats.record(match.players.human.factionId, 'loss');
+    if (outcome === 'done') stats.record(turns.match.players.human.factionId, 'loss');
     if (surrender) {
-      matchSession += 1;
-      clearTimeout(timer);
       hideNotice(coinNotice);
       hideNotice(turnNotice);
       hideNotice(roundNotice);
       app.querySelector('.round-transition')?.remove();
       showLeagueSpeech();
-      replaying = false;
+      const current = turns.match;
       const speech = leagueDialogue?.concede();
-      match = { ...match, phase: 'finished', result: 'loss', surrendered: true,
-        log: speech ? [...match.log, speech] : match.log };
+      turns.reset({ ...current, phase: 'finished', result: 'loss', surrendered: true,
+        log: speech ? [...current.log, speech] : current.log });
       matchSettlement = outcome;
       render();
       screen.querySelector('h2')?.focus({ preventScroll: true });
@@ -337,16 +343,12 @@ async function leaveMatch(surrender = false) {
   } else if (surrender === true && (match?.phase === 'playing' || match?.phase === 'mulligan')) {
     stats.record(match.players.human.factionId, 'loss');
   }
-  matchSession += 1;
+  turns.reset();
   clearParticles(document);
   for (const overlay of document.querySelectorAll('.motion-overlay')) overlay.remove();
-  clearTimeout(timer);
   hideNotice(coinNotice);
   hideNotice(turnNotice);
   hideNotice(roundNotice);
-  match = undefined;
-  targetAction = undefined;
-  retryRolls = [];
   matchDeck = undefined;
   matchRewardId = undefined;
   leagueMatch = undefined;
@@ -354,7 +356,6 @@ async function leaveMatch(surrender = false) {
   showLeagueSpeech();
   matchSettlement = undefined;
   menuView = returnTo;
-  replaying = false;
   mulliganFieldVisible = false;
   announcement.textContent = '';
   settings.close();
@@ -367,15 +368,16 @@ async function leaveMatch(surrender = false) {
 
 function placeSelected(row, side) {
   if (!selectedCardId || !humanCanAct()) return;
+  const { match } = turns;
   const card = match.players.human.hand.find(({ id }) => id === selectedCardId);
   if (!card || placementSide('human', card) !== side) return;
   playHuman({ type: 'play', cardId: selectedCardId, row, position: match.players[side].board[row].length });
 }
 
 async function replayMatch() {
-  const finished = match;
+  const finished = turns.match;
   await rewardReveal.whenIdle();
-  if (match === finished && match?.phase === 'finished') start(matchDeck);
+  if (turns.match === finished && finished?.phase === 'finished') start(matchDeck);
 }
 
 function setMulliganField(visible) {
@@ -385,6 +387,7 @@ function setMulliganField(visible) {
 }
 
 function render() {
+  const { match, replaying, targetAction } = turns;
   cancelPlacement();
   screen.classList.toggle('is-replaying', replaying);
   selectedCardId = undefined;
@@ -471,141 +474,9 @@ function render() {
   aim.update(pending ? aimAnchor(source) ?? targetAction?.origin : undefined, aimTone(pending?.kind, pending?.selectionSide));
 }
 
-function renderPlayback(state) {
-  match = state;
-  render();
-}
-
-async function showRoundResult(event, state, duration) {
-  const { scores, winner } = event;
-  const result = winner === 'human' ? 'Раунд за тобой' : winner === 'bot' ? 'Раунд за противником' : 'Раунд: ничья';
-  hideNotice(coinNotice);
-  hideNotice(turnNotice);
-  renderPlayback(state);
-  animateLifeLoss(screen, winner, duration * 1.5);
-  showNotice(roundNotice, `${result} · ${scores.human} : ${scores.bot}`, ROUND_RESULT_MS);
-  await new Promise((resolve) => setTimeout(resolve, ROUND_RESULT_MS));
-}
-
-async function showRoundTransition(round, duration) {
-  const overlay = element('div', 'motion-overlay round-transition');
-  overlay.setAttribute('role', 'status');
-  overlay.append(element('span', 'round-transition-title', `Раунд ${round}`));
-  app.append(overlay);
-  if (duration) {
-    await overlay.animate([{ opacity: 0 }, { opacity: 1 }], { duration, easing: 'ease-out' }).finished;
-  }
-  await new Promise((resolve) => setTimeout(resolve, duration ? 360 : 600));
-  return overlay;
-}
-
-function playBotTurn() {
-  let trace;
-  const options = settings.showBotThoughts() ? { onDecision: (decision) => { trace = decision; } } : {};
-  const action = chooseBotTurn(match, leagueMatch?.difficulty ?? settings.difficulty(), options);
-  const next = applyAction(match, 'bot', action);
-  if (trace && next !== match) {
-    next.log.push({
-      type: 'bot-thought', side: 'bot',
-      chosen: describeBotAction(match, action), reason: trace.reason,
-      candidates: trace.candidates.map(({ action, score, samples }) => ({
-        label: describeBotAction(match, action), score, samples,
-      })),
-    });
-  }
-  return updateMatch(next);
-}
-
-async function updateMatch(next) {
-  if (replaying || next === match) return;
-  aim.update();
-  const session = matchSession;
-  clearTimeout(timer);
-  const before = match;
-  const journal = next.log.slice(before.log.length);
-  const speech = leagueDialogue?.transition(before, next, journal);
-  if (speech) {
-    next.log.push(speech);
-    journal.push(speech);
-  }
-  void progress.recordTavernEvents(matchRewardId, before.log.length, journal);
-  const events = journal.filter(({ type }) => type !== 'bot-thought' && type !== 'league-speech');
-  const duration = settings.motion();
-  let roundTransition;
-  if ((before.phase === 'playing' && events.length && duration) || events.some(({ type }) => type === 'round-end')) {
-    replaying = true;
-    screen.classList.add('is-replaying');
-    try {
-      await playJournal(before, events, async (event, commit, state) => {
-        if (session !== matchSession) return;
-        if (event.type === 'round-end') {
-          settings.playSound(event);
-          await showRoundResult(event, state, duration);
-          if (session === matchSession) commit();
-          return;
-        }
-        await presentJournalEvent(screen, event, () => {
-          if (session === matchSession) settings.playSound(event);
-          return commit();
-        }, (state) => {
-          if (session === matchSession) renderPlayback(state);
-        }, duration);
-      });
-      if (session === matchSession && next.phase === 'mulligan' && next.round > before.round) {
-        roundTransition = await showRoundTransition(next.round, duration);
-      }
-    } catch (error) {
-      console.warn('Playback stopped early', error);
-    } finally {
-      if (session === matchSession) replaying = false;
-    }
-  } else {
-    events.forEach(settings.playSound);
-  }
-
-  if (session !== matchSession) return;
-  match = next;
-  if (speech && match.phase !== 'finished') showLeagueSpeech(speech);
-  if (match.phase === 'finished' && before.phase !== 'finished') void saveMatchResult();
-  if (match.phase === 'mulligan') {
-    mulliganFieldVisible = false;
-  }
-  render();
-  if (roundTransition) {
-    if (duration) {
-      const fade = roundTransition.animate([{ opacity: 1 }, { opacity: 0 }], {
-        duration, easing: 'ease-in', fill: 'forwards',
-      });
-      void fade.finished.then(() => roundTransition.remove(), () => roundTransition.remove());
-    } else {
-      roundTransition.remove();
-    }
-  }
-  const changedTurn = match.phase === 'playing' && match.turn !== before.turn;
-  const turnStarted = match.phase === 'playing' && (before.phase !== 'playing' || changedTurn ||
-    match.players[match.turn].turns !== before.players[match.turn].turns);
-  const humanTurnStarted = humanCanAct() && !match.playedCard &&
-    (changedTurn || match.players.human.turns !== before.players.human.turns);
-  if (turnStarted && battlefieldPreferences.current() === 'standard') animateTurnSparks(screen, match.turn, duration);
-  if (humanTurnStarted) animateHandTurn(screen, duration);
-  if (changedTurn || humanTurnStarted) showNotice(turnNotice, match.turn === 'human' ? 'Твой ход' : 'Ход противника', 1000);
-  else if (match.phase !== 'playing') hideNotice(turnNotice);
-  announcement.textContent = events.map(eventText).join(' ');
-  if (match.phase === 'finished' || match.phase === 'mulligan') screen.querySelector('h2')?.focus({ preventScroll: true });
-  else if (match.pending?.side === 'human') {
-    const target = screen.querySelector('.effect-target');
-    target?.focus({ preventScroll: true });
-  } else if ((match.pending?.side ?? match.turn) === 'bot') {
-    const delay = changedTurn ? Math.max(BOT_DELAY_MS, 1000) : BOT_DELAY_MS;
-    timer = setTimeout(playBotTurn, delay);
-  } else if (before.phase === 'mulligan') {
-    screen.querySelector('#pass-button:enabled')?.focus({ preventScroll: true });
-  }
-}
-
 async function saveMatchResult() {
   const id = matchRewardId;
-  const finished = match;
+  const finished = turns.match;
   matchSettlement = 'saving';
   render();
   const { status, recordStats } = await settleFinishedMatch(finished, progress, { id, league: Boolean(leagueMatch) });
@@ -614,52 +485,6 @@ async function saveMatchResult() {
   matchSettlement = status;
   render();
   screen.querySelector('h2')?.focus({ preventScroll: true });
-}
-
-function cancelTargeting() {
-  if (!targetAction || !match?.pending || replaying) return false;
-  const { before, rolls, cardId, type } = targetAction;
-  retryRolls = [...rolls, ...retryRolls];
-  targetAction = undefined;
-  match = before;
-  leagueDialogue?.cancelPlay();
-  render();
-  const source = cardId && CSS.escape(cardId);
-  const selector = type === 'leader' ? '[data-aim-leader="human"] ~ .leader-power'
-    : type === 'order' ? `[data-board-card="${source}"] .unit-order`
-      : `.hand [data-card-id="${source}"]`;
-  screen.querySelector(selector)?.focus({ preventScroll: true });
-  announcement.textContent = 'Выбор цели отменён.';
-  return true;
-}
-
-async function playHuman(action) {
-  if (!match || replaying || confirmingTarget) return;
-  const before = match;
-  const session = matchSession;
-  const rolls = targetAction?.rolls ?? [];
-  const next = applyAction(before, 'human', action, { random: () => {
-    const roll = retryRolls.shift() ?? Math.random();
-    rolls.push(roll);
-    return roll;
-  } });
-  if (next === before) return;
-  if (!targetAction && next.pending?.side === 'human') {
-    const { cardId, type } = action;
-    const node = type === 'leader' ? screen.querySelector('[data-aim-leader="human"]')
-      : screen.querySelector(`[data-card-id="${CSS.escape(cardId ?? '')}"], [data-board-card="${CSS.escape(cardId ?? '')}"]`);
-    const point = aimAnchor(node)?.();
-    targetAction = { before, rolls, cardId, type, origin: () => point };
-  }
-  if (before.pending && aim.showTap()) {
-    confirmingTarget = true;
-    await new Promise((resolve) => setTimeout(resolve, settings.motion() ? 180 : 90));
-    confirmingTarget = false;
-    if (match !== before || session !== matchSession) return;
-  }
-  if (next.pending?.side !== 'human') targetAction = undefined;
-  await updateMatch(next);
-  if (session === matchSession && match && humanCanAct()) screen.querySelector('#pass-button:enabled')?.focus({ preventScroll: true });
 }
 
 render();

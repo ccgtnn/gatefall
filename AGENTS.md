@@ -22,7 +22,8 @@
 | Матч, поле и способности | `docs/game/match.js`, `board.js`, `effects.js`, `events.js` в той же папке |
 | Бот и симуляции | `docs/game/bot.js`, `bot-strategy.js`, `bot-rollouts.js` |
 | Экономика и прогресс | `docs/game/rewards.js`, `base.js`, `tavern.js`, `ranks.js`, `league.js` |
-| Экраны, управление матчем и итоги | `docs/app.js`, `docs/ui/`, `docs/ui/match-result.js` |
+| Ход, бот, выбор целей и анимации матча | `docs/ui/match-turn.js`, `tests/match-turn.test.js` |
+| Экраны и итоги | `docs/app.js`, `docs/ui/`, `docs/ui/match-result.js` |
 | Размещение карт и анимации | `docs/card-placement.js`, `turn-playback.js`, `card-motion.js` |
 | Разметка и стили | `docs/index.html`, `style.css`, `field.css` |
 | Тесты, иллюстрации и правила | `tests/`, `docs/art/`, [ART_STYLE.md](ART_STYLE.md), [PROJECT_GUIDE.md](PROJECT_GUIDE.md) |
