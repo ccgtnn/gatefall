@@ -8,7 +8,8 @@
     "test:economy": "node --test tests/rewards.test.js tests/reward-reveal.test.js tests/match-result.test.js tests/reset-progress.test.js tests/base.test.js tests/base-production.test.js tests/tavern.test.js tests/league.test.js tests/ranks.test.js",
     "test:bot": "node --test tests/bot.test.js tests/bot-strategy.test.js tests/arena-cards.test.js",
     "arena": "node tools/arena.mjs",
-    "start": "python3 -m http.server 8000 --directory docs"
+    "start": "python3 -m http.server 8000 --directory docs",
+    "build:pages": "node tools/build-pages.mjs"
   },
   "engines": {
     "node": ">=22"
