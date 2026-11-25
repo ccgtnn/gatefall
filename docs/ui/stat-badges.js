@@ -6,7 +6,7 @@ function symbol(name, size = 40) {
   icon.setAttribute('viewBox', `0 0 ${size} ${size}`);
   icon.setAttribute('aria-hidden', 'true');
   const use = document.createElementNS(namespace, 'use');
-  use.setAttribute('href', './demo/stat-badges.svg?v=suppressor-1#' + name);
+  use.setAttribute('href', './art/stat-badges.svg?v=suppressor-1#' + name);
   icon.append(use);
   return icon;
 }
