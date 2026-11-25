@@ -1,4 +1,4 @@
-import { placementEffectRows } from '../card-placement.js';
+import { placementEffectRows } from './card-placement.js';
 import { button, element } from './dom.js';
 import { availableRows, cardType, placementSide } from '../game/board.js';
 import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js';

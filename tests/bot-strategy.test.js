@@ -420,3 +420,19 @@ test('Predator lets every bot choose a friendly Deathwish rather than an enemy',
     assert.deepEqual(next.players.bot.board.surface.map(({ power }) => power), [1, 1, 7]);
   }
 });
+
+test('normal bot makes the same exploratory decision with the same seed', () => {
+  function seeded(seed) {
+    return () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32;
+  }
+
+  const match = position(3);
+  match.players.bot.hand = [plain('ordinary', 5), standard('slightly-better', {
+    id: 'slightly-better', name: 'Slightly better', power: 5, aiHints: { boardBonus: .04 },
+  })];
+  const decide = (seed) => chooseBotTurn(structuredClone(match), 'normal', { random: seeded(seed) });
+  const first = decide(1972);
+  assert.deepEqual(decide(1972), first);
+  assert.equal(first.cardId, 'ordinary');
+  assert.equal(decide(1).cardId, 'slightly-better');
+});

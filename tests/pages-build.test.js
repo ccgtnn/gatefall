@@ -61,9 +61,10 @@ test('the Pages build writes a separate copy and versions CSS and dynamic media 
   await mkdir(source);
   const html = '<link rel="stylesheet" href="./style.css?v=art"><script type="module" src="./app.js"></script>';
   await writeFile(join(source, 'index.html'), html);
-  const assetSource = await readFile(new URL('../docs/asset-url.js', import.meta.url), 'utf8');
-  await writeFile(join(source, 'asset-url.js'), assetSource);
-  await writeFile(join(source, 'app.js'), "import './asset-url.js'; import('./extra.js');");
+  const assetSource = await readFile(new URL('../docs/ui/asset-url.js', import.meta.url), 'utf8');
+  await mkdir(join(source, 'ui'));
+  await writeFile(join(source, 'ui', 'asset-url.js'), assetSource);
+  await writeFile(join(source, 'app.js'), "import './ui/asset-url.js'; import('./extra.js');");
   await writeFile(join(source, 'extra.js'), 'export const ready = true;');
   await writeFile(join(source, 'style.css'), 'body { background: url(art.webp?v=old); }');
   const image = Buffer.from([0, 88, 255]);
@@ -77,7 +78,7 @@ test('the Pages build writes a separate copy and versions CSS and dynamic media 
   assert.match(result, /src="\.\/app\.js\?gf=[0-9a-f]{16}"/);
   assert.match(result, /href="\.\/style\.css\?gf=[0-9a-f]{16}"/);
   const css = await readFile(join(output, 'style.css'), 'utf8');
-  const { assetUrl } = await import(pathToFileURL(join(output, 'asset-url.js')));
+  const { assetUrl } = await import(pathToFileURL(join(output, 'ui', 'asset-url.js')));
   assert.equal(css, `body { background: url(${assetUrl('./art.webp').slice(2)}); }`);
   assert.match(assetUrl('./clip.mp4'), /^\.\/clip\.mp4\?gf=[0-9a-f]{16}$/);
   assert.match(assetUrl('./icons.svg?skin=dark#shield'), /^\.\/icons\.svg\?skin=dark&gf=[0-9a-f]{16}#shield$/);

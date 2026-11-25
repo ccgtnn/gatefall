@@ -5,7 +5,7 @@ import { chooseBotTurn } from '../docs/game/bot.js';
 import { NEUTRAL_CARDS, SHADOW } from '../docs/game/cards.js';
 import { canUseLeader, leaderCooldown } from '../docs/game/effects.js';
 import { applyAction, canPlayCard, confirmMulligan, createMatch } from '../docs/game/match.js';
-import { applyJournalEvent, createPlaybackState } from '../docs/turn-playback.js';
+import { applyJournalEvent, createPlaybackState } from '../docs/ui/turn-playback.js';
 
 const random = () => 0;
 const card = (id) => createCard(id, NEUTRAL_CARDS.find((entry) => entry.id === id));

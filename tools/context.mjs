@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const profiles = {
   engine: ['Движок матча', [
     'docs/game/match.js', 'docs/game/board.js', 'docs/game/effects.js',
-    'docs/game/effect-piles.js', 'docs/game/effect-queries.js', 'docs/game/events.js', 'docs/game/card-metadata.js', 'tests/round-rules.test.js',
+    'docs/game/effect-operations.js', 'docs/game/effect-piles.js', 'docs/game/effect-queries.js', 'docs/game/events.js', 'docs/game/card-metadata.js', 'tests/round-rules.test.js',
   ]],
   bot: ['Стратегия и симуляции бота', [
     'docs/game/bot.js', 'docs/game/bot-strategy.js', 'docs/game/bot-rollouts.js',
@@ -21,7 +21,7 @@ const profiles = {
   ]],
   'ui:battle': ['Поле и действия игрока', [
     'docs/ui/match-turn.js', 'docs/ui/field.js', 'docs/ui/hand.js', 'docs/ui/targeting.js',
-    'docs/card-placement.js', 'docs/turn-playback.js', 'tests/card-placement.test.js',
+    'docs/ui/card-placement.js', 'docs/ui/turn-playback.js', 'tests/card-placement.test.js',
   ]],
   'ui:catalog': ['Каталог и просмотр карт', [
     'docs/ui/catalog-screen.js', 'docs/ui/catalog-cards.js', 'docs/ui/cards.js',

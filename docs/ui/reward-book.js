@@ -1,4 +1,4 @@
-import { assetUrl } from '../asset-url.js';
+import { assetUrl } from './asset-url.js';
 import { button, element } from './dom.js';
 import { REWARD_SECTIONS, rewardState } from '../game/reward-book.js';
 import { resourceIcon } from './resource-icon.js';

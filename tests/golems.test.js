@@ -3,7 +3,7 @@ import test from 'node:test';
 import { findUnit, createCard } from '../docs/game/board.js';
 import { FACTIONS, NEUTRAL_CARDS } from '../docs/game/cards.js';
 import { applyAction, canEndTurn, confirmMulligan, createMatch } from '../docs/game/match.js';
-import { applyJournalEvent, createPlaybackState } from '../docs/turn-playback.js';
+import { applyJournalEvent, createPlaybackState } from '../docs/ui/turn-playback.js';
 
 const sentinel = { id: 'sentinel', name: 'Дозорный', power: 20 };
 const card = (id, instanceId = id) => createCard(instanceId, NEUTRAL_CARDS.find((def) => def.id === id));

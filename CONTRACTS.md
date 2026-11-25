@@ -17,7 +17,7 @@
 - `PendingState` содержит `side`, `kind`, `key`, `options`, `prompt` и приостановленное `job`. Для обычного выбора `target.cardId` передаёт значение из `options`, даже если это имя ряда или размер взноса. Для `kind: 'deck-placement'` применяется `place` с `row` и `position`. При продолжении движок записывает выбор в `job.refs[key]` и возвращает задание в начало очереди.
 - `log` хранит упорядоченные игровые события, рассчитанные движком. Слой матча добавляет реплики Лиги и объяснения решений бота. Воспроизведение игровых событий заканчивается перед следующим ходом бота.
 
-Код находится в `docs/game/effects.js`, `docs/game/effect-piles.js`, `docs/game/effect-queries.js`, `docs/game/events.js`, `docs/ui/match-turn.js` и `docs/turn-playback.js`.
+Код находится в `docs/game/effects.js`, `docs/game/effect-operations.js`, `docs/game/effect-piles.js`, `docs/game/effect-queries.js`, `docs/game/events.js`, `docs/ui/match-turn.js` и `docs/ui/turn-playback.js`.
 
 `definition.aiHints` задаёт численные оценки и предпочтения бота. `handPotential` оценивает запас силы в руке, `placement` выбирает эвристику расстановки в симуляции, `preferRowWith` указывает ID карты для выбора ряда лёгким ботом. `spendsRowArmor` и `armorBreakCostsPower` описывают сочетание, при котором бот учитывает потерю силы. Подсказки используются только при принятии решений бота.
 

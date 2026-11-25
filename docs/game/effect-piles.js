@@ -5,7 +5,7 @@ import { CARD_DEFINITIONS, cardsForFaction } from './card-registry.js';
 import { FACTIONS } from './cards.js';
 import { cardAbilities } from './events.js';
 import { chooseSubset, eligiblePileCards, matchesPileFilter, pauseForChoice, pileCandidates,
-  playPiles, playTiming, reference, valueOf } from './effect-queries.js';
+  playPiles, playTiming, reference, REPEAT, valueOf } from './effect-queries.js';
 
 function creationCandidates(sourceId, step, faction) {
   return CARD_DEFINITIONS.filter((definition) => !definition.token &&
@@ -67,29 +67,27 @@ function playFromPile(match, job, step, random) {
     const eligible = pile === 'created' ? cards : eligiblePileCards(match, job.side, pile, step);
     const offerAll = pile !== 'deck' || step.fullDeck || step.chooseAll;
     const options = offerAll ? eligible.map(({ id }) => id) : chooseSubset(eligible, step.choose ?? 1, random);
-    if (!options.length) return true;
+    if (!options.length) return;
     if (offerAll || step.choose) {
-      pauseForChoice(match, job, 'deck-card', 'deckCard', options,
+      return pauseForChoice(match, job, 'deck-card', 'deckCard', options,
         step.prompt ?? (pile === 'created' ? 'Выбери карту для Сотворения.' : pile === 'discard' ? 'Выбери обычный отряд из сброса.'
           : step.fullDeck ? 'Выбери карту, которую хочешь сыграть из колоды.' : 'Выбери отряд из колоды.'),
         { pile, ...(step.fullDeck && { fullDeck: true }), ...(pile === 'created' && { cards }) });
-      return false;
     }
     [job.refs.deckCard] = options;
   }
   const index = cards.findIndex(({ id }) => id === job.refs.deckCard);
-  if (index < 0) return true;
+  if (index < 0) return;
   const isEffect = cardType(cards[index]) === 'effect';
   const destinationSide = placementSide(job.side, cards[index]);
   const recipient = match.players[destinationSide];
   if (!isEffect && !job.refs.deckPlacement) {
     const rows = availableRows(recipient, cards[index]);
-    if (!rows.length) return true;
+    if (!rows.length) return;
     const type = cardType(cards[index]) === 'artifact' ? 'артефакта' : 'отряда';
-    pauseForChoice(match, job, 'deck-placement', 'deckPlacement', rows, `Выбери ряд и позицию для ${type}.`,
+    return pauseForChoice(match, job, 'deck-placement', 'deckPlacement', rows, `Выбери ряд и позицию для ${type}.`,
       { cardId: job.refs.deckCard, pile, ...(pile === 'created' && { cards }),
         ...(destinationSide !== job.side && { selectionSide: destinationSide }) });
-    return false;
   }
   const [chosen] = cards.splice(index, 1);
   const card = pile === 'discard' ? restoreCard(chosen) : chosen;
@@ -112,7 +110,6 @@ function playFromPile(match, job, step, random) {
   delete job.refs.deckCard;
   delete job.refs.deckPlacement;
   delete job.created;
-  return true;
 }
 
 function summonFromDeck(match, job, step, random) {
@@ -149,34 +146,22 @@ function placeSummonedCard(match, side, row, index, selected) {
   match.effects.unshift(...appearanceJobs(match, side, card));
 }
 
-function playPileStep(match, job, step, random) {
-  const queued = match.effects.length;
-  if (playFromPile(match, job, step, random)) {
-    job.index += 1;
-    match.effects.splice(match.effects.length - queued, 0, job);
-  }
-}
-
 function chooseDeckTop(match, job) {
   const { deck } = match.players[job.side];
   if (deck.length && !job.refs.topCard) {
-    pauseForChoice(match, job, 'deck-top', 'topCard', deck.map(({ id }) => id), 'Выбери карту на верх колоды.');
-    return;
+    return pauseForChoice(match, job, 'deck-top', 'topCard', deck.map(({ id }) => id), 'Выбери карту на верх колоды.');
   }
   const index = deck.findIndex(({ id }) => id === job.refs.topCard);
   if (index > 0) deck.unshift(...deck.splice(index, 1));
   if (deck.length) match.log.push({ type: 'deck-top', side: job.side });
-  job.index += 1;
-  match.effects.unshift(job);
 }
 
 function chooseHandBottom(match, job) {
   const player = match.players[job.side];
   if (player.hand.length) {
     if (!job.refs.bottomCard) {
-      pauseForChoice(match, job, 'hand-bottom', 'bottomCard', player.hand.map(({ id }) => id),
+      return pauseForChoice(match, job, 'hand-bottom', 'bottomCard', player.hand.map(({ id }) => id),
         'Выбери карту из руки на дно колоды.', { pile: 'hand' });
-      return;
     }
     const index = player.hand.findIndex(({ id }) => id === job.refs.bottomCard);
     if (index >= 0) {
@@ -185,8 +170,6 @@ function chooseHandBottom(match, job) {
       match.log.push({ type: 'hand-bottom', side: job.side, cardId: card.id, name: card.definition.name });
     }
   }
-  job.index += 1;
-  match.effects.unshift(job);
 }
 
 function returnHand(match, job, step, random) {
@@ -194,9 +177,8 @@ function returnHand(match, job, step, random) {
   job.returns ??= valueOf(match, job, step.amount);
   if (job.returns > 0 && hand.length) {
     if (!job.refs.returnCard) {
-      pauseForChoice(match, job, 'hand-return', 'returnCard', hand.map(({ id }) => id),
+      return pauseForChoice(match, job, 'hand-return', 'returnCard', hand.map(({ id }) => id),
         `Верни карту из руки в колоду. Осталось: ${job.returns}.`, { pile: 'hand' });
-      return;
     }
     const [card] = hand.splice(hand.findIndex(({ id }) => id === job.refs.returnCard), 1);
     const position = Math.floor(random() * (deck.length + 1));
@@ -204,54 +186,29 @@ function returnHand(match, job, step, random) {
     match.log.push({ type: 'hand-return', side: job.side, cardId: card.id, position });
     job.returns -= 1;
     delete job.refs.returnCard;
-    match.effects.unshift(job);
-    return;
+    return REPEAT;
   }
   delete job.returns;
-  job.index += 1;
-  match.effects.unshift(job);
 }
 
 function drawCards(match, job, step) {
   const cards = takeCards(match.players[job.side], valueOf(match, job, step.amount));
   if (step.save) job.results[step.save] = cards.length;
   if (cards.length) match.log.push({ type: 'draw', side: job.side, count: cards.length, cards });
-  job.index += 1;
-  match.effects.unshift(job);
-}
-
-function summonDeckStep(match, job, step, random) {
-  const queued = match.effects.length;
-  summonFromDeck(match, job, step, random);
-  job.index += 1;
-  match.effects.splice(match.effects.length - queued, 0, job);
 }
 
 function boostDeck(match, job, step) {
-  const queued = match.effects.length;
   for (const card of match.players[job.side].deck) {
     if (card.definition.categories?.includes(step.category)) changeBasePower(match, { card, side: job.side, pile: 'deck' }, step.amount);
   }
-  job.index += 1;
-  match.effects.splice(match.effects.length - queued, 0, job);
 }
 
-const pileSteps = {
+export const pileOperations = {
+  ...Object.fromEntries(Object.keys(playPiles).map((action) => [action, playFromPile])),
   'choose-deck-top': chooseDeckTop,
   'choose-hand-bottom': chooseHandBottom,
   'return-hand': returnHand,
   draw: drawCards,
-  'summon-from-deck': summonDeckStep,
+  'summon-from-deck': summonFromDeck,
   'boost-deck': boostDeck,
 };
-
-export function runPileEffect(match, job, step, random) {
-  if (Object.hasOwn(playPiles, step.action)) {
-    playPileStep(match, job, step, random);
-  } else if (Object.hasOwn(pileSteps, step.action)) {
-    pileSteps[step.action](match, job, step, random);
-  } else {
-    return false;
-  }
-  return true;
-}

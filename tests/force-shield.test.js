@@ -3,7 +3,7 @@ import test from 'node:test';
 import { applyStatus, createCard, damage, findUnit, statusCount, tickInfection } from '../docs/game/board.js';
 import { NEUTRAL_CARDS } from '../docs/game/cards.js';
 import { applyAction, confirmMulligan, createMatch } from '../docs/game/match.js';
-import { applyJournalEvent, createPlaybackState } from '../docs/turn-playback.js';
+import { applyJournalEvent, createPlaybackState } from '../docs/ui/turn-playback.js';
 
 function deployedGolem() {
   const definition = NEUTRAL_CARDS.find(({ id }) => id === 'old-golem');
