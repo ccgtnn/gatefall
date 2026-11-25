@@ -1,7 +1,7 @@
 import { createAppTimers } from './ui/app-timers.js';
 import { keepCardVideos, resumeCardVideos } from './ui/card-art.js';
 import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js';
-import { createDeckStorage } from './ui/deck-storage.js';
+import { createDeckStorage, newDeckId } from './ui/deck-storage.js';
 import { bindCardPlacement } from './card-placement.js';
 import { findInPiles, placementSide } from './game/board.js';
 import { FACTIONS } from './game/cards.js';
@@ -212,7 +212,7 @@ function editDeck(deck, notice = '') {
 }
 
 function makeDeck(factionId, leaderId, source) {
-  const id = globalThis.crypto?.randomUUID?.() ?? 'deck-' + Date.now() + '-' + Math.random();
+  const id = newDeckId();
   const { owned } = progress.inventory();
   const cardIds = (source?.cardIds ?? []).filter((cardId) => {
     if (!owned[cardId]) return false;
@@ -269,6 +269,12 @@ function render() {
       case 'all-decks': content = deckListScreen(phaseLabel, deckStore.list(), stats, {
         back: () => goTo('decks'), create: () => goTo('faction'), play: session.start, edit: editDeck,
         copy: (deck) => makeDeck(deck.factionId, deck.leaderId, deck),
+        importJson: deckStore.importJson,
+        onImported({ deck, missing, saved }) {
+          const status = saved ? 'Колода импортирована.' : 'Колода импортирована до закрытия страницы. Браузер не сохранил данные.';
+          const details = missing.map(({ name, count }) => name + ' ×' + count);
+          editDeck(deck, details.length ? status + ' Не хватает карт: ' + details.join(', ') + '.' : status);
+        },
       }, progress.inventory); break;
       case 'decorations': content = decorationsScreen(phaseLabel, framePreferences, battlefieldPreferences, () => goTo('decks')); break;
       case 'ranks': content = rankScreen(phaseLabel, progress, () => goTo('decks')); break;
