@@ -129,10 +129,14 @@ test('premium selection updates existing copies and persists independently for b
   try {
     assert.equal(byClass(face, 'card-art-crop').tag, 'img');
     showCard(makeCard(id));
-    const choice = tree(preview).find(({ tag }) => tag === 'select');
-    assert.equal(choice.value, 'regular');
-    choice.value = 'premium';
-    choice.listeners.change();
+    const [regular, premium] = byClass(preview, 'preview-art-versions').children;
+    assert.equal(regular.textContent, 'Обычная');
+    assert.equal(premium.textContent, 'Премиальная');
+    assert.equal(regular.attributes['aria-pressed'], 'true');
+    assert.equal(premium.attributes['aria-pressed'], 'false');
+    premium.listeners.click();
+    assert.equal(regular.attributes['aria-pressed'], 'false');
+    assert.equal(premium.attributes['aria-pressed'], 'true');
     const video = byClass(face, 'card-art-video');
     assert.equal(video.src, './art/synaptic-parasite-hand.mp4');
     assert.equal(video.poster, './art/synaptic-parasite.webp');
@@ -141,24 +145,82 @@ test('premium selection updates existing copies and persists independently for b
     assert.equal(byClass(other, 'card-art-crop').tag, 'img');
     selectPremiumArt(devourer, true);
     assert.equal(byClass(other, 'card-art-video').src, './art/carrion-devourer-card.mp4');
-    assert.deepEqual(JSON.parse(saved.get(PREMIUM_ART_KEY)), [id, devourer]);
+    assert.deepEqual(JSON.parse(saved.get(PREMIUM_ART_KEY)), { enabled: false, overrides: { [id]: true, [devourer]: true } });
 
     const restored = await import('../docs/ui/card-art.js?test-reload');
     assert.ok(restored.usesPremiumArt(id) && restored.usesPremiumArt(devourer));
     globalThis.matchMedia = () => ({ matches: true });
     assert.equal(byClass(drawable(id), 'card-art-crop').tag, 'img');
     delete globalThis.matchMedia;
-    selectPremiumArt(id, false);
+    regular.listeners.click();
+    assert.equal(regular.attributes['aria-pressed'], 'true');
     assert.equal(byClass(face, 'card-art-crop').tag, 'img');
     assert.ok(byClass(other, 'card-art-video'));
     showCard(makeCard('bastion'));
-    assert.equal(tree(preview).find(({ tag }) => tag === 'select'), undefined);
+    assert.equal(byClass(preview, 'preview-art-versions'), undefined);
   } finally {
     selectPremiumArt(id, false);
     selectPremiumArt(devourer, false);
     document.body.replaceChildren(preview);
     delete globalThis.localStorage;
     delete globalThis.matchMedia;
+  }
+});
+
+test('a global premium setting clears exceptions and updates existing copies', async () => {
+  const { premiumArtEnabled, selectPremiumArt, setPremiumArtEnabled, usesPremiumArt } = await import('../docs/ui/card-art.js');
+  const worldGates = drawable('world-gates');
+  const falura = drawable('falura');
+  document.body.append(worldGates, falura);
+  try {
+    selectPremiumArt('world-gates', true);
+    assert.equal(premiumArtEnabled(), false);
+    assert.equal(byClass(worldGates, 'card-art-crop').tag, 'video');
+
+    setPremiumArtEnabled(true);
+    assert.equal(premiumArtEnabled(), true);
+    assert.equal(byClass(falura, 'card-art-crop').tag, 'video');
+    assert.equal(usesPremiumArt('bastion'), false);
+    assert.equal(usesPremiumArt('ulmarin-awakening'), true);
+    selectPremiumArt('world-gates', false);
+    assert.equal(byClass(worldGates, 'card-art-crop').tag, 'img');
+    assert.equal(byClass(falura, 'card-art-crop').tag, 'video');
+
+    setPremiumArtEnabled(false);
+    assert.equal(byClass(falura, 'card-art-crop').tag, 'img');
+    setPremiumArtEnabled(true);
+    assert.equal(byClass(worldGates, 'card-art-crop').tag, 'video');
+  } finally {
+    setPremiumArtEnabled(false);
+    document.body.replaceChildren(preview);
+  }
+});
+
+test('legacy enabled cards become exceptions to the default and negative overrides survive reload', async () => {
+  const { PREMIUM_ART_KEY } = await import('../docs/ui/card-art.js');
+  const saved = new Map([[PREMIUM_ART_KEY, JSON.stringify(['world-gates'])]]);
+  globalThis.localStorage = { getItem: (key) => saved.get(key), setItem: (key, value) => saved.set(key, value) };
+  try {
+    const legacy = await import('../docs/ui/card-art.js?test-legacy');
+    assert.equal(legacy.premiumArtEnabled(), false);
+    assert.equal(legacy.usesPremiumArt('world-gates'), true);
+    assert.equal(legacy.usesPremiumArt('falura'), false);
+
+    legacy.selectPremiumArt('falura', true);
+    assert.deepEqual(JSON.parse(saved.get(PREMIUM_ART_KEY)),
+      { enabled: false, overrides: { 'world-gates': true, falura: true } });
+
+    legacy.setPremiumArtEnabled(true);
+    legacy.selectPremiumArt('world-gates', false);
+    assert.deepEqual(JSON.parse(saved.get(PREMIUM_ART_KEY)),
+      { enabled: true, overrides: { 'world-gates': false } });
+
+    const restored = await import('../docs/ui/card-art.js?test-global-reload');
+    assert.equal(restored.premiumArtEnabled(), true);
+    assert.equal(restored.usesPremiumArt('world-gates'), false);
+    assert.equal(restored.usesPremiumArt('falura'), true);
+  } finally {
+    delete globalThis.localStorage;
   }
 });
 
@@ -170,10 +232,8 @@ test('World Gates uses its own premium clips on the small and full card faces', 
   try {
     showCard(makeCard(id));
     assert.equal(byClass(face, 'card-art-crop').src, './art/world-gates.webp');
-    const mode = tree(preview).find(({ tag }) => tag === 'select');
-    assert.equal(mode.value, 'regular');
-    mode.value = 'premium';
-    mode.listeners.change();
+    const [, premium] = byClass(preview, 'preview-art-versions').children;
+    premium.listeners.click();
     for (const [root, file] of [[face, 'world-gates-card.mp4'], [preview, 'world-gates-preview.mp4']]) {
       const video = byClass(root, 'card-art-video');
       assert.equal(video.src, `./art/${file}`);

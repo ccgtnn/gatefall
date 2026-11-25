@@ -5,7 +5,6 @@ import {
   applyStatus, cleanse, createCard, findUnit, refreshSidePower, statusCount,
 } from '../docs/game/board.js';
 import { chooseBotTurn } from '../docs/game/bot.js';
-import { CAPTAIN_CARDS, HOUND } from '../docs/game/captains.js';
 import { KEYWORDS, NEUTRAL_CARDS } from '../docs/game/cards.js';
 import { availableOrders } from '../docs/game/effects.js';
 import { deathwishDefinitions } from '../docs/game/events.js';
@@ -130,15 +129,16 @@ test('the Monk undoes a real Suppressor lock and the unlocked Order is usable im
 
 test('Cleansing restores a locked continuous aura without changing the target strength', () => {
   const match = setup();
-  const captain = createCard('captain', CAPTAIN_CARDS.find(({ id }) => id === 'hound-captain'));
-  const ally = createCard('ally', HOUND);
-  match.players.human.board.surface.push(captain, ally);
+  const sidePower = { group: 'test-group', key: 'testBonus' };
+  const aura = unit('aura', { power: 4, sidePower, sidePowerAura: 1 });
+  const ally = unit('ally', { power: 2, sidePower });
+  match.players.human.board.surface.push(aura, ally);
   refreshSidePower(match, 'human');
-  const source = findUnit(match, captain.id);
+  const source = findUnit(match, aura.id);
   applyStatus(match, source, 'lock', 1);
-  assert.deepEqual([captain.power, ally.power], [5, 2]);
+  assert.deepEqual([aura.power, ally.power], [5, 2]);
   cleanse(match, source);
-  assert.deepEqual([captain.power, ally.power], [5, 3]);
+  assert.deepEqual([aura.power, ally.power], [5, 3]);
 });
 
 test('all bot difficulties cleanse allied Lock, Infection or Target and strip a granted enemy shield', () => {

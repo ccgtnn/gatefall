@@ -4,7 +4,7 @@ import {
   applyStatus, consume, createCard, findUnit, refreshSidePower, removeUnit, restoreCard, spendResilience, statusCount,
 } from '../docs/game/board.js';
 import { chooseBotTurn } from '../docs/game/bot.js';
-import { CAPTAIN_CARDS, HOUND } from '../docs/game/captains.js';
+import { CAPTAIN_CARDS } from '../docs/game/captains.js';
 import { KEYWORDS, NEUTRAL_CARDS } from '../docs/game/cards.js';
 import {
   availableFees, availableOrders, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, runEffect,
@@ -15,7 +15,7 @@ import { createRewardProgress } from '../docs/game/rewards.js';
 import { applyJournalEvent, createPlaybackState } from '../docs/turn-playback.js';
 
 const suppressor = NEUTRAL_CARDS.find(({ id }) => id === 'suppressor');
-const captain = CAPTAIN_CARDS.find(({ id }) => id === 'hound-captain');
+
 const recruiter = CAPTAIN_CARDS.find(({ id }) => id === 'hound-recruiter');
 const createUnit = (id, traits) => createCard(id, { id, name: id, power: 5, ...traits });
 const self = { scope: 'source' };
@@ -169,15 +169,16 @@ test('lock stops end-turn effects, counters, both kinds of timers and start-turn
 
 test('lock removes an aura from its allies while keeping the locked unit’s current power', () => {
   const match = setup();
-  const source = createCard('captain', captain);
-  const ally = createCard('ally', HOUND);
+  const sidePower = { group: 'test-group', key: 'testBonus' };
+  const source = createUnit('aura', { power: 4, sidePower, sidePowerAura: 1 });
+  const ally = createUnit('ally', { power: 2, sidePower });
   match.players.human.board.surface.push(source, ally);
   refreshSidePower(match, 'human');
   assert.deepEqual([source.power, ally.power], [5, 3]);
   lock(match, source.id);
   assert.deepEqual([source.power, ally.power], [5, 2]);
-  assert.equal(source.houndBonus, undefined);
-  const newcomer = createCard('newcomer', HOUND);
+  assert.equal(source.testBonus, undefined);
+  const newcomer = createUnit('newcomer', { power: 2, sidePower });
   match.players.human.board.surface.push(newcomer);
   refreshSidePower(match, 'human');
   assert.equal(newcomer.power, 2);

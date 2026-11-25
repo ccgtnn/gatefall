@@ -110,7 +110,7 @@ test('Бригадир can spawn repeatedly in the same turn and rejects insuffi
   assert.equal(fee(full, 'surface-1'), full);
 });
 
-test('Капитан buffs existing and new friendly Hounds and removes the aura when gone', () => {
+test('Капитан boosts himself and the Hounds already on his side once', () => {
   const captain = byId.get('hound-captain');
   const foreman = byId.get('hound-foreman');
   const before = setup({ hand: [captain], orbit: [HOUND], surface: [foreman, ordinary], foes: [HOUND], coins: 2 });
@@ -120,14 +120,15 @@ test('Капитан buffs existing and new friendly Hounds and removes the aura
   assert.equal(human(match).board.surface[1].power, ordinary.power);
   assert.equal(match.players.bot.board.orbit[0].power, 2);
   match = fee(match, 'surface-1');
-  assert.equal(human(match).board.surface[1].power, 3);
+  assert.equal(human(match).board.surface[1].power, 2);
   const token = human(match).board.surface[1].id;
   removeUnit(match, findUnit(match, 'hand-1'), 'destroy');
   assert.equal(findUnit(match, token).card.power, 2);
-  assert.equal(human(match).board.orbit[0].power, 2);
+  assert.equal(human(match).board.orbit[0].power, 3);
   const playback = createPlaybackState(before);
   for (const event of match.log) applyJournalEvent(playback, event);
   assert.equal(findUnit(playback, token).card.power, 2);
+  assert.equal(human(playback).board.orbit[0].power, 3);
   assert.equal(human(playback).coins, 0);
 });
 
@@ -162,26 +163,29 @@ test('Чёрная гончая enters orbit with a shield and creates Кого�
   assert.equal(play(before), before);
   const placed = play(before, 'orbit');
   assert.equal(statusCount(human(placed).board.orbit[0], 'shield'), 1);
+  assert.equal(human(placed).board.orbit[0].power, 6);
+  assert.equal(human(placed).coins, 9);
   const next = fee(placed, 'hand-1');
   assert.deepEqual(human(next).board.orbit.map(({ definition }) => definition.id), [ship.id, 'hound-claw']);
-  assert.equal(human(next).coins, 0);
+  assert.equal(human(next).coins, 5);
 });
 
 test('Коготь grows only on its own turn end with any Чёрная гончая or a Hound-only friendly field', () => {
   const claw = byId.get('hound-claw');
   const ship = byId.get('black-hound');
   for (const [allies, foes, expected] of [
-    [[HOUND], [ordinary], 6],
-    [[ordinary], [ship], 6],
-    [[ordinary], [ordinary], 5],
-    [[{ ...ordinary, type: 'artifact' }], [], 5],
+    [[HOUND], [ordinary], 5],
+    [[ordinary], [ship], 5],
+    [[ordinary], [ordinary], 4],
+    [[byId.get('stolen-goods-fence')], [], 4],
+    [[{ ...ordinary, type: 'artifact' }], [], 4],
   ]) {
     const next = pass(setup({ orbit: [claw, ...allies], foes }));
     assert.equal(human(next).board.orbit[0].power, expected);
   }
   const opponentTurn = setup({ orbit: [claw] });
   opponentTurn.turn = 'bot';
-  assert.equal(human(pass(opponentTurn, 'bot')).board.orbit[0].power, 5);
+  assert.equal(human(pass(opponentTurn, 'bot')).board.orbit[0].power, 4);
 });
 
 test('Правый Клык destroys a chosen Hound, draws, bottoms a chosen card, and restores its order for five', () => {
@@ -239,7 +243,7 @@ const heavyShip = byId.get('black-hound');
 
 test('the three independent bronzes are collectible faction cards', () => {
   const economy = createRewardProgress();
-  assert.equal(CAPTAIN_CARDS.length, 13);
+  assert.equal(CAPTAIN_CARDS.length, 14);
   for (const card of [debtor, pilot, turret]) {
     assert.deepEqual([card.faction, card.rarity, card.provision, card.categories], ['captains', 'bronze', 4, undefined]);
     assert.ok(economy.inventory().owned[card.id] > 0);
@@ -247,6 +251,65 @@ test('the three independent bronzes are collectible faction cards', () => {
   }
   assert.deepEqual([debtor.type, debtor.power, pilot.type, pilot.power, turret.type, turret.power],
     ['unit', 6, 'unit', 3, 'artifact', undefined]);
+});
+
+test('Hound ship deployments grant their listed Profit within the coin limit', () => {
+  for (const [id, profit] of [['black-hound', 6], ['hound-eyes', 4], ['hound-right-fang', 2], ['hound-left-fang', 2]]) {
+    const definition = byId.get(id);
+    assert.ok(definition.text.startsWith(`Прибыль ${profit}.`));
+    assert.ok(definition.keywords.includes('Прибыль'));
+    for (const coins of [0, 8]) {
+      assert.equal(human(play(setup({ hand: [definition], coins }), 'orbit')).coins, Math.min(9, coins + profit));
+    }
+  }
+});
+
+const fence = byId.get('stolen-goods-fence');
+
+function playFence(coins = 0) {
+  const match = setup({ hand: [fence, ordinary, ordinary], coins });
+  match.players.bot.hand = pile([ordinary, ordinary, ordinary], 'bot-hand-');
+  return play(match);
+}
+
+function playNextFenceTurn(match) {
+  for (const side of ['bot', 'human']) {
+    const { hand, board } = match.players[side];
+    const action = { type: 'play', cardId: hand[0].id, row: 'orbit', position: board.orbit.length };
+    const next = applyAction(match, side, action);
+    assert.notStrictEqual(next, match);
+    match = next;
+  }
+  return match;
+}
+
+test('the collectible Fence pays up to nine coins on its third owner turn', () => {
+  assert.deepEqual([fence.faction, fence.rarity, fence.provision, fence.power, fence.categories],
+    ['captains', 'epic', 8, 5, undefined]);
+  assert.ok(createRewardProgress().inventory().owned[fence.id] > 0);
+  assert.ok(!PRESETS.find(({ factionId }) => factionId === 'captains').cardIds.includes(fence.id));
+  for (const coins of [0, 4]) {
+    let match = playFence(coins);
+    for (const remaining of [2, 1, 0]) {
+      assert.equal(findUnit(match, 'hand-1').card.counter, remaining);
+      assert.equal(human(match).coins, remaining > 0 ? coins : 9);
+      if (remaining > 0) match = playNextFenceTurn(match);
+    }
+    assert.equal(match.log.find(({ type }) => type === 'coins').amount, 9 - coins);
+  }
+});
+
+test('Lock pauses the Fence counter and destruction prevents payout', () => {
+  for (const blocked of [true, false]) {
+    let match = playFence(1);
+    const unit = findUnit(match, 'hand-1');
+    if (blocked) applyStatus(match, unit, 'lock', 1);
+    else removeUnit(match, unit, 'destroy');
+    match = playNextFenceTurn(playNextFenceTurn(match));
+    assert.equal(findUnit(match, 'hand-1')?.card.counter, blocked ? 2 : undefined);
+    assert.equal(human(match).coins, 1);
+    assert.ok(!match.log.some(({ type }) => type === 'coins'));
+  }
 });
 
 test('Debtor pays exactly two coins or loses three current power without paying', () => {

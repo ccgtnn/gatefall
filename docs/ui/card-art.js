@@ -14,23 +14,38 @@ const clips = new Map([
   ['xylaris-bloom', { small: 'xylaris-bloom-card.mp4', large: 'xylaris-bloom-preview.mp4' }],
   ['hound-good-deal', { small: 'hound-good-deal-card.mp4', large: 'hound-good-deal-preview.mp4' }],
 ]);
-const premiumCards = new Set();
+let premiumEnabled = false;
+const premiumOverrides = new Map();
 try {
-  const saved = JSON.parse(globalThis.localStorage?.getItem(PREMIUM_ART_KEY) ?? '[]');
-  if (Array.isArray(saved)) {
-    for (const id of saved) if (clips.has(id)) premiumCards.add(id);
+  const saved = JSON.parse(globalThis.localStorage?.getItem(PREMIUM_ART_KEY) ?? 'null');
+  premiumEnabled = saved?.enabled === true;
+  const entries = Array.isArray(saved) ? saved.map((id) => [id, true]) : Object.entries(saved?.overrides ?? {});
+  for (const [id, enabled] of entries) {
+    if (clips.has(id) && typeof enabled === 'boolean' && enabled !== premiumEnabled) premiumOverrides.set(id, enabled);
   }
 } catch {}
 
 export function hasPremiumArt(id) { return clips.has(id); }
-export function usesPremiumArt(id) { return premiumCards.has(id); }
+export function usesPremiumArt(id) { return hasPremiumArt(id) && (premiumOverrides.get(id) ?? premiumEnabled); }
+export function premiumArtEnabled() { return premiumEnabled; }
+
+function savePremiumArt(id) {
+  const settings = { enabled: premiumEnabled, overrides: Object.fromEntries(premiumOverrides) };
+  try { globalThis.localStorage?.setItem(PREMIUM_ART_KEY, JSON.stringify(settings)); } catch {}
+  if (globalThis.document) refreshPremiumArt(document, id);
+}
 
 export function selectPremiumArt(id, enabled) {
   if (!hasPremiumArt(id)) return;
-  if (enabled) premiumCards.add(id);
-  else premiumCards.delete(id);
-  try { globalThis.localStorage?.setItem(PREMIUM_ART_KEY, JSON.stringify([...premiumCards])); } catch {}
-  refreshPremiumArt(document, id);
+  if (enabled === premiumEnabled) premiumOverrides.delete(id);
+  else premiumOverrides.set(id, enabled);
+  savePremiumArt(id);
+}
+
+export function setPremiumArtEnabled(enabled) {
+  premiumEnabled = enabled;
+  premiumOverrides.clear();
+  savePremiumArt();
 }
 
 function playPremium(id) {

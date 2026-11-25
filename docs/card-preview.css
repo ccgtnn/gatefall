@@ -105,3 +105,9 @@ dialog.card-preview::backdrop {
   }
   .card-preview:not(:has(.preview-glossary)) { max-width: 58rem; }
 }
+
+.preview-art-versions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}

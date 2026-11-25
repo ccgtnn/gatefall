@@ -1,3 +1,4 @@
+import { premiumArtEnabled, setPremiumArtEnabled } from './card-art.js';
 import { dialogClose } from './resources.js';
 import { bindRulesMenu } from './rules.js';
 import { createSoundEffects, DEFAULT_VOLUME } from '../sound.js';
@@ -53,6 +54,9 @@ export function createSettings(app, onLeave, onReset) {
   thoughts.addEventListener('change', () => {
     try { localStorage.setItem(thoughtsKey, thoughts.checked ? 'on' : 'off'); } catch {}
   });
+  const premiumArt = document.querySelector('#premium-card-art');
+  premiumArt.checked = premiumArtEnabled();
+  premiumArt.addEventListener('change', () => setPremiumArtEnabled(premiumArt.checked));
   bindRulesMenu();
   const speedSetting = document.querySelector('#animation-speed');
   const systemSpeed = speedSetting.querySelector('[value="system"]');

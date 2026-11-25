@@ -1,13 +1,14 @@
 import { offeringPriority, preferredLeaderUse } from './bot-leaders.js';
 import { compareRollouts } from './bot-rollouts.js';
 import { ROWS } from './card-metadata.js';
-import { activeOrder, cardType, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js';
+import { activeOrder, cardType, COIN_LIMIT, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js';
 import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
 import { cleansePriority, deckCardValue, destructionRolls, destructionSwing, lockPriority, rowEffectValue, shouldProtectArmor } from './bot-effect-value.js';
 import { cardAbilities, isLocked } from './events.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js';
 
+const COIN_VALUE = .25;
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
 const SIMULATION = { random: () => .5 };
@@ -44,6 +45,7 @@ function potential(card) {
 function boardValue(state, side) {
   const player = state.players[side];
   if (player.passed) return 0;
+  const coins = player.coins ?? 0;
   const ready = new Set(availableOrders(state, side).map(({ card }) => card.id));
   const enemy = state.players[opponent(side)];
   const rot = ROWS.reduce((sum, row) => {
@@ -56,18 +58,22 @@ function boardValue(state, side) {
     const { card, row } = unit;
     const { definition, power, armor, counter, timer } = card;
     const abilities = cardAbilities(card);
+    const payout = definition.counter?.effect.steps.find(({ action }) => action === 'coins');
+    const counterBonus = isLocked(card) || !(counter > 0) ? 0 : payout
+      ? Math.min(Math.max(0, payout.amount), COIN_LIMIT - coins) * COIN_VALUE / counter
+      : player.deck.length ? 1.6 / counter : 0;
     return sum + (armor ?? 0) * .12 + (definition.aiHints?.boardBonus ?? 0)
       + (ready.has(card.id) ? 1.15 : activeOrder(unit) ? .35 : 0)
       + (row === 'orbit' && abilities.fieldEvents?.['target-marked'] ? 1.25 : 0)
       + (abilities.endTurn && (!definition.aiHints?.endTurnNeedsMarkedEnemy || exposed) ? (timer === undefined ? 1.25 : .5 * Math.min(timer, 3)) : 0)
-      + (!isLocked(card) && counter > 0 && player.deck.length ? 1.6 / counter : 0)
+      + counterBonus
       + (!isLocked(card) && card.resilient && state.round < 3 ? (power ?? 0) * .4 : 0)
       + (abilities.scenario ? Math.min(definition.scenario.chapters.length - (card.chapter ?? 0),
         player.hand.filter((entry) => entry.definition.categories?.includes(definition.scenario.category)).length) * 2.5 : 0)
       + (abilities.fieldEvents?.death && ROWS.some((row) =>
         enemy.board[row].some((entry) => entry.statuses?.infection)) ? 1.25 : 0)
       - .72 * infectionDamage(card);
-  }, (player.leader?.charges ?? 0) * .9 + rot + (plans ? exposed * .65 : 0));
+  }, (player.leader?.charges ?? 0) * .9 + coins * COIN_VALUE + rot + (plans ? exposed * .65 : 0));
 }
 
 function value(state, round) {

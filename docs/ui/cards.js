@@ -1,5 +1,5 @@
 import { dialogClose } from './resources.js';
-import { button, element, selectField, setCardRarity } from './dom.js';
+import { button, element, setCardRarity } from './dom.js';
 import { KEYWORDS } from '../game/card-keywords.js';
 import { CARD_TYPES, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/card-metadata.js';
 import { FACTION_CATALOG } from '../game/faction-catalog.js';
@@ -61,10 +61,22 @@ export function showCard(card, options = {}) {
   if (back) body.append(button('Назад к карте', back, 'button preview-back'));
   body.append(title, element('p', 'muted preview-details', details.join(' · ')));
   if (hasPremiumArt(definition.id)) {
-    const { field, input } = selectField('Версия карты', [['regular', 'Обычная'], ['premium', 'Премиальная']]);
-    input.value = usesPremiumArt(definition.id) ? 'premium' : 'regular';
-    input.addEventListener('change', () => selectPremiumArt(definition.id, input.value === 'premium'));
-    body.append(field);
+    const versions = element('div', 'preview-art-versions');
+    versions.setAttribute('role', 'group');
+    versions.setAttribute('aria-label', 'Версия карты');
+    const choices = [[false, 'Обычная'], [true, 'Премиальная']].map(([enabled, label]) =>
+      [enabled, button(label, () => {
+        selectPremiumArt(definition.id, enabled);
+        syncVersions();
+      })]);
+    function syncVersions() {
+      for (const [enabled, choice] of choices) {
+        choice.setAttribute('aria-pressed', String(enabled === usesPremiumArt(definition.id)));
+      }
+    }
+    syncVersions();
+    versions.append(...choices.map(([, choice]) => choice));
+    body.append(versions);
   }
   if (stats.length) body.append(element('p', 'preview-stats', stats.join(' · ')));
   body.append(element('p', 'preview-effect', definition.text || 'Без эффекта.'));

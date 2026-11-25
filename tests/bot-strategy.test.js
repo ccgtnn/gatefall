@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createCard } from '../docs/game/board.js';
-import { HOUND } from '../docs/game/captains.js';
+import { COIN_LIMIT, createCard } from '../docs/game/board.js';
+import { CAPTAIN_CARDS, HOUND } from '../docs/game/captains.js';
 import { chooseBotTurn, createBotView } from '../docs/game/bot.js';
 import { AWAKENING } from '../docs/game/choir.js';
 import { FACTIONS, LARVA } from '../docs/game/cards.js';
@@ -345,4 +345,16 @@ test('all bots end a turn with an empty hand after already using an order', () =
     assert.deepEqual(action, { type: 'end-turn' });
     assert.notStrictEqual(applyAction(next, 'bot', action), next);
   }
+});
+
+
+test('the strategic bot values the Fence payout with an empty deck only if coins can fit', () => {
+  const fence = CAPTAIN_CARDS.find(({ id }) => id === 'stolen-goods-fence');
+  const control = { ...fence, id: 'plain-fence', counter: undefined };
+  const match = position();
+  match.players.bot.deck = [];
+  match.players.bot.hand = [standard('plain-fence', control), standard('fence', fence)];
+  assert.equal(chooseBotTurn(match, 'normal').cardId, 'fence');
+  match.players.bot.coins = COIN_LIMIT;
+  assert.equal(chooseBotTurn(match, 'normal').cardId, 'plain-fence');
 });
