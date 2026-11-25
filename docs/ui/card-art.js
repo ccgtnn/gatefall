@@ -7,6 +7,12 @@ const clips = new Map([
   ['carrion-devourer', { small: 'carrion-devourer-card.mp4', large: 'carrion-devourer-preview.mp4' }],
   ['falura', { small: 'falura-card.mp4', large: 'falura-preview.mp4' }],
   ['world-gates', { small: 'world-gates-card.mp4', large: 'world-gates-preview.mp4' }],
+  ['great-sacrifice', { small: 'great-sacrifice-card.mp4', large: 'great-sacrifice-preview.mp4' }],
+  ['abyss-shepherd', { small: 'abyss-shepherd-card.mp4', large: 'abyss-shepherd-preview.mp4' }],
+  ['ulmarin-awakening', { small: 'ulmarin-awakening-card.mp4', large: 'ulmarin-awakening-preview.mp4' }],
+  ['genome-keeper', { small: 'genome-keeper-card.mp4', large: 'genome-keeper-preview.mp4' }],
+  ['xylaris-bloom', { small: 'xylaris-bloom-card.mp4', large: 'xylaris-bloom-preview.mp4' }],
+  ['hound-good-deal', { small: 'hound-good-deal-card.mp4', large: 'hound-good-deal-preview.mp4' }],
 ]);
 const premiumCards = new Set();
 try {
