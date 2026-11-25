@@ -1,6 +1,8 @@
 import { ROWS } from './cards.js?v=world-gates-premium-1-nc1';
 import { cardType, findUnit, isUnit, neighbors, restoreCard, statusCount, units } from './board.js?v=world-gates-premium-1-nc1';
-import { availableOrders, canUseLeader, cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, rowArmor, rowDamage, rowEffectValue, rowScatterValue } from './effects.js?v=world-gates-premium-1-nc1';
+import { availableOrders, canUseLeader } from './effects.js?v=world-gates-premium-1-nc1';
+import { rowArmor } from './effect-queries.js';
+import { cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, rowDamage, rowEffectValue, rowScatterValue } from './bot-effect-value.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js?v=world-gates-premium-1-nc1';
 
 import { deathwishDefinitions } from './events.js?v=ulmarin-1';

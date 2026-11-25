@@ -1,7 +1,9 @@
 import { compareRollouts } from './bot-rollouts.js?v=world-gates-premium-1-nc1';
 import { ROWS } from './cards.js?v=world-gates-premium-1-nc1';
 import { activeOrder, cardType, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js?v=world-gates-premium-1-nc1';
-import { availableOrders, canUseLeader, cleansePriority, deckCardValue, destructionRolls, destructionSwing, lockPriority, rowArmor, rowEffectValue } from './effects.js?v=world-gates-premium-1-nc1';
+import { availableOrders, canUseLeader } from './effects.js?v=world-gates-premium-1-nc1';
+import { rowArmor } from './effect-queries.js';
+import { cleansePriority, deckCardValue, destructionRolls, destructionSwing, lockPriority, rowEffectValue } from './bot-effect-value.js';
 import { cardAbilities, isLocked } from './events.js?v=ulmarin-1';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js?v=world-gates-premium-1-nc1';
 

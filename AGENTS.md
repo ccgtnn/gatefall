@@ -21,6 +21,8 @@
 | Нейтральные карты | `docs/game/neutral-cards.js`, `tests/neutral-cards.test.js` |
 | Матч, поле и способности | `docs/game/match.js`, `board.js`, `effects.js`, `events.js` в той же папке |
 | Бот и симуляции | `docs/game/bot.js`, `bot-strategy.js`, `bot-rollouts.js` |
+| Оценка эффектов ботом | `docs/game/bot-effect-value.js`, `npm run test:bot` |
+| Выбор целей и фильтры колоды | `docs/game/effect-queries.js`, `npm run test:battle` |
 | Экономика и прогресс | `docs/game/rewards.js`, `base.js`, `tavern.js`, `ranks.js`, `league.js` |
 | Коллекция, крафт и бустеры | `docs/game/collection-economy.js`, `tests/rewards.test.js` |
 | Ход, бот, выбор целей и анимации матча | `docs/ui/match-turn.js`, `tests/match-turn.test.js` |

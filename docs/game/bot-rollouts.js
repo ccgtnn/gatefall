@@ -2,7 +2,9 @@ import { FACTIONS, ROWS } from './cards.js?v=world-gates-premium-1-nc1';
 import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=world-gates-premium-1-nc1';
 import { collection, copyLimit } from './decks.js?v=world-gates-premium-1-nc1';
 import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=world-gates-premium-1-nc1';
-import { availableOrders, canUseLeader, effectSwing, infectionGain, rowArmor } from './effects.js?v=world-gates-premium-1-nc1';
+import { availableOrders, canUseLeader } from './effects.js?v=world-gates-premium-1-nc1';
+import { rowArmor } from './effect-queries.js';
+import { effectSwing, infectionGain } from './bot-effect-value.js';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { applyStatus, createCard, findUnit, removeUnit, statusCount } from '../docs/game/board.js';
-import { infectionGain } from '../docs/game/effects.js';
+import { infectionGain } from '../docs/game/bot-effect-value.js';
 import { applyAction, confirmMulligan, createMatch } from '../docs/game/match.js';
 
 const unit = (id, power = 4) => createCard(id, { id, name: id, type: 'unit', power, armor: 3 });
