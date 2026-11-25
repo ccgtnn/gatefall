@@ -4,7 +4,7 @@ import { ROWS } from './card-metadata.js';
 import { activeOrder, cardType, COIN_LIMIT, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js';
 import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
-import { cleansePriority, deckCardValue, destructionRolls, destructionSwing, lockPriority, rowEffectValue, shouldProtectArmor } from './bot-effect-value.js';
+import { armorTargetPriority, cleansePriority, deckCardValue, destructionRolls, destructionSwing, lockPriority, rowEffectValue, shouldProtectArmor } from './bot-effect-value.js';
 import { cardAbilities, isLocked } from './events.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js';
 
@@ -133,9 +133,10 @@ function abilities(state, side) {
 
 function choices(state) {
   const { kind, options, side, cardId, cards, pile = 'deck' } = state.pending;
-  if (kind === 'lock' || kind === 'cleanse' || kind === 'leader-offering') {
+  if (kind === 'lock' || kind === 'cleanse' || kind === 'leader-offering' || kind === 'armor') {
     const priority = kind === 'lock' ? lockPriority : kind === 'cleanse' ? cleansePriority
-      : (unit) => offeringPriority(state, side, unit, state.pending.amount);
+      : kind === 'armor' ? (unit) => armorTargetPriority(state, side, unit)
+        : (unit) => offeringPriority(state, side, unit, state.pending.amount);
     const priorities = options.map((id) => priority(findUnit(state, id), side));
     const best = Math.max(...priorities);
     return options.filter((_, i) => priorities[i] === best).map((id) => ({ type: 'target', cardId: id }));

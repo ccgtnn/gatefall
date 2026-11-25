@@ -15,8 +15,8 @@ test('the immutable presets fit the provision cap and have enough units', () => 
     assert.ok(result.units >= 13);
     assert.equal(result.budget, 165);
     assert.equal(result.cost, ({
-      'preset-protectorate': 164, 'preset-growth': 160, 'preset-growth-plague': 151,
-      'preset-protectorate-orbital': 163, 'preset-growth-rebirth': 160, 'preset-choir': 158, 'preset-captains': 154,
+      'preset-protectorate': 154, 'preset-growth': 160, 'preset-growth-plague': 151,
+      'preset-protectorate-orbital': 156, 'preset-growth-rebirth': 160, 'preset-choir': 158, 'preset-captains': 154,
     })[preset.id]);
     assert.ok(Object.isFrozen(preset.cardIds));
     assert.equal(collection(preset.factionId).length, { growth: 55, protectorate: 49, choir: 40, captains: 39 }[preset.factionId]);
@@ -30,7 +30,7 @@ test('deck validation reports card, unit, copy, faction, leader, name and provis
   assert.equal(inspectDeck({ ...protectorate, name: '' }).issues.name, true);
   assert.equal(inspectDeck({ ...protectorate, leaderId: growth.leaderId }).issues.leader, true);
   assert.equal(inspectDeck({ ...protectorate, cardIds: [...protectorate.cardIds, 'vine'] }).issues.foreign, true);
-  const overspent = inspectDeck({ ...protectorate, cardIds: [...protectorate.cardIds, 'smuggler'] });
+  const overspent = inspectDeck({ ...protectorate, cardIds: [...protectorate.cardIds, 'smuggler', 'world-gates'] });
   assert.equal(overspent.issues.provisions, true);
   assert.equal(overspent.issues.copies, false);
   const duplicates = inspectDeck({ ...shortDeck, cardIds: ['smuggler', 'smuggler', 'smuggler', 'annihilation', 'annihilation'] });

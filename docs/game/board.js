@@ -9,7 +9,7 @@ export const opponent = (side) => side === 'human' ? 'bot' : 'human';
 export const cardType = ({ definition }) => definition.type ?? 'unit';
 export const activeOrder = ({ card, row }) => {
   const { order } = cardAbilities(card);
-  return order && (!order.sourceRow || order.sourceRow === row) ? order : undefined;
+  return order && card.orderCharges !== 0 && (!order.sourceRow || order.sourceRow === row) ? order : undefined;
 };
 export const isUnit = (card) => cardType(card) === 'unit';
 export const basePower = (card) => card.basePower ?? card.definition.power;
@@ -18,6 +18,7 @@ export const placementSide = (side, card) => card.definition.enemySide ? opponen
 export function createCard(id, definition) {
   const card = { id, definition, readyAt: 0 };
   if (isUnit(card)) Object.assign(card, { power: definition.power, basePower: definition.power, armor: definition.armor ?? 0 });
+  if (definition.order?.charges !== undefined) card.orderCharges = definition.order.charges;
   if (definition.timer !== undefined) card.timer = definition.timer;
   if (definition.scenario) card.chapter = 0;
   if (definition.resilience) card.resilient = true;
@@ -27,6 +28,10 @@ export function createCard(id, definition) {
 
 export function restoreCard(previous) {
   const card = createCard(previous.id, previous.definition);
+  if (previous.orderCharges !== undefined) {
+    card.orderCharges = previous.orderCharges;
+    card.orderUsedTurn = previous.orderUsedTurn;
+  }
   if (previous.resilient === false) card.resilient = false;
   if (isLocked(previous)) card.statuses = { lock: 1 };
   if (isUnit(card)) card.power = card.basePower = basePower(previous);
@@ -127,14 +132,19 @@ export function capture(match, side, unit) {
   previous.board[unit.row].splice(unit.position, 1);
   card.owner ??= unit.side;
   card.readyAt = player.turns + Math.max(0, card.readyAt - previous.turns);
+  if (card.orderUsedTurn === previous.turns) card.orderUsedTurn = player.turns;
+  else delete card.orderUsedTurn;
+  for (const job of match.effects) {
+    if (job.sourceId === card.id && (job.requiredSource || job.startTimer || job.scenarioChapter) && !job.piles) job.side = side;
+  }
   const position = player.board[row].length;
   player.board[row].push(card);
   match.log.push({ type: 'capture', side, row, position, fromSide: unit.side, fromRow: unit.row,
     cardId: card.id, name: card.definition.name, card: { ...card } });
   refreshSidePower(match, unit.side);
-  refreshSidePower(match, side, card.id);
+  refreshSidePower(match, side);
   refreshRowPower(match, unit.side, unit.row);
-  refreshRowPower(match, side, row, card.id);
+  refreshRowPower(match, side, row);
   match.effects.unshift(...appearanceJobs(match, side, card));
 }
 
@@ -287,11 +297,7 @@ export function applyStatus(match, unit, status, amount, extra) {
   if (status === 'armor') event.armor = count;
   if (status === 'target') {
     const attacker = match.players[extra.attacker];
-    const marked = attacker.markedTargets ?? [];
-    if (!marked.includes(card.id)) {
-      attacker.markedTargets = [...marked, card.id];
-      event.firstTarget = true;
-    }
+    attacker.marksPlaced = (attacker.marksPlaced ?? 0) + 1;
   }
   const context = { source: card, neighbors: neighbors(match, unit) };
   const effects = emit(match, event, context);

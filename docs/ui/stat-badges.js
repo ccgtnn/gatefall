@@ -36,6 +36,6 @@ export function scenarioBadge(played, total) {
   return node;
 }
 
-export function orderBadge(ready, cooldown, label) {
-  return statBadge('order', label, cooldown || undefined, ready ? 'order-ready' : 'order-cooldown');
+export function orderBadge(ready, cooldown, label, charges) {
+  return statBadge('order', label, charges ?? (cooldown || undefined), ready ? 'order-ready' : 'order-cooldown');
 }

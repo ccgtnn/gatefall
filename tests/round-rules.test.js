@@ -184,7 +184,7 @@ test('First Signal starts on the first mover side, can only boost a friendly uni
     assert.deepEqual(match.pending.options, ['ally']);
     assert.strictEqual(action(match, 'target', 'enemy'), match);
     match = action(match, 'target', 'ally');
-    assert.equal(match.players[starter].board.orbit[0].power, 7);
+    assert.equal(match.players[starter].board.orbit[0].power, 8);
     assert.equal(match.players[starter].board.surface.length, 0);
     assert.equal(match.players[starter].exile[0].id, signal.id);
     assert.equal(canPass(match, starter), false);
@@ -222,7 +222,7 @@ test('a played card opens the order window and blocks a second card, pass and le
   assert.equal(canEndTurn(match, 'human'), false);
   assert.strictEqual(action(match, 'end-turn'), match);
   match = action(match, 'target', 'first');
-  assert.equal(match.players.human.board.orbit[0].power, 7);
+  assert.equal(match.players.human.board.orbit[0].power, 8);
   assert.equal(match.turn, 'bot');
   assert.equal(match.players.human.turns, 1);
   assert.equal(match.playedCard, false);

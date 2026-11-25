@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyStatus, createCard, findUnit, statusCount } from '../docs/game/board.js';
+import { applyStatus, cleanse, createCard, findUnit, statusCount } from '../docs/game/board.js';
 import { chooseBotTurn, pickBotTarget } from '../docs/game/bot.js';
 import { FACTIONS } from '../docs/game/cards.js';
 import { ORBITAL_STRIKE_PRESET, PRESETS, inspectDeck } from '../docs/game/decks.js';
@@ -40,11 +40,38 @@ test('Spotter marks an enemy once, through shields, and journal playback retains
   const replay = createPlaybackState(match);
   for (const event of result.log.slice(match.log.length)) applyJournalEvent(replay, event);
   assert.equal(marked(replay, 'victim'), 1);
-  assert.deepEqual(replay.players.human.markedTargets, ['victim']);
+  assert.equal(replay.players.human.marksPlaced, 1);
   const eventCount = result.log.length;
   assert.equal(applyStatus(result, findUnit(result, 'victim'), 'target', 1, { attacker: 'human' }), 0);
   assert.equal(applyStatus(result, findUnit(result, 'spotter'), 'target', 1, { attacker: 'human' }), 0);
   assert.equal(result.log.length, eventCount);
+});
+
+test('mark choices exclude marked units, and a mark after Cleansing counts again', () => {
+  const match = fixture();
+  match.players.human.hand = [card('spotter'), card('aurelian')];
+  match.players.human.board.orbit = [card('aggressor')];
+  match.players.bot.board.orbit = [dummy('victim'), dummy('unmarked')];
+  const attempt = () => applyStatus(match, findUnit(match, 'victim'), 'target', 1, { attacker: 'human' });
+  attempt();
+  assert.equal(attempt(), 0);
+  assert.equal(match.players.human.marksPlaced, 1);
+  assert.deepEqual(act(match, 'play', 'spotter', 'surface').pending.options, ['unmarked']);
+  cleanse(match, findUnit(match, 'victim'));
+  attempt();
+  assert.equal(match.players.human.marksPlaced, 2);
+  const result = act(match, 'play', 'aurelian', 'orbit');
+  assert.equal(get(result, 'aurelian').power, 10);
+  assert.equal(hits(result, 'aggressor').length, 3);
+});
+
+test('Aggressor fires for friendly light ships with shipClass, even without that category', () => {
+  const match = fixture();
+  match.players.human.hand = [card('scout-frigate')];
+  match.players.human.board.orbit = [card('aggressor')];
+  match.players.bot.board.orbit = [dummy('victim')];
+  const result = act(match, 'play', 'scout-frigate', 'orbit');
+  assert.equal(hits(result, 'aggressor').length, 1);
 });
 
 test('Fleet Gunner order is limited to Surface and deals damage without consuming the mark', () => {
@@ -109,16 +136,16 @@ test('Spear Battery damages a random marked enemy on Surface and boosts a friend
   }
 });
 
-test('Destruction Protocol hits every marked enemy across rows', () => {
+test('Destruction Protocol hits every enemy once and then hits marked enemies for two', () => {
   const match = fixture();
   match.players.human.hand = [card('destruction-protocol')];
   match.players.bot.board.orbit = [dummy('one'), dummy('unmarked')];
   match.players.bot.board.surface = [dummy('two')];
   for (const id of ['one', 'two']) applyStatus(match, findUnit(match, id), 'target', 1, { attacker: 'human' });
   const result = act(match, 'play', 'destruction-protocol');
-  assert.deepEqual(hits(result, 'destruction-protocol').map(({ cardId, amount }) => [cardId, amount]), [['one', 3], ['two', 3]]);
+  assert.deepEqual(hits(result, 'destruction-protocol').map(({ cardId, amount }) => [cardId, amount]), [['one', 1], ['unmarked', 1], ['two', 1], ['one', 2], ['two', 2]]);
   assert.equal(marked(result, 'one'), 1);
-  assert.equal(get(result, 'unmarked').power, 20);
+  assert.equal(get(result, 'unmarked').power, 19);
 });
 
 test('Tiberius marks the whole selected row before Aggressor fires for each new mark and the ship', () => {
@@ -139,7 +166,7 @@ test('Tiberius marks the whole selected row before Aggressor fires for each new 
       result = act(result, 'target', 'orbit');
       const events = result.log.slice(match.log.length).filter(({ type }) => ['status', 'damage'].includes(type));
       assert.deepEqual(events.slice(0, 2).map(({ type, cardId }) => [type, cardId]), [['status', 'one'], ['status', 'two']]);
-      assert.deepEqual(result.players.human.markedTargets, ['already', 'one', 'two']);
+      assert.equal(result.players.human.marksPlaced, 3);
       assert.equal(marked(result, 'other'), 0);
     }
     assert.equal(hits(result, 'aggressor').length, row === 'orbit' ? 3 : 1);
@@ -157,7 +184,7 @@ test('Aggressor fires for its own play on Orbit only', () => {
   }
 });
 
-test('Aurelian counts unique enemies marked in earlier rounds even if they left the board', () => {
+test('Aurelian counts marks placed in earlier rounds even if they left the board', () => {
   for (const row of ['orbit', 'surface']) {
     let match = fixture();
     match.players.bot.board.orbit = [dummy('one', 1), dummy('two', 1)];
@@ -168,14 +195,14 @@ test('Aurelian counts unique enemies marked in earlier rounds even if they left 
     assert.equal(match.round, 2);
     match = confirmMulligan(match);
     assert.equal(findUnit(match, 'one'), undefined);
-    assert.deepEqual(match.players.human.markedTargets, ['one', 'two']);
+    assert.equal(match.players.human.marksPlaced, 2);
     assert.equal(get(act(match, 'play', 'aurelian', row), 'aurelian').power, row === 'orbit' ? 10 : 6);
   }
 });
 
 test('orbital preset is legal, present in the faction pool, and selected with the Admiral as a bot opponent', () => {
   const result = inspectDeck(ORBITAL_STRIKE_PRESET);
-  assert.deepEqual([result.valid, result.cards.length, result.units, result.cost, result.budget], [true, 25, 20, 163, 165]);
+  assert.deepEqual([result.valid, result.cards.length, result.units, result.cost, result.budget], [true, 25, 20, 156, 165]);
   for (const id of ['spotter', 'fleet-gunner', 'scout-frigate', 'spear-battery', 'destruction-protocol', 'aggressor', 'aurelian', 'tiberius']) {
     assert.ok(pool.some((definition) => definition.id === id) && ORBITAL_STRIKE_PRESET.cardIds.includes(id));
   }

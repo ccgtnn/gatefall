@@ -2,7 +2,7 @@ import { ROWS } from './card-metadata.js';
 import { cardType, findUnit, isUnit, neighbors, restoreCard, statusCount, units } from './board.js';
 import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
-import { cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, rowDamage, rowEffectValue, rowScatterValue } from './bot-effect-value.js';
+import { armorTargetPriority, cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, rowDamage, rowEffectValue, rowScatterValue } from './bot-effect-value.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, canEndTurn, canPass, playableCards, totalScore } from './match.js';
 
 import { offeringPriority, preferredLeaderUse } from './bot-leaders.js';
@@ -219,6 +219,7 @@ export function pickBotTarget(match) {
     deathwish: ({ card }) => deathwishDefinitions(card).length * 10 + card.power,
     lock: (unit) => lockPriority(unit, match.pending.side),
     cleanse: (unit) => cleansePriority(unit, match.pending.side),
+    armor: (unit) => armorTargetPriority(match, match.pending.side, unit),
     'spend-armor': ({ card }) => amount ? card.armor : card.armor * 100 + card.power,
     'ready-order': ({ card }) => card.definition.order && card.readyAt > player.turns ? 20 + (card.power ?? 0) : card.power ?? 0,
     'infection-target': ({ card }) => infectionGain(card, amount, Math.max(1, match.players[match.pending.side === 'human' ? 'bot' : 'human'].hand.length)),
