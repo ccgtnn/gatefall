@@ -40,7 +40,9 @@
 | Фоновое обновление Таверны, рангов и Лиги | `docs/ui/app-timers.js`, `tests/app-timers.test.js` |
 | Экраны и навигация | `docs/app.js`, `docs/ui/` |
 | Размещение карт и анимации | `docs/card-placement.js`, `turn-playback.js`, `card-motion.js` |
-| Разметка и стили | `docs/index.html`, `style.css`, `field.css` |
+| Разметка и порядок стилей | `docs/index.html`, общие правила в `docs/style.css` |
+| Стили карт и колод | `docs/cards.css`, `card-frames.css`, `deck-screens.css`, `card-preview.css` |
+| Стили матча | `docs/field.css`, `field-controls.css`, `match-dialogs.css`, `field-effects.css`, `card-motion.css` |
 | Тесты, иллюстрации и правила | `tests/`, `docs/art/`, [ART_STYLE.md](ART_STYLE.md), [PROJECT_GUIDE.md](PROJECT_GUIDE.md) |
 | Контракты матча, эффектов и сохранений | [CONTRACTS.md](CONTRACTS.md) |
 
