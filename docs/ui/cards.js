@@ -264,7 +264,7 @@ function factionMark(faction) {
 }
 
 export function decorateCard(node, card, player, { orderOnField = false, legacy = false,
-  showProvision = false, showFaction = false, fullArt = false, orderReady = false, orderCooldown = 0, frame } = {}) {
+  showProvision = false, showFaction = false, fullArt = false, lazyArt = false, orderReady = false, orderCooldown = 0, frame } = {}) {
   const { definition } = card;
   const type = cardType(card);
   node.dataset.type = type;
@@ -288,7 +288,7 @@ export function decorateCard(node, card, player, { orderOnField = false, legacy 
   if (definition.categories?.length) node.append(element('span', 'card-category', definition.categories.join(' · ')));
   const alternateArt = definition.artStates?.[card.artState];
   const artwork = alternateArt ? { ...definition, art: alternateArt, artCrop: alternateArt } : definition;
-  addCardCrop(node, artwork, { fullArt });
+  addCardCrop(node, artwork, { fullArt, lazyArt });
   if (!definition.art) node.append(element('span', 'card-art-placeholder', definition.name));
 }
 
@@ -399,10 +399,10 @@ function cardLabel(card, showProvision) {
   return details.join(' · ');
 }
 
-export function cardButton(card, handler, player, placement = false, { showProvision = false, showFaction = false, inspect } = {}) {
+export function cardButton(card, handler, player, placement = false, { showProvision = false, showFaction = false, lazyArt = false, inspect } = {}) {
   const node = button(undefined, handler, 'hand-card');
   node.dataset.cardId = card.id;
-  decorateCard(node, card, player, { showProvision, showFaction });
+  decorateCard(node, card, player, { showProvision, showFaction, lazyArt });
   cardInspection(node, card, placement, inspect);
   return node;
 }

@@ -18,7 +18,7 @@ import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=world-g
 import { describeFinishedMatch, settleFinishedMatch } from './ui/match-result.js?v=match-result-1';
 import { createMatchTurn } from './ui/match-turn.js';
 import { createMatchMenu } from './ui/menu.js?v=world-gates-premium-1-nc1';
-import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=world-gates-premium-1-nc1';
+import { finishedScreen, leaderScreen } from './ui/screens.js?v=world-gates-premium-1-nc1';
 import { createSettings } from './ui/settings.js?v=world-gates-premium-1-nc1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
@@ -100,14 +100,34 @@ const progress = createRewardProgress(storage, navigator.locks, { enqueueReward 
 const openBase = createBaseScreen(progress);
 void progress.checkpointProduction();
 const catalog = economyDialog('card-collection', 'Все карты');
-catalog.body.append(catalogScreen(progress));
+let catalogLoad;
+let refreshCatalog;
 catalog.dialog.addEventListener('toggle', () => {
   if (catalog.dialog.open) resumeCardVideos(catalog.body);
 });
+function prepareCatalog() {
+  if (refreshCatalog) {
+    refreshCatalog();
+    return;
+  }
+  if (catalogLoad) return;
+  const status = element('p', 'economy-status', 'Загружаем каталог…');
+  status.setAttribute('role', 'status');
+  catalog.body.append(status);
+  catalogLoad = import('./ui/catalog-screen.js').then(({ catalogScreen }) => {
+    const { panel, refresh } = catalogScreen(progress, () => catalog.dialog.open);
+    catalog.body.replaceChildren(panel);
+    refreshCatalog = refresh;
+    if (catalog.dialog.open) resumeCardVideos(panel);
+  }).catch((error) => {
+    console.warn('Catalog could not be loaded', error);
+    status.textContent = 'Не удалось загрузить каталог. Перезагрузи игру и попробуй снова.';
+  });
+}
 const openResources = createResourceBar(app.querySelector('.masthead'), document.querySelector('#start-settings'), progress, {
   keys: createRewardBook(progress),
   gold: createBoosterShop(progress, () => openResources('packCount')),
-  essence: catalog,
+  essence: { ...catalog, prepare: prepareCatalog },
   packCount: createBoosterOpening(progress, () => openResources('gold')),
 });
 progress.subscribe(() => screen.querySelector('.deck-editor, .deck-home, .all-decks, .finish, .league-panel, .rank-panel')?.dispatchEvent(new Event('collection-change')));

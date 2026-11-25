@@ -52,6 +52,25 @@ const drawable = (id, options) => {
   return node;
 };
 
+test('catalog thumbnails stay lazy when switching back from premium art', async () => {
+  const { selectPremiumArt } = await import('../docs/ui/card-art.js?v=world-gates-premium-1');
+  const catalog = drawable('world-gates', { lazyArt: true });
+  const hand = drawable('world-gates');
+  document.body.append(catalog, hand);
+  try {
+    assert.equal(byClass(catalog, 'card-art-crop').loading, 'lazy');
+    assert.equal(byClass(hand, 'card-art-crop').loading, undefined);
+    selectPremiumArt('world-gates', true);
+    assert.equal(byClass(catalog, 'card-art-crop').tag, 'video');
+    selectPremiumArt('world-gates', false);
+    assert.equal(byClass(catalog, 'card-art-crop').loading, 'lazy');
+    assert.equal(byClass(hand, 'card-art-crop').loading, undefined);
+  } finally {
+    selectPremiumArt('world-gates', false);
+    document.body.replaceChildren(preview);
+  }
+});
+
 test('turret shows the default art and switches its face only when replay marks it as failing', () => {
   const card = makeCard('broken-turret');
   assert.equal(byClass(drawable('broken-turret'), 'card-art-crop').src, './art/broken-turret.webp');

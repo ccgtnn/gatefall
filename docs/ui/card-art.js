@@ -30,7 +30,7 @@ function playPremium(id) {
   return usesPremiumArt(id) && !globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
 }
 
-function artwork(id, poster, className, size, doc, animated = playPremium(id)) {
+function artwork(id, poster, className, size, doc, { animated = playPremium(id), lazyArt = false } = {}) {
   const node = doc.createElement(animated ? 'video' : 'img');
   node.className = className;
   node.width = 480;
@@ -40,8 +40,10 @@ function artwork(id, poster, className, size, doc, animated = playPremium(id)) {
     node.dataset.premiumCard = id;
     node.dataset.premiumPoster = poster;
     node.dataset.premiumSize = size;
+    if (lazyArt) node.dataset.premiumLazyArt = '';
   }
   if (!animated) {
+    if (lazyArt) node.loading = 'lazy';
     node.src = poster;
     node.alt = '';
     return node;
@@ -51,31 +53,34 @@ function artwork(id, poster, className, size, doc, animated = playPremium(id)) {
   node.muted = node.defaultMuted = node.loop = node.playsInline = node.autoplay = true;
   node.preload = 'none';
   node.setAttribute('aria-hidden', 'true');
-  node.addEventListener('error', () => node.replaceWith(artwork(id, poster, className, size, doc, false)), { once: true });
+  node.addEventListener('error', () => {
+    node.replaceWith(artwork(id, poster, className, size, doc, { animated: false, lazyArt }));
+  }, { once: true });
   node.src = './art/' + clips.get(id)[size] + '?v=loop-1';
   return node;
 }
 
-export function cardArt(definition, className, { fullArt = false, doc = document } = {}) {
+export function cardArt(definition, className, { fullArt = false, lazyArt = false, doc = document } = {}) {
   const art = !fullArt && className === 'card-art-crop' ? definition.artCrop ?? definition.art : definition.art;
-  return artwork(definition.id, './art/' + art, className, fullArt ? 'large' : 'small', doc);
+  return artwork(definition.id, './art/' + art, className, fullArt ? 'large' : 'small', doc, { lazyArt });
 }
 
-export function addCardCrop(node, definition, { fullArt = false } = {}) {
+export function addCardCrop(node, definition, { fullArt = false, lazyArt = false } = {}) {
   setCardRarity(node, definition.rarity ?? (definition.token ? 'bronze' : undefined));
   if (!definition.art) return;
   node.classList.add('has-art');
-  node.prepend(cardArt(definition, 'card-art-crop', { fullArt }));
+  node.prepend(cardArt(definition, 'card-art-crop', { fullArt, lazyArt }));
 }
 
 export function refreshPremiumArt(root, id) {
   for (const node of root.querySelectorAll('[data-premium-card]')) {
-    const { premiumCard, premiumPoster, premiumSize } = node.dataset;
+    const { premiumCard, premiumPoster, premiumSize, premiumLazyArt } = node.dataset;
     if (id && id !== premiumCard) continue;
     const animated = playPremium(premiumCard);
     if (Boolean(node.poster) === animated) continue;
     const className = node.className.replace(/\s+card-art-video\b/, '');
-    node.replaceWith(artwork(premiumCard, premiumPoster, className, premiumSize, node.ownerDocument ?? document, animated));
+    node.replaceWith(artwork(premiumCard, premiumPoster, className, premiumSize, node.ownerDocument ?? document,
+      { animated, lazyArt: premiumLazyArt !== undefined }));
   }
 }
 
