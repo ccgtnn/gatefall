@@ -86,7 +86,7 @@ test('the High Priest has two order uses and places the Tentacle to the right of
   assert.equal(playback.players.human.leader.charges, 1);
   next = target(next, 'offering');
   assert.deepEqual(next.players.human.board.surface.map(({ definition, power }) => [definition.id, power]),
-    [['offering', 1], [TENTACLE.id, 2], ['neighbor', 3]]);
+    [['offering', 1], [TENTACLE.id, 3], ['neighbor', 3]]);
   assert.equal(next.players.human.leader.lastUsedTurn, 0);
   assert.equal(activate(next), next);
 

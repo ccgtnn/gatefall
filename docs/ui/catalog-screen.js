@@ -55,7 +55,7 @@ export function catalogScreen(progress, isOpen) {
     const item = element('div', 'catalog-entry');
     const inspect = () => openDetails(card);
     const face = cardButton(card, inspect, { factionId: definition.faction }, false, { showProvision: true, showFaction: true, lazyArt: true, inspect });
-    face.title = 'Подробнее';
+    face.title ||= 'Подробнее';
     face.setAttribute('aria-haspopup', 'dialog');
     item.append(face, element('span', null, definition.name));
     if (definition.categories?.length) item.append(element('span', 'catalog-category', definition.categories.join(' · ')));

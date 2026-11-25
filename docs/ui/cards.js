@@ -143,6 +143,7 @@ function relatedCards(definitions, back) {
 }
 
 export function cardInspection(node, card, placement = false, show = () => showCard(card)) {
+  if (card.definition.text?.includes('\n')) node.title = card.definition.text;
   let holdTimer;
   let activated;
   let pendingClick;

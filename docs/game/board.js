@@ -403,9 +403,10 @@ export function refreshPlacedPower(match, side, row, definition) {
   refreshRowPower(match, side, row);
 }
 
-export function transformUnit(match, unit, definition) {
+export function transformUnit(match, unit, definition, preservePower = false) {
   const { side, row, position, card } = unit;
   const replacement = createCard(card.id, definition);
+  if (preservePower) replacement.power = card.power;
   if (card.owner) replacement.owner = card.owner;
   if (isLocked(card)) replacement.statuses = { lock: 1 };
   match.players[side].board[row][position] = replacement;

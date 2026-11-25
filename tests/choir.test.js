@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
 import test from 'node:test';
-import { announcePlay, applyStatus, createCard, damage, findUnit, removeUnit, spawnCards, statusCount, weaken } from '../docs/game/board.js';
+import { announcePlay, applyStatus, createCard, damage, findUnit, spawnCards, statusCount, weaken } from '../docs/game/board.js';
 import { chooseBotTurn, pickBotTarget } from '../docs/game/bot.js';
 import { KEYWORDS } from '../docs/game/cards.js';
 import { AWAKENING, CHOIR_CARDS, CULTIST, FANATIC, LARGE_TENTACLE, PSIONICS, SLEEPER, TENTACLE } from '../docs/game/choir.js';
@@ -131,6 +131,7 @@ test('Call of the Deep transforms and boosts the selected unit in place on eithe
       enemies: [unit(3), unit(10), unit(8)],
     });
     const before = findUnit(initial, id);
+    before.card.power = 7;
     const choosing = play(initial);
     assert.ok(choosing.pending.options.includes('orbit-1'));
     assert.ok(choosing.pending.options.includes('enemy-1'));
@@ -140,10 +141,11 @@ test('Call of the Deep transforms and boosts the selected unit in place on eithe
     assert.deepEqual([boardSide, row, position], [side, before.row, before.position]);
     assert.equal(card.definition.id, TENTACLE.id);
     assert.equal(card.definition.token, true);
-    assert.equal(card.power, TENTACLE.power + 4);
+    assert.equal(card.power, 11);
+    assert.equal(card.basePower, 3);
     const events = result.log.filter(({ cardId }) => cardId === id).map(({ type, card, amount }) =>
       [type, card?.power ?? amount]);
-    assert.deepEqual(events, [['transform', TENTACLE.power], ['boost', 4]]);
+    assert.deepEqual(events, [['transform', 7], ['boost', 4]]);
     assert.equal(get(result, 'surface-0').chapter, chapter);
     assert.equal(get(result, 'surface-0').playedEffects, 1);
   }
@@ -172,17 +174,31 @@ test('Mind Strike deals five damage to one selected unit on either side', () => 
   }
 });
 
-test('Sleeper Litany boosts every friendly Cultist across rows and counts as a played Psionic effect', () => {
-  const result = play(setup({
-    hand: [cards.get('sleeper-litany')],
-    orbit: [FANATIC, TENTACLE], surface: [AWAKENING, cards.get('depth-neophyte'), unit(8)], enemies: [FANATIC],
-  }));
-  assert.equal(get(result, 'orbit-0').power, FANATIC.power + 1);
-  assert.equal(get(result, 'surface-1').power, cards.get('depth-neophyte').power + 1);
-  assert.equal(get(result, 'orbit-1').power, TENTACLE.power);
-  assert.equal(get(result, 'surface-2').power, 8);
-  assert.equal(get(result, 'enemy-0').power, FANATIC.power);
+test('Sleeper Litany offers three Choir bronze units and plays one with an owner-turn counter', () => {
+  const choosing = play(setup({ count: 6, hand: [cards.get('sleeper-litany')], surface: [AWAKENING] }));
+  assert.equal(choosing.pending.pile, 'created');
+  assert.equal(choosing.pending.options.length, 3);
+  assert.equal(new Set(choosing.pending.cards.map(({ definition }) => definition.id)).size, 3);
+  assert.ok(choosing.pending.cards.every(({ definition }) =>
+    definition.faction === 'choir' && definition.rarity === 'bronze' && definition.type === 'unit' && !definition.token));
+  const { id } = choosing.pending.cards.find(({ definition }) => definition.id === 'depth-neophyte');
+  const result = action(pick(choosing, id), 'place', { row: 'orbit', position: 0 });
+  assert.equal(get(result, id).definition.id, 'depth-neophyte');
+  assert.equal(get(result, id).power, 6);
+  assert.equal(get(result, id).counter, 3);
+  assert.equal(result.log.find(({ type, cardId }) => type === 'play' && cardId === id).from, 'created');
   assert.equal(get(result, 'surface-0').playedEffects, 1);
+  for (const remaining of [2, 1, 0]) {
+    enqueueEndTurn(result, 'bot');
+    drain(result);
+    assert.equal(get(result, id).counter, remaining + 1);
+    enqueueEndTurn(result, 'human');
+    drain(result);
+    assert.equal(result.log.findLast(({ type }) => type === 'counter').remaining, remaining);
+  }
+  assert.equal(get(result, id).definition.id, TENTACLE.id);
+  assert.equal(get(result, id).power, 3);
+  assert.equal(get(result, 'surface-0').chapter, 1);
 });
 
 test('The Sleeper names and Cultist glossary use the same text while card IDs stay stable', () => {
@@ -270,7 +286,7 @@ test('Fanatic transforms at two power or less in place, but not on lethal damage
   assert.equal(get(match, 'surface-1').definition.id, FANATIC.id);
   hit(match, 'surface-1', 1);
   assert.deepEqual(human(match).board.surface.map(({ definition, power }) => [definition.id, power]),
-    [['unit-9', 9], [TENTACLE.id, 2], ['unit-9', 9]]);
+    [['unit-9', 9], [TENTACLE.id, 3], ['unit-9', 9]]);
 
   const lethal = setup({ orbit: [FANATIC] });
   hit(lethal, 'orbit-0', 4);
@@ -317,32 +333,39 @@ test('Scenario prologue surrounds the artifact and Fanatic transformation trigge
   assert.deepEqual(human(result).deck.map(({ power, basePower }) => [power, basePower]), [[5, 5], [4, 4]]);
 });
 
-test('Chapter two watches one victim, ignores discard, and summons the large tentacle on destruction', () => {
-  for (const reason of ['discard', 'damage', 'destroy']) {
-    let match = setup({ orbit: [AWAKENING, unit(2), unit(9)] });
-    spawnCards(match, 'bot', 'surface', 0, 1, TENTACLE);
-    drain(match);
-    assert.equal(get(match, 'orbit-0').chapter, 0);
-    spawnCards(match, 'human', 'surface', 0, 2, TENTACLE);
-    drain(match);
-    assert.equal(get(match, 'orbit-0').chapter, 2);
-    assert.deepEqual(pickBotTarget(match), { type: 'target', cardId: 'orbit-1' });
-    match = pick(match, 'orbit-1');
-    removeUnit(match, findUnit(match, 'orbit-2'), 'destroy');
-    drain(match);
-    assert.ok(!human(match).board.surface.some(({ definition }) => definition.id === LARGE_TENTACLE.id));
-    removeUnit(match, findUnit(match, 'orbit-1'), reason);
-    drain(match);
-    assert.equal(human(match).board.surface.filter(({ definition }) => definition.id === LARGE_TENTACLE.id).length,
-      reason === 'discard' ? 0 : 1);
-  }
+test('Chapter two destroys the selected ally and immediately summons a large tentacle', () => {
+  let match = setup({ orbit: [AWAKENING, unit(2), unit(9)] });
+  spawnCards(match, 'bot', 'surface', 0, 1, TENTACLE);
+  drain(match);
+  assert.equal(get(match, 'orbit-0').chapter, 0);
+  spawnCards(match, 'human', 'surface', 0, 2, TENTACLE);
+  drain(match);
+  assert.equal(get(match, 'orbit-0').chapter, 2);
+  assert.deepEqual(pickBotTarget(match), { type: 'target', cardId: 'orbit-1' });
+  match = pick(match, 'orbit-1');
+  assert.equal(get(match, 'orbit-1'), undefined);
+  assert.ok(get(match, 'orbit-2'));
+  assert.equal(match.pending, null);
+  assert.equal(human(match).board.surface.at(-1).definition.id, LARGE_TENTACLE.id);
+  const destroyed = match.log.findIndex(({ type, cardId }) => type === 'destroy' && cardId === 'orbit-1');
+  const summoned = match.log.findIndex(({ type, cards }) =>
+    type === 'spawn' && cards.some(({ definition }) => definition.id === LARGE_TENTACLE.id));
+  assert.ok(destroyed >= 0 && summoned > destroyed);
+});
+
+test('Chapter two summons without a choice when no allied unit can be sacrificed', () => {
+  const match = setup({ orbit: [AWAKENING] });
+  get(match, 'orbit-0').chapter = 1;
+  match.effects.push({ side: 'human', sourceId: 'orbit-0', scenarioChapter: true });
+  drain(match);
+  assert.equal(match.pending, null);
+  assert.equal(human(match).board.surface[0].definition.id, LARGE_TENTACLE.id);
 });
 
 test('Final chapter needs a new appearance with seven played effects, completes once and summons in its own row', () => {
   const match = setup({ surface: [AWAKENING], orbit: [unit(5)] });
   const scenario = get(match, 'surface-0');
   scenario.chapter = 2;
-  scenario.scenarioSacrifice = 'orbit-0';
   for (let index = 0; index < 6; index++) announcePlay(match, 'human', createCard(`spell-${index}`, quiet));
   announcePlay(match, 'human', createCard('scenario-inert', AWAKENING));
   announcePlay(match, 'bot', createCard('enemy-spell', quiet));
@@ -353,7 +376,7 @@ test('Final chapter needs a new appearance with seven played effects, completes 
   announcePlay(match, 'human', createCard('spell-7', quiet));
   drain(match);
   assert.equal(scenario.chapter, 2);
-  removeUnit(match, findUnit(match, 'orbit-0'), 'destroy');
+  spawnCards(match, 'human', 'surface', 2, 1, TENTACLE);
   drain(match);
   assert.equal(scenario.chapter, 3);
   assert.equal(scenario.playedEffects, 7);
@@ -445,17 +468,15 @@ test('Offerings spawn in the targets’ rows even on lethal hits and require dis
   assert.equal(human(match).board.surface[0].definition.id, TENTACLE.id);
 });
 
-test('Awakening survives one round and round cleanup does not count as a sacrifice', () => {
+test('Awakening survives one round and preserves its chapter', () => {
   const before = setup({ orbit: [AWAKENING, FANATIC] });
   const scenario = get(before, 'orbit-0');
   scenario.chapter = 2;
-  scenario.scenarioSacrifice = 'orbit-1';
   const after = applyAction(action(before, 'pass'), 'bot', { type: 'pass' }, { random: fixed });
   const retained = get(after, 'orbit-0');
   assert.equal(after.round, 2);
   assert.equal(retained.chapter, 2);
   assert.equal(retained.resilient, false);
-  assert.equal(retained.scenarioSacrifice, undefined);
   assert.equal(human(after).board.surface.length, 0);
 });
 
@@ -474,5 +495,23 @@ test('The bot completes placement of a created unit at all difficulties', () => 
     assert.equal(move.type, 'place');
     const played = applyAction(placing, 'bot', move, { random: fixed });
     assert.equal(findUnit(played, unitChoice.id).side, 'bot');
+  }
+});
+
+test('the bot chooses and places the unit created by Litany on all difficulties', () => {
+  const initial = setup();
+  initial.turn = 'bot';
+  const bot = initial.players.bot;
+  bot.factionId = 'choir';
+  bot.leader = null;
+  bot.hand = [createCard('litany', cards.get('sleeper-litany'))];
+  const choosing = applyAction(initial, 'bot', { type: 'play', cardId: 'litany' }, { random: fixed });
+  for (const difficulty of ['easy', 'normal', 'hard']) {
+    const next = chooseBotTurn(choosing, difficulty);
+    assert.ok(choosing.pending.options.includes(next.cardId));
+    const placing = applyAction(choosing, 'bot', next, { random: fixed });
+    const placed = applyAction(placing, 'bot', chooseBotTurn(placing, difficulty), { random: fixed });
+    assert.equal(findUnit(placed, next.cardId).side, 'bot');
+    assert.equal(get(placed, next.cardId).counter, 2);
   }
 });

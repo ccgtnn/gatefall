@@ -27,7 +27,7 @@ function tentacle(id, name, power, hit, stats = {}) {
   });
 }
 
-export const TENTACLE = tentacle('ulmarin-tentacle', 'Щупальце Спящего', 2, 1, {
+export const TENTACLE = tentacle('ulmarin-tentacle', 'Щупальце Спящего', 3, 1, {
   art: 'sleeper-tentacle.webp', artCrop: 'sleeper-tentacle-crop.webp',
   rarity: 'bronze', provision: 4,
 });
@@ -62,9 +62,15 @@ export const SLEEPER = card({
 });
 
 export const AWAKENING = psionic({
-  id: 'ulmarin-awakening', name: 'Пробуждение Спящего', type: 'artifact', rarity: 'gold', provision: 12, resilience: true,
+  id: 'ulmarin-awakening', name: 'Пробуждение Спящего', type: 'artifact', rarity: 'gold', provision: 14, resilience: true,
   art: 'sleeper-awakening.webp', artCrop: 'sleeper-awakening-crop.webp',
-  text: 'Стойкость. Главы открываются по одной при появлении нового Щупальца на твоей стороне. Пролог: призови по Фанатику Спящего слева и справа. Глава 1: усиль на 1 всех культистов Спящего в своей колоде. Глава 2: выбери свой отряд. Когда он погибнет или будет уничтожен, призови Большое щупальце Спящего на Поверхность. Глава 3: если за матч сыграно хотя бы 7 эффектов Псионики, призови Спящего под Вратами в ряд сценария.',
+  text: [
+    'Стойкость. Главы открываются по одной при появлении нового Щупальца на твоей стороне.',
+    'Пролог: призови по Фанатику Спящего слева и справа.',
+    'Глава 1: усиль на 1 всех культистов Спящего в своей колоде.',
+    'Глава 2: уничтожь выбранный свой отряд и призови Большое щупальце Спящего на Поверхность.',
+    'Глава 3: если за матч сыграно хотя бы 7 эффектов Псионики, призови Спящего под Вратами в ряд сценария.',
+  ].join('\n'),
   keywords: ['Стойкость', 'Сценарий', PSIONICS, TENTACLE_CATEGORY],
   scenario: {
     trigger: 'appearance', category: TENTACLE_CATEGORY,
@@ -72,11 +78,13 @@ export const AWAKENING = psionic({
     prologue: ability([spawn(fanaticToken, 'source', 1, 'left'), spawn(fanaticToken, 'source', 1, 'right')]),
     chapters: [
       ability([{ action: 'boost-deck', category: CULTIST, amount: 1 }]),
-      ability([{ action: 'watch-sacrifice', ref: 'victim' }],
-        [sacrifice('victim', 'Выбери свой отряд в жертву для сценария.')]),
+      ability([
+        { action: 'choose-unit', ref: 'victim', target: allies, kind: 'sacrifice', prompt: 'Выбери свой отряд в жертву для сценария.' },
+        { action: 'destroy', target: ref('victim') },
+        spawn(LARGE_TENTACLE, 'surface'),
+      ]),
       ability([spawn(SLEEPER, 'source', 1, 'right')]),
     ],
-    onSacrifice: ability([spawn(LARGE_TENTACLE, 'surface')]),
   },
 });
 
@@ -126,7 +134,7 @@ export const CHOIR_CARDS = Object.freeze([
       { action: 'return-hand', amount: { result: 'drawn' } }]),
   }),
   card({
-    id: 'abyss-shepherd', name: 'Пастырь бездны', rarity: 'gold', provision: 12, power: 4,
+    id: 'abyss-shepherd', name: 'Пастырь бездны', rarity: 'gold', provision: 13, power: 4,
     art: 'abyss-shepherd.webp', artCrop: 'abyss-shepherd-crop.webp',
     text: 'Одержимость (Псионика): при размещении захвати выбранный вражеский отряд с силой не выше 3 / 4 / 5 / 6 при 3 / 6 / 9 / 12 картах Псионики. При меньшем числе карт Захват не срабатывает.',
     keywords: ['Одержимость', PSIONICS, 'Захват'],
@@ -136,7 +144,7 @@ export const CHOIR_CARDS = Object.freeze([
     }]),
   }),
   psionic({
-    id: 'alien-dream', name: 'Чужой сон', rarity: 'bronze', provision: 5,
+    id: 'alien-dream', name: 'Чужой сон', rarity: 'bronze', provision: 4,
     art: 'stranger-dream.webp', artCrop: 'stranger-dream-crop.webp',
     text: 'Покажи 3 случайные обычные карты фракции противника. Сотвори и сыграй одну из них.',
     keywords: [PSIONICS, 'Сотворение'],
@@ -182,10 +190,10 @@ export const CHOIR_CARDS = Object.freeze([
   psionic({
     id: 'call-of-the-deep', name: 'Зов глубин', rarity: 'bronze', provision: 6,
     art: 'call-of-the-deep.webp', artCrop: 'call-of-the-deep-crop.webp',
-    text: 'Преврати выбранный отряд в Щупальце Спящего с базовой силой на той же стороне и на том же месте, затем усиль его на 4.',
+    text: 'Преврати выбранный отряд в Щупальце Спящего с его текущей силой на той же стороне и на том же месте, затем усиль его на 4.',
     keywords: [PSIONICS, TENTACLE_CATEGORY, 'Усиление'],
     deploy: ability([
-      { action: 'transform', target: victim, card: TENTACLE },
+      { action: 'transform', target: victim, card: TENTACLE, preservePower: true },
       { action: 'boost', target: victim, amount: 4 },
     ], [{ ref: 'victim', kind: 'transform', prompt: 'Выбери отряд для превращения в Щупальце Спящего.', targets: fieldUnits }]),
   }),
@@ -199,9 +207,10 @@ export const CHOIR_CARDS = Object.freeze([
   psionic({
     id: 'sleeper-litany', name: 'Литания Спящего', rarity: 'bronze', provision: 4,
     art: 'sleeper-litany.webp', artCrop: 'sleeper-litany-crop.webp',
-    text: 'Усиль на 1 всех культистов Спящего на своей стороне.',
-    keywords: [PSIONICS, CULTIST, 'Усиление'],
-    deploy: ability([{ action: 'boost', target: { ...allies, category: CULTIST }, amount: 1 }]),
+    text: 'Покажи 3 случайных бронзовых отряда Безмолвного хора. Выбери один, сотвори и сыграй его. На нём Счётчик 3: когда он закончится, отряд превратится в Щупальце Спящего.',
+    keywords: [PSIONICS, 'Сотворение', 'Счётчик', TENTACLE_CATEGORY],
+    deploy: ability([{ action: 'create-play', faction: 'choir', rarity: 'bronze', type: 'unit', amount: 3,
+      counter: { amount: 3, effect: ability([{ action: 'transform', target: self, card: TENTACLE }]) } }]),
   }),
   TENTACLE, LARGE_TENTACLE, AWAKENING, SLEEPER,
 ]);
