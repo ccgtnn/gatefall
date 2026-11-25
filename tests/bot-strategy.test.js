@@ -191,7 +191,10 @@ test('hard anticipates a visible Surface-only reply without reading the enemy ha
   match.players.bot.board.surface = [standard('armor-aura', {
     type: 'artifact', endTurn: { steps: [{ action: 'armor', target: { scope: 'neighbors' }, amount: 1 }] },
   })];
-  match.players.human.leader = { ...FACTIONS.protectorate.leaders.find(({ id }) => id === 'fleet-admiral'), charges: 1 };
+  match.players.human.leader = { name: 'Surface battery', charges: 1, ability: {
+    select: [{ ref: 'enemy', targets: { scope: 'enemy', type: 'unit', row: 'surface' } }],
+    steps: [{ action: 'damage', target: { scope: 'ref', ref: 'enemy' }, amount: 4 }],
+  } };
   assert.equal(chooseBotTurn(match, 'normal').row, 'surface');
   assert.equal(chooseBotTurn(match, 'hard', { rolloutSamples: 0 }).row, 'orbit');
 });

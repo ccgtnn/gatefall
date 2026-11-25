@@ -140,16 +140,20 @@ const protectorateLeaders = Object.freeze([
     ], [choice('ally', allies, 'Выбери отряд для брони Маршала и его соседей.', { kind: 'marshal' })]),
   },
   {
-    id: 'supreme-commander', provisionBonus: 15, name: 'Верховный командор', art: 'supreme-commander.webp', text: 'Усилить свою карту на 2. Если у неё есть Приказ, сделать его готовым.',
+    id: 'supreme-commander', provisionBonus: 15, name: 'Верховный командор', art: 'supreme-commander.webp',
+    text: 'Приказ (2 заряда): усиль выбранную свою карту на 2 и дай ей Рвение.',
+    charges: 2, order: { cooldown: 0, usesCharges: true }, aiHints: { leaderReadyOrder: true },
     ability: ability([
       action('boost', chosen('ally'), 2), action('ready-order', chosen('ally')),
     ], [choice('ally', { scope: 'ally', unitOrOrder: true }, 'Выбери свою карту для усиления и подготовки Приказа.', { kind: 'ready-order' })]),
   },
   {
-    id: 'fleet-admiral', provisionBonus: 15, name: 'Адмирал флота', art: 'fleet-admiral.webp', text: 'Нанести 4 урона вражескому отряду на Поверхности.',
-    ability: ability([action('damage', chosen('enemy'), 4)], [
-      choice('enemy', { ...enemies, row: 'surface' }, 'Выбери врага на Поверхности для 4 урона.', { kind: 'damage', amount: 4 }),
-    ]),
+    id: 'fleet-admiral', provisionBonus: 15, name: 'Адмирал флота', art: 'fleet-admiral.webp',
+    text: 'Приказ (3 заряда): усиль выбранный свой отряд на 1 и дай ему Силовой щит.',
+    charges: 3, order: { cooldown: 0, usesCharges: true }, aiHints: { leaderShield: true },
+    ability: ability([
+      action('boost', chosen('ally'), 1), { ...action('status', chosen('ally'), 1), status: 'shield' },
+    ], [choice('ally', allies, 'Выбери свой отряд для усиления и Силового щита.', { kind: 'shield' })]),
   },
 ]);
 
