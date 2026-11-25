@@ -1,3 +1,4 @@
+import { createAppTimers } from './ui/app-timers.js';
 import { keepCardVideos, resumeCardVideos } from './ui/card-art.js';
 import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js';
 import { createDeckStorage } from './ui/deck-storage.js';
@@ -131,40 +132,13 @@ window.addEventListener('storage', (event) => {
   if (event.key?.startsWith('gatefall.') && event.newValue === null) window.location.reload();
   else if (event.key === REWARD_STORAGE_KEY || event.key === null) progress.refresh();
 });
-if (progress.league()) void progress.checkpointLeague();
-let tavernResetAt;
-let checkingTavern = false;
-let retryTavernAt = 0;
-function rememberTavernReset() {
-  tavernResetAt = progress.tavern()?.resetAt;
-}
-async function checkpointTavern() {
-  if (checkingTavern) return;
-  checkingTavern = true;
-  const outcome = await progress.checkpointTavern();
-  checkingTavern = false;
-  retryTavernAt = outcome === 'unavailable' ? Date.now() + 15000 : 0;
-}
-progress.subscribe(rememberTavernReset);
-rememberTavernReset();
-void checkpointTavern();
-let rankResetAt = progress.rankResetAt();
-let retryRanksAt = 0;
-let checkingRanks = false;
-progress.subscribe(() => { rankResetAt = progress.rankResetAt(); });
-async function checkpointRanks() {
-  if (checkingRanks) return;
-  checkingRanks = true;
-  const outcome = await progress.checkpointRanks();
-  checkingRanks = false;
-  retryRanksAt = outcome === 'done' ? 0 : Date.now() + 15000;
-}
-void checkpointRanks();
-setInterval(() => {
+const timers = createAppTimers(progress, () => {
   screen.querySelector('.league-panel')?.dispatchEvent(new Event('league-tick'));
-  if (tavernResetAt && Date.now() >= Math.max(tavernResetAt, retryTavernAt)) void checkpointTavern();
-  if (Date.now() >= Math.max(rankResetAt, retryRanksAt)) void checkpointRanks();
-}, 1000);
+});
+window.addEventListener('pagehide', timers.stop);
+window.addEventListener('pageshow', timers.start);
+timers.start();
+
 const { humanCanAct, playHuman, updateMatch } = turns;
 const hand = {
   getMatch: () => turns.match,

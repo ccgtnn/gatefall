@@ -17,7 +17,7 @@ const profiles = {
   ]],
   ui: ['Оболочка игры и управление экранами', [
     'docs/app.js', 'docs/ui/dom.js', 'docs/ui/resources.js', 'docs/ui/settings.js',
-    'docs/ui/match-turn.js', 'docs/ui/match-session.js', 'tests/match-turn.test.js',
+    'docs/ui/match-turn.js', 'docs/ui/match-session.js', 'docs/ui/app-timers.js', 'tests/match-turn.test.js',
   ]],
   'ui:battle': ['Поле и действия игрока', [
     'docs/ui/match-turn.js', 'docs/ui/field.js', 'docs/ui/hand.js', 'docs/ui/targeting.js',
