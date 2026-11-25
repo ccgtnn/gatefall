@@ -24,6 +24,7 @@
 | Нейтральные карты | `docs/game/neutral-cards.js`, `tests/neutral-cards.test.js` |
 | Реестр и общие свойства карт | `docs/game/card-registry.js`, `card-metadata.js`, `tests/catalog.test.js` |
 | Матч, поле и способности | `docs/game/match.js`, `board.js`, `effects.js`, `events.js` в той же папке |
+| Пассивные бонусы силы | `docs/game/board.js` и определения с `sidePower` или `rowPower`, `tests/captains.test.js` |
 | Бот и симуляции | `docs/game/bot.js`, `bot-strategy.js`, `bot-rollouts.js` |
 | Оценка эффектов ботом | `docs/game/bot-effect-value.js`, `npm run test:bot` |
 | Выбор целей и фильтры колоды | `docs/game/effect-queries.js`, `npm run test:battle` |

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  applyStatus, consume, createCard, findUnit, refreshHoundAura, removeUnit, restoreCard, spendResilience, statusCount,
+  applyStatus, consume, createCard, findUnit, refreshSidePower, removeUnit, restoreCard, spendResilience, statusCount,
 } from '../docs/game/board.js';
 import { chooseBotTurn } from '../docs/game/bot.js';
 import { CAPTAIN_CARDS, HOUND } from '../docs/game/captains.js';
@@ -172,14 +172,14 @@ test('lock removes an aura from its allies while keeping the locked unit’s cur
   const source = createCard('captain', captain);
   const ally = createCard('ally', HOUND);
   match.players.human.board.surface.push(source, ally);
-  refreshHoundAura(match, 'human');
+  refreshSidePower(match, 'human');
   assert.deepEqual([source.power, ally.power], [5, 3]);
   lock(match, source.id);
   assert.deepEqual([source.power, ally.power], [5, 2]);
   assert.equal(source.houndBonus, undefined);
   const newcomer = createCard('newcomer', HOUND);
   match.players.human.board.surface.push(newcomer);
-  refreshHoundAura(match, 'human');
+  refreshSidePower(match, 'human');
   assert.equal(newcomer.power, 2);
 });
 
@@ -202,7 +202,7 @@ test('lock suppresses queued deploy, field and pile reactions, and neighbor effe
 });
 
 test('all bot difficulties prefer a live enemy Order, Fee, timer or aura over an ally or inert enemy', () => {
-  for (const traits of [{ order: selfBoost }, { fee: { coins: 1, ...selfBoost } }, { timer: 2 }, { houndAura: 1 }]) {
+  for (const traits of [{ order: selfBoost }, { fee: { coins: 1, ...selfBoost } }, { timer: 2 }, { sidePowerAura: 1 }]) {
     const match = setup('bot');
     match.players.bot.board.surface.push(createUnit('friendly', { order: selfBoost }));
     match.players.human.board.surface.push(createUnit('inert', { power: 20 }),

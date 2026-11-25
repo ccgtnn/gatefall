@@ -3,9 +3,8 @@ import { FACTIONS } from './cards.js';
 import {
   activeOrder, announcePlay, appearanceJobs, applyStatus, availableRows, boost, capture, cardType, createCard, changeCoins, cleanse, consume, damage, damageOverflow, findUnit,
   changeBasePower, findInPiles, heal, isUnit, opponent, placementSide, placeCards, playDestination, removeUnit, restoreCard, ROW_LIMIT,
-  refreshHoundAura, refreshShipRowBonus, setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, transformUnit, units, weaken,
+  refreshPlacedPower, setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, transformUnit, units, weaken,
 } from './board.js';
-import { HOUND_CATEGORY } from './captains.js';
 import { NEUTRAL, ROWS, ROW_LABELS } from './card-metadata.js';
 import { CARD_DEFINITIONS, cardsForFaction } from './card-registry.js';
 import { canStart, eligiblePileCards, eligibleRows, matchesPileFilter, pileCandidates, playPiles, playTiming, reference, rowSide, targets, valueOf, viableChoices } from './effect-queries.js';
@@ -261,8 +260,7 @@ function placeSummonedCard(match, side, row, index, selected) {
   placeCards(player, row, index, [card]);
   match.log.push({ type: 'spawn', from: 'deck', side, row, position: index,
     name: card.definition.name, count: 1, cards: [{ ...card }] });
-  if (card.definition.categories?.includes(HOUND_CATEGORY)) refreshHoundAura(match, side);
-  refreshShipRowBonus(match, side, row);
+  refreshPlacedPower(match, side, row, card.definition);
   match.effects.unshift(...appearanceJobs(match, side, card));
 }
 

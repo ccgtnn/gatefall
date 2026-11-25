@@ -29,8 +29,8 @@ export function infectionGain(card, amount, turns = Infinity) {
 
 export function lockPriority({ card, side }, actor) {
   const locked = isLocked(card);
-  const { order, fee, houndAura, fieldEvents, neighborEvents, endTurn, startTurnGrowth, events } = cardAbilities(card);
-  const primary = Boolean(order || fee || houndAura || fieldEvents || neighborEvents || (!locked && card.timer > 0));
+  const { order, fee, sidePowerAura, fieldEvents, neighborEvents, endTurn, startTurnGrowth, events } = cardAbilities(card);
+  const primary = Boolean(order || fee || sidePowerAura || fieldEvents || neighborEvents || (!locked && card.timer > 0));
   const secondary = Boolean(endTurn || startTurnGrowth || events ||
     (!locked && (card.counter > 0 || card.resilient)) || deathwishDefinitions(card).length);
   const value = Number(primary) * 3 + Number(secondary);

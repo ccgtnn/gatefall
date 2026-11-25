@@ -1,7 +1,7 @@
 import { inspectDeck, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET } from './decks.js';
 import { FACTIONS, FIRST_SIGNAL } from './cards.js';
 import { ROWS } from './card-metadata.js';
-import { announcePlay, availableRows, cardType, changeCoins, createCard, discardCard, findUnit, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, refreshHoundAura, refreshShipRowBonus, spendResilience, statusCount, takeCards } from './board.js';
+import { announcePlay, availableRows, cardType, changeCoins, createCard, discardCard, findUnit, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, refreshSidePower, refreshRowPower, spendResilience, statusCount, takeCards } from './board.js';
 import { availableFees, availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js';
 
 export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js';
@@ -278,8 +278,8 @@ function resolveRound(match) {
   }
   match.round += 1;
   for (const side of SIDES) {
-    refreshHoundAura(match, side);
-    for (const row of ROWS) refreshShipRowBonus(match, side, row);
+    refreshSidePower(match, side);
+    for (const row of ROWS) refreshRowPower(match, side, row);
     if (!match.rules.coinsPersistBetweenRounds) changeCoins(match, side, -(match.players[side].coins ?? 0));
     drawForRound(match, side);
   }

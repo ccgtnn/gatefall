@@ -123,9 +123,12 @@ export function applyJournalEvent(state, event) {
     if (type === 'art-state') line[index].artState = event.artState;
     if (type === 'aura-power') {
       line[index].power = event.power;
-      for (const bonus of ['houndBonus', 'shipRowBonus']) {
-        if (event[bonus]) line[index][bonus] = event[bonus];
-        else if (event[bonus] === 0) delete line[index][bonus];
+      const { sidePower, rowPower } = line[index].definition;
+      for (const rule of [sidePower, rowPower]) {
+        if (!rule) continue;
+        const { key } = rule;
+        if (event[key]) line[index][key] = event[key];
+        else if (event[key] === 0) delete line[index][key];
       }
     }
     if (type === 'scenario-chapter') line[index].chapter = event.chapter;
