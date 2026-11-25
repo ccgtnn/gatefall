@@ -169,7 +169,10 @@ export function pickBotTarget(match) {
       ? rowScatterValue(enemy, row, amount) : rowDamage(enemy, row, amount, armorStrip));
     return { type: 'target', cardId: row };
   }
-  if (kind === 'hand-return') {
+  if (kind === 'tribute') {
+    return { type: 'target', cardId: bestTarget(options, Number) };
+  }
+  if (kind === 'hand-return' || kind === 'hand-bottom') {
     const eligible = player.hand.filter(({ id }) => options.includes(id));
     const card = bestTarget(eligible, (card) => -deckCardValue(match, match.pending.side, card));
     return { type: 'target', cardId: card.id };
@@ -269,7 +272,7 @@ export function chooseBotTurn(match, difficulty = 'easy', options = {}) {
   let decision;
   const strategy = { ...options, pickTarget: pickBotTarget, onDecision: (trace) => { decision = trace; } };
   let action;
-  if (match.pending?.kind === 'sacrifice') {
+  if (['sacrifice', 'tribute', 'hand-bottom'].includes(match.pending?.kind)) {
     action = pickBotTarget(match);
   } else if (match.pending && (difficulty !== 'easy' || match.pending.kind === 'deck-placement')) {
     action = chooseStrategicTarget(match, pickBotTarget, difficulty, strategy);
