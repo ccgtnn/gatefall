@@ -1,4 +1,4 @@
-import { ROW_LIMIT, statusCount } from './board.js';
+import { activeOrder, ROW_LIMIT, statusCount } from './board.js';
 import { canUseLeader } from './effects.js';
 import { targets } from './effect-queries.js';
 import { cardAbilities, deathwishDefinitions } from './events.js';
@@ -14,6 +14,26 @@ export function offeringPriority(match, side, unit, amount) {
   return Number(fits) * 100 - card.power;
 }
 
+function orderCanBeReadied(unit, turns) {
+  return activeOrder(unit) && unit.card.readyAt > turns && unit.card.orderUsedTurn !== turns;
+}
+
+export function leaderTargetPriority(match, side, kind) {
+  if (kind === 'ready-order') {
+    const { turns } = match.players[side];
+    return (unit) => (orderCanBeReadied(unit, turns) ? 30 : 0) + Math.min(unit.card.power ?? 0, 20);
+  }
+  if (kind === 'shield') {
+    return ({ card }) => {
+      const power = Math.min(card.power, 12) * .25;
+      if (statusCount(card, 'shield')) return power;
+      const { order, endTurn, fieldEvents } = cardAbilities(card);
+      const danger = statusCount(card, 'target') * 2 + Math.min(2, statusCount(card, 'infection'));
+      return 4 + power + danger + Number(Boolean(order || endTurn || fieldEvents)) * 2;
+    };
+  }
+}
+
 // Undefined leaves an existing leader to the usual difficulty-specific strategy.
 export function preferredLeaderUse(match, side) {
   const player = match.players[side];
@@ -23,6 +43,13 @@ export function preferredLeaderUse(match, side) {
   if (!hints || leader.order?.sourceDefinitionId) return;
   if (!canUseLeader(match, side)) return false;
   if (hints.leaderCoinsAtMost !== undefined) return (player.coins ?? 0) <= hints.leaderCoinsAtMost;
+
+  if (hints.leaderReadyOrder || hints.leaderShield) {
+    const [choice] = leader.ability.select;
+    const candidates = targets(match, { side }, choice.targets, true);
+    return player.hand.length <= 2 || candidates.some((unit) =>
+      hints.leaderReadyOrder ? orderCanBeReadied(unit, player.turns) : !statusCount(unit.card, 'shield'));
+  }
 
   if (hints.leaderSpawn) return true;
   if (hints.leaderConsume) {

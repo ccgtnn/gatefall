@@ -1,4 +1,4 @@
-import { offeringPriority, preferredLeaderUse } from './bot-leaders.js';
+import { leaderTargetPriority, offeringPriority, preferredLeaderUse } from './bot-leaders.js';
 import { compareRollouts } from './bot-rollouts.js';
 import { ROWS } from './card-metadata.js';
 import { activeOrder, cardType, COIN_LIMIT, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js';
@@ -133,10 +133,11 @@ function abilities(state, side) {
 
 function choices(state) {
   const { kind, options, side, cardId, cards, pile = 'deck' } = state.pending;
-  if (kind === 'lock' || kind === 'cleanse' || kind === 'leader-offering' || kind === 'armor') {
-    const priority = kind === 'lock' ? lockPriority : kind === 'cleanse' ? cleansePriority
+  const leaderPriority = leaderTargetPriority(state, side, kind);
+  if (leaderPriority || kind === 'lock' || kind === 'cleanse' || kind === 'leader-offering' || kind === 'armor') {
+    const priority = leaderPriority ?? (kind === 'lock' ? lockPriority : kind === 'cleanse' ? cleansePriority
       : kind === 'armor' ? (unit) => armorTargetPriority(state, side, unit)
-        : (unit) => offeringPriority(state, side, unit, state.pending.amount);
+        : (unit) => offeringPriority(state, side, unit, state.pending.amount));
     const priorities = options.map((id) => priority(findUnit(state, id), side));
     const best = Math.max(...priorities);
     return options.filter((_, i) => priorities[i] === best).map((id) => ({ type: 'target', cardId: id }));

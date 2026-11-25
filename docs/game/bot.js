@@ -5,7 +5,7 @@ import { rowArmor } from './effect-queries.js';
 import { armorTargetPriority, cleansePriority, deckCardValue, destructionSwing, effectSwing, growthPayoff, infectionGain, lockPriority, rowDamage, rowEffectValue, rowScatterValue } from './bot-effect-value.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, canEndTurn, canPass, playableCards, totalScore } from './match.js';
 
-import { offeringPriority, preferredLeaderUse } from './bot-leaders.js';
+import { leaderTargetPriority, offeringPriority, preferredLeaderUse } from './bot-leaders.js';
 import { deathwishDefinitions } from './events.js';
 import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js';
 
@@ -224,14 +224,13 @@ export function pickBotTarget(match) {
     cleanse: (unit) => cleansePriority(unit, match.pending.side),
     armor: (unit) => armorTargetPriority(match, match.pending.side, unit),
     'spend-armor': ({ card }) => amount ? card.armor : card.armor * 100 + card.power,
-    'ready-order': ({ card }) => card.definition.order && card.readyAt > player.turns ? 20 + (card.power ?? 0) : card.power ?? 0,
     'infection-target': ({ card }) => infectionGain(card, amount, Math.max(1, match.players[match.pending.side === 'human' ? 'bot' : 'human'].hand.length)),
     infection: (unit) => [unit, ...neighbors(match, unit)].reduce((sum, { card }) =>
       sum + infectionGain(card, 3), 0),
     'target-mark': ({ card }) => Math.min(3, card.power) - (card.armor ?? 0) * .3 - statusCount(card, 'shield') * 2,
     marshal: (unit) => neighbors(match, unit).length * 100 + unit.card.power,
   };
-  const target = bestTarget(lethal.length ? lethal : candidates, priorities[kind] ?? (({ card }) => card.power));
+  const target = bestTarget(lethal.length ? lethal : candidates, priorities[kind] ?? leaderTargetPriority(match, match.pending.side, kind) ?? (({ card }) => card.power));
   return { type: 'target', cardId: target.card.id };
 }
 
