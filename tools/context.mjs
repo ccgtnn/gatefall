@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const profiles = {
   engine: ['Движок матча', [
     'docs/game/match.js', 'docs/game/board.js', 'docs/game/effects.js',
-    'docs/game/effect-queries.js', 'docs/game/events.js', 'docs/game/card-metadata.js', 'tests/round-rules.test.js',
+    'docs/game/effect-piles.js', 'docs/game/effect-queries.js', 'docs/game/events.js', 'docs/game/card-metadata.js', 'tests/round-rules.test.js',
   ]],
   bot: ['Стратегия и симуляции бота', [
     'docs/game/bot.js', 'docs/game/bot-strategy.js', 'docs/game/bot-rollouts.js',

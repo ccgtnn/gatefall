@@ -4,7 +4,7 @@ import { KEYWORDS } from '../game/card-keywords.js';
 import { CARD_TYPES, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/card-metadata.js';
 import { FACTION_CATALOG } from '../game/faction-catalog.js';
 import { basePower, cardType, createCard, isUnit, statusCount } from '../game/board.js';
-import { relatedEffectCards } from '../game/effects.js';
+import { relatedEffectCards } from '../game/effect-piles.js';
 import { resourceIcon } from './resource-icon.js';
 
 import { deathwishDefinitions } from '../game/events.js';

@@ -2,6 +2,15 @@ import { availableRows, captureDestination, cardType, cleansableStatuses, findIn
 import { ROWS } from './card-metadata.js';
 import { cardAbilities, deathwishDefinitions } from './events.js';
 
+export function chooseSubset(cards, count, random) {
+  return Array.from({ length: Math.min(count, cards.length) }, () =>
+    cards.splice(Math.floor(random() * cards.length), 1)[0].id);
+}
+
+export function pauseForChoice(match, job, kind, key, options, prompt, extra) {
+  match.pending = { side: job.side, kind, key, options, prompt, job, ...extra };
+}
+
 export function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);
   return findUnit(match, key === 'source' ? job.sourceId : job.refs?.[key]);
