@@ -1,5 +1,5 @@
-import { button, element } from './dom.js?v=opponent-reveal-1';
-import { resourceGlyph, resourceLabel } from './resources.js?v=essence-gain-1';
+import { button, element } from './dom.js';
+import { resourceGlyph, resourceLabel } from './resources.js';
 
 const MERGE_MS = 1500;
 

@@ -1,4 +1,4 @@
-import { ability, action, allies, choice, chosen, enemies, enemyChoice, self } from './card-abilities.js?v=neutral-catalog-1';
+import { ability, action, allies, choice, chosen, enemies, enemyChoice, self } from './card-abilities.js';
 import { NEUTRAL } from './card-metadata.js';
 
 export { NEUTRAL } from './card-metadata.js';

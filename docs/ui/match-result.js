@@ -1,4 +1,4 @@
-import { rankStanding, wonRounds } from '../game/ranks.js?v=monthly-ranks-1';
+import { rankStanding, wonRounds } from '../game/ranks.js';
 
 export async function settleFinishedMatch(match, progress, { id, league }) {
   const { result, log } = match;

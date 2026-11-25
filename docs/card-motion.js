@@ -1,7 +1,7 @@
-import { setCardRarity } from './ui/dom.js?v=opponent-reveal-1';
-import { cardArt } from './ui/card-art.js?v=world-gates-premium-1';
+import { setCardRarity } from './ui/dom.js';
+import { cardArt } from './ui/card-art.js';
 import { NEUTRAL } from './game/card-metadata.js';
-import { burstParticles } from './particles.js?v=step-14';
+import { burstParticles } from './particles.js';
 
 const VISUAL_EVENTS = new Set([
   'play', 'damage', 'boost', 'weaken', 'armor', 'status', 'cleanse', 'death', 'destroy', 'discard', 'spawn', 'deathwish', 'consume', 'consume-group', 'leader', 'order', 'aura-power', 'transform',

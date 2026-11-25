@@ -1,4 +1,4 @@
-import { REWARD_STORAGE_KEY } from './rewards.js?v=world-gates-premium-1-nc1';
+import { REWARD_STORAGE_KEY } from './rewards.js';
 
 export async function resetProgress(storage, locks) {
   function clearGameData() {

@@ -53,7 +53,7 @@ const drawable = (id, options) => {
 };
 
 test('catalog thumbnails stay lazy when switching back from premium art', async () => {
-  const { selectPremiumArt } = await import('../docs/ui/card-art.js?v=world-gates-premium-1');
+  const { selectPremiumArt } = await import('../docs/ui/card-art.js');
   const catalog = drawable('world-gates', { lazyArt: true });
   const hand = drawable('world-gates');
   document.body.append(catalog, hand);
@@ -120,7 +120,7 @@ test('live battlefield and hand faces hide provision, while catalog and preview 
 test('premium selection updates existing copies and persists independently for both cards', async () => {
   const id = 'synaptic-parasite';
   const devourer = 'carrion-devourer';
-  const { PREMIUM_ART_KEY, selectPremiumArt } = await import('../docs/ui/card-art.js?v=world-gates-premium-1');
+  const { PREMIUM_ART_KEY, selectPremiumArt } = await import('../docs/ui/card-art.js');
   const saved = new Map();
   globalThis.localStorage = { getItem: (key) => saved.get(key), setItem: (key, value) => saved.set(key, value) };
   const face = drawable(id);
@@ -164,7 +164,7 @@ test('premium selection updates existing copies and persists independently for b
 
 test('World Gates uses its own premium clips on the small and full card faces', async () => {
   const id = 'world-gates';
-  const { selectPremiumArt } = await import('../docs/ui/card-art.js?v=world-gates-premium-1');
+  const { selectPremiumArt } = await import('../docs/ui/card-art.js');
   const face = drawable(id);
   document.body.append(face);
   try {
@@ -187,7 +187,7 @@ test('World Gates uses its own premium clips on the small and full card faces', 
 });
 
 test('filtered or moved video resumes after layout only while it is visible and attached', async () => {
-  const { resumeCardVideos } = await import('../docs/ui/card-art.js?v=world-gates-premium-1');
+  const { resumeCardVideos } = await import('../docs/ui/card-art.js');
   const frames = [];
   const played = [];
   const video = (name, isConnected, visible) => ({

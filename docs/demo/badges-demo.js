@@ -1,8 +1,8 @@
-import { dialogClose } from '../ui/resources.js?v=essence-gain-1';
+import { dialogClose } from '../ui/resources.js';
 import { findCardDefinition } from '../game/card-registry.js';
-import { basePower, createCard, isUnit, statusCount } from '../game/board.js?v=world-gates-premium-1-nc1';
-import { cardArt, decorateCard, showCard } from '../ui/cards.js?v=world-gates-premium-1-nc1';
-import { button, element, setCardRarity } from '../ui/dom.js?v=opponent-reveal-1';
+import { basePower, createCard, isUnit, statusCount } from '../game/board.js';
+import { cardArt, decorateCard, showCard } from '../ui/cards.js';
+import { button, element, setCardRarity } from '../ui/dom.js';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const examples = [

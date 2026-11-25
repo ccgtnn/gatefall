@@ -1,15 +1,15 @@
-import { FACTIONS } from '../game/cards.js?v=world-gates-premium-1-nc1';
+import { FACTIONS } from '../game/cards.js';
 import { NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/card-metadata.js';
-import { FACTION_CATALOG, UPCOMING_FACTIONS } from '../game/faction-catalog.js?v=world-gates-premium-1-nc1';
-import { createCard } from '../game/board.js?v=world-gates-premium-1-nc1';
-import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=world-gates-premium-1-nc1';
-import { addCardCrop, cardButton } from './cards.js?v=world-gates-premium-1-nc1';
-import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
-import { factionFilters } from './faction-filters.js?v=faction-catalog-2';
-import { resourceIcon } from './resource-icon.js?v=faction-catalog-2';
-import { availabilityOptions, matchesAvailability } from './catalog-cards.js?v=choir-playable-1';
-import { campaignShelf } from './campaigns.js?v=home-base-1';
-import { sectionBack } from './resources.js?v=essence-gain-1';
+import { FACTION_CATALOG, UPCOMING_FACTIONS } from '../game/faction-catalog.js';
+import { createCard } from '../game/board.js';
+import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js';
+import { addCardCrop, cardButton } from './cards.js';
+import { button, element, selectField } from './dom.js';
+import { factionFilters } from './faction-filters.js';
+import { resourceIcon } from './resource-icon.js';
+import { availabilityOptions, matchesAvailability } from './catalog-cards.js';
+import { campaignShelf } from './campaigns.js';
+import { sectionBack } from './resources.js';
 
 const byProvision = (a, b) => b.provision - a.provision || a.name.localeCompare(b.name, 'ru');
 

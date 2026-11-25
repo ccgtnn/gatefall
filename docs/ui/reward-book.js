@@ -1,7 +1,7 @@
-import { button, element } from './dom.js?v=opponent-reveal-1';
+import { button, element } from './dom.js';
 import { REWARD_SECTIONS, rewardState } from '../game/reward-book.js';
-import { resourceIcon } from './resource-icon.js?v=1';
-import { dialogClose } from './resources.js?v=essence-gain-1';
+import { resourceIcon } from './resource-icon.js';
+import { dialogClose } from './resources.js';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const rewardKinds = {

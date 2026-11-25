@@ -1,8 +1,8 @@
-import { ability, action, allies, choice, chosen, enemies, enemyChoice, self } from './card-abilities.js?v=neutral-catalog-1';
-import { CHOIR_CARDS } from './choir.js?v=world-gates-premium-1';
-import { ANNIHILATION, NEUTRAL_CARDS } from './neutral-cards.js?v=neutral-catalog-1';
+import { ability, action, allies, choice, chosen, enemies, enemyChoice, self } from './card-abilities.js';
+import { CHOIR_CARDS } from './choir.js';
+import { ANNIHILATION, NEUTRAL_CARDS } from './neutral-cards.js';
 
-export { ANNIHILATION, NEUTRAL_CARDS, SHADOW } from './neutral-cards.js?v=neutral-catalog-1';
+export { ANNIHILATION, NEUTRAL_CARDS, SHADOW } from './neutral-cards.js';
 
 export { CARD_TYPES, NEUTRAL, RARITY_LABELS, ROWS, ROW_LABELS } from './card-metadata.js';
 

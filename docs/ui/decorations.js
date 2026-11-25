@@ -1,8 +1,8 @@
-import { FACTIONS } from '../game/cards.js?v=world-gates-premium-1-nc1';
-import { createCard } from '../game/board.js?v=world-gates-premium-1-nc1';
-import { decorateCard } from './cards.js?v=world-gates-premium-1-nc1';
-import { button, element } from './dom.js?v=opponent-reveal-1';
-import { sectionBack } from './resources.js?v=essence-gain-1';
+import { FACTIONS } from '../game/cards.js';
+import { createCard } from '../game/board.js';
+import { decorateCard } from './cards.js';
+import { button, element } from './dom.js';
+import { sectionBack } from './resources.js';
 
 export const FRAME_STORAGE_KEY = 'gatefall.card-frame';
 export const BATTLEFIELD_STORAGE_KEY = 'gatefall.battlefield';

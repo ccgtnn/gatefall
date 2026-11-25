@@ -1,4 +1,4 @@
-import { button, element } from './dom.js?v=opponent-reveal-1';
+import { button, element } from './dom.js';
 
 export function campaignShelf(campaigns) {
   const section = element('section', 'campaigns');

@@ -1,4 +1,4 @@
-import { recordCardPlay, spendResilience } from './game/board.js?v=world-gates-premium-1-nc1';
+import { recordCardPlay, spendResilience } from './game/board.js';
 import { ROWS } from './game/card-metadata.js';
 
 export function motionDuration(speed, reduced) {

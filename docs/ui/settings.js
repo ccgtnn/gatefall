@@ -1,7 +1,7 @@
-import { dialogClose } from './resources.js?v=essence-gain-1';
-import { bindRulesMenu } from './rules.js?v=world-gates-premium-1-nc1';
-import { createSoundEffects, DEFAULT_VOLUME } from '../sound.js?v=step-10-volume';
-import { motionDuration } from '../turn-playback.js?v=world-gates-premium-1-nc1';
+import { dialogClose } from './resources.js';
+import { bindRulesMenu } from './rules.js';
+import { createSoundEffects, DEFAULT_VOLUME } from '../sound.js';
+import { motionDuration } from '../turn-playback.js';
 
 export function createSettings(app, onLeave, onReset) {
   const settings = document.querySelector('#settings');

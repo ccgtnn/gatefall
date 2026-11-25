@@ -1,11 +1,11 @@
-import { cardAbilities, deathwishDefinitions, deathwishJobs, emit, isLocked } from './events.js?v=ulmarin-1';
-import { FACTIONS } from './cards.js?v=world-gates-premium-1-nc1';
+import { cardAbilities, deathwishDefinitions, deathwishJobs, emit, isLocked } from './events.js';
+import { FACTIONS } from './cards.js';
 import {
   activeOrder, announcePlay, appearanceJobs, applyStatus, availableRows, boost, capture, cardType, createCard, changeCoins, cleanse, consume, damage, damageOverflow, findUnit,
   changeBasePower, findInPiles, heal, isUnit, opponent, placementSide, placeCards, playDestination, removeUnit, restoreCard, ROW_LIMIT,
   refreshHoundAura, refreshShipRowBonus, setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, transformUnit, units, weaken,
-} from './board.js?v=world-gates-premium-1-nc1';
-import { HOUND_CATEGORY } from './captains.js?v=captains-independent-1';
+} from './board.js';
+import { HOUND_CATEGORY } from './captains.js';
 import { NEUTRAL, ROWS, ROW_LABELS } from './card-metadata.js';
 import { CARD_DEFINITIONS, cardsForFaction } from './card-registry.js';
 import { canStart, eligiblePileCards, eligibleRows, matchesPileFilter, pileCandidates, playPiles, playTiming, reference, rowSide, targets, valueOf, viableChoices } from './effect-queries.js';

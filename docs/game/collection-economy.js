@@ -1,7 +1,7 @@
-import { FACTIONS } from './cards.js?v=world-gates-premium-1-nc1';
+import { FACTIONS } from './cards.js';
 import { NEUTRAL } from './card-metadata.js';
 import { CARD_DEFINITIONS, cardsForFaction, findCardDefinition } from './card-registry.js';
-import { copyLimit } from './decks.js?v=world-gates-premium-1-nc1';
+import { copyLimit } from './decks.js';
 
 export const BOOSTER_PRICE = 100;
 export const BOOSTER_SIZE = 5;

@@ -1,11 +1,11 @@
-import { rankRewards, syncRanks } from './ranks.js?v=monthly-ranks-1';
-import { advanceTavern, questComplete, replaceTavernQuest, syncTavern, TAVERN_QUEST_BY_ID, tavernEventAmounts, trackTavernMatch } from './tavern.js?v=world-gates-premium-1-nc1';
-import { createLeague, DIAMOND, finishLeagueMatch, leagueStake, needsLeagueReset, reserveLeagueMatch, resetLeagueWeek, upgradeLeague } from './league.js?v=world-gates-premium-1-nc1';
-import { victoryGold, weeklyReward } from './outpost.js?v=base-outpost-1';
-import { advanceProduction, productionView, readProduction, takeProduction } from './base-production.js?v=tavern-1';
-import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=match-rewards-1';
+import { rankRewards, syncRanks } from './ranks.js';
+import { advanceTavern, questComplete, replaceTavernQuest, syncTavern, TAVERN_QUEST_BY_ID, tavernEventAmounts, trackTavernMatch } from './tavern.js';
+import { createLeague, DIAMOND, finishLeagueMatch, leagueStake, needsLeagueReset, reserveLeagueMatch, resetLeagueWeek, upgradeLeague } from './league.js';
+import { victoryGold, weeklyReward } from './outpost.js';
+import { advanceProduction, productionView, readProduction, takeProduction } from './base-production.js';
+import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js';
 import { NEUTRAL } from './card-metadata.js';
-import { inspectDeck } from './decks.js?v=world-gates-premium-1-nc1';
+import { inspectDeck } from './decks.js';
 import { collectionInventory, createCollectionActions, readCollection } from './collection-economy.js';
 import { addRewardBookBalances, findRewardNode, readRewardBookProgress, rewardForNode, rewardState } from './reward-book.js';
 

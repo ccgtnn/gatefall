@@ -1,6 +1,6 @@
-import { button, element } from './dom.js?v=opponent-reveal-1';
-import { dialogClose } from './resources.js?v=essence-gain-1';
-import { leagueAvatar, LORE_FACTIONS, setLeagueSpeech } from './league-character.js?v=oran-avatar-1';
+import { button, element } from './dom.js';
+import { dialogClose } from './resources.js';
+import { leagueAvatar, LORE_FACTIONS, setLeagueSpeech } from './league-character.js';
 
 export const LEAGUE_DIFFICULTY_LABELS = { easy: 'Лёгкий', normal: 'Обычный', hard: 'Сложный' };
 

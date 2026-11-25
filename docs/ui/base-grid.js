@@ -1,8 +1,8 @@
-import { createTavernScreen } from './tavern-screen.js?v=world-gates-premium-1-nc1';
-import { weeklyBundle } from '../game/outpost.js?v=base-outpost-1';
-import { BUILDINGS, MAX_BUILDING_LEVEL, buildingEffect, buildingPrice, buildingSlot, constructionShortages } from '../game/base.js?v=tavern-1';
-import { button, element } from './dom.js?v=opponent-reveal-1';
-import { dialogClose } from './resources.js?v=essence-gain-1';
+import { createTavernScreen } from './tavern-screen.js';
+import { weeklyBundle } from '../game/outpost.js';
+import { BUILDINGS, MAX_BUILDING_LEVEL, buildingEffect, buildingPrice, buildingSlot, constructionShortages } from '../game/base.js';
+import { button, element } from './dom.js';
+import { dialogClose } from './resources.js';
 
 export function createBaseGrid(shell, progress, labels, materialIcon) {
   const openTavern = createTavernScreen(progress);

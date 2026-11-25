@@ -1,6 +1,6 @@
 import { ROWS } from './card-metadata.js';
-import { cardAbilities, emit, isLocked } from './events.js?v=ulmarin-1';
-import { HOUND_CATEGORY } from './captains.js?v=captains-independent-1';
+import { cardAbilities, emit, isLocked } from './events.js';
+import { HOUND_CATEGORY } from './captains.js';
 
 export const ROW_LIMIT = 9;
 export const HAND_LIMIT = 10;

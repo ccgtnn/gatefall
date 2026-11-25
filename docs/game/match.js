@@ -1,10 +1,10 @@
-import { inspectDeck, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET } from './decks.js?v=world-gates-premium-1-nc1';
-import { FACTIONS, FIRST_SIGNAL } from './cards.js?v=world-gates-premium-1-nc1';
+import { inspectDeck, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET } from './decks.js';
+import { FACTIONS, FIRST_SIGNAL } from './cards.js';
 import { ROWS } from './card-metadata.js';
-import { announcePlay, availableRows, cardType, changeCoins, createCard, discardCard, findUnit, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, refreshHoundAura, refreshShipRowBonus, spendResilience, statusCount, takeCards } from './board.js?v=world-gates-premium-1-nc1';
-import { availableFees, availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js?v=world-gates-premium-1-nc1';
+import { announcePlay, availableRows, cardType, changeCoins, createCard, discardCard, findUnit, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, refreshHoundAura, refreshShipRowBonus, spendResilience, statusCount, takeCards } from './board.js';
+import { availableFees, availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js';
 
-export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js?v=world-gates-premium-1-nc1';
+export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js';
 
 const SIDES = ['human', 'bot'];
 const STARTING_LIVES = 2;
