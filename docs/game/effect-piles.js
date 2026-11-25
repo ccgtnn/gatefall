@@ -21,6 +21,7 @@ export function relatedEffectCards(definition) {
     if (node === null || typeof node !== 'object' || visited.has(node)) return;
     visited.add(node);
     if (['spawn', 'transform'].includes(node.action) && node.card) fixed.set(node.card.id, node.card);
+    if (node.action === 'consume' && node.replacement) fixed.set(node.replacement.id, node.replacement);
     if (node.action === 'create-play') {
       for (const card of creationCandidates(definition.id, node, node.faction === 'enemy' ? undefined : node.faction)) {
         if (node.faction !== 'enemy' || Object.hasOwn(FACTIONS, card.faction)) possible.set(card.id, card);

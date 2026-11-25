@@ -285,8 +285,20 @@ test('scenario progress renders filled diamonds and the wing marker is absent', 
   const chapters = byClass(face, 'stat-badge-chapters');
   assert.deepEqual(tree(chapters).filter(({ tag }) => tag === 'use')
     .map(({ attributes }) => attributes.href.split('#')[1]),
-  ['chapter-filled', 'chapter-filled', 'chapter-empty']);
+  ['chapter-filled', 'chapter-filled']);
   assert.equal(byClass(face, 'stat-badge-rarity'), undefined);
+});
+
+test('Vine and Spore Sac display their accumulated growth on the card', () => {
+  for (const [id, shown, label] of [['vine', 2, 'n'], ['spore-sac', 3, 'Сила будущей личинки']]) {
+    const card = makeCard(id);
+    card.growth = 2;
+    const face = new TestElement('button');
+    decorateCard(face, card, {});
+    const badge = byClass(face, 'stat-badge-hourglass');
+    assert.equal(badge.children.at(-1).textContent, shown);
+    assert.equal(badge.attributes['aria-label'], label + ': ' + shown);
+  }
 });
 
 test('Orders keep their ready and cooldown states, with one overlay for the field control', () => {

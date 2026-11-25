@@ -13,6 +13,7 @@ const play = (match, side, cardId, row = 'orbit', random = zero) => applyAction(
 
 function fixture() {
   const match = confirmMulligan(createMatch({ random: zero, rules: { leaderCharges: 0 } }));
+  for (const player of Object.values(match.players)) player.leader.charges = 0;
   for (const [side, player] of Object.entries(match.players)) {
     player.board = { orbit: [], surface: [] };
     player.hand = [unit(`${side}-spare`)];

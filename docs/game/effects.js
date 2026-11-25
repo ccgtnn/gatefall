@@ -116,7 +116,8 @@ function spawn(match, job, step) {
       : nearSource && position ? origin.position + Number(position === 'right')
         : Math.min(fallback?.position ?? Infinity, match.players[side].board[row].length);
     const count = step.overflow ? Math.min(remaining, ROW_LIMIT - match.players[side].board[row].length) : step.amount;
-    spawnCards(match, side, row, index, count, step.card);
+    spawnCards(match, side, row, index, count, step.card,
+      step.power === undefined ? undefined : valueOf(match, job, step.power));
     if (step.overflow) remaining -= count;
   }
 }
@@ -218,6 +219,12 @@ const operations = {
   'ready-order': (match, target) => reduceOrderCooldown(match, target, Infinity),
   'reduce-order-cooldown': reduceOrderCooldown,
   boost,
+  'advance-growth': (match, { card, side }, amount) => {
+    if (card.growth === undefined) return;
+    card.growth += amount;
+    match.log.push({ type: 'growth', side, cardId: card.id, growth: card.growth });
+  },
+  kill: (match, target) => removeUnit(match, target, 'vulnerability'),
   damage,
   break: (match, target) => removeUnit(match, target, 'timer'),
   tick: (match, target) => {
@@ -416,7 +423,7 @@ export function runEffect(match, job, random) {
 
   if (!job.remaining) {
     const eligible = targets(match, job, step.target);
-    const count = step.count ?? 1;
+    const count = step.count === undefined ? 1 : valueOf(match, job, step.count);
     job.remaining = step.mode === 'random' && eligible.length > count
       ? chooseSubset(eligible.map(({ card }) => card), count, random)
       : eligible.map(({ card }) => card.id);
@@ -438,7 +445,7 @@ export function runEffect(match, job, random) {
   if (step.savePosition) job.refs[step.savePosition] = { row: target.row, position: target.position };
   let result;
   if (step.action === 'consume') {
-    const [receiver] = targets(match, job, step.receiver);
+    const [receiver] = step.receiver ? targets(match, job, step.receiver) : [];
     result = consume(match, target, receiver, step);
   } else if (step.action === 'capture') {
     capture(match, job.side, target);

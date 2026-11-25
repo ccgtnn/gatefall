@@ -152,10 +152,9 @@ export function applyJournalEvent(state, event) {
       if (event.inherited) delete card.inheritedDeathwishes;
     }
     if (type === 'order-ready' || (type === 'order' && event.readyAt !== undefined)) line[index].readyAt = event.readyAt;
-    if (type === 'order' && event.orderCharges !== undefined) {
-      line[index].orderCharges = event.orderCharges;
-      line[index].orderUsedTurn = event.orderUsedTurn;
-    }
+    if (type === 'order' && event.orderCharges !== undefined) line[index].orderCharges = event.orderCharges;
+    if (type === 'order' && event.orderUsedTurn !== undefined) line[index].orderUsedTurn = event.orderUsedTurn;
+    if (type === 'growth') line[index].growth = event.growth;
     if (type === 'tick') line[index].timer = event.remaining;
     if (type === 'counter') line[index].counter = event.remaining;
     break;

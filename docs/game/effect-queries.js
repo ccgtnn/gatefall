@@ -130,6 +130,7 @@ export function canCast(match, side, card, pileChoices, timing = playTiming(matc
 
 export function valueOf(match, job, expression, target) {
   if (typeof expression === 'number') return expression;
+  if (expression?.growth) return (expression.base ?? 0) + (job.sourceGrowth ?? 0);
   if (expression?.result) {
     return (expression.base ?? 0) + (job.results?.[expression.result] ?? 0) * (expression.scale ?? 1);
   }

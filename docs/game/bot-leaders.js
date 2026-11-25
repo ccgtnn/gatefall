@@ -1,7 +1,7 @@
 import { ROW_LIMIT, statusCount } from './board.js';
 import { canUseLeader } from './effects.js';
 import { targets } from './effect-queries.js';
-import { cardAbilities } from './events.js';
+import { cardAbilities, deathwishDefinitions } from './events.js';
 
 function canFitOffering(player, { card, row }, amount) {
   return player.board[row].length < ROW_LIMIT ||
@@ -23,6 +23,13 @@ export function preferredLeaderUse(match, side) {
   if (!hints || leader.order?.sourceDefinitionId) return;
   if (!canUseLeader(match, side)) return false;
   if (hints.leaderCoinsAtMost !== undefined) return (player.coins ?? 0) <= hints.leaderCoinsAtMost;
+
+  if (hints.leaderSpawn) return true;
+  if (hints.leaderConsume) {
+    const [choice] = leader.ability.select;
+    return targets(match, { side }, choice.targets, true).some(({ card }) =>
+      deathwishDefinitions(card).length > 0 || statusCount(card, 'infection') > 0);
+  }
 
   if (!hints.leaderOffering) return;
   const [choice] = leader.ability.select;

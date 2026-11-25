@@ -15,6 +15,7 @@ const move = (state, type, cardId, row = 'orbit', position = 0) =>
 
 function setup(id, side = 'human') {
   const match = createMatch({ random, rules: { leaderCharges: 0 } });
+  for (const player of Object.values(match.players)) player.leader.charges = 0;
   const other = side === 'human' ? 'bot' : 'human';
   const player = match.players[side];
   match.phase = 'playing';

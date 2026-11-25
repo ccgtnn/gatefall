@@ -11,6 +11,7 @@ const cast = { type: 'play', cardId: 'spell' };
 
 function fixture() {
   const match = confirmMulligan(createMatch({ random: () => 0, rules: { leaderCharges: 0 } }));
+  for (const player of Object.values(match.players)) player.leader.charges = 0;
   const { human, bot } = match.players;
   human.board.surface = [];
   human.hand = [spell(), unit('spare', 3)];
