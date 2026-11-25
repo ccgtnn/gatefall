@@ -36,7 +36,9 @@
 | Экран «Все карты» | `docs/ui/catalog-screen.js`, `tests/catalog.test.js` |
 | Отложенная загрузка экранов | `docs/ui/resources.js`, `tests/lazy-sections.test.js` |
 | Ход, бот, выбор целей и анимации матча | `docs/ui/match-turn.js`, `tests/match-turn.test.js` |
-| Экраны и итоги | `docs/app.js`, `docs/ui/`, `docs/ui/match-result.js` |
+| Старт, выход и результаты матча | `docs/ui/match-session.js`, `docs/ui/match-result.js` |
+| Фоновое обновление Таверны, рангов и Лиги | `docs/ui/app-timers.js`, `tests/app-timers.test.js` |
+| Экраны и навигация | `docs/app.js`, `docs/ui/` |
 | Размещение карт и анимации | `docs/card-placement.js`, `turn-playback.js`, `card-motion.js` |
 | Разметка и стили | `docs/index.html`, `style.css`, `field.css` |
 | Тесты, иллюстрации и правила | `tests/`, `docs/art/`, [ART_STYLE.md](ART_STYLE.md), [PROJECT_GUIDE.md](PROJECT_GUIDE.md) |
