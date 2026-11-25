@@ -11,7 +11,7 @@ import { roundText } from './match-log.js';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=choir-playable-1';
 import { factionFilters } from './faction-filters.js?v=faction-catalog-2';
 import { copyLimit } from '../game/decks.js?v=world-gates-premium-1-nc1';
-import { craftPrice, dismantleValue } from '../game/rewards.js?v=world-gates-premium-1-nc1';
+import { craftPrice, dismantleValue } from '../game/collection-economy.js';
 import { resourceIcon } from './resource-icon.js?v=1';
 import { sectionBack } from './resources.js?v=essence-gain-1';
 

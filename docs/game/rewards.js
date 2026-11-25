@@ -4,32 +4,18 @@ import { createLeague, DIAMOND, finishLeagueMatch, leagueStake, needsLeagueReset
 import { victoryGold, weeklyReward } from './outpost.js?v=base-outpost-1';
 import { advanceProduction, productionView, readProduction, takeProduction } from './base-production.js?v=tavern-1';
 import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=match-rewards-1';
-import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=world-gates-premium-1-nc1';
-import { copyLimit, inspectDeck } from './decks.js?v=world-gates-premium-1-nc1';
-import { CAPTAIN_CARDS } from './captains.js?v=captains-independent-1';
+import { NEUTRAL } from './cards.js?v=world-gates-premium-1-nc1';
+import { inspectDeck } from './decks.js?v=world-gates-premium-1-nc1';
+import { BOOSTER_FACTIONS, collectionInventory, createCollectionActions, readCollection } from './collection-economy.js';
+
+export { BOOSTER_FACTIONS, BOOSTER_PRICE, BOOSTER_RARITY_WEIGHTS, BOOSTER_SIZE, craftPrice, dismantleValue, drawBoosterCards }
+  from './collection-economy.js';
 
 export const STARTING_KEYS = 0;
 export const STARTING_GOLD = 0;
 export const STARTING_ESSENCE = 0;
 const LEGACY_STARTING_KEYS = 25;
 const LEGACY_STARTING_ESSENCE = 800;
-export const BOOSTER_PRICE = 100;
-export const BOOSTER_SIZE = 5;
-export const BOOSTER_RARITY_WEIGHTS = Object.freeze({ bronze: 75, epic: 20, gold: 5 });
-
-const ESSENCE_COSTS = {
-  bronze: { craft: 100, dismantle: 20 },
-  epic: { craft: 400, dismantle: 100 },
-  gold: { craft: 800, dismantle: 200 },
-};
-
-export function craftPrice(card) {
-  return ESSENCE_COSTS[card.rarity]?.craft ?? ESSENCE_COSTS.bronze.craft;
-}
-export function dismantleValue(card) {
-  return ESSENCE_COSTS[card.rarity]?.dismantle ?? ESSENCE_COSTS.bronze.dismantle;
-}
-
 export const REWARD_STORAGE_KEY = 'gatefall.reward-book';
 
 // Preserve reward IDs, prices, and the original prerequisites for saved purchases.
@@ -55,12 +41,6 @@ const stops = [
   ['lower-depot', 'lower-watch', 2],
   ['lower-beacon', 'lower-depot', 3],
   ['lower-horizon', 'lower-beacon', 5],
-];
-
-export const BOOSTER_FACTIONS = [
-  { id: 'protectorate', name: FACTIONS.protectorate.name, image: 'bastion.webp' },
-  { id: 'growth', name: FACTIONS.growth.name, image: 'incubator.webp' },
-  { id: NEUTRAL, name: 'Нейтральные', image: 'world-gates.webp' },
 ];
 
 // Columns run from entry to finale. A null leaves a gap between lanes.
@@ -324,55 +304,8 @@ export function rewardState(node, { keys, unlocked }) {
   return keys >= node.cost ? 'available' : 'unaffordable';
 }
 
-const pools = new Map(BOOSTER_FACTIONS.map(({ id }) => [id, id === NEUTRAL ? NEUTRAL_CARDS : FACTIONS[id].pool]));
-const definitions = new Map([
-  ...Object.values(FACTIONS).flatMap(({ pool }) => pool), ...NEUTRAL_CARDS, ...CAPTAIN_CARDS,
-].map((card) => [card.id, card]));
 const count = (value) => Number.isSafeInteger(value) && value > 0 ? value : 0;
 const startingBalance = (value, legacyAmount) => Number.isSafeInteger(value) && value >= 0 ? value : legacyAmount;
-
-function countsFor(keys, values) {
-  return Object.fromEntries([...keys].map((id) => [id, count(values?.[id])]));
-}
-
-export function drawBoosterCards(pool, random = Math.random) {
-  const available = Object.entries(BOOSTER_RARITY_WEIGHTS).map(([rarity, weight]) => ({
-    rarity, weight, cards: pool.filter((card) => card.rarity === rarity),
-  }));
-  const pack = [];
-  while (pack.length < BOOSTER_SIZE) {
-    const remaining = available.filter(({ cards }) => cards.length);
-    if (!remaining.length) break;
-    const needsRare = pack.length === BOOSTER_SIZE - 1 && pack.every(({ rarity }) => rarity === 'bronze');
-    const rare = needsRare ? remaining.filter(({ rarity }) => rarity !== 'bronze') : [];
-    const eligible = rare.length ? rare : remaining;
-    let roll = random() * eligible.reduce((total, { weight }) => total + weight, 0);
-    const { cards } = eligible.find(({ weight }) => (roll -= weight) < 0) ?? eligible[0];
-    pack.push(cards.splice(Math.floor(random() * cards.length), 1)[0]);
-  }
-  return pack;
-}
-
-function readPack(pack) {
-  const faction = pools.get(pack?.faction);
-  if (!faction || !count(pack.id) || !Array.isArray(pack.cards) || pack.cards.length !== BOOSTER_SIZE ||
-      new Set(pack.cards).size !== BOOSTER_SIZE ||
-      !pack.cards.every((id) => definitions.get(id)?.faction === pack.faction)) return null;
-  const { id, cards } = pack;
-  const revealed = Array.isArray(pack.revealed) ? cards.filter((card) => pack.revealed.includes(card)) : [];
-  // Packs started with the old rules already paid their entire dismantling reward.
-  const prepaid = pack.prepaid === true || !Array.isArray(pack.revealed);
-  return { id, faction: pack.faction, cards, essenceByCard: countsFor(cards, pack.essenceByCard), revealed, prepaid };
-}
-
-function revealPackCard(state, cardId) {
-  const pack = state.pendingPack;
-  if (pack.revealed.includes(cardId)) return 0;
-  const essence = pack.prepaid ? 0 : (pack.essenceByCard[cardId] ?? 0);
-  state.dismantlingEssence += essence;
-  pack.revealed.push(cardId);
-  return essence;
-}
 
 export function createRewardProgress(storage, locks, { random = Math.random, now = Date.now, enqueueReward: publishReward } = {}) {
   const listeners = new Set();
@@ -391,8 +324,6 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
     const snapshot = saved ?? {};
     const fresh = saved === null;
     const base = readBase(snapshot.base, fresh);
-    // One-time full collection grant. Keep resource balances and discard the old copy ledger.
-    const hasFullCollection = snapshot.fullCollection === true;
     const startingKeys = fresh ? STARTING_KEYS : startingBalance(snapshot.startingKeys, LEGACY_STARTING_KEYS);
     const producedKeys = count(snapshot.producedKeys);
     const tavernKeys = count(snapshot.tavernKeys);
@@ -405,11 +336,7 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
       producedKeys, tavernKeys, rankKeys,
       ranks: snapshot.ranks ?? null,
       tavern: snapshot.tavern?.slots ? snapshot.tavern : null,
-      fullCollection: true,
-      purchased: countsFor(pools.keys(), snapshot.purchased),
-      opened: countsFor(pools.keys(), snapshot.opened),
-      earnedCards: countsFor(definitions.keys(), hasFullCollection ? snapshot.earnedCards : undefined),
-      dismantledCards: countsFor(definitions.keys(), hasFullCollection ? snapshot.dismantledCards : undefined),
+      ...readCollection(snapshot),
       dismantlingEssence: count(snapshot.dismantlingEssence),
       essenceSpent: count(snapshot.essenceSpent),
       goldSpent: count(snapshot.goldSpent),
@@ -419,16 +346,16 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
       rewardGold: count(snapshot.rewardGold),
       rewardedMatches: Array.isArray(snapshot.rewardedMatches) ? snapshot.rewardedMatches : [],
       lastWeeklyClaim: Number.isSafeInteger(snapshot.lastWeeklyClaim) ? snapshot.lastWeeklyClaim : null,
-      pendingPack: readPack(snapshot.pendingPack),
       league: snapshot.league?.season ? upgradeLeague(snapshot.league) : null,
     };
   }
 
-  function balances({ progress, purchased, opened, earnedCards, dismantledCards, dismantlingEssence,
-    essenceSpent, goldSpent, startingGold, startingEssence, producedGold, rewardGold, pendingPack }) {
+  function balances(state) {
+    const { progress, dismantlingEssence, essenceSpent, goldSpent, startingGold, startingEssence,
+      producedGold, rewardGold, pendingPack } = state;
     let gold = startingGold + producedGold + rewardGold;
     let essence = startingEssence + dismantlingEssence;
-    const boosters = Object.fromEntries(BOOSTER_FACTIONS.map(({ id }) => [id, purchased[id] - opened[id]]));
+    const { boosters, owned } = collectionInventory(state);
     for (const { faction, nodes } of chapters) {
       for (const node of nodes) {
         if (!progress.unlocked.has(node.id)) continue;
@@ -438,11 +365,6 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
       }
     }
     for (const id of Object.keys(boosters)) boosters[id] = Math.max(0, boosters[id]);
-    const owned = {};
-    for (const [id, card] of definitions) {
-      const initial = copyLimit(card);
-      owned[id] = Math.max(0, initial + earnedCards[id] - dismantledCards[id]);
-    }
     return {
       keys: progress.keys, gold: Math.max(0, gold - goldSpent), essence: Math.max(0, essence - essenceSpent),
       boosters, packCount: Object.values(boosters).reduce((sum, value) => sum + value, 0), owned, pendingPack,
@@ -741,80 +663,12 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
       if (!slot || !Number.isInteger(previousLevel) || previousLevel < 1) return Promise.resolve('unknown');
       return buildLevel(slot, kind, previousLevel);
     },
-    buyPack(id) {
-      if (!pools.has(id)) return Promise.resolve('unknown');
-      return transact((state, _previousAt, _time, enqueueReward) => {
-        if (balances(state).gold < BOOSTER_PRICE) return 'unaffordable';
-        state.purchased[id] += 1;
-        state.goldSpent += BOOSTER_PRICE;
-        enqueueReward({ title: 'Бустер куплен', source: 'Магазин бустеров', reward: { boosters: 1 } });
-        return 'done';
-      });
-    },
-    openPack(id) {
-      if (!pools.has(id)) return Promise.resolve('unknown');
-      return transact((state, _previousAt, time) => {
-        if (state.pendingPack) return 'pending';
-        const { boosters, owned } = balances(state);
-        if (!boosters[id]) return 'empty';
-        const cards = drawBoosterCards(pools.get(id), random);
-        const essenceByCard = {};
-        state.opened[id] += 1;
-        for (const card of cards) {
-          if (owned[card.id] < copyLimit(card)) state.earnedCards[card.id] += 1;
-          else essenceByCard[card.id] = dismantleValue(card);
-        }
-        const number = Object.values(state.opened).reduce((sum, value) => sum + value, 0);
-        state.pendingPack = { id: number, faction: id, cards: cards.map((card) => card.id), essenceByCard, revealed: [] };
+    ...createCollectionActions({
+      transact, balances, random,
+      onPackOpened(state, time) {
         rollTavern(state, time);
         advanceTavern(state.tavern, { booster: 1 });
-        return 'done';
-      });
-    },
-    revealPack(id, cardId) {
-      return transact((state, _previousAt, _time, enqueueReward) => {
-        const pack = state.pendingPack;
-        if (pack?.id !== id || (cardId !== undefined && !pack.cards.includes(cardId))) return 'unknown';
-        const cards = cardId === undefined ? pack.cards : [cardId];
-        if (cards.every((card) => pack.revealed.includes(card))) return 'revealed';
-        const essence = cards.reduce((sum, card) => sum + revealPackCard(state, card), 0);
-        enqueueReward({ title: 'Эссенция за лишние копии', source: 'Открытие бустера', reward: { essence } });
-        return 'done';
-      });
-    },
-    finishPack(id) {
-      return transact((state, _previousAt, _time, enqueueReward) => {
-        if (state.pendingPack?.id !== id) return 'unknown';
-        const essence = state.pendingPack.cards.reduce((sum, card) => sum + revealPackCard(state, card), 0);
-        state.pendingPack = null;
-        enqueueReward({ title: 'Эссенция за лишние копии', source: 'Открытие бустера', reward: { essence } });
-        return 'done';
-      });
-    },
-    craft(id) {
-      const card = definitions.get(id);
-      if (!card) return Promise.resolve('unknown');
-      return transact((state) => {
-        const { essence, owned } = balances(state);
-        if (owned[id] >= copyLimit(card)) return 'owned';
-        const price = craftPrice(card);
-        if (essence < price) return 'unaffordable';
-        state.essenceSpent += price;
-        state.earnedCards[id] += 1;
-        return 'done';
-      });
-    },
-    dismantle(id) {
-      const card = definitions.get(id);
-      if (!card) return Promise.resolve('unknown');
-      return transact((state, _previousAt, _time, enqueueReward) => {
-        if (!balances(state).owned[id]) return 'empty';
-        state.dismantledCards[id] += 1;
-        const essence = dismantleValue(card);
-        state.dismantlingEssence += essence;
-        enqueueReward({ title: 'Эссенция получена', source: 'Распыление карты', reward: { essence } });
-        return 'done';
-      });
-    },
+      },
+    }),
   };
 }
