@@ -173,7 +173,7 @@ function quickAction(match, side, pickTarget) {
     return order && !(enemy.passed && lead > 0) ? { type: 'order', cardId: order.card.id } : END;
   }
   const legalPass = canPass(match, side);
-  if (legalPass && lead > 0 && (enemy.passed || !enemy.hand.length)) return PASS;
+  if (legalPass && match.round < 3 && lead > 0 && (enemy.passed || !enemy.hand.length)) return PASS;
 
   const plays = fastPlays(match, side);
   if (!plays.length) {

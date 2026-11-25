@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { chooseBotTurn } from '../docs/game/bot.js';
-import { capture, createCard, findUnit, removeUnit, restoreCard } from '../docs/game/board.js';
+import { capture, createCard, damage, findUnit, removeUnit, restoreCard } from '../docs/game/board.js';
 import { FACTIONS, FIRST_SIGNAL, NEUTRAL, NEUTRAL_CARDS, LARVA } from '../docs/game/cards.js';
 import { availableOrders, runEffect } from '../docs/game/effects.js';
 import { applyAction, availableRows, canEndTurn, confirmMulligan, createMatch, playableCards, ROW_LIMIT } from '../docs/game/match.js';
@@ -116,20 +116,19 @@ test('damage spends armor first and sends a killed unit to discard, then resolve
   assert.ok(match.players.bot.board.orbit.every(({ definition }) => definition.doomed));
 });
 
-test('destroy exiles without firing deathwish, while doomed death exiles and still triggers it', () => {
-  let match = fixture();
-  hand(match, createCard('destroy', { ...basic, deploy: {
-    select: [{ ref: 'enemy', targets: { scope: 'enemy' } }],
-    steps: [{ action: 'destroy', target: { scope: 'ref', ref: 'enemy' } }],
-  } }));
-  board(match, 'bot', 'orbit', unit('sac', 'spore-sac'));
-  match = target(play(match, 'destroy'), 'sac');
-  assert.equal(match.players.bot.exile[0].id, 'sac');
-  assert.equal(match.players.bot.discard.length, 0);
-  assert.equal(events(match, 'deathwish').length, 0);
-  assert.equal(events(match, 'destroy').length, 1);
+test('Xylaris Bloom destroys Spore Sac and triggers its Larva deathwish', () => {
+  const match = fixture();
+  board(match, 'human', 'orbit', createCard('bloom', FACTIONS.growth.pool.find(({ id }) => id === 'xylaris-bloom')));
+  board(match, 'bot', 'orbit', unit('sac', 'spore-sac'), unit('other', 'cocoon'));
+  damage(match, findUnit(match, 'bloom'), 4);
+  while (match.effects.length) runEffect(match, match.effects.shift(), () => 0);
+  assert.equal(match.players.bot.discard[0].id, 'sac');
+  assert.deepEqual(match.players.bot.board.orbit.map(({ definition }) => definition.id), [LARVA.id, 'cocoon']);
+  assert.equal(events(match, 'death').find(({ cardId }) => cardId === 'sac').reason, 'destroy');
+});
 
-  match = fixture({ faction: 'growth' });
+test('doomed death exiles and still triggers deathwish', () => {
+  let match = fixture({ faction: 'growth' });
   hand(match, unit('scavenger', 'scavenger'));
   board(match, 'human', 'surface', unit('doomed-cocoon', 'cocoon', { doomed: true, power: 3 }));
   match = play(match, 'scavenger', 1);
@@ -421,8 +420,8 @@ test('artifacts count toward the row cap and have no power or armor; Destroy can
   board(match, 'bot', 'orbit', unit('inc', 'incubator'));
   match = play(match, 'removal');
   assert.equal(match.players.bot.board.orbit.length, 0);
-  assert.equal(match.players.bot.exile[0].id, 'inc');
-  assert.equal(events(match, 'death').length, 0);
+  assert.equal(match.players.bot.discard[0].id, 'inc');
+  assert.equal(events(match, 'death')[0].reason, 'destroy');
 });
 
 test('Incubator spawns from deployment and persists beyond three owner turns', () => {

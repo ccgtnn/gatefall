@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { COIN_LIMIT, createCard } from '../docs/game/board.js';
+import { COIN_LIMIT, ROW_LIMIT, createCard } from '../docs/game/board.js';
 import { CAPTAIN_CARDS, HOUND } from '../docs/game/captains.js';
 import { chooseBotTurn, createBotView, pickBotTarget } from '../docs/game/bot.js';
 import { delayedCardValue, futureContext } from '../docs/game/bot-future-value.js';
@@ -75,15 +75,40 @@ test('round two can dry pass after winning round one and fights after losing it'
   assert.equal(chooseBotTurn(lost, 'hard').type, 'play');
 });
 
-test('the deciding round uses a legal winning play and passes once the opponent is beaten', () => {
+test('in the deciding round every bot keeps playing while a card is legal, even with a winning lead', () => {
   const match = position(3, 'human');
-  match.players.human.passed = true;
-  match.players.human.board.orbit = [plain('enemy', 5)];
-  const action = chooseBotTurn(match, 'hard');
-  assert.equal(action.cardId, 'd');
-  const after = applyAction(match, 'bot', action);
-  assert.notStrictEqual(after, match);
-  assert.deepEqual(chooseBotTurn(after, 'hard'), pass);
+  const { bot, human } = match.players;
+  bot.board.orbit = [plain('ahead', 10)];
+  bot.hand = [standard('surface-only', { id: 'surface-only', power: 1, requiredRow: 'surface' })];
+  human.board.orbit = [plain('enemy', 5)];
+  human.hand = [];
+  for (const opponentPassed of [true, false]) {
+    human.passed = opponentPassed;
+    for (const difficulty of ['easy', 'normal', 'hard']) {
+      const action = chooseBotTurn(match, difficulty);
+      assert.equal(action.type, 'play', difficulty);
+      assert.notStrictEqual(applyAction(match, 'bot', action), match, difficulty);
+    }
+  }
+
+  bot.board.surface = Array.from({ length: ROW_LIMIT }, (_, i) => plain('filled-' + i, 1));
+  for (const difficulty of ['easy', 'normal', 'hard']) {
+    assert.deepEqual(chooseBotTurn(match, difficulty), pass, difficulty);
+  }
+});
+
+test('the easy bot evaluates deathwish sacrifices and skips the leader when there are no adjacent units', () => {
+  const match = position();
+  const { bot } = match.players;
+  bot.leader = { name: 'Пожиратель', charges: 1, ability: {
+    select: [{ ref: 'victim', targets: { scope: 'ally' }, kind: 'consume' }],
+    steps: [{ action: 'consume', target: { scope: 'ref', ref: 'victim' } }],
+  } };
+  bot.board.orbit = [member('spores', 'growth', 'spore-sac'), plain('neighbor', 4)];
+  assert.equal(chooseBotTurn(match, 'easy').type, 'leader');
+  bot.board.orbit.pop();
+  bot.board.surface = [plain('other-row', 4)];
+  assert.equal(chooseBotTurn(match, 'easy').type, 'play');
 });
 
 test('the strategic bot inserts between two armored allies for the double boost', () => {
@@ -188,7 +213,7 @@ test('both strategic bots explore multiple targets in one chain', () => {
 
 test('hard anticipates a visible Surface-only reply without reading the enemy hand', () => {
   const match = position(3);
-  match.players.bot.hand = [plain('ship', 6)];
+  match.players.bot.hand = [plain('ship', 6), plain('spare', 1)];
   match.players.bot.board.surface = [standard('armor-aura', {
     type: 'artifact', endTurn: { steps: [{ action: 'armor', target: { scope: 'neighbors' }, amount: 1 }] },
   })];

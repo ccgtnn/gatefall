@@ -22,7 +22,7 @@ export function canUseLeader(match, side) {
   if (!leader?.ability) return false;
   const ready = leader.order
     ? leaderCooldown(player) === 0 && (!leader.order.usesCharges || leader.charges > 0)
-    : !match.playedCard && leader.charges > 0;
+    : (!match.playedCard || player.hand.length === 0) && leader.charges > 0;
   return ready && canStart(match, { ability: leader.ability, side });
 }
 

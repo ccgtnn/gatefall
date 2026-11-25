@@ -388,9 +388,9 @@ export const LEAGUE_CHARACTERS = [
     },
   },
   {
-    id: 'bot-3-3', name: "Аксиом", tier: 3, loreFaction: 'core', deckNow: 'orbit-diamond',
+    id: 'bot-3-3', name: "Аксиом", tier: 3, loreFaction: 'flawless', deckNow: 'orbit-diamond',
     strength: 4, initials: "А", avatar: 'league/axiom.webp',
-    character: "Машинный разум Ядра. Говорит вероятностями, вежлив до жути.",
+    character: "Машинный разум Безупречных. Говорит вероятностями, вежлив до жути.",
     uniqueAbility: "раз за раунд копирует последнюю бронзовую карту, сыгранную игроком.",
     lines: {
       start: ["Вероятность моей победы: 87,3%. Начнём", "Привет, органика. Я тебя изучил"],
@@ -452,9 +452,9 @@ export const LEAGUE_CHARACTERS = [
     },
   },
   {
-    id: 'frontier-rookie-1', name: "Сборщик-7", tier: 1, loreFaction: 'core', deckNow: 'protectorate',
+    id: 'frontier-rookie-1', name: "Сборщик-7", tier: 1, loreFaction: 'flawless', deckNow: 'protectorate',
     strength: 2, initials: "С7", avatar: 'league/collector-7.webp',
-    character: "Вежливый утильный дрон Ядра, собирает обломки после боёв. Говорит как служба поддержки.", uniqueAbility: null,
+    character: "Вежливый утильный дрон Безупречных, собирает обломки после боёв. Говорит как служба поддержки.", uniqueAbility: null,
     lines: {
       start: ["Здравствуйте! Ваш бой важен для нас", "Сборщик-7 к вашим услугам. Начинаем?"],
       botStrong: ["Операция выполнена успешно!", "Утилизация противника: 64%"],
@@ -463,7 +463,7 @@ export const LEAGUE_CHARACTERS = [
       roundLoss: ["Произошла ошибка. Попробуем снова", "Повреждения в пределах нормы"],
       pass: ["Режим ожидания", "Сохраняю ресурсы для повторного использования"],
       win: ["Спасибо, что выбрали Сборщик-7!", "Ваши обломки будут бережно собраны"],
-      loss: ["Оцените мою работу по шкале от 1 до 10", "Отправляю отчёт в Ядро. Мне будет стыдно"],
+      loss: ["Оцените мою работу по шкале от 1 до 10", "Отправляю отчёт Безупречным. Мне будет стыдно"],
     },
   },
   {

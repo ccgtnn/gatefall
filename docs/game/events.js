@@ -5,7 +5,7 @@ export const isLocked = (card) => Boolean(card?.statuses?.lock);
 export const cardAbilities = (card) => !card || isLocked(card) ? noAbilities : card.definition;
 
 function watches(match, event, played, firstLegendary) {
-  if (!['play', 'death', 'first-infection', 'target-marked', 'appearance', 'destroy', 'discard'].includes(event.type)) return [];
+  if (!['play', 'death', 'first-infection', 'target-marked', 'appearance', 'discard'].includes(event.type)) return [];
   const jobs = [];
   for (const side of sides) {
     const player = match.players[side];
