@@ -71,7 +71,7 @@ test('Choir collectible cards are owned by default and can start a match', async
   for (const word of [PSIONICS, CULTIST, 'Щупальце', 'Одержимость', 'Захват', 'Сотворение']) assert.ok(KEYWORDS[word]);
 });
 
-test('All Choir cards have versioned full art and crops in the catalog', async () => {
+test('All Choir cards have full art and crops in the catalog', async () => {
   const artwork = new Map([
     ['ulmarin-fanatic', 'sleeper-fanatic'],
     ['ulmarin-tentacle', 'sleeper-tentacle'],
@@ -95,11 +95,10 @@ test('All Choir cards have versioned full art and crops in the catalog', async (
   for (const { id, art, artCrop } of CHOIR_CARDS) {
     const stem = artwork.get(id);
     assert.ok(stem, id);
-    assert.equal(art?.split('?')[0], `${stem}.webp`, id);
-    assert.equal(artCrop?.split('?')[0], `${stem}-crop.webp`, id);
+    assert.equal(art, `${stem}.webp`, id);
+    assert.equal(artCrop, `${stem}-crop.webp`, id);
     for (const file of [art, artCrop]) {
       const url = new URL(`../docs/art/${file}`, import.meta.url);
-      assert.match(url.searchParams.get('v') ?? '', /^choir-art-\d+$/, id);
       await access(url);
     }
   }

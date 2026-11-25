@@ -10,19 +10,19 @@ const protectorate = [
   ['shield-generator', 'Генератор щита', 6, null, 'В конце хода: дать 1 броню соседям.',
     { type: 'artifact', art: 'shield-generator.webp', endTurn: armorNeighbors(1), keywords: ['Броня', 'Соседи'] }],
   ['infantry', 'Пехотинец линии', 4, 2, 'При розыгрыше: соседи получают 2 брони.',
-    { art: 'infantry.webp?v=art-25', deploy: armorNeighbors(2), keywords: ['Броня', 'Соседи'] }],
+    { art: 'infantry.webp', deploy: armorNeighbors(2), keywords: ['Броня', 'Соседи'] }],
   ['engineer', 'Инженер укреплений', 5, 3, 'При розыгрыше: дать 3 брони своей карте.',
-    { art: 'engineer.webp?v=art-24', deploy: ability([action('armor', chosen('ally'), 3)],
+    { art: 'engineer.webp', deploy: ability([action('armor', chosen('ally'), 3)],
       [choice('ally', allies, 'Выбери свой отряд для 3 брони.', { kind: 'armor' })]), keywords: ['Броня'] }],
-  ['assault', 'Тяжёлый штурмовик', 5, 5, 'Броня 3.', { art: 'assault.webp?v=art-25', armor: 3, keywords: ['Броня'] }],
+  ['assault', 'Тяжёлый штурмовик', 5, 5, 'Броня 3.', { art: 'assault.webp', armor: 3, keywords: ['Броня'] }],
   ['orbital-shield', 'Орбитальный щит', 6, 4, 'В конце хода: дать 1 броню соседям.',
     { art: 'orbital-shield.webp', endTurn: armorNeighbors(1), keywords: ['Броня', 'Соседи'] }],
   ['standard', 'Знаменосец', 6, 4, 'При розыгрыше: усилить бронированных соседей на 2.',
-    { art: 'standard.webp?v=art-25', aiHints: { placement: 'armored-neighbors' },
+    { art: 'standard.webp', aiHints: { placement: 'armored-neighbors' },
       deploy: ability([action('boost', { ...adjacent, armorAtLeast: 1 }, 2)]), keywords: ['Усиление', 'Броня', 'Соседи'] }],
-  ['warden', 'Страж врат', 6, 6, 'Броня 3. Нельзя сдвинуть.', { art: 'warden.webp?v=art-24', armor: 3, immovable: true, keywords: ['Броня'] }],
+  ['warden', 'Страж врат', 6, 6, 'Броня 3. Нельзя сдвинуть.', { art: 'warden.webp', armor: 3, immovable: true, keywords: ['Броня'] }],
   ['anvil', 'Таран «Наковальня»', 8, 4, 'При розыгрыше: снять всю броню со своей карты и нанести столько же урона вражеской.',
-    { rarity: 'epic', art: 'anvil.webp?v=art-24', artCrop: 'anvil-crop.webp?v=art-24', deploy: ability([
+    { rarity: 'epic', art: 'anvil.webp', artCrop: 'anvil-crop.webp', deploy: ability([
       { action: 'armor', target: chosen('payer'), amount: { stat: 'armor', scale: -1 }, save: 'armor' },
       action('damage', chosen('enemy'), armorRemoved),
     ], [
@@ -30,7 +30,7 @@ const protectorate = [
       enemyChoice({ stat: 'armor', ref: 'payer' }),
     ]), keywords: ['Броня', 'Урон'] }],
   ['smelter', 'Переплавщик', 5, 2, 'При розыгрыше: снять броню с соседей и усилить себя на столько же.',
-    { art: 'smelter.webp?v=art-24', deploy: ability([
+    { art: 'smelter.webp', deploy: ability([
       { action: 'armor', target: adjacent, amount: { stat: 'armor', scale: -1 }, save: 'armor' },
       action('boost', self, armorRemoved),
     ]), keywords: ['Броня', 'Усиление', 'Соседи'] }],
@@ -40,12 +40,12 @@ const protectorate = [
     { removalReserve: 4, type: 'effect', art: 'orbital-salvo.webp', deploy: ability([action('damage', chosen('enemy'), salvoDamage)],
       [enemyChoice(salvoDamage)]), keywords: ['Урон'] }],
   ['colonel', 'Октавиан Рейн', 10, 5, 'При розыгрыше: удвоить броню своих отрядов в этом ряду.',
-    { art: 'colonel.webp?v=art-24', aiHints: { placement: 'armored-neighbors' },
+    { art: 'colonel.webp', aiHints: { placement: 'armored-neighbors' },
       deploy: ability([action('armor', allyRow, { stat: 'armor' })]), keywords: ['Броня'] }],
   ['bastion', 'Бастион «Рубеж»', 11, 7, 'Броня 6. При розыгрыше: дать 3 брони соседям.',
-    { art: 'bastion.webp?v=art-24', armor: 6, deploy: armorNeighbors(3), keywords: ['Броня', 'Соседи'] }],
+    { art: 'bastion.webp', armor: 6, deploy: armorNeighbors(3), keywords: ['Броня', 'Соседи'] }],
   ['commander', 'Кассия Фульмина', 8, 5, 'Приказ: снять 2 брони со своей карты и нанести 3 урона вражеской. Перезарядка: 2 хода.',
-    { rarity: 'epic', art: 'commander.webp?v=art-24', order: {
+    { rarity: 'epic', art: 'commander.webp', order: {
       cooldown: 2,
       cost: ability([action('armor', chosen('payer'), -2)], [
         choice('payer', { ...allies, armorAtLeast: 2 },
@@ -78,7 +78,7 @@ const aggressorFire = ability([randomHit(enemies, 1)]);
 const protectorateExtras = [
   ['imperial-golem', 'Статуя Императора', 9, 6,
     'Броня 2. При розыгрыше: дай каждому соседнему отряду по 1 брони и 1 силы. Увеличь оба бонуса на 1 за каждого Голема, которого ты разыграл ранее в этом матче.', {
-      rarity: 'gold', categories: ['Голем'], art: 'imperial-golem.webp?v=emperor-statue-1', armor: 2,
+      rarity: 'gold', categories: ['Голем'], art: 'imperial-golem.webp', armor: 2,
       deploy: ability([action('armor', adjacent, emperorStatueBonus), action('boost', adjacent, emperorStatueBonus)]),
       keywords: ['Броня', 'Усиление', 'Соседи'],
   }],
@@ -114,11 +114,11 @@ const protectorateExtras = [
     }, keywords: ['Цель', 'Тяжёлый корабль', 'Силовой щит', 'Урон'] }],
   ['aurelian', 'Флагман «Аврелиан»', 11, 6,
     'Орбита, при розыгрыше: усили себя на 2 за каждый вражеский отряд, впервые отмеченный тобой Целью за матч. Поверхность: без эффекта.',
-    { art: 'flagship-aurelian.webp?v=flagship-art-2', ...ship, rarity: 'gold', deploy: onRow('orbit', ability([action('boost', self, { markedThisMatch: 2 })])),
+    { art: 'flagship-aurelian.webp', ...ship, rarity: 'gold', deploy: onRow('orbit', ability([action('boost', self, { markedThisMatch: 2 })])),
       keywords: ['Цель', 'Тяжёлый корабль', 'Усиление'] }],
   ['tiberius', 'Флагман «Тиберий»', 10, 4,
     'Орбита, при розыгрыше: отметь Целью все отряды в выбранном вражеском ряду. Поверхность: без эффекта.',
-    { art: 'flagship-tiberius.webp?v=flagship-art-2', ...ship, rarity: 'gold', deploy: onRow('orbit', ability([
+    { art: 'flagship-tiberius.webp', ...ship, rarity: 'gold', deploy: onRow('orbit', ability([
       { action: 'select-row', ref: 'row', filter: 'units', prompt: 'Выбери вражеский ряд для меток Цель.' },
       mark({ ...unmarkedEnemy, rowRef: 'row' }),
     ])), keywords: ['Цель', 'Тяжёлый корабль'] }],
@@ -127,19 +127,19 @@ const protectorateExtras = [
 
 const protectorateLeaders = Object.freeze([
   {
-    id: 'marshal', provisionBonus: 15, name: 'Маршал Строя', art: 'marshal.webp?v=art-24', text: 'Дать 3 брони выбранному своему отряду и его соседям.',
+    id: 'marshal', provisionBonus: 15, name: 'Маршал Строя', art: 'marshal.webp', text: 'Дать 3 брони выбранному своему отряду и его соседям.',
     ability: ability([
       action('armor', chosen('ally'), 3), action('armor', { ...adjacent, of: 'ally' }, 3),
     ], [choice('ally', allies, 'Выбери отряд для брони Маршала и его соседей.', { kind: 'marshal' })]),
   },
   {
-    id: 'supreme-commander', provisionBonus: 15, name: 'Верховный командор', art: 'supreme-commander.webp?v=art-24', text: 'Усилить свою карту на 2. Если у неё есть Приказ, сделать его готовым.',
+    id: 'supreme-commander', provisionBonus: 15, name: 'Верховный командор', art: 'supreme-commander.webp', text: 'Усилить свою карту на 2. Если у неё есть Приказ, сделать его готовым.',
     ability: ability([
       action('boost', chosen('ally'), 2), action('ready-order', chosen('ally')),
     ], [choice('ally', { scope: 'ally', unitOrOrder: true }, 'Выбери свою карту для усиления и подготовки Приказа.', { kind: 'ready-order' })]),
   },
   {
-    id: 'fleet-admiral', provisionBonus: 15, name: 'Адмирал флота', art: 'fleet-admiral.webp?v=art-24', text: 'Нанести 4 урона вражескому отряду на Поверхности.',
+    id: 'fleet-admiral', provisionBonus: 15, name: 'Адмирал флота', art: 'fleet-admiral.webp', text: 'Нанести 4 урона вражескому отряду на Поверхности.',
     ability: ability([action('damage', chosen('enemy'), 4)], [
       choice('enemy', { ...enemies, row: 'surface' }, 'Выбери врага на Поверхности для 4 урона.', { kind: 'damage', amount: 4 }),
     ]),

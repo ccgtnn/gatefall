@@ -1,0 +1,74 @@
+.unit-power.power-boosted { color: #45ff77; text-shadow: 0 1px 2px #000, 0 0 4px #45ff7780; }
+.unit-power.power-damaged { color: #ff555e; text-shadow: 0 1px 2px #000, 0 0 4px #ff555e80; }
+
+:is(.hand-card, .unit-face)[data-accent="gate"] {
+  --faction-edge: #e9bf66;
+  background: radial-gradient(ellipse at 50% 37%, #236bb9, #12274f 66%, #0d1534);
+  color: #c9e6ff;
+}
+
+.preview-body[data-accent="gate"] h2 { color: #8cc9ff; }
+
+.card-kind.is-complete { color: #f5d17f; border-color: #f5d17f; }
+.card-category {
+  position: absolute;
+  inset: auto 0 17%;
+  padding: 1px 0;
+  background: #111724df;
+  color: #edf3f1;
+  font-size: clamp(6px, 1.5dvh, 11px);
+  line-height: 1;
+  text-align: center;
+  pointer-events: none;
+}
+.catalog-category { color: #b4c8cb; font-size: .72rem; }
+
+:is([data-rarity='bronze'], [data-rarity='epic'], [data-rarity='gold']):not(.card-preview) { border: 0; }
+[data-rarity="bronze"] {
+  --rarity-border-color: #a76747;
+  --rarity-frame: url('./art/rarity-frame-bronze.png');
+}
+[data-rarity="epic"] {
+  --rarity-border-color: #9055ca;
+  --rarity-frame: url('./art/rarity-frame-epic.png');
+}
+[data-rarity="gold"] {
+  --rarity-border-color: #efc351;
+  --rarity-frame: url('./art/rarity-frame-gold.png');
+}
+[data-rarity]:not(.card-preview)::before {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  border: 1px solid transparent;
+  border-image: var(--rarity-frame) 56 / clamp(7px, 2.1dvh, 19px) stretch;
+  pointer-events: none;
+  content: '';
+}
+.preview-card-face[data-rarity]::before {
+  border-image-width: clamp(12px, 2.8dvh, 24px);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :is(.hand-card, .unit-face)[data-rarity]:not(:disabled, [inert], .is-dragged) {
+    transition: translate var(--action-duration, 160ms) ease, scale var(--action-duration, 160ms) ease,
+      box-shadow var(--action-duration, 160ms) ease;
+  }
+  :is(.hand-card, .unit-face)[data-rarity]:not(:disabled, [inert], .is-dragged, .is-aiming *):hover {
+    translate: 0 -2px;
+    scale: 1.025;
+    z-index: 3;
+    box-shadow: 0 0 11px color-mix(in srgb, var(--rarity-border-color) 70%, transparent);
+  }
+  .booster-card-slot > .hand-card[data-rarity]:not([inert]) {
+    transition: transform calc(.38s * var(--pack-pace)) ease, translate var(--action-duration, 160ms) ease,
+      scale var(--action-duration, 160ms) ease, box-shadow var(--action-duration, 160ms) ease;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.hand-card, .unit-face)[data-rarity]:not(:disabled, [inert], .is-dragged):hover {
+    translate: none;
+    scale: none;
+  }
+}

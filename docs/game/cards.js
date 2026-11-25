@@ -11,7 +11,7 @@ export { ANNIHILATION, NEUTRAL_CARDS, SHADOW } from './neutral-cards.js';
 
 export const FIRST_SIGNAL = Object.freeze({
   id: 'first-signal', name: 'Первый сигнал', type: 'artifact', stratagem: true, token: true,
-  art: 'first-signal.webp?v=art-24', zeal: true, doomed: true,
+  art: 'first-signal.webp', zeal: true, doomed: true,
   text: 'Рвение. Обречённый. Приказ: усилить свой отряд на 5. После применения или в конце первого раунда уходит из игры.',
   keywords: ['Приказ', 'Рвение', 'Усиление', 'Обречённость'],
   order: {
@@ -58,7 +58,7 @@ function faction(id, { name, strategy, entries, leaders, extras }) {
 const choirPool = Object.freeze(CHOIR_CARDS.filter(({ token }) => !token));
 const choirLeader = Object.freeze({
   id: 'choir-leader', name: 'Лидер Хора', provisionBonus: 15, text: 'Без активной способности.',
-  art: 'abyss-shepherd.webp?v=choir-art-4',
+  art: 'abyss-shepherd.webp',
 });
 const choirCardsById = new Map([...choirPool, ...NEUTRAL_CARDS].map((card) => [card.id, card]));
 const choirDeck = Object.freeze([

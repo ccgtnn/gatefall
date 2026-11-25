@@ -1,3 +1,4 @@
+import { assetUrl } from '../asset-url.js';
 import { element } from './dom.js';
 
 export const LORE_FACTIONS = Object.freeze({
@@ -16,7 +17,7 @@ export function leagueAvatar(character) {
   badge.dataset.loreFaction = character.loreFaction;
   badge.setAttribute('aria-hidden', 'true');
   if (character.avatar) {
-    const poster = './art/' + character.avatar;
+    const poster = assetUrl('./art/' + character.avatar);
     const image = element('img');
     image.alt = '';
     if (character.avatar === 'league/oran-duke.webp' && !globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
@@ -24,7 +25,7 @@ export function leagueAvatar(character) {
       video.poster = poster;
       video.muted = video.defaultMuted = video.loop = video.playsInline = video.autoplay = true;
       video.addEventListener('error', () => badge.replaceChildren(image), { once: true });
-      video.src = './art/league/oran-duke-loop.webm';
+      video.src = assetUrl('./art/league/oran-duke-loop.webm');
       badge.replaceChildren(video);
     } else {
       image.addEventListener('load', () => badge.replaceChildren(image), { once: true });

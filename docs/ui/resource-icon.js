@@ -1,3 +1,4 @@
+import { assetUrl } from '../asset-url.js';
 const svgNamespace = 'http://www.w3.org/2000/svg';
 
 export function resourceIcon(id, faction = false) {
@@ -12,7 +13,7 @@ export function resourceIcon(id, faction = false) {
     node.setAttribute('stroke-linejoin', 'round');
   }
   const use = document.createElementNS(svgNamespace, 'use');
-  use.setAttribute('href', './art/' + (faction ? 'faction-icons.svg?v=3' : 'reward-icons.svg?v=1') + '#' + id);
+  use.setAttribute('href', assetUrl('./art/' + (faction ? 'faction-icons.svg' : 'reward-icons.svg') + '#' + id));
   node.append(use);
   return node;
 }

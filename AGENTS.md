@@ -40,10 +40,19 @@
 | Фоновое обновление Таверны, рангов и Лиги | `docs/ui/app-timers.js`, `tests/app-timers.test.js` |
 | Экраны и навигация | `docs/app.js`, `docs/ui/` |
 | Размещение карт и анимации | `docs/card-placement.js`, `turn-playback.js`, `card-motion.js` |
-| Разметка и стили | `docs/index.html`, `style.css`, `field.css` |
+| Разметка и порядок стилей | `docs/index.html`, общие правила в `docs/style.css` |
+| Стили карт и колод | `docs/cards.css`, `card-frames.css`, `deck-screens.css`, `card-preview.css` |
+| Стили матча | `docs/field.css`, `field-controls.css`, `match-dialogs.css`, `field-effects.css`, `card-motion.css` |
 | Тесты, иллюстрации и правила | `tests/`, `docs/art/`, [ART_STYLE.md](ART_STYLE.md), [PROJECT_GUIDE.md](PROJECT_GUIDE.md) |
 | Контракты матча, эффектов и сохранений | [CONTRACTS.md](CONTRACTS.md) |
 
 Пакет для движка сохраняется командой `npm run --silent ctx -- engine > gatefall-engine.md`. К пакету можно добавить нужные файлы, например `npm run --silent ctx -- ui:catalog docs/card-preview.css > gatefall-catalog.md`.
 
-Изменения геймдизайна согласуйте с владельцем. Перед коммитом запустите полный `npm test`. Версии JS-модулей добавляет сборка. Для CSS и медиафайлов обновите версии URL у потребителей. После публикации проверьте [игру](https://ccgtnn.github.io/gatefall/).
+## Порядок работы
+
+- Для мелких правок во время работы запускайте только тематические тесты. Перед каждым коммитом запускайте полный `npm test`.
+- Проверяйте в браузере только изменения интерфейса.
+- Одна задача — одна ветка. Вливайте её в `main` в день работы.
+- Изменения геймдизайна согласуйте с владельцем.
+- Сборка GitHub Pages проставляет версии JS, CSS и медиа по хешу содержимого. Версии вручную не меняйте. Для динамических URL медиа используйте `assetUrl`.
+- После публикации сверяйте сборку на [GitHub Pages](https://ccgtnn.github.io/gatefall/).

@@ -1,3 +1,4 @@
+import { assetUrl } from '../asset-url.js';
 import { setCardRarity } from './dom.js';
 
 export const PREMIUM_ART_KEY = 'gatefall.premium-card-art';
@@ -56,13 +57,13 @@ function artwork(id, poster, className, size, doc, { animated = playPremium(id),
   node.addEventListener('error', () => {
     node.replaceWith(artwork(id, poster, className, size, doc, { animated: false, lazyArt }));
   }, { once: true });
-  node.src = './art/' + clips.get(id)[size] + '?v=loop-1';
+  node.src = assetUrl('./art/' + clips.get(id)[size]);
   return node;
 }
 
 export function cardArt(definition, className, { fullArt = false, lazyArt = false, doc = document } = {}) {
   const art = !fullArt && className === 'card-art-crop' ? definition.artCrop ?? definition.art : definition.art;
-  return artwork(definition.id, './art/' + art, className, fullArt ? 'large' : 'small', doc, { lazyArt });
+  return artwork(definition.id, assetUrl('./art/' + art), className, fullArt ? 'large' : 'small', doc, { lazyArt });
 }
 
 export function addCardCrop(node, definition, { fullArt = false, lazyArt = false } = {}) {

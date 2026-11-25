@@ -1,3 +1,4 @@
+import { assetUrl } from '../asset-url.js';
 import { element } from './dom.js';
 
 function symbol(name, size = 40) {
@@ -6,7 +7,7 @@ function symbol(name, size = 40) {
   icon.setAttribute('viewBox', `0 0 ${size} ${size}`);
   icon.setAttribute('aria-hidden', 'true');
   const use = document.createElementNS(namespace, 'use');
-  use.setAttribute('href', './demo/stat-badges.svg?v=suppressor-1#' + name);
+  use.setAttribute('href', assetUrl('./art/stat-badges.svg#' + name));
   icon.append(use);
   return icon;
 }

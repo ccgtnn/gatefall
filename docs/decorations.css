@@ -64,7 +64,7 @@
     column-gap: .5%;
     row-gap: 0;
     padding: 0;
-    background: #21150f url('./art/battlefield-wood.webp?v=2') center / 100% 100% no-repeat;
+    background: #21150f url('./art/battlefield-wood.webp') center / 100% 100% no-repeat;
   }
   :where([data-battlefield-choice="wood"]) .field-center .board-row {
     grid-template-columns: 9.4% minmax(0, 1fr);
@@ -81,7 +81,7 @@
     column-gap: .45%;
     row-gap: 0;
     padding: 0;
-    background: #171e25 url('./art/battlefield-metal.webp?v=2') center / 100% 100% no-repeat;
+    background: #171e25 url('./art/battlefield-metal.webp') center / 100% 100% no-repeat;
   }
   :where([data-battlefield-choice="new-year"]) .match-board {
     --row-label-width: 9.7%;

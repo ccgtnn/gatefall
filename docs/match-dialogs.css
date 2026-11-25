@@ -1,0 +1,109 @@
+.mulligan.mulligan-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  justify-items: center;
+  gap: clamp(4px, 1.2dvh, 12px);
+  padding: clamp(6px, 2.4dvh, 22px);
+  background: radial-gradient(ellipse at center, #1c3241ec, #0a141cf5);
+  backdrop-filter: blur(6px);
+}
+.mulligan-header { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 20px; }
+.mulligan-overlay > .field-settings { position: absolute; top: 6px; right: 6px; }
+.mulligan-header h2 { color: white; font-size: clamp(1rem, 4dvh, 1.7rem); }
+.mulligan-header .selection-count { font-size: clamp(.75rem, 2.6dvh, 1.1rem); }
+.mulligan-overlay .hand-grid {
+  --mulligan-card-gap: clamp(3px, 1.25dvh, 11px);
+  container-type: size;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-auto-rows: max-content;
+  width: min(100%, 48rem);
+  gap: var(--mulligan-card-gap);
+  align-content: center;
+  justify-items: center;
+}
+.mulligan-overlay .hand-card {
+  aspect-ratio: 2 / 3;
+  width: min(100%, calc((100cqh - var(--mulligan-card-gap)) / 3));
+  min-height: 0;
+}
+@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
+  .mulligan-overlay .hand-grid { width: min(100%, 66rem); }
+}
+.mulligan-overlay .hand-card[aria-pressed="true"] {
+  outline: 2px solid #99ffde;
+  outline-offset: -3px;
+  box-shadow: 0 0 8px #9affdb;
+}
+.mulligan-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px 12px; }
+.mulligan-actions .button, .mulligan-return { padding: clamp(3px, 1.4dvh, 10px) .7rem; }
+.mulligan-return { position: absolute; z-index: 2; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+
+.field-drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  margin: 0;
+  width: min(88vw, 25rem);
+  max-height: 100dvh;
+  height: 100dvh;
+  background: #142430;
+  border: 1px solid #4b697b;
+  color: #e5edf2;
+  overscroll-behavior: contain;
+}
+.field-drawer[open] { animation: field-drawer-in .24s ease-out; }
+.field-deck-drawer { inset: 0 0 0 auto; }
+.field-deck-drawer[open] { animation-name: field-deck-drawer-in; }
+body:has(#app[data-animation-speed="fast"]) .field-drawer[open] { animation-duration: .15s; }
+.field-drawer::backdrop { background: #070e16ad; }
+@keyframes field-drawer-in {
+  from { transform: translateX(-100%); opacity: .3; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes field-deck-drawer-in {
+  from { transform: translateX(100%); opacity: .3; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body:has(#app[data-animation-speed="system"]) .field-drawer[open] { animation: none; }
+}
+.drawer-header { display: flex; align-items: center; justify-content: space-between; gap: 1em; margin-bottom: .8rem; }
+.field-drawer .log-list { max-height: none; }
+.pile-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.pile-grid .hand-card { aspect-ratio: 2 / 3; min-height: 0; padding: 0; }
+.pile-grid p { grid-column: 1 / -1; }
+
+@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
+  .field-pile-drawer { width: clamp(30rem, 39vw, 50rem); }
+  .field-pile-drawer .pile-grid { gap: .65rem; }
+}
+
+.rotate-notice { display: none; }
+@media (max-height: 540px), (max-width: 960px) {
+  .field-center .board-row { grid-template-columns: clamp(25px, 5.6dvh, 46px) minmax(0, 1fr); }
+  .field-rail { padding: 2px; }
+  .field-score { gap: 1px; }
+  .field-action { min-height: 1.75rem; }
+}
+@media (max-height: 340px) {
+  .field-right .field-corner { gap: 0; }
+  .field-score .field-total { font-size: clamp(1rem, 5dvh, 1.25rem); }
+}
+@media (orientation: portrait) and (max-width: 739px) {
+  .match-screen > :not(.rotate-notice), #match-notice, #coin-notice, #round-notice, .round-transition { visibility: hidden; }
+  .rotate-notice {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .65rem;
+    background: #101e29;
+    color: #f2f8fc;
+    font-weight: 700;
+    font-size: 1.3rem;
+  }
+}

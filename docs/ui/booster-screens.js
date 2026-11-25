@@ -1,3 +1,4 @@
+import { assetUrl } from '../asset-url.js';
 import { createCard } from '../game/board.js';
 import { findCardDefinition } from '../game/card-registry.js';
 import { BOOSTER_FACTIONS, BOOSTER_PRICE } from '../game/collection-economy.js';
@@ -25,7 +26,7 @@ function packOptions(className) {
   return BOOSTER_FACTIONS.map((page) => {
     const item = element('article', 'booster-option ' + className);
     item.dataset.faction = page.id;
-    item.style.setProperty('--booster-art', `url('./art/${page.image}')`);
+    item.style.setProperty('--booster-art', `url('${assetUrl('./art/' + page.image)}')`);
     item.append(capsule(page), element('h3', null, page.name));
     return { page, item };
   });
