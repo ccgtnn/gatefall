@@ -1,6 +1,6 @@
-import { button, element, iconButton } from './dom.js?v=opponent-reveal-1';
-import { resourceIcon } from './resource-icon.js?v=1';
-import { MATERIALS } from '../game/base.js?v=tavern-1';
+import { button, element, iconButton } from './dom.js';
+import { resourceIcon } from './resource-icon.js';
+import { MATERIALS } from '../game/base.js';
 
 const resources = [
   ['keys', 'key', 'Ключи', 'Книга наград'],

@@ -1,5 +1,5 @@
 import { ROW_LABELS } from '../game/card-metadata.js';
-import { sideLabel } from './dom.js?v=opponent-reveal-1';
+import { sideLabel } from './dom.js';
 
 export function roundText(event) {
   const { scores, winner } = event;

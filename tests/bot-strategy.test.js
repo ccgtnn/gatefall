@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCard } from '../docs/game/board.js';
-import { chooseBotTurn } from '../docs/game/bot.js';
+import { chooseBotTurn, createBotView } from '../docs/game/bot.js';
 import { FACTIONS, LARVA } from '../docs/game/cards.js';
 import { applyAction, confirmMulligan, createMatch } from '../docs/game/match.js';
 
@@ -148,6 +148,12 @@ test('the bot plays Broodlord in the row with three larvae', () => {
     assert.equal(action.cardId, 'lord');
     assert.equal(action.row, 'surface');
   }
+
+  const { definition } = match.players.bot.hand[0];
+  match.players.bot.hand[0] = standard('lord', { ...definition, id: 'another-brood-finisher' });
+  const [finisher] = createBotView(match).cards;
+  assert.equal(finisher.preferredRow, 'surface');
+  assert.equal(finisher.swing, finisher.power + 3);
 });
 
 test('bot preserves finishers when their current payoff is weak', () => {

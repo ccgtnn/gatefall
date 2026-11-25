@@ -1,8 +1,8 @@
-import { placementEffectRows } from '../card-placement.js?v=hounds-1';
-import { button, element } from './dom.js?v=opponent-reveal-1';
-import { availableRows, cardType, placementSide } from '../game/board.js?v=world-gates-premium-1-nc1';
-import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js?v=world-gates-premium-1-nc1';
-import { cardButton, showCard } from './cards.js?v=world-gates-premium-1-nc1';
+import { placementEffectRows } from '../card-placement.js';
+import { button, element } from './dom.js';
+import { availableRows, cardType, placementSide } from '../game/board.js';
+import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js';
+import { cardButton, showCard } from './cards.js';
 
 export function updatePlacementSelection(screen, match, selectedCardId) {
   const card = match.players.human.hand.find(({ id }) => id === selectedCardId);

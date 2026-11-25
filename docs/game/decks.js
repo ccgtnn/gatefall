@@ -1,4 +1,4 @@
-import { FACTIONS } from './cards.js?v=world-gates-premium-1-nc1';
+import { FACTIONS } from './cards.js';
 import { NEUTRAL } from './card-metadata.js';
 import { cardsForFaction } from './card-registry.js';
 

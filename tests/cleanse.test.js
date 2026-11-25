@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
 import test from 'node:test';
 import {
-  applyStatus, cleanse, createCard, findUnit, refreshHoundAura, statusCount,
+  applyStatus, cleanse, createCard, findUnit, refreshSidePower, statusCount,
 } from '../docs/game/board.js';
 import { chooseBotTurn } from '../docs/game/bot.js';
 import { CAPTAIN_CARDS, HOUND } from '../docs/game/captains.js';
@@ -133,7 +133,7 @@ test('Cleansing restores a locked continuous aura without changing the target st
   const captain = createCard('captain', CAPTAIN_CARDS.find(({ id }) => id === 'hound-captain'));
   const ally = createCard('ally', HOUND);
   match.players.human.board.surface.push(captain, ally);
-  refreshHoundAura(match, 'human');
+  refreshSidePower(match, 'human');
   const source = findUnit(match, captain.id);
   applyStatus(match, source, 'lock', 1);
   assert.deepEqual([captain.power, ally.power], [5, 2]);

@@ -1,4 +1,4 @@
-import { BUILDINGS, productionHours, productionRates } from './base.js?v=tavern-1';
+import { BUILDINGS, productionHours, productionRates } from './base.js';
 
 const HOUR = 3_600_000;
 // Established resources retain their saved scale. Key rates need three additional fractional bits.

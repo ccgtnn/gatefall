@@ -1,10 +1,10 @@
-import { leagueCharacter } from './league-character.js?v=oran-avatar-1';
-import { button, element } from './dom.js?v=opponent-reveal-1';
-import { FACTIONS } from '../game/cards.js?v=world-gates-premium-1-nc1';
-import { addCardCrop } from './cards.js?v=world-gates-premium-1-nc1';
-import { logView } from './menu.js?v=world-gates-premium-1-nc1';
+import { leagueCharacter } from './league-character.js';
+import { button, element } from './dom.js';
+import { FACTIONS } from '../game/cards.js';
+import { addCardCrop } from './cards.js';
+import { logView } from './menu.js';
 import { roundText } from './match-log.js';
-import { sectionBack } from './resources.js?v=essence-gain-1';
+import { sectionBack } from './resources.js';
 
 export function leaderScreen(phaseLabel, factionId, start, back) {
   const faction = FACTIONS[factionId];

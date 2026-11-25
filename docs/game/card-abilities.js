@@ -1,3 +1,4 @@
+export const adjacent = { scope: 'neighbors', type: 'unit' };
 export const self = { scope: 'source' };
 export const allies = { scope: 'ally', type: 'unit' };
 export const enemies = { scope: 'enemy', type: 'unit' };

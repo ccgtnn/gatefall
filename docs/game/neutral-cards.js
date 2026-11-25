@@ -1,4 +1,4 @@
-import { ability, action, allies, choice, chosen, enemies, enemyChoice, self } from './card-abilities.js?v=neutral-catalog-1';
+import { ability, action, allies, choice, chosen, enemies, enemyChoice, self } from './card-abilities.js';
 import { NEUTRAL } from './card-metadata.js';
 
 export { NEUTRAL } from './card-metadata.js';
@@ -122,7 +122,7 @@ export const NEUTRAL_CARDS = Object.freeze([
       }],
     ['gate-guardian', 'Хранитель врат', 'gold', 10, 12, 'Броня 4. Уязвимость: отправь эту карту в сброс.', {
       art: 'gate-guardian.webp?v=neutral-palette-1',
-      armor: 4, events: { 'armor-break': ability([action('discard', self)]) },
+      armor: 4, aiHints: { armorBreakCostsPower: true }, events: { 'armor-break': ability([action('discard', self)]) },
       keywords: ['Броня', 'Уязвимость'],
     }],
     ['resurrection', 'Воскрешение', 'gold', 9, null, 'Выбери и сыграй карту из своего сброса с провизией 10 или меньше либо Пожирателя падали.', {

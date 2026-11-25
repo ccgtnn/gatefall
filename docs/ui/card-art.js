@@ -1,4 +1,4 @@
-import { setCardRarity } from './dom.js?v=opponent-reveal-1';
+import { setCardRarity } from './dom.js';
 
 export const PREMIUM_ART_KEY = 'gatefall.premium-card-art';
 const clips = new Map([

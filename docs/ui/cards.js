@@ -1,17 +1,17 @@
-import { dialogClose } from './resources.js?v=essence-gain-1';
-import { button, element, selectField, setCardRarity } from './dom.js?v=opponent-reveal-1';
-import { KEYWORDS } from '../game/cards.js?v=world-gates-premium-1-nc1';
+import { dialogClose } from './resources.js';
+import { button, element, selectField, setCardRarity } from './dom.js';
+import { KEYWORDS } from '../game/card-keywords.js';
 import { CARD_TYPES, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/card-metadata.js';
-import { FACTION_CATALOG } from '../game/faction-catalog.js?v=world-gates-premium-1-nc1';
-import { basePower, cardType, createCard, isUnit, statusCount } from '../game/board.js?v=world-gates-premium-1-nc1';
-import { relatedEffectCards } from '../game/effects.js?v=world-gates-premium-1-nc1';
-import { resourceIcon } from './resource-icon.js?v=1';
+import { FACTION_CATALOG } from '../game/faction-catalog.js';
+import { basePower, cardType, createCard, isUnit, statusCount } from '../game/board.js';
+import { relatedEffectCards } from '../game/effect-piles.js';
+import { resourceIcon } from './resource-icon.js';
 
-import { deathwishDefinitions } from '../game/events.js?v=ulmarin-1';
-import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js?v=suppressor-1';
+import { deathwishDefinitions } from '../game/events.js';
+import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js';
 
-import { addCardCrop, cardArt, hasPremiumArt, selectPremiumArt, usesPremiumArt } from './card-art.js?v=world-gates-premium-1';
-export { addCardCrop, cardArt } from './card-art.js?v=world-gates-premium-1';
+import { addCardCrop, cardArt, hasPremiumArt, selectPremiumArt, usesPremiumArt } from './card-art.js';
+export { addCardCrop, cardArt } from './card-art.js';
 
 export const preview = document.createElement('dialog');
 preview.className = 'card-preview panel';

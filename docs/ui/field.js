@@ -1,14 +1,14 @@
-import { leagueCharacter } from './league-character.js?v=oran-avatar-1';
-import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js?v=world-gates-premium-1-nc1';
-import { insertionPoint, placementEffectRows } from '../card-placement.js?v=hounds-1';
-import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
+import { leagueCharacter } from './league-character.js';
+import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js';
+import { insertionPoint, placementEffectRows } from '../card-placement.js';
+import { button, element, iconButton, sideLabel } from './dom.js';
 import { ROWS, ROW_LABELS } from '../game/card-metadata.js';
-import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=world-gates-premium-1-nc1';
-import { playerHand } from './hand.js?v=world-gates-premium-1-nc1';
-import { availableFees, availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=world-gates-premium-1-nc1';
-import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js?v=world-gates-premium-1-nc1';
+import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js';
+import { playerHand } from './hand.js';
+import { availableFees, availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js';
+import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js';
 
-import { orderBadge } from './stat-badges.js?v=suppressor-1';
+import { orderBadge } from './stat-badges.js';
 
 export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, isMulliganFieldVisible, setMulliganField,
   playHuman, humanCanAct, placeSelected, settingsButton, showDrawer, selectCard, mulliganScreen, getLeagueOpponent, getLeagueSpeech }) {

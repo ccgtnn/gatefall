@@ -1,15 +1,15 @@
-import { refreshPremiumArt, resumeCardVideos } from './card-art.js?v=world-gates-premium-1';
-import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
-import { createCard } from '../game/board.js?v=world-gates-premium-1-nc1';
+import { refreshPremiumArt, resumeCardVideos } from './card-art.js';
+import { button, element, selectField } from './dom.js';
+import { createCard } from '../game/board.js';
 import { CARD_TYPES, NEUTRAL, RARITY_LABELS } from '../game/card-metadata.js';
 import { CATALOG_CARDS } from '../game/card-registry.js';
-import { FACTION_CATALOG } from '../game/faction-catalog.js?v=world-gates-premium-1-nc1';
-import { cardButton, showCard } from './cards.js?v=world-gates-premium-1-nc1';
-import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=choir-playable-1';
-import { factionFilters } from './faction-filters.js?v=faction-catalog-2';
-import { copyLimit } from '../game/decks.js?v=world-gates-premium-1-nc1';
+import { FACTION_CATALOG } from '../game/faction-catalog.js';
+import { cardButton, showCard } from './cards.js';
+import { availabilityOptions, filterCatalog } from './catalog-cards.js';
+import { factionFilters } from './faction-filters.js';
+import { copyLimit } from '../game/decks.js';
 import { craftPrice, dismantleValue } from '../game/collection-economy.js';
-import { resourceIcon } from './resource-icon.js?v=1';
+import { resourceIcon } from './resource-icon.js';
 
 const catalogFactions = [['', 'Все фракции'], [NEUTRAL, 'Нейтральные'],
   ...Object.entries(FACTION_CATALOG).map(([id, faction]) => [id, faction.name])];

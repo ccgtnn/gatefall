@@ -1,6 +1,7 @@
 export const HOUND_CATEGORY = 'Гончая';
 
-const hound = { faction: 'captains', type: 'unit', categories: [HOUND_CATEGORY] };
+const hound = { faction: 'captains', type: 'unit', categories: [HOUND_CATEGORY],
+  sidePower: { group: HOUND_CATEGORY, key: 'houndBonus' } };
 export const HOUND = Object.freeze({
   ...hound, id: 'hound', name: 'Гончая', power: 2, text: 'Боец Чёрных гончих.', token: true,
   art: 'hound.webp', artCrop: 'hound-crop.webp',
@@ -43,7 +44,7 @@ const houndCards = [
   {
     id: 'hound-captain', name: 'Капитан гончих', power: 4, provision: 8, rarity: 'epic',
     art: 'hound-captain.webp', artCrop: 'hound-captain-crop.webp',
-    text: 'Пока на поле, все твои Гончие получают +1 к силе.', houndAura: 1,
+    text: 'Пока на поле, все твои Гончие получают +1 к силе.', sidePowerAura: 1,
   },
   {
     id: 'hound-recruiter', name: 'Вербовщик гончих', power: 3, provision: 8, rarity: 'epic',
@@ -112,7 +113,8 @@ export const CAPTAIN_CARDS = Object.freeze([
   },
   {
     id: 'scrapped-pilot', name: 'Списанный пилот', faction: 'captains', type: 'unit', rarity: 'bronze', provision: 4, power: 3,
-    art: 'scrapped-pilot.webp', shipRowBonus: 3,
+    art: 'scrapped-pilot.webp',
+    rowPower: { key: 'shipRowBonus', amount: 3, requires: { field: 'shipClass', values: ['Лёгкий корабль', 'Тяжёлый корабль'] } },
     text: 'Пока в его ряду есть твой Лёгкий или Тяжёлый корабль, получает +3 силы.',
     keywords: ['Усиление'],
   },

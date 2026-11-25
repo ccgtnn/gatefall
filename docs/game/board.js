@@ -1,6 +1,5 @@
 import { ROWS } from './card-metadata.js';
-import { cardAbilities, emit, isLocked } from './events.js?v=ulmarin-1';
-import { HOUND_CATEGORY } from './captains.js?v=captains-independent-1';
+import { cardAbilities, emit, isLocked } from './events.js';
 
 export const ROW_LIMIT = 9;
 export const HAND_LIMIT = 10;
@@ -99,9 +98,8 @@ export function announcePlay(match, side, card, destination, extra) {
     card: { ...card }, position: destination?.position, ...extra }, { played: card, firstLegendary });
   if (card.armor) emit(match, { type: 'armor', side: boardSide ?? side, name: card.definition.name, cardId: card.id,
     armor: card.armor, amount: card.armor });
-  if (boardSide && card.definition.categories?.includes(HOUND_CATEGORY)) refreshHoundAura(match, boardSide);
   if (boardSide) {
-    refreshShipRowBonus(match, boardSide, destination.row);
+    refreshPlacedPower(match, boardSide, destination.row, card.definition);
     reactions.push(...appearanceJobs(match, boardSide, card));
     const category = card.definition.scenario?.countPlayedEffects;
     if (category) card.playedEffects = match.players[boardSide].effectCategoryPlays?.[category] ?? 0;
@@ -133,10 +131,10 @@ export function capture(match, side, unit) {
   player.board[row].push(card);
   match.log.push({ type: 'capture', side, row, position, fromSide: unit.side, fromRow: unit.row,
     cardId: card.id, name: card.definition.name, card: { ...card } });
-  refreshHoundAura(match, unit.side);
-  refreshHoundAura(match, side, card.id);
-  refreshShipRowBonus(match, unit.side, unit.row);
-  refreshShipRowBonus(match, side, row, card.id);
+  refreshSidePower(match, unit.side);
+  refreshSidePower(match, side, card.id);
+  refreshRowPower(match, unit.side, unit.row);
+  refreshRowPower(match, side, row, card.id);
   match.effects.unshift(...appearanceJobs(match, side, card));
 }
 
@@ -200,7 +198,8 @@ export function changeBasePower(match, unit, amount) {
 export function heal(match, unit) {
   if (!unit || !isUnit(unit.card)) return;
   const { card, side } = unit;
-  card.power = basePower(card) + (card.houndBonus ?? 0) + (card.shipRowBonus ?? 0);
+  const { sidePower, rowPower } = card.definition;
+  card.power = basePower(card) + (card[sidePower?.key] ?? 0) + (card[rowPower?.key] ?? 0);
   match.log.push({ type: 'heal', side, cardId: card.id, power: card.power });
 }
 
@@ -259,8 +258,8 @@ export function cleanse(match, unit) {
   if (inherited) delete card.inheritedDeathwishes;
   match.log.push({ type: 'cleanse', side, cardId: card.id, name: card.definition.name, statuses, removed, inherited });
   if (removed.includes('lock')) {
-    if (card.definition.houndAura) refreshHoundAura(match, side, card.id);
-    if (card.definition.shipRowBonus) refreshShipRowBonus(match, side, row, card.id);
+    if (card.definition.sidePowerAura) refreshSidePower(match, side, card.id);
+    if (card.definition.rowPower) refreshRowPower(match, side, row, card.id);
   }
 }
 
@@ -306,8 +305,8 @@ export function applyStatus(match, unit, status, amount, extra) {
     effects.push(...emit(match, { ...event, type: 'target-marked', side: extra.attacker }, { journal: false }));
   }
   match.effects.unshift(...effects);
-  if (status === 'lock' && card.definition.houndAura) refreshHoundAura(match, side, card.id);
-  if (status === 'lock' && card.definition.shipRowBonus) refreshShipRowBonus(match, side, unit.row, card.id);
+  if (status === 'lock' && card.definition.sidePowerAura) refreshSidePower(match, side, card.id);
+  if (status === 'lock' && card.definition.rowPower) refreshRowPower(match, side, unit.row, card.id);
   return before - count;
 }
 
@@ -341,23 +340,28 @@ export function removeUnit(match, unit, reason, consumerId, extra) {
     ...(owner !== side && { owner }), name: card.definition.name, cardId: card.id, power: card.power,
     infection: statusCount(card, 'infection'), exile, reason, ...extra,
   }, { source: card, death }));
-  if (card.definition.houndAura) refreshHoundAura(match, side);
-  if (card.definition.shipClass) refreshShipRowBonus(match, side, row);
+  if (card.definition.sidePowerAura) refreshSidePower(match, side);
+  if (player.board[row].some(({ definition }) => suppliesRowPower(card, definition.rowPower))) refreshRowPower(match, side, row);
 }
 
-export function refreshShipRowBonus(match, side, row, preservePowerId) {
+function suppliesRowPower(card, rule) {
+  return rule && isUnit(card) && rule.requires.values.includes(card.definition[rule.requires.field]);
+}
+
+export function refreshRowPower(match, side, row, preservePowerId) {
   const line = match.players[side].board[row];
-  const hasShip = line.some((card) => isUnit(card) &&
-    ['Лёгкий корабль', 'Тяжёлый корабль'].includes(card.definition.shipClass));
   const fallen = [];
   for (const card of line) {
-    const bonus = hasShip ? cardAbilities(card).shipRowBonus ?? 0 : 0;
-    const delta = bonus - (card.shipRowBonus ?? 0);
+    const rule = card.definition.rowPower;
+    if (!rule) continue;
+    const { key, amount } = rule;
+    const bonus = !isLocked(card) && line.some((candidate) => suppliesRowPower(candidate, rule)) ? amount : 0;
+    const delta = bonus - (card[key] ?? 0);
     if (!delta) continue;
-    if (bonus) card.shipRowBonus = bonus;
-    else delete card.shipRowBonus;
+    if (bonus) card[key] = bonus;
+    else delete card[key];
     if (card.id !== preservePowerId) card.power = Math.max(0, card.power + delta);
-    match.log.push({ type: 'aura-power', side, cardId: card.id, power: card.power, shipRowBonus: bonus });
+    match.log.push({ type: 'aura-power', side, cardId: card.id, power: card.power, [key]: bonus });
     if (card.power === 0) fallen.push(card.id);
   }
   for (const id of fallen) {
@@ -366,25 +370,37 @@ export function refreshShipRowBonus(match, side, row, preservePowerId) {
   }
 }
 
-export function refreshHoundAura(match, side, preservePowerId) {
+export function refreshSidePower(match, side, preservePowerId) {
   const field = units(match, side);
-  const bonus = field.reduce((sum, { card }) => sum + (cardAbilities(card).houndAura ?? 0), 0);
+  const byGroup = new Map();
+  for (const { card } of field) {
+    const amount = cardAbilities(card).sidePowerAura;
+    const group = card.definition.sidePower?.group;
+    if (amount && group) byGroup.set(group, (byGroup.get(group) ?? 0) + amount);
+  }
   const fallen = [];
   for (const { card } of field) {
-    if (!isUnit(card) || !card.definition.categories?.includes(HOUND_CATEGORY)) continue;
-    const delta = bonus - (card.houndBonus ?? 0);
+    if (!isUnit(card) || !card.definition.sidePower) continue;
+    const { group, key } = card.definition.sidePower;
+    const bonus = byGroup.get(group) ?? 0;
+    const delta = bonus - (card[key] ?? 0);
     if (!delta) continue;
-    if (bonus) card.houndBonus = bonus;
-    else delete card.houndBonus;
+    if (bonus) card[key] = bonus;
+    else delete card[key];
     // Lock removes the aura from other cards while preserving the target's current power.
     if (card.id !== preservePowerId) card.power += delta;
-    match.log.push({ type: 'aura-power', side, cardId: card.id, power: card.power, houndBonus: bonus });
+    match.log.push({ type: 'aura-power', side, cardId: card.id, power: card.power, [key]: bonus });
     if (card.power <= 0) fallen.push(card.id);
   }
   for (const id of fallen) {
     const unit = findUnit(match, id);
     if (unit && unit.card.power <= 0) removeUnit(match, unit, 'aura');
   }
+}
+
+export function refreshPlacedPower(match, side, row, definition) {
+  if (definition.sidePower) refreshSidePower(match, side);
+  refreshRowPower(match, side, row);
 }
 
 export function transformUnit(match, unit, definition) {
@@ -394,8 +410,8 @@ export function transformUnit(match, unit, definition) {
   if (isLocked(card)) replacement.statuses = { lock: 1 };
   match.players[side].board[row][position] = replacement;
   match.log.push({ type: 'transform', side, cardId: card.id, name: card.definition.name, card: { ...replacement } });
-  refreshHoundAura(match, side);
-  refreshShipRowBonus(match, side, row);
+  refreshSidePower(match, side);
+  refreshRowPower(match, side, row);
   match.effects.unshift(...appearanceJobs(match, side, replacement));
 }
 
@@ -456,7 +472,6 @@ export function spawnCards(match, side, row, position, count, definition) {
   const tokens = Array.from({ length: added }, () => createCard(`token-${++match.tokenCount}`, definition));
   placeCards(match.players[side], row, position, tokens);
   emit(match, { type: 'spawn', side, row, count: added, name: definition.name, position, cards: tokens.map((card) => ({ ...card })) });
-  if (definition.categories?.includes(HOUND_CATEGORY)) refreshHoundAura(match, side);
-  refreshShipRowBonus(match, side, row);
+  refreshPlacedPower(match, side, row, definition);
   match.effects.unshift(...tokens.flatMap((card) => appearanceJobs(match, side, card)));
 }

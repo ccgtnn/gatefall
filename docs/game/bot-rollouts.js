@@ -1,11 +1,11 @@
-import { FACTIONS } from './cards.js?v=world-gates-premium-1-nc1';
+import { FACTIONS } from './cards.js';
 import { ROWS } from './card-metadata.js';
-import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js?v=world-gates-premium-1-nc1';
-import { collection, copyLimit } from './decks.js?v=world-gates-premium-1-nc1';
-import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js?v=world-gates-premium-1-nc1';
-import { availableOrders, canUseLeader } from './effects.js?v=world-gates-premium-1-nc1';
+import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js';
+import { collection, copyLimit } from './decks.js';
+import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js';
+import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
-import { effectSwing, infectionGain } from './bot-effect-value.js';
+import { effectSwing, infectionGain, shouldProtectArmor } from './bot-effect-value.js';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -73,27 +73,28 @@ function printedValue(card) {
 
 function rowValue(player, card, row, position) {
   const line = player.board[row];
-  const id = card.definition.id;
+  const placement = card.definition.aiHints?.placement;
   const adjacent = [line[position - 1], line[position]].filter(Boolean);
   const nearby = adjacent.filter(isUnit);
   if (card.definition.enemySide) {
     const step = card.definition.deploy?.steps.find(({ target, status }) => target?.scope === 'neighbors' && status === 'infection');
     return step && !player.passed ? nearby.reduce((sum, unit) => sum + infectionGain(unit, step.amount), 0) : 0;
   }
-  if (id === 'gate-guardian' && player.hand.some(({ definition }) => definition.id === 'shield-overload')) {
+  if (shouldProtectArmor(card, player)) {
     return -rowArmor(player, row) * .25;
   }
-  if (id === 'colonel' || id === 'standard') return nearby.reduce((total, unit) => total + (unit.armor > 0 ? 1 : 0), 0);
-  if (id === 'broodlord' || id === 'colossus' || id === 'gulper' || id === 'spitter') {
-    const victims = id === 'colossus' ? nearby : line;
-    return victims.reduce((sum, unit) => sum + (unit.definition.id === 'larva' || unit.definition.deathwish ? .8 : 0), 0);
+  if (placement === 'armored-neighbors') return nearby.reduce((total, unit) => total + (unit.armor > 0 ? 1 : 0), 0);
+  if (placement === 'consume-row' || placement === 'consume-neighbors') {
+    const victims = placement === 'consume-neighbors' ? nearby : line;
+    return victims.reduce((sum, { definition }) =>
+      sum + (definition.aiHints?.sacrificeBonus ?? (definition.deathwish ? .8 : 0)), 0);
   }
   return nearby.reduce((sum, unit) => sum + (unit.definition.endTurn ? .25 : 0), 0);
 }
 
-function overloadValue(player, row) {
+function armorSpendValue(player, row) {
   return rowArmor(player, row) - player.board[row].reduce((sum, card) =>
-    sum + (card.definition.id === 'gate-guardian' ? card.power : 0), 0);
+    sum + (card.definition.aiHints?.armorBreakCostsPower ? card.power : 0), 0);
 }
 
 function fastPlays(match, side) {
@@ -107,9 +108,9 @@ function fastPlays(match, side) {
       def.categories?.includes(entry.definition.scenario.category))) ? 2 : 0;
     if (def.type === 'effect') {
       let points = effectSwing(match, side, card);
-      if (def.id === 'shield-overload') {
+      if (def.aiHints?.spendsRowArmor) {
         points -= Math.max(...ROWS.map((row) => rowArmor(player, row))) -
-          Math.max(...ROWS.map((row) => overloadValue(player, row)));
+          Math.max(...ROWS.map((row) => armorSpendValue(player, row)));
       }
       return { action, points: points + scenarioTrigger, cost, reserve: def.removalReserve ?? 0 };
     }
@@ -149,7 +150,7 @@ function quickAction(match, side, pickTarget) {
   if (match.pending) {
     if (match.pending.kind === 'armor-row') {
       const player = match.players[side];
-      const rows = match.pending.options.toSorted((a, b) => overloadValue(player, b) - overloadValue(player, a));
+      const rows = match.pending.options.toSorted((a, b) => armorSpendValue(player, b) - armorSpendValue(player, a));
       return { type: 'target', cardId: rows[0] };
     }
     return pickTarget(match);
@@ -185,7 +186,7 @@ function quickAction(match, side, pickTarget) {
           .reduce((sum, play) => sum + play.points, lead) < 1)) return PASS;
   }
   if (!enemy.passed && (match.round === 3 || (match.round === 2 && player.lives === 1)) && canUseLeader(match, side) &&
-      (player.leader.id !== 'marshal' || ROWS.some((row) => player.board[row].length > 1))) {
+      (player.leader.ability.select?.[0]?.kind !== 'marshal' || ROWS.some((row) => player.board[row].length > 1))) {
     return { type: 'leader' };
   }
   const weight = match.round === 3 ? .12 : .45;

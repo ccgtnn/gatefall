@@ -1,4 +1,4 @@
-import { element } from './dom.js?v=opponent-reveal-1';
+import { element } from './dom.js';
 
 export const LORE_FACTIONS = Object.freeze({
   protectorate: 'Протекторат',
