@@ -120,7 +120,7 @@
 }
 .deck-editor h3 { font-size: 1rem; }
 .deck-field { display: flex; flex-direction: column; gap: .15rem; min-width: 0; font-size: .83rem; }
-.deck-field :is(input, select) {
+.deck-field :is(input, select, textarea) {
   min-width: 0;
   width: 100%;
   min-height: 2.1rem;
@@ -220,3 +220,7 @@ ul.deck-invalid { padding-inline-start: 1.1rem; margin: 0; font-size: .8rem; }
   .deck-editor-owned { max-height: max(12rem, 40dvh); }
   .deck-editor-collection { max-height: none; }
 }
+
+.deck-import-dialog form { display: grid; gap: .65rem; }
+.deck-import-dialog textarea { resize: vertical; }
+.deck-import-dialog .deck-invalid:empty { display: none; }

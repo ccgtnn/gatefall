@@ -9,6 +9,7 @@ import { factionFilters } from './faction-filters.js';
 import { resourceIcon } from './resource-icon.js';
 import { availabilityOptions, matchesAvailability } from './catalog-cards.js';
 import { campaignShelf } from './campaigns.js';
+import { deckImportDialog, exportDeckJson, exportOwnDecks } from './deck-transfer.js';
 import { sectionBack } from './resources.js';
 
 const byProvision = (a, b) => b.provision - a.provision || a.name.localeCompare(b.name, 'ru');
@@ -58,6 +59,11 @@ function deckListItem(deck, stats, actions) {
     const edit = button('Редактировать', () => actions.edit(deck));
     edit.setAttribute('aria-label', 'Редактировать: ' + title);
     row.append(edit);
+  }
+  if (actions.exportStatus) {
+    const exportButton = button('Экспорт JSON', () => exportDeckJson(deck, actions.exportStatus));
+    exportButton.setAttribute('aria-label', 'Экспорт JSON: ' + title);
+    row.append(exportButton);
   }
   const errors = element('p', 'deck-invalid');
   errors.hidden = true;
@@ -114,8 +120,14 @@ export function deckListScreen(phaseLabel, decks, stats, actions, inventory) {
     faction = id;
     update();
   });
-  toolbar.append(filters, button('Новая колода', actions.create, 'button primary'));
-  screen.append(sectionBack(actions.back), toolbar);
+  const status = element('p', 'deck-save-status');
+  status.setAttribute('role', 'status');
+  const dialog = deckImportDialog((text) => actions.importJson(text, inventory().owned), actions.onImported);
+  const exportAll = button('Экспорт всех своих колод', () => exportOwnDecks(decks));
+  exportAll.disabled = !decks.length;
+  toolbar.append(filters, button('Новая колода', actions.create, 'button primary'),
+    button('Импорт JSON', () => dialog.showModal()), exportAll);
+  screen.append(sectionBack(actions.back), toolbar, status, dialog);
   let faction = '';
   const groups = [
     ['Стартовые колоды', PRESETS, true],
@@ -127,7 +139,7 @@ export function deckListScreen(phaseLabel, decks, stats, actions, inventory) {
     group.append(element('h3', null, title), list, empty);
     screen.append(group);
     const items = entries.map((deck) => deckListItem(deck, preset ? stats : undefined,
-      { play: actions.play, copy: actions.copy, edit: preset ? undefined : actions.edit }));
+      { play: actions.play, copy: actions.copy, edit: preset ? undefined : actions.edit, exportStatus: status }));
     list.append(...items.map(({ item }) => item));
     return { items, empty, list, preset };
   });
@@ -224,7 +236,7 @@ export function deckEditor(phaseLabel, deck, { save, play, back, inventory }) {
     if (dirty) save(deck);
     back();
   });
-  actions.append(saveButton, playButton);
+  actions.append(saveButton, playButton, button('Экспорт JSON', () => exportDeckJson(deck, status)));
   left.append(nameField, leader.field, actions, status, totals, errors, owned);
   columns.append(left, right);
   screen.append(backButton, columns);
