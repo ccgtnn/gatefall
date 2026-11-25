@@ -12,6 +12,7 @@
 | `npm run test:battle` | Матч, раунды, эффекты и воспроизведение боя |
 | `npm run test:economy` | Награды, ресурсы, база, таверна, Лига и ранги |
 | `npm run test:bot` | Бот, его стратегия и сбор статистики для арены |
+| `npm run --silent ctx -- --help` | Список пакетов контекста для передачи кода |
 
 ## Где искать
 
@@ -34,5 +35,8 @@
 | Размещение карт и анимации | `docs/card-placement.js`, `turn-playback.js`, `card-motion.js` |
 | Разметка и стили | `docs/index.html`, `style.css`, `field.css` |
 | Тесты, иллюстрации и правила | `tests/`, `docs/art/`, [ART_STYLE.md](ART_STYLE.md), [PROJECT_GUIDE.md](PROJECT_GUIDE.md) |
+| Контракты матча, эффектов и сохранений | [CONTRACTS.md](CONTRACTS.md) |
+
+Пакет для движка сохраняется командой `npm run --silent ctx -- engine > gatefall-engine.md`. К пакету можно добавить нужные файлы, например `npm run --silent ctx -- ui:catalog docs/card-preview.css > gatefall-catalog.md`.
 
 Изменения геймдизайна согласуйте с владельцем. Перед коммитом запустите полный `npm test`. Версии JS-модулей добавляет сборка. Для CSS и медиафайлов обновите версии URL у потребителей. После публикации проверьте [игру](https://ccgtnn.github.io/gatefall/).

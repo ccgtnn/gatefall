@@ -9,7 +9,8 @@
     "test:bot": "node --test tests/bot.test.js tests/bot-strategy.test.js tests/arena-cards.test.js",
     "arena": "node tools/arena.mjs",
     "start": "python3 -m http.server 8000 --directory docs",
-    "build:pages": "node tools/build-pages.mjs"
+    "build:pages": "node tools/build-pages.mjs",
+    "ctx": "node tools/context.mjs"
   },
   "engines": {
     "node": ">=22"
