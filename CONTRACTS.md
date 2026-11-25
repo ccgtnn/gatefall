@@ -19,6 +19,8 @@
 
 Код находится в `docs/game/effects.js`, `docs/game/effect-piles.js`, `docs/game/effect-queries.js`, `docs/game/events.js`, `docs/ui/match-turn.js` и `docs/turn-playback.js`.
 
+`definition.aiHints` задаёт численные оценки и предпочтения бота. `handPotential` оценивает запас силы в руке, `placement` выбирает эвристику расстановки в симуляции, `preferRowWith` указывает ID карты для выбора ряда лёгким ботом. `spendsRowArmor` и `armorBreakCostsPower` описывают сочетание, при котором бот учитывает потерю силы. Подсказки используются только при принятии решений бота.
+
 ## Сохранение и интерфейс
 
 - `createRewardProgress` управляет сохранением `gatefall.reward-book`. `inventory()` возвращает балансы, `packCount`, бустеры по фракциям, `owned` по ID определений и `pendingPack` либо `null`. Значения коллекции, полученные интерфейсом, можно менять локально для расчёта доступных копий.

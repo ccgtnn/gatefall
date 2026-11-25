@@ -35,12 +35,13 @@ export function createBotView(match) {
       if (card.definition.deploy?.steps.some((step) => step.status === 'infection' || step.action === 'replace-leader')) {
         return { ...card, swing: (card.power ?? 0) + effectSwing(match, 'bot', card) };
       }
-      if (card.definition.id !== 'broodlord') return card;
+      const preferRowWith = card.definition.aiHints?.preferRowWith;
+      if (!preferRowWith) return card;
       const rows = ROWS.filter((row) => bot.board[row].length < ROW_LIMIT);
-      const larvae = (row) => bot.board[row].filter(({ definition }) => definition.id === 'larva')
+      const allyPower = (row) => bot.board[row].filter(({ definition }) => definition.id === preferRowWith)
         .reduce((sum, unit) => sum + unit.power, 0);
-      const preferredRow = rows.reduce((best, row) => larvae(row) > larvae(best) ? row : best);
-      return { ...card, preferredRow, swing: card.power + larvae(preferredRow) };
+      const preferredRow = rows.reduce((best, row) => allyPower(row) > allyPower(best) ? row : best);
+      return { ...card, preferredRow, swing: card.power + allyPower(preferredRow) };
     }),
     rowLengths: Object.fromEntries(ROWS.map((row) => [row, bot.board[row].length])),
     score: totalScore(bot),
@@ -204,7 +205,7 @@ export function pickBotTarget(match) {
     },
     'friendly-damage': ({ card }) => {
       if (statusCount(card, 'shield')) return -.5;
-      if (card.definition.id === 'gate-guardian' && card.armor > 0 && card.armor <= 2) return -card.power;
+      if (card.definition.aiHints?.armorBreakCostsPower && card.armor > 0 && card.armor <= 2) return -card.power;
       return -Math.min(card.power, Math.max(0, 2 - (card.armor ?? 0)));
     },
     emp: ({ card }) => Math.min(card.power, 2 + (card.armor ?? 0)) + (card.armor ?? 0) * .1,
@@ -229,11 +230,12 @@ function beneficialLeader(match, view, allies) {
   const player = match.players.bot;
   if (!canUseLeader(match, 'bot')) return false;
   if (player.leader.order) return units(match, 'human').some(({ card }) => isUnit(card) && (card.armor ?? 0) < 2);
-  if (player.leader.ability.select?.[0]?.kind === 'marshal') {
+  const kind = player.leader.ability.select?.[0]?.kind;
+  if (kind === 'marshal') {
     return !view.opponentPassed && allies.some((unit) => neighbors(match, unit).some(({ card }) => isUnit(card)));
   }
 
-  if (player.leader.id !== 'devourer' && player.leader.ability.select?.[0]?.kind !== 'consume') return !view.opponentPassed;
+  if (kind !== 'consume') return !view.opponentPassed;
   const sacrifices = allies.filter((unit) => isUnit(unit.card) && neighbors(match, unit).some(({ card }) => isUnit(card)));
   const { card } = bestTarget(sacrifices, ({ card }) => sacrificePriority(card));
   return card.power >= 2 || deathwishDefinitions(card).length > 0 || view.score === view.opponentScore;

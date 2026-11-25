@@ -3,7 +3,7 @@ import { ROWS } from './card-metadata.js';
 import { activeOrder, cardType, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js';
 import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
-import { cleansePriority, deckCardValue, destructionRolls, destructionSwing, lockPriority, rowEffectValue } from './bot-effect-value.js';
+import { cleansePriority, deckCardValue, destructionRolls, destructionSwing, lockPriority, rowEffectValue, shouldProtectArmor } from './bot-effect-value.js';
 import { cardAbilities, isLocked } from './events.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js';
 
@@ -33,9 +33,9 @@ function margin(state) {
 }
 
 function potential(card) {
-  const { id, provision } = card.definition;
+  const { aiHints, provision } = card.definition;
   const { deploy, endTurn, order } = cardAbilities(card);
-  if (id === 'shield-overload' || id === 'broodlord') return 11;
+  if (aiHints?.handPotential !== undefined) return aiHints.handPotential;
   return (card.power ?? (provision ?? 5) * .7)
     + (deploy ? 1 : 0) + (endTurn || order ? 1.5 : 0);
 }
@@ -55,10 +55,10 @@ function boardValue(state, side) {
     const { card, row } = unit;
     const { definition, power, armor, counter, timer } = card;
     const abilities = cardAbilities(card);
-    return sum + (armor ?? 0) * .12 + (definition.id === 'larva' ? .12 : 0)
+    return sum + (armor ?? 0) * .12 + (definition.aiHints?.boardBonus ?? 0)
       + (ready.has(card.id) ? 1.15 : activeOrder(unit) ? .35 : 0)
       + (row === 'orbit' && abilities.fieldEvents?.['target-marked'] ? 1.25 : 0)
-      + (abilities.endTurn && (definition.id !== 'spear-battery' || exposed) ? (timer === undefined ? 1.25 : .5 * Math.min(timer, 3)) : 0)
+      + (abilities.endTurn && (!definition.aiHints?.endTurnNeedsMarkedEnemy || exposed) ? (timer === undefined ? 1.25 : .5 * Math.min(timer, 3)) : 0)
       + (!isLocked(card) && counter > 0 && player.deck.length ? 1.6 / counter : 0)
       + (!isLocked(card) && card.resilient && state.round < 3 ? (power ?? 0) * .4 : 0)
       + (abilities.scenario ? Math.min(definition.scenario.chapters.length - (card.chapter ?? 0),
@@ -273,11 +273,10 @@ function report(options, action, reason, candidates = []) {
   return action;
 }
 
-function protectsGuardian(candidate, player) {
+function preservesArmor(candidate, player) {
   const { action } = candidate;
   const card = player.hand.find(({ id }) => id === action.cardId);
-  if (card?.definition.id !== 'gate-guardian' ||
-      !player.hand.some(({ definition }) => definition.id === 'shield-overload')) return true;
+  if (!shouldProtectArmor(card, player)) return true;
   const other = ROWS.find((row) => row !== action.row);
   return player.board[other].length >= ROW_LIMIT || rowArmor(player, action.row) <= rowArmor(player, other);
 }
@@ -350,7 +349,7 @@ export function chooseStrategicTurn(match, difficulty, oldAction, options = {}) 
   const ranked = rankPlays(state, { expired: () => search.expired() || playSearch.expired() });
   const abilitySearch = deadline(hard ? 100 : 130);
   const withAbilities = rankAbilities(state, { expired: () => search.expired() || abilitySearch.expired() });
-  const allowed = ranked.filter((candidate) => protectsGuardian(candidate, bot));
+  const allowed = ranked.filter((candidate) => preservesArmor(candidate, bot));
   const mustWin = round === 3 || bot.lives === 1;
   const canConserve = canPass && (!mustWin || allowed.some(({ reserveCost }) => reserveCost === 0));
   const ready = canConserve ? allowed.filter(({ reserveCost }) => reserveCost === 0) : allowed;

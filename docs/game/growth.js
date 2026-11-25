@@ -2,7 +2,7 @@ import { ability, action, adjacent, allies, choice, chosen, enemies, enemyChoice
 
 export const LARVA = Object.freeze({
   id: 'larva', name: 'Личинка', type: 'unit', power: 1, text: 'Обречённая.',
-  art: 'larva.webp', categories: ['Выводок'], doomed: true, token: true, keywords: ['Обречённость'],
+  art: 'larva.webp', aiHints: { boardBonus: .12, sacrificeBonus: .8 }, categories: ['Выводок'], doomed: true, token: true, keywords: ['Обречённость'],
 });
 
 const larvae = { ...allies, definitionId: LARVA.id };
@@ -39,9 +39,11 @@ const growth = [
         [choice('victim', otherAlly, 'Выбери другой свой отряд для поглощения.', { kind: 'consume' })]),
     }, keywords: ['Рвение', 'Приказ', 'Поглощение'] }],
   ['gulper', 'Пожиратель личинок', 6, 4, 'При розыгрыше: поглотить все личинки в своём ряду.',
-    { art: 'gulper.webp?v=larva-devourer-1', categories: ['Выводок'], deploy: ability([absorb({ ...larvae, row: 'source' })]), keywords: ['Поглощение'] }],
+    { art: 'gulper.webp?v=larva-devourer-1', categories: ['Выводок'],
+      aiHints: { placement: 'consume-row' }, deploy: ability([absorb({ ...larvae, row: 'source' })]), keywords: ['Поглощение'] }],
   ['spitter', 'Кислотный плевун', 5, 3, 'При розыгрыше: поглотить свою личинку и наложить Заражение 3 на выбранный вражеский отряд. Приказ: наложить Заражение 3 на выбранный вражеский отряд. Перезарядка: 2 хода.',
-    { art: 'spitter.webp?v=3', categories: ['Гниль'], deploy: ability([absorb(chosen('victim')), infect(chosen('enemy'), 3)], [
+    { art: 'spitter.webp?v=3', categories: ['Гниль'],
+      aiHints: { placement: 'consume-row' }, deploy: ability([absorb(chosen('victim')), infect(chosen('enemy'), 3)], [
       choice('victim', larvae, 'Выбери личинку для поглощения.', { kind: 'consume' }), infectionChoice(3),
     ]), order: { cooldown: 2, ...ability([infect(chosen('enemy'), 3)], [infectionChoice(3)]) },
       keywords: ['Поглощение', 'Заражение', 'Приказ'] }],
@@ -53,7 +55,8 @@ const growth = [
   ['nest', 'Гнездо-мать', 9, 3, 'В конце хода: породить по личинке в каждом своём ряду.',
     { rarity: 'epic', art: 'nest.webp?v=art-25', categories: ['Выводок'], endTurn: ability([spawn('right', 'all')]), keywords: ['Порождение'] }],
   ['colossus', 'Колосс', 8, 5, 'При розыгрыше: поглотить всех своих соседей.',
-    { art: 'colossus.webp?v=art-25', categories: ['Выводок'], deploy: ability([absorb(adjacent)]), keywords: ['Соседи', 'Поглощение'] }],
+    { art: 'colossus.webp?v=art-25', categories: ['Выводок'],
+      aiHints: { placement: 'consume-neighbors' }, deploy: ability([absorb(adjacent)]), keywords: ['Соседи', 'Поглощение'] }],
   ['ravager', 'Выводок-разоритель', 9, 4, 'При розыгрыше: поглотить свой отряд и нанести урон врагу в размере силы жертвы.',
     { rarity: 'epic', art: 'ravager.webp?v=art-25', categories: ['Выводок'], deploy: ability([
       absorb(chosen('victim'), { multiplier: 0, save: 'strength' }),
@@ -62,7 +65,9 @@ const growth = [
       choice('victim', otherAlly, 'Выбери отряд для поглощения.', { kind: 'consume' }), enemyChoice(victimPower),
     ]), keywords: ['Поглощение', 'Урон'] }],
   ['broodlord', 'Владыка выводка', 9, 4, 'При розыгрыше: поглоти всех личинок в своём ряду и получи удвоенную их силу.',
-    { art: 'broodlord.webp', categories: ['Выводок'], deploy: ability([absorb({ ...allies, row: 'source', definitionId: LARVA.id }, { multiplier: 2, grouped: true })]),
+    { art: 'broodlord.webp', categories: ['Выводок'],
+      aiHints: { handPotential: 11, placement: 'consume-row', preferRowWith: LARVA.id },
+      deploy: ability([absorb({ ...allies, row: 'source', definitionId: LARVA.id }, { multiplier: 2, grouped: true })]),
       keywords: ['Поглощение'] }],
 ];
 

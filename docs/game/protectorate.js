@@ -18,7 +18,8 @@ const protectorate = [
   ['orbital-shield', 'Орбитальный щит', 6, 4, 'В конце хода: дать 1 броню соседям.',
     { art: 'orbital-shield.webp', endTurn: armorNeighbors(1), keywords: ['Броня', 'Соседи'] }],
   ['standard', 'Знаменосец', 6, 4, 'При розыгрыше: усилить бронированных соседей на 2.',
-    { art: 'standard.webp?v=art-25', deploy: ability([action('boost', { ...adjacent, armorAtLeast: 1 }, 2)]), keywords: ['Усиление', 'Броня', 'Соседи'] }],
+    { art: 'standard.webp?v=art-25', aiHints: { placement: 'armored-neighbors' },
+      deploy: ability([action('boost', { ...adjacent, armorAtLeast: 1 }, 2)]), keywords: ['Усиление', 'Броня', 'Соседи'] }],
   ['warden', 'Страж врат', 6, 6, 'Броня 3. Нельзя сдвинуть.', { art: 'warden.webp?v=art-24', armor: 3, immovable: true, keywords: ['Броня'] }],
   ['anvil', 'Таран «Наковальня»', 8, 4, 'При розыгрыше: снять всю броню со своей карты и нанести столько же урона вражеской.',
     { rarity: 'epic', art: 'anvil.webp?v=art-24', artCrop: 'anvil-crop.webp?v=art-24', deploy: ability([
@@ -39,7 +40,8 @@ const protectorate = [
     { removalReserve: 4, type: 'effect', art: 'orbital-salvo.webp', deploy: ability([action('damage', chosen('enemy'), salvoDamage)],
       [enemyChoice(salvoDamage)]), keywords: ['Урон'] }],
   ['colonel', 'Октавиан Рейн', 10, 5, 'При розыгрыше: удвоить броню своих отрядов в этом ряду.',
-    { art: 'colonel.webp?v=art-24', deploy: ability([action('armor', allyRow, { stat: 'armor' })]), keywords: ['Броня'] }],
+    { art: 'colonel.webp?v=art-24', aiHints: { placement: 'armored-neighbors' },
+      deploy: ability([action('armor', allyRow, { stat: 'armor' })]), keywords: ['Броня'] }],
   ['bastion', 'Бастион «Рубеж»', 11, 7, 'Броня 6. При розыгрыше: дать 3 брони соседям.',
     { art: 'bastion.webp?v=art-24', armor: 6, deploy: armorNeighbors(3), keywords: ['Броня', 'Соседи'] }],
   ['commander', 'Кассия Фульмина', 8, 5, 'Приказ: снять 2 брони со своей карты и нанести 3 урона вражеской. Перезарядка: 2 хода.',
@@ -52,7 +54,8 @@ const protectorate = [
       ...ability([action('damage', chosen('enemy'), 3)], [enemyChoice(3)]),
     }, keywords: ['Приказ', 'Броня', 'Урон'] }],
   ['shield-overload', 'Перегрузка щитов', 12, null, 'Выбери свой ряд. Сними всю броню со своих карт в нём. За каждую снятую единицу брони нанеси 1 урон случайному вражескому отряду.',
-    { removalReserve: 5, art: 'shield-overload.webp', type: 'effect', deploy: ability([
+    { removalReserve: 5, art: 'shield-overload.webp', type: 'effect',
+      aiHints: { handPotential: 11, spendsRowArmor: true }, deploy: ability([
       { action: 'select-row', ref: 'row', filter: 'armor', prompt: 'Выбери свой ряд, с которого снять броню.' },
       { action: 'armor', target: { ...allies, rowRef: 'row' }, amount: { stat: 'armor', scale: -1 }, save: 'armor' },
       { action: 'scatter', amount: armorRemoved },
@@ -95,7 +98,8 @@ const protectorateExtras = [
       keywords: ['Цель', 'Тяжёлый корабль', 'Силовой щит', 'Рвение', 'Приказ'] }],
   ['spear-battery', 'Батарея «Копьё»', 6, null,
     'Поверхность: в конце хода нанеси 2 урона случайной Цели. Орбита: в конце хода усили случайный свой отряд на 2, если у противника есть Цель.',
-    { art: 'spear-battery.webp', rarity: 'bronze', type: 'artifact', endTurn: ability([
+    { art: 'spear-battery.webp', rarity: 'bronze', type: 'artifact',
+      aiHints: { endTurnNeedsMarkedEnemy: true }, endTurn: ability([
       onRow('surface', randomHit(markedEnemy, 2)),
       onRow('orbit', { ...action('boost', allies, 2), mode: 'random', when: { targets: markedEnemy } }),
     ]), keywords: ['Цель', 'Урон', 'Усиление'] }],

@@ -26,6 +26,7 @@
 | Матч, поле и способности | `docs/game/match.js`, `board.js`, `effects.js`, `events.js` в той же папке |
 | Пассивные бонусы силы | `docs/game/board.js` и определения с `sidePower` или `rowPower`, `tests/captains.test.js` |
 | Бот и симуляции | `docs/game/bot.js`, `bot-strategy.js`, `bot-rollouts.js` |
+| Подсказки стратегии | `aiHints` в определениях карт, [CONTRACTS.md](CONTRACTS.md) |
 | Оценка эффектов ботом | `docs/game/bot-effect-value.js`, `npm run test:bot` |
 | Действия с колодой, рукой, сбросом и Сотворение | `docs/game/effect-piles.js`, `tests/effects.test.js` |
 | Выбор целей и фильтры колоды | `docs/game/effect-queries.js`, `npm run test:battle` |

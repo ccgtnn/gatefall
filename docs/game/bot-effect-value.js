@@ -3,6 +3,11 @@ import { ROWS } from './card-metadata.js';
 import { canStart, eligiblePileCards, pileCandidates, playPiles, playTiming, rowArmor, rowSide, targets, valueOf } from './effect-queries.js';
 import { cardAbilities, deathwishDefinitions, isLocked } from './events.js';
 
+export function shouldProtectArmor(card, player) {
+  return card?.definition.aiHints?.armorBreakCostsPower &&
+    player.hand.some(({ definition }) => definition.aiHints?.spendsRowArmor);
+}
+
 export function rowDamage(player, row, amount, armorStrip = 0) {
   return player.board[row].filter(isUnit).reduce((sum, card) => {
     const armor = Math.max(0, (card.armor ?? 0) - armorStrip);
