@@ -347,9 +347,9 @@ test('scenario details link to each granted card and tokens have a frame', () =>
   const related = byClass(preview, 'preview-related');
   const faces = tree(related).filter(({ dataset }) => dataset.cardId);
   assert.deepEqual(faces.map(({ dataset }) => dataset.cardId), [
-    'ulmarin-fanatic', 'ulmarin-sleeper', LARGE_TENTACLE.id,
+    'ulmarin-fanatic', LARGE_TENTACLE.id, 'ulmarin-sleeper',
   ]);
-  faces.at(-1).listeners.click();
+  faces.find(({ dataset }) => dataset.cardId === LARGE_TENTACLE.id).listeners.click();
   assert.equal(byClass(preview, 'preview-card-face').dataset.rarity, 'bronze');
   assert.match(byClass(preview, 'preview-details').textContent, /Токен/);
   assert.equal(byClass(preview, 'card-art-crop').src, './art/' + LARGE_TENTACLE.art);

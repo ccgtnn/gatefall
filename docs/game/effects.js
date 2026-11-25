@@ -404,14 +404,10 @@ export function runEffect(match, job, random) {
     match.effects.unshift(job);
     return;
   }
-  if (['spawn', 'watch-sacrifice', 'remember-row'].includes(step.action)) {
+  if (['spawn', 'remember-row'].includes(step.action)) {
     const queued = match.effects.length;
     if (step.action === 'spawn') spawn(match, job, step);
     if (step.action === 'remember-row') job.refs[step.ref] = targets(match, job, step.target)[0]?.row;
-    if (step.action === 'watch-sacrifice') {
-      const scenario = reference(match, job);
-      if (scenario) scenario.card.scenarioSacrifice = job.refs[step.ref];
-    }
     job.index += 1;
     match.effects.splice(match.effects.length - queued, 0, job);
     return;
@@ -446,7 +442,7 @@ export function runEffect(match, job, random) {
   } else if (step.action === 'capture') {
     capture(match, job.side, target);
   } else if (step.action === 'transform') {
-    transformUnit(match, target, step.card);
+    transformUnit(match, target, step.card, step.preservePower);
   } else if (step.action === 'art-state') {
     target.card.artState = step.state;
     match.log.push({ type: 'art-state', side: target.side, cardId: target.card.id, artState: step.state });

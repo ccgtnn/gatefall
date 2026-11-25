@@ -22,7 +22,7 @@ export function relatedEffectCards(definition) {
     visited.add(node);
     if (['spawn', 'transform'].includes(node.action) && node.card) fixed.set(node.card.id, node.card);
     if (node.action === 'create-play') {
-      for (const card of creationCandidates(definition.id, node)) {
+      for (const card of creationCandidates(definition.id, node, node.faction === 'enemy' ? undefined : node.faction)) {
         if (node.faction !== 'enemy' || Object.hasOwn(FACTIONS, card.faction)) possible.set(card.id, card);
       }
     }
@@ -44,14 +44,17 @@ export function relatedEffectCards(definition) {
 
 function createOffer(match, job, step, random) {
   const other = match.players[opponent(job.side)];
-  const faction = step.faction === 'enemy' ? other.factionId : undefined;
+  const faction = step.faction === 'enemy' ? other.factionId : step.faction;
   if (step.faction === 'enemy' && !faction) return [];
   const candidates = creationCandidates(job.sourceDefinitionId, step, faction)
     .map((definition) => createCard(definition.id, definition));
   const eligible = candidates.filter((card) => cardType(card) === 'effect' ||
     availableRows(match.players[placementSide(job.side, card)], card).length);
   const offered = chooseSubset(eligible, valueOf(match, job, step.amount), random);
-  return offered.map((id) => createCard(`token-${++match.tokenCount}`, candidates.find((card) => card.id === id).definition));
+  return offered.map((id) => {
+    const { definition } = candidates.find((card) => card.id === id);
+    return createCard(`token-${++match.tokenCount}`, step.counter ? { ...definition, counter: step.counter } : definition);
+  });
 }
 
 function playFromPile(match, job, step, random) {

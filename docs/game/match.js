@@ -1,7 +1,7 @@
 import { inspectDeck, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET } from './decks.js';
 import { FACTIONS, FIRST_SIGNAL } from './cards.js';
 import { ROWS } from './card-metadata.js';
-import { announcePlay, availableRows, cardType, changeCoins, createCard, discardCard, findUnit, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, refreshSidePower, refreshRowPower, spendResilience, statusCount, takeCards } from './board.js';
+import { announcePlay, availableRows, cardType, changeCoins, createCard, discardCard, HAND_LIMIT, opponent, placementSide, placeCards, playDestination, refreshSidePower, refreshRowPower, spendResilience, statusCount, takeCards } from './board.js';
 import { availableFees, availableOrders, canCast, canUseLeader, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, orderAbility, playTiming, runEffect } from './effects.js';
 
 export { availableRows, HAND_LIMIT, ROW_LIMIT } from './board.js';
@@ -262,11 +262,6 @@ function resolveRound(match) {
     }
     player.rowEffects = {};
     player.passed = false;
-  }
-  for (const side of SIDES) {
-    for (const card of Object.values(match.players[side].board).flat()) {
-      if (card.scenarioSacrifice && !findUnit(match, card.scenarioSacrifice)) delete card.scenarioSacrifice;
-    }
   }
   match.log.push({ type: 'round-end', round: match.round, scores, winner });
 

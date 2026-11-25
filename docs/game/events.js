@@ -27,13 +27,6 @@ function watches(match, event, played, firstLegendary) {
           jobs.push({ side, sourceId: card.id, scenarioChapter: true,
             playedEffects: player.effectCategoryPlays?.[countPlayedEffects] ?? 0 });
         }
-        if (card.scenarioSacrifice === event.cardId && ['death', 'destroy', 'discard'].includes(event.type)) {
-          delete card.scenarioSacrifice;
-          if (event.type !== 'discard' && scenario.onSacrifice) {
-            jobs.push({ side, sourceId: card.id, ability: scenario.onSacrifice,
-              requiredSource: true, cardAbility: true, sourceDefinitionId: card.definition.id });
-          }
-        }
       }
     }
     for (const pile of ['hand', 'deck']) {

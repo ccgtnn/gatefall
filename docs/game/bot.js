@@ -3,7 +3,7 @@ import { cardType, findUnit, isUnit, neighbors, restoreCard, statusCount, units 
 import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
 import { cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, rowDamage, rowEffectValue, rowScatterValue } from './bot-effect-value.js';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, canEndTurn, canPass, playableCards, totalScore } from './match.js';
 
 import { offeringPriority, preferredLeaderUse } from './bot-leaders.js';
 import { deathwishDefinitions } from './events.js';
@@ -281,7 +281,10 @@ export function chooseBotTurn(match, difficulty = 'easy', options = {}) {
     action = difficulty === 'normal' || difficulty === 'hard'
       ? chooseStrategicTurn(match, difficulty, fallback, strategy) : fallback;
   }
-  if (action.type === 'pass' && match.round === 3) {
+  if (action.type === 'pass' && !canPass(match, 'bot') && canEndTurn(match, 'bot')) {
+    action = { type: 'end-turn' };
+    decision = { reason: 'Способность уже использована. Завершаю ход.' };
+  } else if (action.type === 'pass' && match.round === 3) {
     const { bot, human } = match.players;
     const [card] = playableCards(match, 'bot');
     if (card && (totalScore(bot) <= totalScore(human) || (!human.passed && human.hand.length))) {

@@ -5,7 +5,7 @@ import { HOUND } from '../docs/game/captains.js';
 import { chooseBotTurn, createBotView } from '../docs/game/bot.js';
 import { AWAKENING } from '../docs/game/choir.js';
 import { FACTIONS, LARVA } from '../docs/game/cards.js';
-import { applyAction, confirmMulligan, createMatch } from '../docs/game/match.js';
+import { applyAction, canEndTurn, canPass, confirmMulligan, createMatch } from '../docs/game/match.js';
 
 const standard = (id, definition) => createCard(id, definition);
 const plain = (id, power) => standard(id, { id, name: id, type: 'unit', power });
@@ -320,5 +320,29 @@ test('the bot completes Right Fang’s order by moving its least valuable hand c
     const resolved = applyAction(pending, 'bot', action);
     assert.deepEqual(resolved.players.bot.deck.map(({ id }) => id), ['already-in-deck', 'weak']);
     assert.ok(!resolved.players.bot.hand.some(({ id }) => id === 'weak'));
+  }
+});
+
+test('all bots end a turn with an empty hand after already using an order', () => {
+  const match = position(3);
+  const bot = match.players.bot;
+  bot.hand = [];
+  bot.coins = 2;
+  bot.board.orbit = [
+    standard('order', { id: 'order', name: 'Order', power: 4, zeal: true, order: {
+      steps: [{ action: 'boost', target: { scope: 'source' }, amount: 1 }],
+    } }),
+    member('foreman', 'captains', 'hound-foreman'),
+  ];
+  const first = chooseBotTurn(match, 'easy');
+  assert.deepEqual(first, { type: 'order', cardId: 'order' });
+  const next = applyAction(match, 'bot', first);
+  assert.equal(next.players.bot.usedAbility, true);
+  assert.equal(canPass(next, 'bot'), false);
+  assert.equal(canEndTurn(next, 'bot'), true);
+  for (const difficulty of ['easy', 'normal', 'hard']) {
+    const action = chooseBotTurn(next, difficulty);
+    assert.deepEqual(action, { type: 'end-turn' });
+    assert.notStrictEqual(applyAction(next, 'bot', action), next);
   }
 });
