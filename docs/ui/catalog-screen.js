@@ -1,9 +1,9 @@
 import { refreshPremiumArt, resumeCardVideos } from './card-art.js?v=world-gates-premium-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
 import { createCard } from '../game/board.js?v=world-gates-premium-1-nc1';
-import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=world-gates-premium-1-nc1';
+import { CARD_TYPES, NEUTRAL, RARITY_LABELS } from '../game/card-metadata.js';
+import { CATALOG_CARDS } from '../game/card-registry.js';
 import { FACTION_CATALOG } from '../game/faction-catalog.js?v=world-gates-premium-1-nc1';
-import { CAPTAIN_CARDS } from '../game/captains.js?v=captains-independent-1';
 import { cardButton, showCard } from './cards.js?v=world-gates-premium-1-nc1';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=choir-playable-1';
 import { factionFilters } from './faction-filters.js?v=faction-catalog-2';
@@ -11,13 +11,11 @@ import { copyLimit } from '../game/decks.js?v=world-gates-premium-1-nc1';
 import { craftPrice, dismantleValue } from '../game/collection-economy.js';
 import { resourceIcon } from './resource-icon.js?v=1';
 
-const catalogCards = [...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool),
-  ...CAPTAIN_CARDS].filter(({ token }) => !token);
 const catalogFactions = [['', 'Все фракции'], [NEUTRAL, 'Нейтральные'],
   ...Object.entries(FACTION_CATALOG).map(([id, faction]) => [id, faction.name])];
-const categoryOptions = [...new Set(catalogCards.flatMap(({ categories }) => categories ?? []))]
+const categoryOptions = [...new Set(CATALOG_CARDS.flatMap(({ categories }) => categories ?? []))]
   .sort((a, b) => a.localeCompare(b, 'ru')).map((category) => [category, category]);
-const provisionOptions = [...new Set(catalogCards.map(({ provision }) => provision).filter(Number.isInteger))]
+const provisionOptions = [...new Set(CATALOG_CARDS.map(({ provision }) => provision).filter(Number.isInteger))]
   .sort((a, b) => a - b).map((cost) => [String(cost), String(cost)]);
 
 export function catalogScreen(progress, isOpen) {
@@ -50,7 +48,7 @@ export function catalogScreen(progress, isOpen) {
   let busy = false;
   let visible = [];
   let tradeView;
-  const items = new Map(catalogCards.map((definition) => [definition.id, createEntry(definition)]));
+  const items = new Map(CATALOG_CARDS.map((definition) => [definition.id, createEntry(definition)]));
 
   function createEntry(definition) {
     const card = createCard(definition.id, definition);
@@ -165,12 +163,12 @@ export function catalogScreen(progress, isOpen) {
     const inventory = progress.inventory();
     const { owned } = inventory;
     if (tradeView?.panel.isConnected) tradeView.update(inventory);
-    const shown = filterCatalog(catalogCards, {
+    const shown = filterCatalog(CATALOG_CARDS, {
       faction, query: search.value, type: type.input.value, rarity: rarity.input.value,
       category: category.input.value, provision: provision.input.value, sort: sort.input.value,
       availability: availability.input.value, owned,
     });
-    count.textContent = `Показано ${shown.length} из ${catalogCards.length}`;
+    count.textContent = `Показано ${shown.length} из ${CATALOG_CARDS.length}`;
     const next = shown.map((definition) => {
       const { item, quantity } = items.get(definition.id);
       const copies = owned[definition.id];
@@ -179,7 +177,7 @@ export function catalogScreen(progress, isOpen) {
       return item;
     });
     if (!next.length) {
-      empty.textContent = Object.hasOwn(FACTION_CATALOG, faction) && !catalogCards.some((card) => card.faction === faction)
+      empty.textContent = Object.hasOwn(FACTION_CATALOG, faction) && !CATALOG_CARDS.some((card) => card.faction === faction)
         ? 'У этой фракции пока нет карт.' : 'Карты не найдены.';
       next.push(empty);
     }

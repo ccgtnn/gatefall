@@ -1,12 +1,23 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { CAPTAIN_CARDS, HOUND, REINFORCED_HOUND } from '../docs/game/captains.js';
-import { FACTIONS, NEUTRAL_CARDS } from '../docs/game/cards.js';
+import { CARD_DEFINITIONS, CATALOG_CARDS, cardsForFaction, findCardDefinition } from '../docs/game/card-registry.js';
+import { collection } from '../docs/game/decks.js';
 import { filterCatalog } from '../docs/ui/catalog-cards.js';
 import { setCardRarity } from '../docs/ui/dom.js';
 
-const cards = [...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool)];
+const cards = CATALOG_CARDS;
 const ids = (filters) => filterCatalog(cards, filters).map(({ id }) => id);
+
+test('the shared registry resolves unique card IDs and preserves collection boundaries', () => {
+  assert.equal(new Set(CARD_DEFINITIONS.map(({ id }) => id)).size, CARD_DEFINITIONS.length);
+  assert.ok(CATALOG_CARDS.every((card) => !card.token && findCardDefinition(card.id) === card));
+  assert.equal(findCardDefinition(HOUND.id), undefined);
+  assert.equal(findCardDefinition(REINFORCED_HOUND.id), undefined);
+  assert.deepEqual(cardsForFaction('captains'), CAPTAIN_CARDS);
+  assert.deepEqual(collection('captains'), []);
+  assert.ok(collection('choir').includes(findCardDefinition('helper-robot')));
+});
 
 test('Hound tokens stay outside the catalog with or without inventory filters', () => {
   const entries = [...CAPTAIN_CARDS, HOUND, REINFORCED_HOUND];
@@ -27,7 +38,7 @@ test('catalog searches both name and card text, ignoring case and ё spelling', 
 });
 
 test('all collectible gold cards are included and catalog filters combine across factions', () => {
-  assert.equal(ids({ rarity: 'gold' }).length, 29);
+  assert.equal(ids({ rarity: 'gold' }).length, 31);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'artifact', category: 'Пустота', provision: '19' }),
     ['falura']);
   assert.deepEqual(ids({ faction: 'growth', rarity: 'gold', type: 'artifact', category: 'Пустота', provision: '19' }), []);

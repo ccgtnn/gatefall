@@ -1,13 +1,10 @@
 import { createCard } from '../game/board.js?v=world-gates-premium-1-nc1';
-import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=world-gates-premium-1-nc1';
+import { findCardDefinition } from '../game/card-registry.js';
 import { BOOSTER_FACTIONS, BOOSTER_PRICE } from '../game/collection-economy.js';
 import { cardButton, showCard } from './cards.js?v=world-gates-premium-1-nc1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { resourceIcon } from './resource-icon.js?v=1';
 import { sectionDialog } from './resources.js?v=essence-gain-1';
-
-const definitions = new Map([...NEUTRAL_CARDS, ...Object.values(FACTIONS).flatMap(({ pool }) => pool)]
-  .map((card) => [card.id, card]));
 
 export function economyDialog(id, title) {
   const { dialog, shell } = sectionDialog(id, title, 'economy-page');
@@ -176,7 +173,7 @@ export function createBoosterOpening(progress, openShop) {
     done.disabled = true;
 
     const cards = pack.cards.map((id, index) => {
-      const def = definitions.get(id);
+      const def = findCardDefinition(id);
       const item = element('div', 'booster-card-slot');
       item.style.setProperty('--card-index', index);
       item.style.setProperty('--card-travel', (2 - index) * 110 + '%');

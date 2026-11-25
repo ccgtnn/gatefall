@@ -1,6 +1,7 @@
 import { ability, action, allies, choice, chosen, enemies, enemyChoice, self } from './card-abilities.js?v=neutral-catalog-1';
+import { NEUTRAL } from './card-metadata.js';
 
-export const NEUTRAL = 'neutral';
+export { NEUTRAL } from './card-metadata.js';
 
 const fieldUnits = { scope: 'field', type: 'unit' };
 const summonFromDeck = (position, provision) => ({ action: 'summon-from-deck', position, filter: { provision } });

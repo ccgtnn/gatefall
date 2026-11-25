@@ -4,7 +4,7 @@ import { createLeague, DIAMOND, finishLeagueMatch, leagueStake, needsLeagueReset
 import { victoryGold, weeklyReward } from './outpost.js?v=base-outpost-1';
 import { advanceProduction, productionView, readProduction, takeProduction } from './base-production.js?v=tavern-1';
 import { buildingPrice, buildingSlot, constructionShortages, creditMaterials, readBase } from './base.js?v=match-rewards-1';
-import { NEUTRAL } from './cards.js?v=world-gates-premium-1-nc1';
+import { NEUTRAL } from './card-metadata.js';
 import { inspectDeck } from './decks.js?v=world-gates-premium-1-nc1';
 import { BOOSTER_FACTIONS, collectionInventory, createCollectionActions, readCollection } from './collection-economy.js';
 

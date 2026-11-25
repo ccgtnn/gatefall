@@ -2,17 +2,10 @@ import { ability, action, allies, choice, chosen, enemies, enemyChoice, self } f
 import { CHOIR_CARDS } from './choir.js?v=world-gates-premium-1';
 import { ANNIHILATION, NEUTRAL_CARDS } from './neutral-cards.js?v=neutral-catalog-1';
 
-export { ANNIHILATION, NEUTRAL, NEUTRAL_CARDS, SHADOW } from './neutral-cards.js?v=neutral-catalog-1';
+export { ANNIHILATION, NEUTRAL_CARDS, SHADOW } from './neutral-cards.js?v=neutral-catalog-1';
 
-export const ROWS = Object.freeze(['orbit', 'surface']);
+export { CARD_TYPES, NEUTRAL, RARITY_LABELS, ROWS, ROW_LABELS } from './card-metadata.js';
 
-export const ROW_LABELS = Object.freeze({
-  orbit: 'Орбита',
-  surface: 'Поверхность',
-});
-
-export const CARD_TYPES = Object.freeze({ unit: 'Отряд', effect: 'Эффект', artifact: 'Артефакт' });
-export const RARITY_LABELS = Object.freeze({ bronze: 'Обычная', epic: 'Эпическая', gold: 'Легендарная' });
 export const KEYWORDS = Object.freeze({
   'Псионика': 'Категория эффектов и сценариев Хора. Счётчик сценария учитывает только разыгранные эффекты.',
   'Культист Спящего': 'Категория отрядов культа, которую учитывают сценарий и Приказ Спящего.',

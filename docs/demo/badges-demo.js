@@ -1,11 +1,10 @@
 import { dialogClose } from '../ui/resources.js?v=essence-gain-1';
-import { FACTIONS, NEUTRAL_CARDS } from '../game/cards.js?v=world-gates-premium-1-nc1';
+import { findCardDefinition } from '../game/card-registry.js';
 import { basePower, createCard, isUnit, statusCount } from '../game/board.js?v=world-gates-premium-1-nc1';
 import { cardArt, decorateCard, showCard } from '../ui/cards.js?v=world-gates-premium-1-nc1';
 import { button, element, setCardRarity } from '../ui/dom.js?v=opponent-reveal-1';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
-const definitions = [...Object.values(FACTIONS).flatMap(({ pool }) => pool), ...NEUTRAL_CARDS];
 const examples = [
   { id: 'infantry', state: 'Обычный отряд' },
   { id: 'bastion', state: 'Легендарный отряд с бронёй и усилением', power: 10 },
@@ -128,7 +127,7 @@ function showProposed(card, sample) {
 }
 
 function renderExample(sample, middleContext) {
-  const definition = definitions.find(({ id }) => id === sample.id);
+  const definition = findCardDefinition(sample.id);
   const card = createCard(sample.id, definition);
   if (sample.power !== undefined) card.power = sample.power;
   if (sample.counter !== undefined) card.counter = sample.counter;
@@ -157,7 +156,7 @@ function renderExample(sample, middleContext) {
 
 const trialHand = document.querySelector('.demo-hud-hand');
 for (const id of ['infantry', 'helper-robot', 'imperial-golem', 'bastion']) {
-  const definition = definitions.find((card) => card.id === id);
+  const definition = findCardDefinition(id);
   const card = createCard(id, definition);
   const frame = id === 'bastion' ? 'protectorate-rampart' : 'standard';
   const face = button(undefined, () => showCard(card, { frame }), 'hand-card');

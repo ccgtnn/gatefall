@@ -1,4 +1,5 @@
-import { FACTIONS, NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/cards.js?v=world-gates-premium-1-nc1';
+import { FACTIONS } from '../game/cards.js?v=world-gates-premium-1-nc1';
+import { NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/card-metadata.js';
 import { FACTION_CATALOG, UPCOMING_FACTIONS } from '../game/faction-catalog.js?v=world-gates-premium-1-nc1';
 import { createCard } from '../game/board.js?v=world-gates-premium-1-nc1';
 import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js?v=world-gates-premium-1-nc1';

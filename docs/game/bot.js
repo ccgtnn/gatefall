@@ -1,4 +1,4 @@
-import { ROWS } from './cards.js?v=world-gates-premium-1-nc1';
+import { ROWS } from './card-metadata.js';
 import { cardType, findUnit, isUnit, neighbors, restoreCard, statusCount, units } from './board.js?v=world-gates-premium-1-nc1';
 import { availableOrders, canUseLeader } from './effects.js?v=world-gates-premium-1-nc1';
 import { rowArmor } from './effect-queries.js';

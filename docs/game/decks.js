@@ -1,11 +1,13 @@
-import { FACTIONS, NEUTRAL_CARDS } from './cards.js?v=world-gates-premium-1-nc1';
+import { FACTIONS } from './cards.js?v=world-gates-premium-1-nc1';
+import { NEUTRAL } from './card-metadata.js';
+import { cardsForFaction } from './card-registry.js';
 
 export const MIN_CARDS = 25;
 export const MIN_UNITS = 13;
 export const BASE_PROVISIONS = 150;
 
 const groups = new Map(Object.entries(FACTIONS));
-const collections = new Map([...groups].map(([id, faction]) => [id, Object.freeze([...faction.pool, ...NEUTRAL_CARDS])]));
+const collections = new Map([...groups.keys()].map((id) => [id, Object.freeze([...cardsForFaction(id), ...cardsForFaction(NEUTRAL)])]));
 
 export function collection(factionId) {
   return collections.get(factionId) ?? [];

@@ -2,7 +2,7 @@ import { leagueCharacter } from './league-character.js?v=oran-avatar-1';
 import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js?v=world-gates-premium-1-nc1';
 import { insertionPoint, placementEffectRows } from '../card-placement.js?v=hounds-1';
 import { button, element, iconButton, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROWS, ROW_LABELS } from '../game/cards.js?v=world-gates-premium-1-nc1';
+import { ROWS, ROW_LABELS } from '../game/card-metadata.js';
 import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js?v=world-gates-premium-1-nc1';
 import { playerHand } from './hand.js?v=world-gates-premium-1-nc1';
 import { availableFees, availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js?v=world-gates-premium-1-nc1';

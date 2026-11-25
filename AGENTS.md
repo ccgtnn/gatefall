@@ -19,6 +19,7 @@
 | --- | --- |
 | Карты, колоды и лидеры | `docs/game/cards.js`, `docs/game/decks.js` |
 | Нейтральные карты | `docs/game/neutral-cards.js`, `tests/neutral-cards.test.js` |
+| Реестр и общие свойства карт | `docs/game/card-registry.js`, `card-metadata.js`, `tests/catalog.test.js` |
 | Матч, поле и способности | `docs/game/match.js`, `board.js`, `effects.js`, `events.js` в той же папке |
 | Бот и симуляции | `docs/game/bot.js`, `bot-strategy.js`, `bot-rollouts.js` |
 | Оценка эффектов ботом | `docs/game/bot-effect-value.js`, `npm run test:bot` |

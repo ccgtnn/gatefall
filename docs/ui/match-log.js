@@ -1,4 +1,4 @@
-import { ROW_LABELS } from '../game/cards.js?v=world-gates-premium-1-nc1';
+import { ROW_LABELS } from '../game/card-metadata.js';
 import { sideLabel } from './dom.js?v=opponent-reveal-1';
 
 export function roundText(event) {

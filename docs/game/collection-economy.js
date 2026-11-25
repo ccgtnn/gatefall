@@ -1,5 +1,6 @@
-import { FACTIONS, NEUTRAL, NEUTRAL_CARDS } from './cards.js?v=world-gates-premium-1-nc1';
-import { CAPTAIN_CARDS } from './captains.js?v=captains-independent-1';
+import { FACTIONS } from './cards.js?v=world-gates-premium-1-nc1';
+import { NEUTRAL } from './card-metadata.js';
+import { CARD_DEFINITIONS, cardsForFaction, findCardDefinition } from './card-registry.js';
 import { copyLimit } from './decks.js?v=world-gates-premium-1-nc1';
 
 export const BOOSTER_PRICE = 100;
@@ -25,10 +26,8 @@ export const BOOSTER_FACTIONS = [
   { id: NEUTRAL, name: 'Нейтральные', image: 'world-gates.webp' },
 ];
 
-const pools = new Map(BOOSTER_FACTIONS.map(({ id }) => [id, id === NEUTRAL ? NEUTRAL_CARDS : FACTIONS[id].pool]));
-const definitions = new Map([
-  ...Object.values(FACTIONS).flatMap(({ pool }) => pool), ...NEUTRAL_CARDS, ...CAPTAIN_CARDS,
-].map((card) => [card.id, card]));
+const pools = new Map(BOOSTER_FACTIONS.map(({ id }) => [id, cardsForFaction(id)]));
+const cardIds = CARD_DEFINITIONS.map(({ id }) => id);
 
 const count = (value) => Number.isSafeInteger(value) && value > 0 ? value : 0;
 
@@ -58,7 +57,7 @@ function readPack(pack) {
   const faction = pools.get(pack?.faction);
   if (!faction || !count(pack.id) || !Array.isArray(pack.cards) || pack.cards.length !== BOOSTER_SIZE ||
       new Set(pack.cards).size !== BOOSTER_SIZE ||
-      !pack.cards.every((id) => definitions.get(id)?.faction === pack.faction)) return null;
+      !pack.cards.every((id) => findCardDefinition(id)?.faction === pack.faction)) return null;
   const { id, cards } = pack;
   const revealed = Array.isArray(pack.revealed) ? cards.filter((card) => pack.revealed.includes(card)) : [];
   // Packs started with the old rules already paid their entire dismantling reward.
@@ -82,8 +81,8 @@ export function readCollection(snapshot) {
     fullCollection: true,
     purchased: countsFor(pools.keys(), snapshot.purchased),
     opened: countsFor(pools.keys(), snapshot.opened),
-    earnedCards: countsFor(definitions.keys(), hasFullCollection ? snapshot.earnedCards : undefined),
-    dismantledCards: countsFor(definitions.keys(), hasFullCollection ? snapshot.dismantledCards : undefined),
+    earnedCards: countsFor(cardIds, hasFullCollection ? snapshot.earnedCards : undefined),
+    dismantledCards: countsFor(cardIds, hasFullCollection ? snapshot.dismantledCards : undefined),
     pendingPack: readPack(snapshot.pendingPack),
   };
 }
@@ -91,7 +90,8 @@ export function readCollection(snapshot) {
 export function collectionInventory({ purchased, opened, earnedCards, dismantledCards }) {
   const boosters = Object.fromEntries(BOOSTER_FACTIONS.map(({ id }) => [id, purchased[id] - opened[id]]));
   const owned = {};
-  for (const [id, card] of definitions) {
+  for (const card of CARD_DEFINITIONS) {
+    const { id } = card;
     const initial = copyLimit(card);
     owned[id] = Math.max(0, initial + earnedCards[id] - dismantledCards[id]);
   }
@@ -150,7 +150,7 @@ export function createCollectionActions({ transact, balances, random, onPackOpen
       });
     },
     craft(id) {
-      const card = definitions.get(id);
+      const card = findCardDefinition(id);
       if (!card) return Promise.resolve('unknown');
       return transact((state) => {
         const { essence, owned } = balances(state);
@@ -163,7 +163,7 @@ export function createCollectionActions({ transact, balances, random, onPackOpen
       });
     },
     dismantle(id) {
-      const card = definitions.get(id);
+      const card = findCardDefinition(id);
       if (!card) return Promise.resolve('unknown');
       return transact((state, _previousAt, _time, enqueueReward) => {
         if (!balances(state).owned[id]) return 'empty';

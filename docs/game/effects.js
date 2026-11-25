@@ -1,11 +1,13 @@
 import { cardAbilities, deathwishDefinitions, deathwishJobs, emit, isLocked } from './events.js?v=ulmarin-1';
-import { FACTIONS, NEUTRAL_CARDS, ROWS, ROW_LABELS } from './cards.js?v=world-gates-premium-1-nc1';
+import { FACTIONS } from './cards.js?v=world-gates-premium-1-nc1';
 import {
   activeOrder, announcePlay, appearanceJobs, applyStatus, availableRows, boost, capture, cardType, createCard, changeCoins, cleanse, consume, damage, damageOverflow, findUnit,
   changeBasePower, findInPiles, heal, isUnit, opponent, placementSide, placeCards, playDestination, removeUnit, restoreCard, ROW_LIMIT,
   refreshHoundAura, refreshShipRowBonus, setRowEffect, spawnCards, statusCount, statusEndTurn, takeCards, tickInfection, transformUnit, units, weaken,
 } from './board.js?v=world-gates-premium-1-nc1';
-import { CAPTAIN_CARDS, HOUND_CATEGORY } from './captains.js?v=captains-independent-1';
+import { HOUND_CATEGORY } from './captains.js?v=captains-independent-1';
+import { NEUTRAL, ROWS, ROW_LABELS } from './card-metadata.js';
+import { CARD_DEFINITIONS, cardsForFaction } from './card-registry.js';
 import { canStart, eligiblePileCards, eligibleRows, matchesPileFilter, pileCandidates, playPiles, playTiming, reference, rowSide, targets, valueOf, viableChoices } from './effect-queries.js';
 
 export { canCast, playTiming, rowArmor } from './effect-queries.js';
@@ -125,10 +127,8 @@ function pause(match, job, kind, key, options, prompt, extra) {
   match.pending = { side: job.side, kind, key, options, prompt, job, ...extra };
 }
 
-const creatableCards = [...Object.values(FACTIONS).flatMap(({ pool }) => pool), ...NEUTRAL_CARDS, ...CAPTAIN_CARDS];
-
 function creationCandidates(sourceId, step, faction) {
-  return creatableCards.filter((definition) => !definition.token &&
+  return CARD_DEFINITIONS.filter((definition) => !definition.token &&
     definition.id !== sourceId && definition.rarity === step.rarity &&
     (!faction || definition.faction === faction) && (!step.type || definition.type === step.type));
 }
@@ -147,8 +147,8 @@ export function relatedEffectCards(definition) {
       }
     }
     if (node.action === 'summon-from-deck' && node.filter) {
-      const pool = FACTIONS[definition.faction]?.pool ?? creatableCards;
-      const matches = node.filter.definitionId ? creatableCards : new Set([...pool, ...NEUTRAL_CARDS]);
+      const pool = Object.hasOwn(FACTIONS, definition.faction) ? cardsForFaction(definition.faction) : CARD_DEFINITIONS;
+      const matches = node.filter.definitionId ? CARD_DEFINITIONS : new Set([...pool, ...cardsForFaction(NEUTRAL)]);
       for (const card of matches) {
         if (matchesPileFilter(card, node.filter)) (node.filter.definitionId ? fixed : possible).set(card.id, card);
       }
