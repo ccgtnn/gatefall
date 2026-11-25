@@ -17,6 +17,7 @@ import { element, iconButton } from './ui/dom.js?v=opponent-reveal-1';
 import { cardArt, preview, showCard } from './ui/cards.js?v=world-gates-premium-1';
 import { createBattlefield } from './ui/field.js?v=match-rewards-1';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js?v=world-gates-premium-1';
+import { describeFinishedMatch, settleFinishedMatch } from './ui/match-result.js?v=match-result-1';
 import { createMatchMenu, describeBotAction, eventText } from './ui/menu.js?v=world-gates-premium-1';
 import { catalogScreen, finishedScreen, leaderScreen } from './ui/screens.js?v=world-gates-premium-1';
 import { createSettings } from './ui/settings.js?v=world-gates-premium-1';
@@ -28,7 +29,7 @@ import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/boo
 import { createResourceBar, showEssenceGain } from './ui/resources.js?v=essence-gain-1';
 import { aimAnchor, aimTone, bindTargeting } from './ui/targeting.js?v=targeting-1';
 import { questComplete } from './game/tavern.js?v=world-gates-premium-1';
-import { rankStanding, wonRounds } from './game/ranks.js?v=monthly-ranks-1';
+import { rankStanding } from './game/ranks.js?v=monthly-ranks-1';
 import { BATTLEFIELD_STORAGE_KEY, createBattlefieldPreferences, createFramePreferences, decorationsScreen, FRAME_STORAGE_KEY } from './ui/decorations.js?v=section-layout-1';
 import { rankScreen } from './ui/rank-screen.js?v=section-layout-1';
 import { leagueScreen, LEAGUE_OVERVIEW_QUERY } from './ui/league-screen.js?v=section-layout-1';
@@ -396,17 +397,7 @@ function render() {
   let content;
   if (match?.phase === 'mulligan' || match?.phase === 'playing') content = battlefield();
   else if (match?.phase === 'finished') {
-    const saving = !matchSettlement || matchSettlement === 'saving';
-    const failed = matchSettlement === 'unavailable';
-    const scored = wonRounds(match.log);
-    const settlement = {
-      saving, failed,
-      opponent: leagueMatch,
-      reply: match.log.findLast(({ type, reason }) => type === 'league-speech' && (reason === 'win' || reason === 'loss')),
-      notice: saving ? 'Сохраняем результат…' : failed ? 'Не удалось сохранить результат.'
-        : matchSettlement === 'stale' ? 'Этот тур уже закрыт.'
-          : scored && !match.surrendered ? `В месячный ранг зачтено: ${scored} · текущий ранг ${rankStanding(progress.ranks().rounds).rank}` : '',
-    };
+    const settlement = describeFinishedMatch(match, matchSettlement, leagueMatch, progress.ranks);
     content = finishedScreen(match, phaseLabel, replayMatch, leaveMatch,
       settings.showBotThoughts(), () => canPlayDeck(matchDeck), Boolean(leagueMatch), settlement);
   } else {
@@ -614,19 +605,13 @@ async function updateMatch(next) {
 
 async function saveMatchResult() {
   const id = matchRewardId;
-  const { result, log } = match;
-  const { factionId } = match.players.human;
-  const rounds = wonRounds(log);
+  const finished = match;
   matchSettlement = 'saving';
   render();
-  const outcome = leagueMatch
-    ? await progress.settleLeagueMatch(id, result,
-      rounds - log.filter(({ type, winner }) => type === 'round-end' && winner === 'bot').length, factionId, rounds)
-    : await progress.rewardMatch(id, result, factionId, rounds);
+  const { status, recordStats } = await settleFinishedMatch(finished, progress, { id, league: Boolean(leagueMatch) });
   if (id !== matchRewardId) return;
-  if (outcome === 'done' || outcome === 'empty') stats.record(factionId, result);
-  matchSettlement = outcome === 'stale' ? 'stale'
-    : ['done', 'empty', 'claimed'].includes(outcome) ? 'done' : 'unavailable';
+  if (recordStats) stats.record(finished.players.human.factionId, finished.result);
+  matchSettlement = status;
   render();
   screen.querySelector('h2')?.focus({ preventScroll: true });
 }
