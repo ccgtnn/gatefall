@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { BOOSTER_FACTIONS, craftPrice, dismantleValue, createRewardProgress, drawBoosterCards, REWARD_SECTIONS, REWARD_STORAGE_KEY, rewardState } from '../docs/game/rewards.js';
+import { BOOSTER_FACTIONS, craftPrice, dismantleValue, createRewardProgress, drawBoosterCards, REWARD_STORAGE_KEY } from '../docs/game/rewards.js';
+import { REWARD_SECTIONS, rewardState } from '../docs/game/reward-book.js';
 import { copyLimit } from '../docs/game/decks.js';
 import { FACTIONS, NEUTRAL_CARDS, RARITY_LABELS } from '../docs/game/cards.js';
 

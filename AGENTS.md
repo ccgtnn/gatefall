@@ -26,6 +26,7 @@
 | Выбор целей и фильтры колоды | `docs/game/effect-queries.js`, `npm run test:battle` |
 | Экономика и прогресс | `docs/game/rewards.js`, `base.js`, `tavern.js`, `ranks.js`, `league.js` |
 | Коллекция, крафт и бустеры | `docs/game/collection-economy.js`, `tests/rewards.test.js` |
+| Главы и маршруты Книги наград | `docs/game/reward-book.js`, `tests/rewards.test.js` |
 | Экран «Все карты» | `docs/ui/catalog-screen.js`, `tests/catalog.test.js` |
 | Ход, бот, выбор целей и анимации матча | `docs/ui/match-turn.js`, `tests/match-turn.test.js` |
 | Экраны и итоги | `docs/app.js`, `docs/ui/`, `docs/ui/match-result.js` |
