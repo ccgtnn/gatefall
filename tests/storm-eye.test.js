@@ -3,7 +3,7 @@ import test from 'node:test';
 import { createCard, findUnit, removeUnit } from '../docs/game/board.js';
 import { NEUTRAL_CARDS } from '../docs/game/cards.js';
 import { applyAction, createMatch } from '../docs/game/match.js';
-import { applyJournalEvent, createPlaybackState } from '../docs/turn-playback.js';
+import { applyJournalEvent, createPlaybackState } from '../docs/ui/turn-playback.js';
 
 const random = () => 0;
 const unit = (id, power = 20) => createCard(id, { id, name: id, power });

@@ -1,4 +1,4 @@
-import { assetUrl } from '../asset-url.js';
+import { assetUrl } from './asset-url.js';
 import { FACTIONS } from '../game/cards.js';
 import { createCard } from '../game/board.js';
 import { decorateCard } from './cards.js';

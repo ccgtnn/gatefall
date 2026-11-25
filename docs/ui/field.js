@@ -1,7 +1,7 @@
-import { assetUrl } from '../asset-url.js';
+import { assetUrl } from './asset-url.js';
 import { leagueCharacter } from './league-character.js';
 import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js';
-import { insertionPoint, placementEffectRows } from '../card-placement.js';
+import { insertionPoint, placementEffectRows } from './card-placement.js';
 import { button, element, iconButton, sideLabel } from './dom.js';
 import { ROWS, ROW_LABELS } from '../game/card-metadata.js';
 import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js';

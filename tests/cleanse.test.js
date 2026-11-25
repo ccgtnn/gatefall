@@ -10,7 +10,7 @@ import { availableOrders } from '../docs/game/effects.js';
 import { deathwishDefinitions } from '../docs/game/events.js';
 import { applyAction, createMatch } from '../docs/game/match.js';
 import { createRewardProgress } from '../docs/game/rewards.js';
-import { applyJournalEvent, createPlaybackState } from '../docs/turn-playback.js';
+import { applyJournalEvent, createPlaybackState } from '../docs/ui/turn-playback.js';
 
 const monk = NEUTRAL_CARDS.find(({ id }) => id === 'fugitive-monk');
 const suppressor = NEUTRAL_CARDS.find(({ id }) => id === 'suppressor');

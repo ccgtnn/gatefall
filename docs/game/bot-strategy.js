@@ -223,11 +223,21 @@ function deadline(time = BOT_BUDGET_MS) {
   return { expired: () => performance.now() >= end };
 }
 
-function rankPlays(state, search) {
+function searchLimit(random) {
+  // Keep the time limits for normal play. A supplied generator uses fixed work limits
+  // so the same seed is reproducible even when the host is under different load.
+  if (!random || random === Math.random) return deadline;
+  return (budget = BOT_BUDGET_MS) => {
+    let checks = budget * 4;
+    return { expired: () => checks-- <= 0 };
+  };
+}
+
+function rankPlays(state, search, limit) {
   const ranked = [];
   for (const { action, cost } of plays(state, 'bot')) {
     if (search.expired()) break;
-    const local = deadline(22);
+    const local = limit(22);
     const candidate = evaluateAction(state, 'bot', action, { expired: () => search.expired() || local.expired() });
     if (candidate) ranked.push({ ...candidate, action, cost });
   }
@@ -258,7 +268,7 @@ function replyRating(candidate, round, search) {
   return Number.isFinite(worst) ? .3 * candidate.rating + .7 * worst : candidate.rating;
 }
 
-function cheapestTwoTurnWin(ranked, search) {
+function cheapestTwoTurnWin(ranked, search, limit) {
   const tried = new Set();
   let best;
   for (const first of ranked) {
@@ -266,7 +276,7 @@ function cheapestTwoTurnWin(ranked, search) {
     if (search.expired() || tried.size >= 4) break;
     if (tried.has(action.cardId) || next.phase !== 'playing' || next.turn !== 'bot' || next.pending) continue;
     tried.add(action.cardId);
-    const second = rankPlays(next, search).filter(({ next }) => margin(next) > 0)
+    const second = rankPlays(next, search, limit).filter(({ next }) => margin(next) > 0)
       .sort((a, b) => a.cost - b.cost)[0];
     if (second && (!best || first.cost + second.cost < best.cost)) best = { action, cost: first.cost + second.cost };
   }
@@ -295,7 +305,7 @@ export function chooseStrategicTarget(match, pickTarget, difficulty = 'normal', 
   const fallback = pickTarget(match);
   if (match.pending.side !== 'bot') return fallback;
   const state = publicMatch(match);
-  const search = deadline();
+  const search = searchLimit(options.random)();
   const ranked = [];
   for (const action of choices(state)) {
     if (search.expired()) break;
@@ -309,7 +319,8 @@ export function chooseStrategicTarget(match, pickTarget, difficulty = 'normal', 
 }
 
 export function chooseStrategicTurn(match, difficulty, oldAction, options = {}) {
-  const search = deadline(difficulty === 'hard' ? (match.playedCard ? 45 : 380) : BOT_BUDGET_MS);
+  const limit = searchLimit(options.random);
+  const search = limit(difficulty === 'hard' ? (match.playedCard ? 45 : 380) : BOT_BUDGET_MS);
   const decide = (action, reason, ranked) => report(options, action, reason, ranked);
   const { bot, human } = match.players;
   const { round } = match;
@@ -358,9 +369,9 @@ export function chooseStrategicTurn(match, difficulty, oldAction, options = {}) 
   }
 
   // Give ordinary plays and ability sequences separate shares of the same time budget.
-  const playSearch = deadline(hard ? 115 : 155);
-  const ranked = rankPlays(state, { expired: () => search.expired() || playSearch.expired() });
-  const abilitySearch = deadline(hard ? 100 : 130);
+  const playSearch = limit(hard ? 115 : 155);
+  const ranked = rankPlays(state, { expired: () => search.expired() || playSearch.expired() }, limit);
+  const abilitySearch = limit(hard ? 100 : 130);
   const withAbilities = rankAbilities(state, { expired: () => search.expired() || abilitySearch.expired() });
   const allowed = ranked.filter((candidate) => preservesArmor(candidate, bot));
   const mustWin = round === 3 || bot.lives === 1;
@@ -387,7 +398,7 @@ export function chooseStrategicTurn(match, difficulty, oldAction, options = {}) 
       return decide(winning[0].action, 'Закрываю раунд самой дешёвой картой, которой хватает для победы.', winning);
     }
 
-    const twoTurnWin = cheapestTwoTurnWin(ready, { expired: () => search.expired() || abilitySearch.expired() });
+    const twoTurnWin = cheapestTwoTurnWin(ready, { expired: () => search.expired() || abilitySearch.expired() }, limit);
     if (twoTurnWin && (!canPass || !dryPass && (round > 1 || affordable(2)))) {
       return decide(twoTurnWin.action, 'Закрываю раунд двумя недорогими картами.', ready);
     }
@@ -403,7 +414,8 @@ export function chooseStrategicTurn(match, difficulty, oldAction, options = {}) 
   const candidates = [...ready, ...withAbilities].sort((a, b) => b.rating - a.rating);
   if (!hard) {
     const near = candidates.filter(({ rating }) => candidates[0].rating - rating > .001 && candidates[0].rating - rating < .08);
-    const explore = near.length && Math.random() < .12;
+    const { random = Math.random } = options;
+    const explore = near.length && random() < .12;
     return decide(explore ? near[0].action : candidates[0].action,
       explore ? 'Оценки близки. Выбираю один из равноценных вариантов.' : 'Лучшая оценка розыгрыша.', candidates);
   }

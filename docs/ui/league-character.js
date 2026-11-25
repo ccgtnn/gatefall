@@ -1,4 +1,4 @@
-import { assetUrl } from '../asset-url.js';
+import { assetUrl } from './asset-url.js';
 import { element } from './dom.js';
 
 export const LORE_FACTIONS = Object.freeze({

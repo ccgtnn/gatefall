@@ -1,4 +1,4 @@
-import { assetUrl } from '../asset-url.js';
+import { assetUrl } from './asset-url.js';
 const svgNamespace = 'http://www.w3.org/2000/svg';
 
 export function resourceIcon(id, faction = false) {

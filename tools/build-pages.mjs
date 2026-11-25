@@ -32,12 +32,12 @@ function mapUrls(filename, source, transform) {
 export function versionFiles(sourceFiles, media = new Map()) {
   const files = new Map(sourceFiles);
   const mediaHashes = new Map([...media].map(([name, content]) => [name, hash(content)]));
-  const assetSource = files.get('asset-url.js');
+  const assetSource = files.get('ui/asset-url.js');
   if (assetSource !== undefined) {
-    if (!assetSource.includes(assetManifest)) throw new Error('Missing Pages media manifest slot in asset-url.js');
+    if (!assetSource.includes(assetManifest)) throw new Error('Missing Pages media manifest slot in ui/asset-url.js');
     const versions = Object.fromEntries([...mediaHashes].sort(([a], [b]) => a.localeCompare(b))
       .map(([name, version]) => ['./' + name, version]));
-    files.set('asset-url.js', assetSource.replace(assetManifest, 'const versions = ' + JSON.stringify(versions) + ';'));
+    files.set('ui/asset-url.js', assetSource.replace(assetManifest, 'const versions = ' + JSON.stringify(versions) + ';'));
   }
 
   const hashes = new Map([...mediaHashes, ...[...files].map(([name, source]) => [name, hash(source)])]);

@@ -7,8 +7,13 @@ export function chooseSubset(cards, count, random) {
     cards.splice(Math.floor(random() * cards.length), 1)[0].id);
 }
 
+export const PAUSED = Symbol('paused effect step');
+export const REPEAT = Symbol('repeat effect step');
+export const SCHEDULED = Symbol('effect continuation already queued');
+
 export function pauseForChoice(match, job, kind, key, options, prompt, extra) {
   match.pending = { side: job.side, kind, key, options, prompt, job, ...extra };
+  return PAUSED;
 }
 
 export function reference(match, job, key = 'source') {

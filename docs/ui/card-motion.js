@@ -1,6 +1,6 @@
-import { setCardRarity } from './ui/dom.js';
-import { cardArt } from './ui/card-art.js';
-import { NEUTRAL } from './game/card-metadata.js';
+import { setCardRarity } from './dom.js';
+import { cardArt } from './card-art.js';
+import { NEUTRAL } from '../game/card-metadata.js';
 import { burstParticles } from './particles.js';
 
 const VISUAL_EVENTS = new Set([

@@ -1,5 +1,5 @@
-import { animateCoin } from '../card-motion.js';
-import { clearParticles } from '../particles.js';
+import { animateCoin } from './card-motion.js';
+import { clearParticles } from './particles.js';
 import { inspectDeck } from '../game/decks.js';
 import { createDeckMatch } from '../game/match.js';
 import { createLeagueDialogue, LEAGUE_DIALOGUE } from '../game/league-dialogue.js';

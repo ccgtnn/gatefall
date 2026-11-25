@@ -1,4 +1,4 @@
-import { assetUrl } from '../asset-url.js';
+import { assetUrl } from './asset-url.js';
 import { createCard } from '../game/board.js';
 import { findCardDefinition } from '../game/card-registry.js';
 import { BOOSTER_FACTIONS, BOOSTER_PRICE } from '../game/collection-economy.js';

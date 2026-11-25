@@ -7,11 +7,12 @@
 | Команда | Назначение |
 | --- | --- |
 | `npm start` | Локальная игра на порту 8000, нужен Python 3 |
-| `npm run build:pages -- <новая-папка>` | Копия сайта с версиями JS-модулей для Pages |
+| `npm run build:pages -- <новая-папка>` | Копия сайта с версиями JS, CSS и медиа для Pages |
 | `npm test` | Полный набор тестов, нужен Node.js 22+ |
-| `npm run test:battle` | Матч, раунды, эффекты и воспроизведение боя |
+| `npm run test:battle` | Матч, карты, фракции, лидеры, статусы, эффекты и воспроизведение боя |
 | `npm run test:economy` | Награды, ресурсы, база, таверна, Лига и ранги |
 | `npm run test:bot` | Бот, его стратегия и сбор статистики для арены |
+| `npm run test:ui` | Интерфейс, каталог, колоды, звук, сборка Pages и проверка тематических наборов |
 | `npm run --silent ctx -- --help` | Список пакетов контекста для передачи кода |
 
 ## Где искать
@@ -28,7 +29,7 @@
 | Бот и симуляции | `docs/game/bot.js`, `bot-strategy.js`, `bot-rollouts.js` |
 | Подсказки стратегии | `aiHints` в определениях карт, [CONTRACTS.md](CONTRACTS.md) |
 | Оценка эффектов ботом | `stepValues` в `docs/game/bot-effect-value.js`, `npm run test:bot` |
-| Действия с колодой, рукой, сбросом и Сотворение | `docs/game/effect-piles.js`, `tests/effects.test.js` |
+| Реестр эффектов | `docs/game/effect-operations.js`, действия с колодой и рукой в `effect-piles.js`, проверка в `tests/effect-registry.test.js` |
 | Выбор целей и фильтры колоды | `docs/game/effect-queries.js`, `npm run test:battle` |
 | Экономика и прогресс | `docs/game/rewards.js`, `base.js`, `tavern.js`, `ranks.js`, `league.js` |
 | Коллекция, крафт и бустеры | `docs/game/collection-economy.js`, `tests/rewards.test.js` |
@@ -39,7 +40,7 @@
 | Старт, выход и результаты матча | `docs/ui/match-session.js`, `docs/ui/match-result.js` |
 | Фоновое обновление Таверны, рангов и Лиги | `docs/ui/app-timers.js`, `tests/app-timers.test.js` |
 | Экраны и навигация | `docs/app.js`, `docs/ui/` |
-| Размещение карт и анимации | `docs/card-placement.js`, `turn-playback.js`, `card-motion.js` |
+| Размещение карт и анимации | `docs/ui/card-placement.js`, `turn-playback.js`, `card-motion.js` |
 | Разметка и порядок стилей | `docs/index.html`, общие правила в `docs/style.css` |
 | Стили карт и колод | `docs/cards.css`, `card-frames.css`, `deck-screens.css`, `card-preview.css` |
 | Стили матча | `docs/field.css`, `field-controls.css`, `match-dialogs.css`, `field-effects.css`, `card-motion.css` |
@@ -50,7 +51,7 @@
 
 ## Порядок работы
 
-- Для мелких правок во время работы запускайте только тематические тесты. Перед каждым коммитом запускайте полный `npm test`.
+- Для мелких правок во время работы запускайте только тематические тесты. Перед каждым коммитом запускайте полный `npm test`. Каждый новый файл `tests/*.test.js` добавляйте хотя бы в один тематический набор в `package.json`. Проверка входит в `test:ui` и полный прогон.
 - Браузер не открывать. Визуальные изменения пользователь проверяет сам после деплоя. Браузер — только если пользователь прямо попросил в задаче.
 - Одна задача — одна ветка. Вливайте её в `main` в день работы.
 - Изменения геймдизайна согласуйте с владельцем.

@@ -12,7 +12,7 @@ import {
 import { emit } from '../docs/game/events.js';
 import { applyAction, createMatch } from '../docs/game/match.js';
 import { createRewardProgress } from '../docs/game/rewards.js';
-import { applyJournalEvent, createPlaybackState } from '../docs/turn-playback.js';
+import { applyJournalEvent, createPlaybackState } from '../docs/ui/turn-playback.js';
 
 const suppressor = NEUTRAL_CARDS.find(({ id }) => id === 'suppressor');
 

@@ -1,8 +1,8 @@
 import { premiumArtEnabled, setPremiumArtEnabled } from './card-art.js';
 import { dialogClose } from './resources.js';
 import { bindRulesMenu } from './rules.js';
-import { createSoundEffects, DEFAULT_VOLUME } from '../sound.js';
-import { motionDuration } from '../turn-playback.js';
+import { createSoundEffects, DEFAULT_VOLUME } from './sound.js';
+import { motionDuration } from './turn-playback.js';
 
 export function createSettings(app, onLeave, onReset) {
   const settings = document.querySelector('#settings');

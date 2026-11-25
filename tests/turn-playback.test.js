@@ -3,7 +3,7 @@ import test from 'node:test';
 import { createCard } from '../docs/game/board.js';
 import { FACTIONS } from '../docs/game/cards.js';
 import { applyAction, confirmMulligan, createMatch } from '../docs/game/match.js';
-import { applyJournalEvent, createPlaybackState, motionDuration, playJournal } from '../docs/turn-playback.js';
+import { applyJournalEvent, createPlaybackState, motionDuration, playJournal } from '../docs/ui/turn-playback.js';
 
 function card(id, faction, definitionId) {
   return createCard(id, FACTIONS[faction].deck.find(({ id }) => id === definitionId));

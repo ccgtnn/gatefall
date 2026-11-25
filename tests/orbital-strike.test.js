@@ -6,7 +6,7 @@ import { FACTIONS } from '../docs/game/cards.js';
 import { ORBITAL_STRIKE_PRESET, PRESETS, inspectDeck } from '../docs/game/decks.js';
 import { availableOrders } from '../docs/game/effects.js';
 import { applyAction, confirmMulligan, createDeckMatch, createMatch } from '../docs/game/match.js';
-import { applyJournalEvent, createPlaybackState } from '../docs/turn-playback.js';
+import { applyJournalEvent, createPlaybackState } from '../docs/ui/turn-playback.js';
 
 const unit = { id: 'test-unit', name: 'Тестовый отряд', power: 20 };
 const pool = FACTIONS.protectorate.pool;

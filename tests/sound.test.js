@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createSoundEffects } from '../docs/sound.js';
+import { createSoundEffects } from '../docs/ui/sound.js';
 
 function audioStub() {
   const tones = [];

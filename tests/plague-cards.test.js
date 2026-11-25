@@ -6,7 +6,7 @@ import { FACTIONS, NEUTRAL_CARDS } from '../docs/game/cards.js';
 import { runEffect } from '../docs/game/effects.js';
 import { inspectDeck, PRESETS } from '../docs/game/decks.js';
 import { applyAction, confirmMulligan, createDeckMatch, createMatch } from '../docs/game/match.js';
-import { applyJournalEvent, createPlaybackState } from '../docs/turn-playback.js';
+import { applyJournalEvent, createPlaybackState } from '../docs/ui/turn-playback.js';
 
 const random = () => 0;
 const definitions = new Map(FACTIONS.growth.pool.map((def) => [def.id, def]));

@@ -4,13 +4,14 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "test:battle": "node --test tests/match.test.js tests/round-rules.test.js tests/effects.test.js tests/choir.test.js tests/leader-factions.test.js tests/card-placement.test.js tests/card-motion.test.js tests/turn-playback.test.js tests/match-turn.test.js",
-    "test:economy": "node --test tests/app-timers.test.js tests/rewards.test.js tests/reward-reveal.test.js tests/match-result.test.js tests/reset-progress.test.js tests/base.test.js tests/base-production.test.js tests/tavern.test.js tests/league.test.js tests/ranks.test.js",
-    "test:bot": "node --test tests/bot.test.js tests/bot-strategy.test.js tests/arena-cards.test.js",
+    "test:battle": "node --test tests/annihilation.test.js tests/captains.test.js tests/choir.test.js tests/cleanse.test.js tests/effect-registry.test.js tests/effects.test.js tests/faction-stats.test.js tests/force-shield.test.js tests/gates-falura.test.js tests/golems.test.js tests/helper-robot.test.js tests/leader-factions.test.js tests/leaders.test.js tests/lock.test.js tests/match.test.js tests/neutral-cards.test.js tests/orbital-strike.test.js tests/plague-cards.test.js tests/plague-engine.test.js tests/rebirth.test.js tests/round-rules.test.js tests/statuses.test.js tests/storm-eye.test.js tests/turn-playback.test.js",
+    "test:economy": "node --test tests/app-timers.test.js tests/base.test.js tests/base-production.test.js tests/league.test.js tests/league-characters.test.js tests/match-result.test.js tests/ranks.test.js tests/reset-progress.test.js tests/reward-reveal.test.js tests/rewards.test.js tests/tavern.test.js",
+    "test:bot": "node --test tests/arena-cards.test.js tests/bot.test.js tests/bot-strategy.test.js",
     "arena": "node tools/arena.mjs",
     "start": "python3 -m http.server 8000 --directory docs",
     "build:pages": "node tools/build-pages.mjs",
-    "ctx": "node tools/context.mjs"
+    "ctx": "node tools/context.mjs",
+    "test:ui": "node --test tests/base-layout.test.js tests/card-badges.test.js tests/card-motion.test.js tests/card-placement.test.js tests/catalog.test.js tests/context.test.js tests/deck-json.test.js tests/decks.test.js tests/lazy-sections.test.js tests/match-turn.test.js tests/pages-build.test.js tests/recent-decks.test.js tests/sound.test.js tests/test-suites.test.js"
   },
   "engines": {
     "node": ">=22"

@@ -2,7 +2,7 @@ import { createAppTimers } from './ui/app-timers.js';
 import { keepCardVideos, resumeCardVideos } from './ui/card-art.js';
 import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js';
 import { createDeckStorage, newDeckId } from './ui/deck-storage.js';
-import { bindCardPlacement } from './card-placement.js';
+import { bindCardPlacement } from './ui/card-placement.js';
 import { findInPiles, placementSide } from './game/board.js';
 import { FACTIONS } from './game/cards.js';
 import { inspectDeck, PRESETS } from './game/decks.js';

@@ -10,7 +10,7 @@ import { availableOrders, canUseLeader, enqueueEndTurn, runEffect } from '../doc
 import { applyAction, createDeckMatch, createMatch } from '../docs/game/match.js';
 import { createRewardProgress } from '../docs/game/rewards.js';
 import { filterCatalog } from '../docs/ui/catalog-cards.js';
-import { applyJournalEvent, createPlaybackState } from '../docs/turn-playback.js';
+import { applyJournalEvent, createPlaybackState } from '../docs/ui/turn-playback.js';
 
 const cards = new Map(CHOIR_CARDS.map((definition) => [definition.id, definition]));
 const unit = (power) => ({ id: `unit-${power}`, name: `Отряд ${power}`, type: 'unit', power });

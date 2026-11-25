@@ -8,7 +8,7 @@ import { PRESETS } from '../docs/game/decks.js';
 import { availableFees, availableOrders } from '../docs/game/effects.js';
 import { applyAction, createDeckMatch, createMatch } from '../docs/game/match.js';
 import { createRewardProgress } from '../docs/game/rewards.js';
-import { applyJournalEvent, createPlaybackState } from '../docs/turn-playback.js';
+import { applyJournalEvent, createPlaybackState } from '../docs/ui/turn-playback.js';
 
 const byId = new Map(CAPTAIN_CARDS.map((card) => [card.id, card]));
 const ordinary = { id: 'ordinary', name: 'Отряд вне банды', type: 'unit', power: 5 };

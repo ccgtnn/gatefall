@@ -1,7 +1,7 @@
 import { FACTIONS } from '../docs/game/cards.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { bindCardPlacement, insertionPoint, placementEffectRows } from '../docs/card-placement.js';
+import { bindCardPlacement, insertionPoint, placementEffectRows } from '../docs/ui/card-placement.js';
 
 const rowBounds = { left: 20, width: 200 };
 const cardBounds = [{ left: 80, right: 105 }, { left: 109, right: 134 }];

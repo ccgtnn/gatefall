@@ -1,4 +1,4 @@
-import { assetUrl } from '../asset-url.js';
+import { assetUrl } from './asset-url.js';
 import { setCardRarity } from './dom.js';
 
 export const PREMIUM_ART_KEY = 'gatefall.premium-card-art';

@@ -3,7 +3,7 @@ import test from 'node:test';
 import { applyStatus, basePower, changeBasePower, createCard, damage, findUnit, heal, setRowEffect, statusCount } from '../docs/game/board.js';
 import { FACTIONS, LARVA, NEUTRAL_CARDS, SHADOW } from '../docs/game/cards.js';
 import { applyAction, canPlayCard, createMatch, totalScore } from '../docs/game/match.js';
-import { applyJournalEvent, createPlaybackState } from '../docs/turn-playback.js';
+import { applyJournalEvent, createPlaybackState } from '../docs/ui/turn-playback.js';
 
 const rng = () => 0;
 const unit = (id, rules = {}) => createCard(id, { id, name: id, power: 5, ...rules });

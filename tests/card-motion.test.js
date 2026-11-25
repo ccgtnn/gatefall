@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { animateHandTurn, animateTurnSparks, presentJournalEvent } from '../docs/card-motion.js';
+import { animateHandTurn, animateTurnSparks, presentJournalEvent } from '../docs/ui/card-motion.js';
 
 function scenario() {
   const trace = [];
