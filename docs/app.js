@@ -1,7 +1,6 @@
 import { keepCardVideos, resumeCardVideos } from './ui/card-art.js?v=world-gates-premium-1';
 import { createLeagueDialogue, LEAGUE_DIALOGUE } from './game/league-dialogue.js?v=world-gates-premium-1-nc1';
 import { setLeagueSpeech } from './ui/league-character.js?v=oran-avatar-1';
-import { createBaseScreen } from './ui/base-screen.js?v=world-gates-premium-1-nc1';
 import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js?v=world-gates-premium-1-nc1';
 import { createDeckStorage } from './ui/deck-storage.js?v=world-gates-premium-1-nc1';
 import { bindCardPlacement } from './card-placement.js?v=hounds-1';
@@ -23,9 +22,8 @@ import { createSettings } from './ui/settings.js?v=world-gates-premium-1-nc1';
 
 import { createFactionStats } from './ui/stats.js?v=step-11';
 import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js?v=match-rewards-1-nc1';
-import { createRewardBook } from './ui/reward-book.js?v=world-gates-premium-1-nc1';
 import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js?v=world-gates-premium-1-nc1';
-import { createResourceBar, showEssenceGain } from './ui/resources.js?v=essence-gain-1';
+import { createResourceBar, prepareLazySection, sectionDialog, showEssenceGain } from './ui/resources.js?v=essence-gain-1';
 import { aimAnchor, aimTone, bindTargeting } from './ui/targeting.js?v=targeting-1';
 import { questComplete } from './game/tavern.js?v=world-gates-premium-1-nc1';
 import { rankStanding } from './game/ranks.js?v=monthly-ranks-1';
@@ -97,35 +95,38 @@ const rewardReveal = createRewardReveal({
   showEssence: showEssenceGain,
 });
 const progress = createRewardProgress(storage, navigator.locks, { enqueueReward });
-const openBase = createBaseScreen(progress);
 void progress.checkpointProduction();
+const base = sectionDialog('base-screen', 'База', 'base-screen');
+const prepareBase = prepareLazySection(base.dialog, base.shell, async () => {
+  const { mountBaseScreen } = await import('./ui/base-screen.js');
+  return () => mountBaseScreen(progress, base);
+});
+function openBase() {
+  if (base.dialog.open) return;
+  base.dialog.showModal();
+  prepareBase();
+}
+
+const rewardBook = sectionDialog('reward-book', 'Книга наград');
+const prepareRewardBook = prepareLazySection(rewardBook.dialog, rewardBook.shell, async () => {
+  const { mountRewardBook } = await import('./ui/reward-book.js');
+  return () => mountRewardBook(progress, rewardBook);
+});
+
 const catalog = economyDialog('card-collection', 'Все карты');
-let catalogLoad;
-let refreshCatalog;
 catalog.dialog.addEventListener('toggle', () => {
   if (catalog.dialog.open) resumeCardVideos(catalog.body);
 });
-function prepareCatalog() {
-  if (refreshCatalog) {
-    refreshCatalog();
-    return;
-  }
-  if (catalogLoad) return;
-  const status = element('p', 'economy-status', 'Загружаем каталог…');
-  status.setAttribute('role', 'status');
-  catalog.body.append(status);
-  catalogLoad = import('./ui/catalog-screen.js').then(({ catalogScreen }) => {
+const prepareCatalog = prepareLazySection(catalog.dialog, catalog.body, async () => {
+  const { catalogScreen } = await import('./ui/catalog-screen.js');
+  return () => {
     const { panel, refresh } = catalogScreen(progress, () => catalog.dialog.open);
-    catalog.body.replaceChildren(panel);
-    refreshCatalog = refresh;
-    if (catalog.dialog.open) resumeCardVideos(panel);
-  }).catch((error) => {
-    console.warn('Catalog could not be loaded', error);
-    status.textContent = 'Не удалось загрузить каталог. Перезагрузи игру и попробуй снова.';
-  });
-}
+    catalog.body.append(panel);
+    return refresh;
+  };
+});
 const openResources = createResourceBar(app.querySelector('.masthead'), document.querySelector('#start-settings'), progress, {
-  keys: createRewardBook(progress),
+  keys: { ...rewardBook, prepare: prepareRewardBook },
   gold: createBoosterShop(progress, () => openResources('packCount')),
   essence: { ...catalog, prepare: prepareCatalog },
   packCount: createBoosterOpening(progress, () => openResources('gold')),

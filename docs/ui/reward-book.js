@@ -1,7 +1,7 @@
 import { button, element } from './dom.js?v=opponent-reveal-1';
 import { REWARD_SECTIONS, rewardState } from '../game/reward-book.js';
 import { resourceIcon } from './resource-icon.js?v=1';
-import { dialogClose, sectionDialog } from './resources.js?v=essence-gain-1';
+import { dialogClose } from './resources.js?v=essence-gain-1';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const rewardKinds = {
@@ -31,8 +31,7 @@ function keyAmount(className) {
   return { node, count };
 }
 
-export function createRewardBook(progress) {
-  const { dialog: book, shell } = sectionDialog('reward-book', 'Книга наград');
+export function mountRewardBook(progress, { dialog: book, shell }) {
   const content = element('section', 'reward-chapter');
   const sections = element('div', 'reward-sections');
   sections.setAttribute('role', 'group');
@@ -243,5 +242,5 @@ export function createRewardBook(progress) {
   }
 
   progress.subscribe(() => { if (book.open) refresh(); });
-  return { dialog: book, prepare: drawSection };
+  return drawSection;
 }

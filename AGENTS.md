@@ -28,6 +28,7 @@
 | Коллекция, крафт и бустеры | `docs/game/collection-economy.js`, `tests/rewards.test.js` |
 | Главы и маршруты Книги наград | `docs/game/reward-book.js`, `tests/rewards.test.js` |
 | Экран «Все карты» | `docs/ui/catalog-screen.js`, `tests/catalog.test.js` |
+| Отложенная загрузка экранов | `docs/ui/resources.js`, `tests/lazy-sections.test.js` |
 | Ход, бот, выбор целей и анимации матча | `docs/ui/match-turn.js`, `tests/match-turn.test.js` |
 | Экраны и итоги | `docs/app.js`, `docs/ui/`, `docs/ui/match-result.js` |
 | Размещение карт и анимации | `docs/card-placement.js`, `turn-playback.js`, `card-motion.js` |

@@ -72,6 +72,45 @@ export function sectionDialog(id, title, className = '') {
   return { dialog, shell };
 }
 
+export function prepareLazySection(dialog, content, load) {
+  let loading;
+  let mount;
+  let refresh;
+  let status;
+
+  function fail(error) {
+    console.warn('Section could not be loaded', error);
+    mount = undefined;
+    status.textContent = 'Не удалось загрузить раздел. Перезагрузи игру и попробуй снова.';
+  }
+
+  function prepare() {
+    if (refresh) return refresh();
+    if (mount) {
+      try {
+        const update = mount();
+        update();
+        status.remove();
+        refresh = update;
+      } catch (error) {
+        fail(error);
+      }
+      return;
+    }
+    if (loading) return loading;
+    status = element('p', 'economy-status', 'Загружаем…');
+    status.setAttribute('role', 'status');
+    content.append(status);
+    loading = load().then((ready) => {
+      mount = ready;
+      if (dialog.open) prepare();
+    }, fail);
+    return loading;
+  }
+
+  return prepare;
+}
+
 const essenceNotices = new WeakMap();
 
 export function showEssenceGain(amount) {

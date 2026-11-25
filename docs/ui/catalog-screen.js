@@ -191,7 +191,6 @@ export function catalogScreen(progress, isOpen) {
 
   search.addEventListener('input', update);
   for (const { input } of fields) input.addEventListener('change', update);
-  update();
   progress.subscribe(() => { if (isOpen()) update(); });
   panel.append(factions, toolbar, count, grid);
   return { panel, refresh: update };

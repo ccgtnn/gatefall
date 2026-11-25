@@ -2,7 +2,7 @@ import { createBaseGrid } from './base-grid.js?v=world-gates-premium-1-nc1';
 import { BASE_OVERLAYS, BASE_POSITIONS, baseLayout, overlayStyle } from './base-layout.js?v=base-mine-1';
 import { BASE_PLOTS, BUILDING_BY_PLOT, BUILDINGS, MATERIALS, buildingEffect, constructionShortages } from '../game/base.js?v=tavern-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';
-import { dialogClose, resourceGlyph as materialIcon, resourceLabel, sectionDialog } from './resources.js?v=essence-gain-1';
+import { dialogClose, resourceGlyph as materialIcon, resourceLabel } from './resources.js?v=essence-gain-1';
 
 const labels = { gold: resourceLabel('gold'), ...MATERIALS };
 const USE_BASE_OVERLAYS = false;
@@ -30,8 +30,7 @@ function contains(rect, x, y, mask) {
   return (u - .5) ** 2 + (v - .5) ** 2 <= .25;
 }
 
-export function createBaseScreen(progress) {
-  const { dialog, shell } = sectionDialog('base-screen', 'База', 'base-screen');
+export function mountBaseScreen(progress, { dialog, shell }) {
   const materials = element('div', 'base-materials');
   materials.setAttribute('aria-label', 'Ресурсы базы');
   const figures = Object.keys(labels).map((key) => {
@@ -75,9 +74,7 @@ export function createBaseScreen(progress) {
     else grid.updateProduction();
   });
   return () => {
-    if (dialog.open) return;
     update();
-    dialog.showModal();
     dialog.scrollTop = 0;
     clearInterval(timer);
     timer = setInterval(grid.updateProduction, 1000);
@@ -258,7 +255,6 @@ function createOverlayBaseScreen(progress, dialog, shell, updateMaterials) {
   });
   return () => {
     update();
-    dialog.showModal();
     resizeStage(shell.getBoundingClientRect());
   };
 }
