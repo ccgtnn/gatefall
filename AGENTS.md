@@ -18,7 +18,9 @@
 
 | Область | Файлы |
 | --- | --- |
-| Карты, колоды и лидеры | `docs/game/cards.js`, `docs/game/decks.js` |
+| Сборка фракций и стартовые колоды | `docs/game/cards.js`, `docs/game/decks.js` |
+| Карты и лидеры Протектората и Поросли | `docs/game/protectorate.js`, `docs/game/growth.js` |
+| Словарь способностей | `docs/game/card-keywords.js` |
 | Нейтральные карты | `docs/game/neutral-cards.js`, `tests/neutral-cards.test.js` |
 | Реестр и общие свойства карт | `docs/game/card-registry.js`, `card-metadata.js`, `tests/catalog.test.js` |
 | Матч, поле и способности | `docs/game/match.js`, `board.js`, `effects.js`, `events.js` в той же папке |

@@ -1,5 +1,5 @@
 import { dialogClose } from './resources.js';
-import { KEYWORDS } from '../game/cards.js';
+import { KEYWORDS } from '../game/card-keywords.js';
 import { element } from './dom.js';
 
 export function bindRulesMenu() {
