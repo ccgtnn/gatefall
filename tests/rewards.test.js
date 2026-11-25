@@ -150,6 +150,30 @@ test('a fresh wallet starts at zero, keeps earned gold and saves zero starting b
   assert.deepEqual({ gold, keys, essence }, { gold: 20, keys: 0, essence: 0 });
 });
 
+test('inventory snapshots stay isolated and see saves from another wallet before refresh', async () => {
+  const storage = localStorage({ startingKeys: 25, startingGold: 300 });
+  const first = createRewardProgress(storage, undefined, { random: () => 0 });
+  const second = createRewardProgress(storage, undefined, { random: () => 0 });
+  assert.equal(first.inventory().keys, 25);
+  assert.equal(await second.unlock('neutral:signal'), 'opened');
+  assert.equal(first.inventory().keys, 24);
+  assert.equal(await second.buyPack('neutral'), 'done');
+  assert.equal(await second.openPack('neutral'), 'done');
+
+  const expected = second.inventory();
+  const localView = first.inventory();
+  assert.deepEqual(localView, expected);
+  const [id] = localView.pendingPack.cards;
+  localView.owned[id] = 100;
+  localView.boosters.neutral = 100;
+  localView.pendingPack.cards[0] = 'changed';
+  localView.pendingPack.essenceByCard[id] = 100;
+  assert.deepEqual(first.inventory(), expected);
+
+  assert.equal(await first.revealPack(expected.pendingPack.id, id), 'done');
+  assert.deepEqual(second.inventory().pendingPack.revealed, [id]);
+});
+
 test('already opened rewards fund the shop once and persist a faction booster purchase', async () => {
   const storage = localStorage();
   storage.setItem(REWARD_STORAGE_KEY, JSON.stringify({ unlocked: [

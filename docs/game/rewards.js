@@ -26,6 +26,8 @@ const startingBalance = (value, legacyAmount) => Number.isSafeInteger(value) && 
 export function createRewardProgress(storage, locks, { random = Math.random, now = Date.now, enqueueReward: publishReward } = {}) {
   const listeners = new Set();
   let saved = null;
+  let lastSavedText;
+  let inventorySnapshot;
   let latestTime = 0;
 
   function observedTime(time = now()) {
@@ -33,9 +35,17 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
     return latestTime;
   }
 
-  function read() {
-    if (storage) {
-      try { saved = JSON.parse(storage.getItem(REWARD_STORAGE_KEY)); } catch {}
+  function storedText() {
+    try { return storage?.getItem(REWARD_STORAGE_KEY); } catch {}
+  }
+
+  function readState(text) {
+    lastSavedText = undefined;
+    if (text !== undefined) {
+      try {
+        saved = JSON.parse(text);
+        lastSavedText = text;
+      } catch {}
     }
     const snapshot = saved ?? {};
     const fresh = saved === null;
@@ -66,6 +76,8 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
     };
   }
 
+  const read = () => readState(storedText());
+
   function balances(state) {
     const { progress, dismantlingEssence, essenceSpent, goldSpent, startingGold, startingEssence,
       producedGold, rewardGold, pendingPack } = state;
@@ -80,6 +92,18 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
       keys: progress.keys, gold: Math.max(0, gold - goldSpent), essence: Math.max(0, essence - essenceSpent),
       boosters, packCount: Object.values(boosters).reduce((sum, value) => sum + value, 0), owned: inventory.owned, pendingPack,
     };
+  }
+
+  function inventory() {
+    // Check the stored text even before another tab's storage event arrives.
+    const text = storedText();
+    if (text === undefined || lastSavedText !== text || inventorySnapshot?.text !== text) {
+      const result = balances(readState(text));
+      if (text === undefined || lastSavedText !== text) return result;
+      inventorySnapshot = { text, result };
+    }
+    const { owned, boosters, pendingPack } = inventorySnapshot.result;
+    return { ...inventorySnapshot.result, owned: { ...owned }, boosters: { ...boosters }, pendingPack: structuredClone(pendingPack) };
   }
 
   function refresh() {
@@ -100,6 +124,8 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
       try { storage?.setItem(REWARD_STORAGE_KEY, JSON.stringify(next)); }
       catch { return 'unavailable'; }
       saved = next;
+      lastSavedText = undefined;
+      inventorySnapshot = undefined;
       // Publish in commit order, only after the balances and claim markers are saved.
       if (publishReward) for (const entry of rewards) {
         if (!Object.values(entry.reward).some((amount) => amount > 0)) continue;
@@ -178,7 +204,7 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
 
   return {
     get: () => read().progress,
-    inventory: () => balances(read()),
+    inventory,
     refresh,
     subscribe(listener) {
       listeners.add(listener);
