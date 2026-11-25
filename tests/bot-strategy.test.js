@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCard } from '../docs/game/board.js';
+import { HOUND } from '../docs/game/captains.js';
 import { chooseBotTurn, createBotView } from '../docs/game/bot.js';
 import { AWAKENING } from '../docs/game/choir.js';
 import { FACTIONS, LARVA } from '../docs/game/cards.js';
@@ -282,5 +283,42 @@ test('all difficulties prefer weak offerings and use the Priest to open an Awake
     assert.notEqual(chooseBotTurn(match, mode).type, 'leader');
     match.players.bot.board.orbit.push(createCard('scenario', AWAKENING));
     assert.equal(chooseBotTurn(match, mode).type, 'leader');
+  }
+});
+
+test('the bot pays the highest affordable tribute for the Hound Recruiter', () => {
+  for (const [coins, cost, hounds] of [[5, '3', 2], [6, '6', 4]]) {
+    const match = position();
+    match.players.bot.coins = coins;
+    match.players.bot.hand.unshift(member('recruiter', 'captains', 'hound-recruiter'));
+    const pending = applyAction(match, 'bot', { type: 'play', cardId: 'recruiter', row: 'surface', position: 0 });
+    assert.equal(pending.pending.kind, 'tribute');
+
+    for (const difficulty of ['easy', 'normal', 'hard']) {
+      const action = chooseBotTurn(pending, difficulty);
+      assert.deepEqual(action, { type: 'target', cardId: cost });
+      const resolved = applyAction(pending, 'bot', action);
+      assert.equal(resolved.players.bot.coins, coins - Number(cost));
+      assert.equal(resolved.players.bot.board.surface.filter(({ definition }) => definition.id === HOUND.id).length, hounds);
+    }
+  }
+});
+
+test('the bot completes Right Fang’s order by moving its least valuable hand card to the bottom', () => {
+  const match = position();
+  match.players.bot.board.orbit = [member('fang', 'captains', 'hound-right-fang'), standard('hound', HOUND)];
+  match.players.bot.hand = [plain('strong', 8), plain('weak', 2)];
+  match.players.bot.deck = [plain('drawn', 5), plain('already-in-deck', 4)];
+  const order = applyAction(match, 'bot', { type: 'order', cardId: 'fang' });
+  const pending = applyAction(order, 'bot', { type: 'target', cardId: 'hound' });
+  assert.equal(pending.pending.kind, 'hand-bottom');
+  assert.ok(pending.pending.options.includes('drawn'));
+
+  for (const difficulty of ['easy', 'normal', 'hard']) {
+    const action = chooseBotTurn(pending, difficulty);
+    assert.deepEqual(action, { type: 'target', cardId: 'weak' });
+    const resolved = applyAction(pending, 'bot', action);
+    assert.deepEqual(resolved.players.bot.deck.map(({ id }) => id), ['already-in-deck', 'weak']);
+    assert.ok(!resolved.players.bot.hand.some(({ id }) => id === 'weak'));
   }
 });
