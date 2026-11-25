@@ -19,7 +19,7 @@
 | Область | Файлы |
 | --- | --- |
 | Сборка фракций и стартовые колоды | `docs/game/cards.js`, `docs/game/decks.js` |
-| Карты и лидеры Протектората и Поросли | `docs/game/protectorate.js`, `docs/game/growth.js` |
+| Карты и лидеры фракций | `docs/game/protectorate.js`, `growth.js`, `captains.js`, `choir.js` |
 | Словарь способностей | `docs/game/card-keywords.js` |
 | Нейтральные карты | `docs/game/neutral-cards.js`, `tests/neutral-cards.test.js` |
 | Реестр и общие свойства карт | `docs/game/card-registry.js`, `card-metadata.js`, `tests/catalog.test.js` |

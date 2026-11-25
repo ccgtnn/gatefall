@@ -1,5 +1,6 @@
 import { ability, action, allies, choice, chosen, self } from './card-abilities.js';
-import { CHOIR_CARDS } from './choir.js';
+import { CAPTAIN_CARDS, SKARA_REINHOLD } from './captains.js';
+import { CHOIR_CARDS, HIGH_PRIEST } from './choir.js';
 import { ANNIHILATION, NEUTRAL_CARDS } from './neutral-cards.js';
 import { GROWTH } from './growth.js';
 import { PROTECTORATE } from './protectorate.js';
@@ -56,10 +57,6 @@ function faction(id, { name, strategy, entries, leaders, extras }) {
 }
 
 const choirPool = Object.freeze(CHOIR_CARDS.filter(({ token }) => !token));
-const choirLeader = Object.freeze({
-  id: 'choir-leader', name: 'Лидер Хора', provisionBonus: 15, text: 'Без активной способности.',
-  art: 'abyss-shepherd.webp',
-});
 const choirCardsById = new Map([...choirPool, ...NEUTRAL_CARDS].map((card) => [card.id, card]));
 const choirDeck = Object.freeze([
   'whisper-interpreter', 'whisper-interpreter', 'forbidden-scroll-keeper', 'ulmarin-fanatic', 'ulmarin-fanatic',
@@ -69,10 +66,21 @@ const choirDeck = Object.freeze([
   'suppressor', 'veteran-mercenary', 'veteran-mercenary', 'fugitive-monk', 'recon-drone', 'recon-drone',
 ].map((id) => choirCardsById.get(id)));
 
+const captainCardsById = new Map([...CAPTAIN_CARDS, ...NEUTRAL_CARDS].map((card) => [card.id, card]));
+const captainDeck = Object.freeze([
+  'hound-foreman', 'hound-foreman', 'hound-captain', 'hound-recruiter', 'hound-pack', 'hound-pack',
+  'hound-good-deal', 'hound-good-deal', 'black-hound', 'hound-claw', 'hound-claw', 'hound-right-fang',
+  'hound-left-fang', 'hound-eyes', 'debtor', 'debtor', 'scrapped-pilot', 'scrapped-pilot', 'broken-turret',
+  'broken-turret', 'suppressor', 'armor-piercing-shot', 'field-medic', 'resurrection', 'annihilation',
+].map((id) => captainCardsById.get(id)));
+
 export const FACTIONS = Object.freeze({
   protectorate: faction('protectorate', PROTECTORATE),
   growth: faction('growth', GROWTH),
   choir: { name: 'Безмолвный хор', strategy: 'Псионика', description: 'Псионики-аскеты, черпающие силу в космосе',
     pool: choirPool, deck: choirDeck,
-    leader: choirLeader, leaders: Object.freeze([choirLeader]) },
+    leader: HIGH_PRIEST, leaders: Object.freeze([HIGH_PRIEST]) },
+  captains: { name: 'Вольные капитаны', strategy: 'Чёрные гончие', description: 'Независимые капитаны, корабли и боевые монеты.',
+    pool: CAPTAIN_CARDS, deck: captainDeck,
+    leader: SKARA_REINHOLD, leaders: Object.freeze([SKARA_REINHOLD]) },
 });

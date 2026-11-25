@@ -60,11 +60,12 @@ export const REBIRTH_PRESET = Object.freeze({
 
 export const PRESETS = Object.freeze([
   factionPreset('protectorate'), factionPreset('growth'), plaguePreset, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET, factionPreset('choir'),
+  factionPreset('captains'),
 ]);
 
 export function inspectDeck(deck, owned) {
   const faction = groups.get(deck?.factionId);
-  const leader = faction?.leaders.find(({ id }) => id === deck.leaderId);
+  const leader = faction?.leaders.find(({ id, legacyId }) => id === deck.leaderId || (legacyId && legacyId === deck.leaderId));
   const allowed = new Map(collection(deck?.factionId).map((card) => [card.id, card]));
   const cardIds = Array.isArray(deck?.cardIds) ? deck.cardIds : [];
   const cards = cardIds.map((id) => allowed.get(id)).filter(Boolean);

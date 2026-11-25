@@ -179,12 +179,12 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     panel.append(portrait);
     if (!leader.ability) return panel;
     const cooldown = leaderCooldown(player);
-    const power = button(leader.order ? (cooldown ? '◷ ' + cooldown : '⚑') : 'ϟ ' + leader.charges,
+    const showsCharges = !leader.order || leader.order.usesCharges;
+    const power = button(showsCharges ? (leader.order ? '⚑ ' : 'ϟ ') + leader.charges : cooldown ? '◷ ' + cooldown : '⚑',
       () => playHuman({ type: 'leader' }), 'leader-power');
     power.title = leader.text;
-    power.setAttribute('aria-label', leader.name + ' · ' + (leader.order
-      ? cooldown ? 'Перезарядка приказа: ' + cooldown : 'Приказ лидера'
-      : 'зарядов ' + leader.charges));
+    const label = showsCharges ? 'зарядов ' + leader.charges : 'Приказ лидера';
+    power.setAttribute('aria-label', leader.name + ' · ' + label + (cooldown ? ' · перезарядка: ' + cooldown : ''));
     power.disabled = side !== 'human' || !humanCanAct() || !canUseLeader(match, side);
     panel.append(power);
     return panel;

@@ -5,6 +5,7 @@ import { rowArmor } from './effect-queries.js';
 import { cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, rowDamage, rowEffectValue, rowScatterValue } from './bot-effect-value.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, playableCards, totalScore } from './match.js';
 
+import { offeringPriority, preferredLeaderUse } from './bot-leaders.js';
 import { deathwishDefinitions } from './events.js';
 import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js';
 
@@ -210,6 +211,7 @@ export function pickBotTarget(match) {
     },
     emp: ({ card }) => Math.min(card.power, 2 + (card.armor ?? 0)) + (card.armor ?? 0) * .1,
     consume: ({ card }) => sacrificePriority(card),
+    'leader-offering': (unit) => offeringPriority(match, match.pending.side, unit, amount),
     sacrifice: ({ card }) => -card.power,
     deathwish: ({ card }) => deathwishDefinitions(card).length * 10 + card.power,
     lock: (unit) => lockPriority(unit, match.pending.side),
@@ -228,6 +230,8 @@ export function pickBotTarget(match) {
 
 function beneficialLeader(match, view, allies) {
   const player = match.players.bot;
+  const preference = preferredLeaderUse(match, 'bot');
+  if (preference !== undefined) return preference;
   if (!canUseLeader(match, 'bot')) return false;
   if (player.leader.order) return units(match, 'human').some(({ card }) => isUnit(card) && (card.armor ?? 0) < 2);
   const kind = player.leader.ability.select?.[0]?.kind;

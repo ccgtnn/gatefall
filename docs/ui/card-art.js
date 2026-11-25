@@ -63,7 +63,13 @@ function artwork(id, poster, className, size, doc, { animated = playPremium(id),
 
 export function cardArt(definition, className, { fullArt = false, lazyArt = false, doc = document } = {}) {
   const art = !fullArt && className === 'card-art-crop' ? definition.artCrop ?? definition.art : definition.art;
-  return artwork(definition.id, assetUrl('./art/' + art), className, fullArt ? 'large' : 'small', doc, { lazyArt });
+  const image = artwork(definition.id, assetUrl('./art/' + art), className, fullArt ? 'large' : 'small', doc, { lazyArt });
+  if (!fullArt && definition.artFocus) {
+    image.style.objectPosition = definition.artFocus;
+    image.style.transformOrigin = definition.artFocus;
+    image.style.scale = String(definition.artZoom ?? 1);
+  }
+  return image;
 }
 
 export function addCardCrop(node, definition, { fullArt = false, lazyArt = false } = {}) {

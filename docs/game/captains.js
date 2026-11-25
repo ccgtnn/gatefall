@@ -100,6 +100,17 @@ const houndCards = [
   },
 ].map((card) => ({ ...hound, ...card }));
 
+export const SKARA_REINHOLD = Object.freeze({
+  id: 'skara-reinhold', name: 'Скара Райнхольд', provisionBonus: 15, art: 'skara-reinhold.webp', artFocus: '50% 27%', artZoom: 1.45,
+  text: 'Выбери свой ряд: призови в него 2 Гончие, затем получи 3 боевые монеты.',
+  aiHints: { leaderCoinsAtMost: 6 },
+  ability: ability([
+    { action: 'select-row', ref: 'row', filter: 'space', prompt: 'Выбери свой ряд для Гончих Скары.' },
+    { action: 'spawn', rowRef: 'row', amount: 2, card: HOUND },
+    { action: 'coins', amount: 3 },
+  ]),
+});
+
 export const CAPTAIN_CARDS = Object.freeze([
   ...houndCards,
   {

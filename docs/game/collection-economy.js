@@ -23,6 +23,7 @@ export function dismantleValue(card) {
 export const BOOSTER_FACTIONS = [
   { id: 'protectorate', name: FACTIONS.protectorate.name, image: 'bastion.webp' },
   { id: 'growth', name: FACTIONS.growth.name, image: 'incubator.webp' },
+  { id: 'captains', name: FACTIONS.captains.name, image: 'black-hound.webp' },
   { id: NEUTRAL, name: 'Нейтральные', image: 'world-gates.webp' },
 ];
 

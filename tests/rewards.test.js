@@ -19,7 +19,7 @@ test('the book has two sections, five chapters and reachable rare rewards', () =
   const storage = localStorage();
   assert.equal(createRewardProgress(storage).get().keys, 0);
   assert.deepEqual(REWARD_SECTIONS.map(({ chapters }) => chapters.length), [3, 2]);
-  assert.deepEqual(BOOSTER_FACTIONS.map(({ id }) => id), ['protectorate', 'growth', 'neutral']);
+  assert.deepEqual(BOOSTER_FACTIONS.map(({ id }) => id), ['protectorate', 'growth', 'captains', 'neutral']);
   assert.equal(new Set(chapters.flatMap(({ nodes }) => nodes.map(({ id }) => id))).size, 120);
   const layouts = new Set();
   assert.deepEqual(chapters.map(({ nodes }) => nodes.length), [21, 21, 21, 29, 28]);
@@ -397,7 +397,7 @@ test('booster rewards in two chapters share the same faction inventory', async (
   assert.equal(wallet.inventory().boosters.neutral, 2);
   assert.equal(await wallet.openPack('neutral'), 'done');
   const copy = createRewardProgress(storage);
-  assert.deepEqual(copy.inventory().boosters, { neutral: 1, protectorate: 0, growth: 0 });
+  assert.deepEqual(copy.inventory().boosters, { neutral: 1, protectorate: 0, growth: 0, captains: 0 });
   assert.equal(copy.inventory().pendingPack.faction, 'neutral');
 });
 

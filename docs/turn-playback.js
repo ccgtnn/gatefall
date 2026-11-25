@@ -61,8 +61,12 @@ export function applyJournalEvent(state, event) {
   }
   if (type === 'pass') player.passed = true;
   if (type === 'leader-replaced') player.leader = event.leader;
-  if (type === 'leader' && event.lastUsedTurn !== undefined) {
-    player.leader = { ...player.leader, lastUsedTurn: event.lastUsedTurn };
+  if (type === 'leader' && (event.lastUsedTurn !== undefined || event.charges !== undefined)) {
+    player.leader = {
+      ...player.leader,
+      ...(event.lastUsedTurn !== undefined && { lastUsedTurn: event.lastUsedTurn }),
+      ...(event.charges !== undefined && { charges: event.charges }),
+    };
   }
   if (type === 'draw' && event.cards) {
     const drawn = new Set(event.cards.map(({ id }) => id));

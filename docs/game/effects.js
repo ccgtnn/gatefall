@@ -23,7 +23,9 @@ export function canUseLeader(match, side) {
   const player = match.players[side];
   const { leader } = player;
   if (!leader?.ability) return false;
-  const ready = leader.order ? leaderCooldown(player) === 0 : !match.playedCard && leader.charges > 0;
+  const ready = leader.order
+    ? leaderCooldown(player) === 0 && (!leader.order.usesCharges || leader.charges > 0)
+    : !match.playedCard && leader.charges > 0;
   return ready && canStart(match, { ability: leader.ability, side });
 }
 
@@ -99,9 +101,11 @@ function selectTargets(match, job, random) {
 }
 
 function spawn(match, job, step) {
-  const origin = reference(match, job);
+  const origin = reference(match, job, step.of);
+  const fallback = step.fallbackPosition && job.refs[step.fallbackPosition];
   const { position, row } = step;
-  const rows = row === 'all' ? ROWS : [step.rowRef ? job.refs[step.rowRef] : row === 'source' ? origin?.row : row === 'death' ? job.row : row];
+  const sourceRow = origin?.row ?? fallback?.row;
+  const rows = row === 'all' ? ROWS : [step.rowRef ? job.refs[step.rowRef] : row === 'source' ? sourceRow : row === 'death' ? job.row : row];
   if (step.overflow && rows[0]) rows.push(...ROWS.filter((row) => row !== rows[0]));
   let remaining = step.amount;
   for (const row of rows.filter(Boolean)) {
@@ -110,7 +114,7 @@ function spawn(match, job, step) {
     const side = nearSource ? origin.side : job.side;
     const index = position === 'death' ? job.position
       : nearSource && position ? origin.position + Number(position === 'right')
-        : match.players[side].board[row].length;
+        : Math.min(fallback?.position ?? Infinity, match.players[side].board[row].length);
     const count = step.overflow ? Math.min(remaining, ROW_LIMIT - match.players[side].board[row].length) : step.amount;
     spawnCards(match, side, row, index, count, step.card);
     if (step.overflow) remaining -= count;
@@ -434,6 +438,7 @@ export function runEffect(match, job, random) {
 
   const target = job.piles ? findInPiles(match, job.side, next, job.piles) : findUnit(match, next);
   if (!target) return;
+  if (step.savePosition) job.refs[step.savePosition] = { row: target.row, position: target.position };
   let result;
   if (step.action === 'consume') {
     const [receiver] = targets(match, job, step.receiver);

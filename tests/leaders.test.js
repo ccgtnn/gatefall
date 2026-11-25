@@ -75,18 +75,20 @@ test('Carrier infects its target and adjacent units only', () => {
   assert.equal(statusCount(next.players.bot.board.orbit[0], 'infection'), 0);
 });
 
-test('strategic bots simulate favorable uses and legal choices for all six leaders', () => {
+test('strategic bots simulate favorable uses and legal choices for every leader', () => {
   for (const [faction, { leaders }] of Object.entries(FACTIONS)) {
     for (const leader of leaders.filter(({ ability }) => ability)) {
       const match = fixture(faction, leader.id);
       const { human, bot } = match.players;
-      bot.leader = { ...leader, charges: 1 };
+      const charges = leader.charges ?? 1;
+      bot.leader = { ...leader, charges };
       human.leader = null;
       match.turn = 'bot';
       match.round = 3;
       human.board.surface = [unit('enemy-a'), unit('enemy-b'), unit('enemy-c')];
       bot.board.surface = [unit('friendly-a'), unit('friendly-b'), unit('friendly-c')];
       bot.hand = [unit('plain', 4)];
+      if (leader.id === 'high-priest') bot.board.surface[0] = unit('offering', 1);
       if (leader.id === 'supreme-commander') {
         const commander = member('commander', 'commander');
         commander.readyAt = 3;
@@ -101,7 +103,7 @@ test('strategic bots simulate favorable uses and legal choices for all six leade
           assert.notStrictEqual(chosen, next);
           next = chosen;
         }
-        assert.equal(next.players.bot.leader.charges, 0);
+        assert.equal(next.players.bot.leader.charges, charges - 1);
         assert.equal(next.playedCard, false);
       }
     }
