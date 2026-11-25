@@ -37,6 +37,19 @@ export function armorTargetPriority(match, side, unit) {
     Number(formations && armor === 0) * (neighbors(match, unit).length + 1) + card.power * .1 - armor * .1;
 }
 
+export function growthPayoff(match, side, card) {
+  const { deathwish, events } = cardAbilities(card);
+  const growing = deathwish?.steps.find(({ count, power }) => count?.growth || power?.growth);
+  const evolved = card.growth ?? 0;
+  if (growing?.count) {
+    const enemies = units(match, opponent(side)).filter(({ card }) => isUnit(card)).length;
+    return .5 * Math.min(enemies, growing.count.base + evolved);
+  }
+  if (growing?.power) return .5 * (growing.power.base + evolved);
+  const emergence = events?.['armor-break']?.steps.find(({ action }) => action === 'spawn');
+  return emergence && card.armor > 0 ? .4 * emergence.amount : 0;
+}
+
 export function infectionGain(card, amount, turns = Infinity) {
   const current = statusCount(card, 'infection');
   return Math.max(0, infectionDamage(card, Math.min(current + amount, turns)) -
@@ -238,5 +251,5 @@ export function deckCardValue(match, side, card) {
   const { deploy, order, endTurn, scenario } = cardAbilities(card);
   const value = (card.power ?? 0) * (definition.enemySide ? -1 : 1) + (card.armor ?? 0) * .15;
   const swing = deploy?.steps.some((step) => step.fullDeck || step.action === 'play-from-discard') ? 0 : effectSwing(match, side, card);
-  return value + swing + Number(Boolean(deploy || order || endTurn || scenario));
+  return value + swing + growthPayoff(match, side, card) + Number(Boolean(deploy || order || endTurn || scenario));
 }

@@ -51,6 +51,7 @@ export function showCard(card, options = {}) {
   }
   if (locked) stats.push('Блокировка');
   if (card.orderCharges !== undefined) stats.push('Осталось зарядов: ' + card.orderCharges);
+  if (growthValue(card) !== undefined) stats.push(card.definition.growth.label + ': ' + growthValue(card));
   if (!locked && counter > 0) stats.push(`Счётчик ${counter}`);
   if (!locked && timer !== undefined) stats.push(`Таймер ${timer}`);
   const title = element('h2', null, definition.name);
@@ -312,6 +313,10 @@ function psionicCountLabel(card) {
   return `Сыграно эффектов «${countPlayedEffects}»: ${card.playedEffects ?? 0} / ${finalChapterMinimum}`;
 }
 
+function growthValue(card) {
+  return card.growth === undefined ? undefined : card.growth + (card.definition.growth.base ?? 0);
+}
+
 function liveBadges(node, card, { orderOnField, showProvision, orderReady, orderCooldown }) {
   const { definition, armor, counter, timer } = card;
   if (isUnit(card)) {
@@ -345,7 +350,9 @@ function liveBadges(node, card, { orderOnField, showProvision, orderReady, order
     return;
   }
   if (orderOnField) return;
-  if (counter > 0 || timer !== undefined) {
+  if (growthValue(card) !== undefined) {
+    node.append(statBadge('hourglass', card.definition.growth.label + ': ' + growthValue(card), growthValue(card)));
+  } else if (counter > 0 || timer !== undefined) {
     node.append(statBadge('hourglass', (timer === undefined ? 'Счётчик ' : 'Таймер ') + (timer ?? counter), timer ?? counter));
   } else if (definition.order) {
     const label = orderReady ? 'Приказ готов' : orderCooldown ? 'Перезарядка Приказа: ' + orderCooldown : 'Приказ';
@@ -372,7 +379,9 @@ function legacyBadges(node, card, orderOnField) {
   }
   if (statusCount(card, 'lock')) node.append(statBadge('lock', 'Блокировка'));
   else if (!orderOnField) {
-    if (counter > 0 || timer !== undefined) {
+    if (growthValue(card) !== undefined) {
+      node.append(statBadge('hourglass', card.definition.growth.label + ': ' + growthValue(card), growthValue(card)));
+    } else if (counter > 0 || timer !== undefined) {
       node.append(statBadge('hourglass', (timer === undefined ? 'Счётчик ' : 'Таймер ') + (timer ?? counter), timer ?? counter));
     } else if (definition.order) {
       node.append(orderBadge(false, 0, card.orderCharges === undefined

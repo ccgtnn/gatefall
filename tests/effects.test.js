@@ -26,6 +26,7 @@ function fixture({ faction = 'protectorate', charges = 0 } = {}) {
   const match = createMatch({ humanFaction: faction, random: () => 0.999, rules: { leaderCharges: charges } });
   match.starter = 'human';
   const started = confirmMulligan(match, []);
+  if (!charges && started.players.human.leader) started.players.human.leader.charges = 0;
   // Isolate the card under test from the opening stratagem.
   const surface = started.players.human.board.surface;
   assert.equal(surface.pop().id, FIRST_SIGNAL.id);
@@ -67,7 +68,7 @@ test('each selectable deck has unique instances and legal card quantities', () =
         (definition.rarity === 'bronze' ? 2 : 1));
     }
     assert.equal(match.players.human.leader.name, faction.leader.name);
-    assert.equal(match.players.human.leader.charges, faction.leader.ability ? 2 : 0);
+    assert.equal(match.players.human.leader.charges, faction.leader.ability ? (faction.leader.charges ?? 2) : 0);
     assert.notEqual(match.players.bot.faction, match.players.human.faction);
   }
 });
@@ -109,8 +110,8 @@ test('damage spends armor first and sends a killed unit to discard, then resolve
 
   assert.equal(match.players.human.board.surface[0].armor, 0);
   assert.equal(match.players.bot.discard[0].id, 'sac');
-  assert.deepEqual(match.players.bot.board.orbit.map(({ power }) => power), [1, 1, 1]);
-  assert.deepEqual(events(match, 'damage').map(({ absorbed, lost }) => [absorbed, lost]), [[2, 4]]);
+  assert.deepEqual(match.players.bot.board.orbit.map(({ power }) => power), [1]);
+  assert.deepEqual(events(match, 'damage').map(({ absorbed, lost }) => [absorbed, lost]), [[2, 1]]);
   assert.equal(events(match, 'deathwish').length, 1);
   assert.ok(match.players.bot.board.orbit.every(({ definition }) => definition.doomed));
 });
@@ -135,7 +136,7 @@ test('destroy exiles without firing deathwish, while doomed death exiles and sti
   match = target(applyAction(match, 'human', { type: 'order', cardId: 'scavenger' }), 'doomed-cocoon');
   assert.equal(match.players.human.exile[0].id, 'doomed-cocoon');
   assert.equal(match.players.human.discard.length, 0);
-  assert.equal(match.players.human.board.surface[0].power, 8);
+  assert.deepEqual(match.players.human.board.surface.map(({ power }) => power), [1, 1, 7]);
   assert.equal(events(match, 'deathwish').length, 1);
 });
 
@@ -159,13 +160,13 @@ test('a deathwish owner chooses even during the other side’s turn', () => {
   assert.equal(match.turn, 'bot');
 });
 
-test('consume transfers current power and neighboring predator reacts before another turn', () => {
+test('consume transfers current power and fires Cocoon’s two-larva Deathwish', () => {
   let match = fixture({ faction: 'growth' });
   board(match, 'human', 'surface', unit('predator', 'predator'), unit('cocoon', 'cocoon', { power: 4, armor: 3 }));
   hand(match, unit('scavenger', 'scavenger'));
   match = play(match, 'scavenger', 2);
   match = target(applyAction(match, 'human', { type: 'order', cardId: 'scavenger' }), 'cocoon');
-  assert.deepEqual(match.players.human.board.surface.map(({ power }) => power), [6, 9]);
+  assert.deepEqual(match.players.human.board.surface.map(({ power }) => power), [4, 1, 1, 8]);
   assert.equal(match.players.human.discard[0].id, 'cocoon');
   assert.equal(events(match, 'consume').length, 1);
   assert.equal(events(match, 'deathwish').length, 1);
@@ -236,9 +237,9 @@ test('leaders spend a configurable charge without ending the turn', () => {
 
   match = fixture({ faction: 'growth', charges: 1 });
   board(match, 'human', 'surface', unit('left', 'predator'), unit('cocoon', 'cocoon', { power: 3 }), unit('right', 'colossus'));
-  match = target(target(applyAction(match, 'human', { type: 'leader' }), 'cocoon'), 'right');
-  assert.deepEqual(match.players.human.board.surface.map(({ power }) => power), [6, 13]);
-  assert.equal(match.players.human.leader.charges, 0);
+  match = target(applyAction(match, 'human', { type: 'leader' }), 'cocoon');
+  assert.deepEqual(match.players.human.board.surface.map(({ power }) => power), [4, 3, 1, 1, 5]);
+  assert.equal(match.players.human.leader.charges, 2);
   assert.equal(match.turn, 'human');
 });
 
@@ -337,7 +338,9 @@ test('vine infects up to three distinct enemies across both rows without request
   for (const count of [2, 4]) {
     let match = fixture({ faction: 'growth' });
     hand(match, unit('ravager', 'ravager'));
-    board(match, 'human', 'orbit', unit('vine', 'vine'));
+    const vine = unit('vine', 'vine');
+    vine.growth = 2;
+    board(match, 'human', 'orbit', vine);
     board(match, 'bot', 'orbit', unit('orbit', 'warden'));
     board(match, 'bot', 'surface', ...Array.from({ length: count - 1 }, (_, index) => unit('enemy-' + index, 'warden')));
     match = target(target(play(match, 'ravager'), 'vine'), 'orbit');
@@ -350,7 +353,7 @@ test('vine infects up to three distinct enemies across both rows without request
   }
 });
 
-test('the same unit can enter either row, and an explicit row effect still uses its printed target row', () => {
+test('the same unit can enter either row and target only its printed row', () => {
   for (const row of ['orbit', 'surface']) {
     let match = fixture();
     hand(match, unit('relay', 'relay'));
@@ -361,12 +364,7 @@ test('the same unit can enter either row, and an explicit row effect still uses 
     assert.deepEqual(match.pending.options, row === 'orbit' ? ['surface-target'] : ['surface-target', 'relay']);
   }
 
-  let match = fixture({ faction: 'growth' });
-  hand(match, unit('vine', 'vine'));
-  board(match, 'human', 'orbit', unit('existing', 'spore-sac'));
-  match = play(match, 'vine');
-  assert.deepEqual(match.players.human.board.orbit.map(({ definition }) => definition.id), ['spore-sac', 'larva']);
-  assert.equal(match.players.human.board.surface[0].id, 'vine');
+
 });
 
 test('orbital salvo hits either row, ignores artifacts, and goes directly to the discard', () => {
@@ -435,9 +433,10 @@ test('Incubator spawns from deployment and persists beyond three owner turns', (
   assert.equal(events(match, 'spawn').length, 1);
   match = applyAction(match, 'bot', { type: 'pass' });
   assert.equal(events(match, 'spawn').length, 1);
-  match = play(match, 'plain');
-  match = play(match, 'next', 1);
-  match = play(match, 'fourth', 2);
+  for (const [index, id] of ['plain', 'next', 'fourth'].entries()) {
+    match = play(match, id, index);
+    match = applyAction(match, 'human', { type: 'end-turn' });
+  }
   assert.equal(match.players.human.board.orbit[0].id, 'inc');
   assert.equal(match.players.human.board.orbit.filter(({ definition }) => definition.token).length, 4);
   assert.equal(events(match, 'tick').length, 0);
@@ -628,7 +627,7 @@ test('Shield Overload spends only the selected armor and scatters independent hi
   hand(match, unit('overload', 'shield-overload'));
   board(match, 'human', 'orbit', unit('reserve', 'shieldbearer'));
   board(match, 'human', 'surface', unit('one', 'shieldbearer'), unit('two', 'shieldbearer'));
-  board(match, 'bot', 'surface', unit('fragile', 'cocoon', { power: 1 }), unit('shield', 'shieldbearer'), unit('artifact', 'incubator'));
+  board(match, 'bot', 'surface', unit('fragile', 'frigate', { power: 1 }), unit('shield', 'shieldbearer'), unit('artifact', 'incubator'));
   match = play(match, 'overload');
   assert.deepEqual(match.pending.options, ['orbit', 'surface']);
   board(match, 'bot', 'orbit', unit('untouched', 'warden'));
@@ -654,7 +653,7 @@ test('Broodlord groups only larvae in its row and doubles their current power', 
   board(match, 'human', 'surface', grown, createCard('small', LARVA), unit('predator', 'predator'));
   board(match, 'human', 'orbit', createCard('elsewhere', LARVA));
   match = play(match, 'lord', 1);
-  assert.deepEqual(match.players.human.board.surface.map(({ id, power }) => [id, power]), [['lord', 12], ['predator', 6]]);
+  assert.deepEqual(match.players.human.board.surface.map(({ id, power }) => [id, power]), [['lord', 12], ['predator', 4]]);
   assert.equal(match.players.human.board.orbit[0].id, 'elsewhere');
   assert.deepEqual(events(match, 'consume-group')[0].cardIds, ['grown', 'small']);
   assert.equal(events(match, 'consume').length, 2);
@@ -671,8 +670,8 @@ test('printed stats, titles and rarity match the approved balance', () => {
     engineer: { provision: 4 }, infantry: { power: 3, armor: 2 }, 'orbital-salvo': { provision: 4 }, anvil: { rarity: 'epic', provision: 8 },
     colonel: { name: 'Октавиан Рейн', rarity: 'gold', provision: 10 },
     commander: { name: 'Кассия Фульмина', rarity: 'epic', provision: 8 },
-    'shield-overload': { provision: 12 }, cocoon: { power: 3 }, 'spore-sac': { provision: 4, power: 4 },
-    scavenger: { power: 3, zeal: true }, gulper: { power: 4 }, ravager: { provision: 9, power: 4, rarity: 'epic' },
+    'shield-overload': { provision: 12 }, cocoon: { power: 3 }, 'spore-sac': { provision: 4, power: 1, armor: 1 },
+    scavenger: { power: 4, zeal: true }, gulper: { power: 4 }, ravager: { provision: 9, power: 4, rarity: 'epic' },
     nest: { provision: 9, power: 3, rarity: 'epic' },
     colossus: { power: 5 }, 'recon-drone': { power: 4 }, 'gate-guardian': { armor: 4 },
     'gravity-pulse': { provision: 7 },

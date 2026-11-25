@@ -442,12 +442,11 @@ export function applyAction(match, side, action, { random = Math.random, copy = 
     const { card } = availableOrders(next, side).find((unit) => unit.card.id === cardId);
     const order = card.definition.order;
     card.readyAt = current.turns + (order.cooldown ?? 0) + 1;
-    if (card.orderCharges !== undefined) {
-      card.orderCharges -= 1;
-      card.orderUsedTurn = current.turns;
-    }
+    if (card.orderCharges !== undefined) card.orderCharges -= 1;
+    if (order.oncePerTurn || card.orderCharges !== undefined) card.orderUsedTurn = current.turns;
     next.log.push({ type: 'order', side, name: card.definition.name, cardId: card.id, readyAt: card.readyAt,
-      ...(card.orderCharges !== undefined && { orderCharges: card.orderCharges, orderUsedTurn: card.orderUsedTurn }) });
+      ...(card.orderCharges !== undefined && { orderCharges: card.orderCharges }),
+      ...(card.orderUsedTurn !== undefined && { orderUsedTurn: card.orderUsedTurn }) });
     next.effects.push({ ability: orderAbility(order), side, sourceId: card.id, requiredSource: true, cardAbility: true });
   }
 

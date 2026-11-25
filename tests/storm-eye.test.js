@@ -11,6 +11,7 @@ const lightning = (event) => event.type === 'damage' && event.visual === 'lightn
 
 function setup() {
   const match = createMatch({ random, rules: { leaderCharges: 0 } });
+  for (const player of Object.values(match.players)) player.leader.charges = 0;
   match.phase = 'playing';
   match.turn = 'human';
   const eye = createCard('eye', NEUTRAL_CARDS.find(({ id }) => id === 'storm-eye'));

@@ -35,7 +35,7 @@ test('Bioreactor resolves each deathwish before choosing the next of three sacri
   assert.equal(findUnit(match, 'enemy').card.power, 4);
   match = pick(match, 'third');
   assert.equal(match.pending, null);
-  assert.equal(findUnit(match, 'bioreactor').card.power, 12);
+  assert.equal(findUnit(match, 'bioreactor').card.power, 14);
   assert.ok(findUnit(match, 'second'));
 });
 

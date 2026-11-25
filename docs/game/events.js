@@ -55,7 +55,7 @@ export function deathwishDefinitions(card) {
 
 export function deathwishJobs(card, context) {
   return deathwishDefinitions(card).map((definition) => ({
-    ...context, ability: definition.deathwish, deathwish: card.definition.name, cardAbility: true,
+    ...context, sourceGrowth: card.growth, ability: definition.deathwish, deathwish: card.definition.name, cardAbility: true,
   }));
 }
 

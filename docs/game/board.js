@@ -19,6 +19,7 @@ export function createCard(id, definition) {
   const card = { id, definition, readyAt: 0 };
   if (isUnit(card)) Object.assign(card, { power: definition.power, basePower: definition.power, armor: definition.armor ?? 0 });
   if (definition.order?.charges !== undefined) card.orderCharges = definition.order.charges;
+  if (definition.growth) card.growth = 0;
   if (definition.timer !== undefined) card.timer = definition.timer;
   if (definition.scenario) card.chapter = 0;
   if (definition.resilience) card.resilient = true;
@@ -30,8 +31,8 @@ export function restoreCard(previous) {
   const card = createCard(previous.id, previous.definition);
   if (previous.orderCharges !== undefined) {
     card.orderCharges = previous.orderCharges;
-    card.orderUsedTurn = previous.orderUsedTurn;
   }
+  if (previous.orderUsedTurn !== undefined) card.orderUsedTurn = previous.orderUsedTurn;
   if (previous.resilient === false) card.resilient = false;
   if (isLocked(previous)) card.statuses = { lock: 1 };
   if (isUnit(card)) card.power = card.basePower = basePower(previous);
@@ -302,7 +303,11 @@ export function applyStatus(match, unit, status, amount, extra) {
   const context = { source: card, neighbors: neighbors(match, unit) };
   const effects = emit(match, event, context);
   if (status === 'armor' && before > 0 && count === 0) {
-    effects.push(...emit(match, { type: 'armor-break', side, cardId: card.id, sourceDefinitionId: extra?.sourceDefinitionId }, { ...context, journal: false }));
+    const breakJobs = emit(match, { type: 'armor-break', side, cardId: card.id, sourceDefinitionId: extra?.sourceDefinitionId }, { ...context, journal: false });
+    for (const job of breakJobs) {
+      if (job.ability.survivesSource) Object.assign(job, { requiredSource: false, row: unit.row, position: unit.position });
+    }
+    effects.push(...breakJobs);
   }
   if (status === 'infection' && before === 0 && count > 0) {
     effects.push(...emit(match, { ...event, type: 'first-infection' }, { ...context, journal: false }));
@@ -333,14 +338,14 @@ export function tickInfection(match, unit) {
   else if (!blocked) onPowerLoss(match, unit);
 }
 
-export function removeUnit(match, unit, reason, consumerId, extra) {
+export function removeUnit(match, unit, reason, consumerId, extra, deathPosition = unit.position) {
   const { side, row, card, position } = unit;
   const player = match.players[side];
   player.board[row].splice(position, 1);
   const owner = card.owner ?? side;
   const exile = reason === 'destroy' || statusCount(card, 'doomed') > 0;
   discardCard(match, side, card, exile);
-  const death = ['destroy', 'discard'].includes(reason) ? undefined : { row, position, refs: { consumer: consumerId } };
+  const death = ['destroy', 'discard'].includes(reason) ? undefined : { row, position: deathPosition, refs: { consumer: consumerId } };
   match.effects.unshift(...emit(match, {
     type: death ? 'death' : reason, side,
     ...(owner !== side && { owner }), name: card.definition.name, cardId: card.id, power: card.power,
@@ -452,16 +457,18 @@ export function damage(match, unit, amount, sourceDefinitionId, extra) {
   return 1;
 }
 
-export function consume(match, victim, consumer, { multiplier = 1, extra = 0, grouped } = {}) {
-  if (!victim || !consumer || !isUnit(victim.card) || !isUnit(consumer.card) ||
-      victim.side !== consumer.side || victim.card.id === consumer.card.id) return 0;
+export function consume(match, victim, consumer, { multiplier = 1, extra = 0, grouped, replacement } = {}) {
+  if (!victim || !isUnit(victim.card)) return 0;
+  if (!replacement && (!consumer || !isUnit(consumer.card) ||
+      victim.side !== consumer.side || victim.card.id === consumer.card.id)) return 0;
   const nearby = neighbors(match, victim);
   const strength = victim.card.power;
   const reactions = emit(match, {
-    type: 'consume', side: victim.side, name: victim.card.definition.name, cardId: victim.card.id, eaterId: consumer.card.id, eater: consumer.card.definition.name, amount: strength, ...(grouped && { grouped }),
+    type: 'consume', side: victim.side, name: victim.card.definition.name, cardId: victim.card.id, eaterId: consumer?.card.id, eater: consumer?.card.definition.name ?? match.players[victim.side].leader?.name, amount: strength, ...(grouped && { grouped }),
   }, { neighbors: nearby });
-  removeUnit(match, victim, 'consume', consumer.card.id);
-  boost(match, consumer, strength * multiplier + extra);
+  removeUnit(match, victim, 'consume', consumer?.card.id, undefined, victim.position + Number(Boolean(replacement)));
+  if (replacement) spawnCards(match, victim.side, victim.row, victim.position, 1, replacement, strength);
+  else boost(match, consumer, strength * multiplier + extra);
   match.effects.unshift(...reactions);
   return strength;
 }
@@ -472,11 +479,12 @@ export function takeCards(player, amount) {
   return cards;
 }
 
-export function spawnCards(match, side, row, position, count, definition) {
+export function spawnCards(match, side, row, position, count, definition, power) {
   const line = match.players[side].board[row];
   const added = Math.min(count, ROW_LIMIT - line.length);
   if (added <= 0) return;
   const tokens = Array.from({ length: added }, () => createCard(`token-${++match.tokenCount}`, definition));
+  if (power !== undefined) for (const token of tokens) token.power = power;
   placeCards(match.players[side], row, position, tokens);
   emit(match, { type: 'spawn', side, row, count: added, name: definition.name, position, cards: tokens.map((card) => ({ ...card })) });
   refreshPlacedPower(match, side, row, definition);

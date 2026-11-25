@@ -382,3 +382,38 @@ test('all bots can spend a Generator charge on armor synergy', () => {
   assert.equal(result.players.bot.board.surface[1].armor, 2);
   assert.equal(result.players.bot.board.surface[0].orderCharges, 2);
 });
+
+
+test('each bot uses Incubator each turn with space and targets the available row', () => {
+  for (const difficulty of ['easy', 'normal', 'hard']) {
+    let match = position(3);
+    const { bot, human } = match.players;
+    bot.board.orbit = [member('incubator', 'growth', 'incubator'),
+      ...Array.from({ length: 8 }, (_, i) => plain('blocked-' + i, 1))];
+    bot.hand = [plain('keep', 2)];
+    human.board.orbit = [plain('enemy', 20)];
+    const order = { type: 'order', cardId: 'incubator' };
+    assert.deepEqual(chooseBotTurn(match, difficulty), order);
+    match = applyAction(match, 'bot', order);
+    assert.deepEqual(chooseBotTurn(match, difficulty), { type: 'target', cardId: 'surface' });
+    match = applyAction(match, 'bot', chooseBotTurn(match, difficulty));
+    assert.equal(match.players.bot.board.surface.length, 2);
+    assert.notDeepEqual(chooseBotTurn(match, difficulty), order);
+    match = applyAction(match, 'bot', { type: 'play', cardId: 'keep', row: 'surface', position: 2 });
+    match = applyAction(match, 'human', { type: 'pass' });
+    assert.deepEqual(chooseBotTurn(match, difficulty), order);
+  }
+});
+
+test('Predator lets every bot choose a friendly Deathwish rather than an enemy', () => {
+  for (const difficulty of ['easy', 'normal', 'hard']) {
+    const match = position(3);
+    match.players.bot.hand = [member('predator', 'growth', 'predator')];
+    match.players.bot.board.surface = [member('cocoon', 'growth', 'cocoon')];
+    match.players.human.board.surface = [plain('enemy', 12)];
+    const pending = applyAction(match, 'bot', { type: 'play', cardId: 'predator', row: 'surface', position: 1 });
+    assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'cocoon' });
+    const next = applyAction(pending, 'bot', chooseBotTurn(pending, difficulty));
+    assert.deepEqual(next.players.bot.board.surface.map(({ power }) => power), [1, 1, 7]);
+  }
+});

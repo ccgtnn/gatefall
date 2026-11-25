@@ -4,7 +4,7 @@ import { ROWS } from './card-metadata.js';
 import { activeOrder, cardType, COIN_LIMIT, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js';
 import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
-import { armorTargetPriority, cleansePriority, deckCardValue, destructionRolls, destructionSwing, lockPriority, rowEffectValue, shouldProtectArmor } from './bot-effect-value.js';
+import { armorTargetPriority, cleansePriority, deckCardValue, destructionRolls, destructionSwing, growthPayoff, lockPriority, rowEffectValue, shouldProtectArmor } from './bot-effect-value.js';
 import { cardAbilities, isLocked } from './events.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js';
 
@@ -66,7 +66,7 @@ function boardValue(state, side) {
       + (ready.has(card.id) ? 1.15 : activeOrder(unit) ? .35 : 0)
       + (row === 'orbit' && abilities.fieldEvents?.['target-marked'] ? 1.25 : 0)
       + (abilities.endTurn && (!definition.aiHints?.endTurnNeedsMarkedEnemy || exposed) ? (timer === undefined ? 1.25 : .5 * Math.min(timer, 3)) : 0)
-      + counterBonus
+      + counterBonus + growthPayoff(state, side, card)
       + (!isLocked(card) && card.resilient && state.round < 3 ? (power ?? 0) * .4 : 0)
       + (abilities.scenario ? Math.min(definition.scenario.chapters.length - (card.chapter ?? 0),
         player.hand.filter((entry) => entry.definition.categories?.includes(definition.scenario.category)).length) * 2.5 : 0)

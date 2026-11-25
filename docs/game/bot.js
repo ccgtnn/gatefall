@@ -2,7 +2,7 @@ import { ROWS } from './card-metadata.js';
 import { cardType, findUnit, isUnit, neighbors, restoreCard, statusCount, units } from './board.js';
 import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
-import { armorTargetPriority, cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, rowDamage, rowEffectValue, rowScatterValue } from './bot-effect-value.js';
+import { armorTargetPriority, cleansePriority, deckCardValue, destructionSwing, effectSwing, growthPayoff, infectionGain, lockPriority, rowDamage, rowEffectValue, rowScatterValue } from './bot-effect-value.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, canEndTurn, canPass, playableCards, totalScore } from './match.js';
 
 import { offeringPriority, preferredLeaderUse } from './bot-leaders.js';
@@ -37,7 +37,10 @@ export function createBotView(match) {
         return { ...card, swing: (card.power ?? 0) + effectSwing(match, 'bot', card) };
       }
       const preferRowWith = card.definition.aiHints?.preferRowWith;
-      if (!preferRowWith) return card;
+      if (!preferRowWith) {
+        const payoff = growthPayoff(match, 'bot', card);
+        return payoff ? { ...card, swing: (card.power ?? 0) + payoff } : card;
+      }
       const rows = ROWS.filter((row) => bot.board[row].length < ROW_LIMIT);
       const allyPower = (row) => bot.board[row].filter(({ definition }) => definition.id === preferRowWith)
         .reduce((sum, unit) => sum + unit.power, 0);
@@ -132,9 +135,9 @@ function lethalDamage(card, amount) {
   return !statusCount(card, 'shield') && amount >= card.power + (card.armor ?? 0);
 }
 
-function sacrificePriority(card) {
+function sacrificePriority(card, match, side) {
   const wishes = deathwishDefinitions(card).length;
-  if (wishes) return 100 + 10 * wishes - card.power;
+  if (wishes) return 100 + 10 * wishes + growthPayoff(match, side, card) * 2 - card.power;
   if (card.definition.token) return 50;
   return -card.power;
 }
@@ -213,7 +216,7 @@ export function pickBotTarget(match) {
       return -Math.min(card.power, Math.max(0, 2 - (card.armor ?? 0)));
     },
     emp: ({ card }) => Math.min(card.power, 2 + (card.armor ?? 0)) + (card.armor ?? 0) * .1,
-    consume: ({ card }) => sacrificePriority(card),
+    consume: ({ card }) => sacrificePriority(card, match, match.pending.side),
     'leader-offering': (unit) => offeringPriority(match, match.pending.side, unit, amount),
     sacrifice: ({ card }) => -card.power,
     deathwish: ({ card }) => deathwishDefinitions(card).length * 10 + card.power,
@@ -273,7 +276,12 @@ export function chooseBotTurn(match, difficulty = 'easy', options = {}) {
   let decision;
   const strategy = { ...options, pickTarget: pickBotTarget, onDecision: (trace) => { decision = trace; } };
   let action;
-  if (['sacrifice', 'tribute', 'hand-bottom'].includes(match.pending?.kind)) {
+  const repeatableOrder = !match.pending && match.phase === 'playing' && match.turn === 'bot' &&
+    availableOrders(match, 'bot').find(({ card }) => card.definition.aiHints?.useOrderWhenReady);
+  if (repeatableOrder) {
+    action = { type: 'order', cardId: repeatableOrder.card.id };
+    decision = { reason: 'Использую готовый Приказ на порождение.' };
+  } else if (['sacrifice', 'tribute', 'hand-bottom'].includes(match.pending?.kind)) {
     action = pickBotTarget(match);
   } else if (match.pending && (difficulty !== 'easy' || match.pending.kind === 'deck-placement')) {
     action = chooseStrategicTarget(match, pickBotTarget, difficulty, strategy);

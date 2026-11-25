@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createCard, statusCount } from '../docs/game/board.js';
+import { createCard, findUnit, statusCount } from '../docs/game/board.js';
 import { chooseBotTurn } from '../docs/game/bot.js';
+import { DEVOURER_SPAWN } from '../docs/game/growth.js';
+import { findCardDefinition } from '../docs/game/card-registry.js';
 import { FACTIONS } from '../docs/game/cards.js';
-import { availableOrders } from '../docs/game/effects.js';
+import { availableOrders, canUseLeader } from '../docs/game/effects.js';
 import { applyAction, confirmMulligan, createMatch } from '../docs/game/match.js';
 
 const unit = (id, power = 7) => createCard(id, { id, name: id, type: 'unit', power });
@@ -66,6 +68,49 @@ test('Brood Mother accepts either friendly row, refuses full rows and caps spawn
   assert.equal(next.players.human.board.surface.at(-1).definition.id, 'larva');
 });
 
+test('Devourer has three charges, preserves victim strength and claims its slot before Deathwish', () => {
+  let match = fixture('growth', 'devourer');
+  const cocoon = FACTIONS.growth.pool.find(({ id }) => id === 'cocoon');
+  const victim = createCard('victim', cocoon);
+  victim.power = 11;
+  match.players.human.board.orbit = [unit('left'), victim, ...Array.from({ length: 7 }, (_, i) => unit('fill-' + i))];
+  match.players.bot.passed = true;
+  match.players.bot.board.orbit = [unit('enemy')];
+  assert.equal(findCardDefinition(DEVOURER_SPAWN.id), undefined);
+  for (const [victimId, remaining] of [['victim', 2], ['fill-0', 1], ['fill-1', 0]]) {
+    const pending = act(match, leaderAction);
+    assert.ok(!pending.pending.options.includes('enemy'));
+    match = pick(pending, victimId);
+    assert.equal(match.players.human.leader.charges, remaining);
+    assert.strictEqual(act(match, leaderAction), match);
+    if (remaining === 2) {
+      const offspring = match.players.human.board.orbit[1];
+      assert.deepEqual([offspring.definition, offspring.power, offspring.basePower], [DEVOURER_SPAWN, 11, 0]);
+      assert.equal(findUnit(match, victimId), undefined);
+    }
+    const next = match.players.human.hand.find(({ definition }) => (definition.type ?? 'unit') === 'unit' && !definition.requiredRow);
+    match = act(match, { type: 'play', cardId: next.id, row: 'surface', position: 0 });
+    if (match.playedCard) match = act(match, { type: 'end-turn' });
+  }
+  assert.equal(canUseLeader(match, 'human'), false);
+  assert.strictEqual(act(match, leaderAction), match);
+});
+
+test('Brood Mother starts with five charges, spawns one larva and waits until next turn', () => {
+  let match = fixture('growth', 'brood-mother');
+  match.players.bot.passed = true;
+  match.players.human.hand = Array.from({ length: 6 }, (_, i) => unit('play-' + i));
+  assert.equal(match.players.human.leader.charges, 5);
+  for (let i = 0; i < 5; i++) {
+    match = pick(act(match, leaderAction), 'orbit');
+    assert.equal(match.players.human.board.orbit.length, i + 1);
+    assert.equal(match.players.human.leader.charges, 4 - i);
+    assert.strictEqual(act(match, leaderAction), match);
+    match = act(match, { type: 'play', cardId: 'play-' + i, row: 'surface', position: i });
+  }
+  assert.equal(canUseLeader(match, 'human'), false);
+});
+
 test('Carrier infects its target and adjacent units only', () => {
   const match = fixture('growth', 'carrier');
   match.players.bot.board.surface = [unit('left'), unit('center'), unit('right'), unit('beyond')];
@@ -88,6 +133,9 @@ test('strategic bots simulate favorable uses and legal choices for every leader'
       human.board.surface = [unit('enemy-a'), unit('enemy-b'), unit('enemy-c')];
       bot.board.surface = [unit('friendly-a'), unit('friendly-b'), unit('friendly-c')];
       bot.hand = [unit('plain', 4)];
+      if (leader.id === 'devourer') {
+        bot.board.surface[0] = createCard('cocoon', FACTIONS.growth.pool.find(({ id }) => id === 'cocoon'));
+      }
       if (leader.id === 'high-priest') bot.board.surface[0] = unit('offering', 1);
       if (leader.id === 'supreme-commander') {
         const commander = member('commander', 'commander');
