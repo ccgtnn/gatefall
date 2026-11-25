@@ -1,4 +1,4 @@
-import { activeOrder, ROW_LIMIT, statusCount } from './board.js';
+import { activeOrder, neighbors, opponent, ROW_LIMIT, statusCount } from './board.js';
 import { canUseLeader } from './effects.js';
 import { targets } from './effect-queries.js';
 import { cardAbilities, deathwishDefinitions } from './events.js';
@@ -40,7 +40,14 @@ export function preferredLeaderUse(match, side) {
   const { leader } = player;
   const hints = leader?.aiHints;
   // A replacement order keeps the portrait but has its own ability.
-  if (!hints || leader.order?.sourceDefinitionId) return;
+  if (!leader || leader.order?.sourceDefinitionId) return;
+  const [first] = leader.ability?.select ?? [];
+  if (first?.kind === 'infection' && !match.players[opponent(side)].passed && canUseLeader(match, side)) {
+    const candidates = targets(match, { side }, first.targets, true);
+    if (candidates.some((target) => [target, ...neighbors(match, target)]
+      .filter(({ card }) => card.power > 1 && !statusCount(card, 'infection')).length >= 2)) return true;
+  }
+  if (!hints) return;
   if (!canUseLeader(match, side)) return false;
   if (hints.leaderCoinsAtMost !== undefined) return (player.coins ?? 0) <= hints.leaderCoinsAtMost;
 

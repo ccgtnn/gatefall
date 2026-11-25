@@ -1,14 +1,15 @@
 import { leaderTargetPriority, offeringPriority, preferredLeaderUse } from './bot-leaders.js';
 import { compareRollouts } from './bot-rollouts.js';
 import { ROWS } from './card-metadata.js';
-import { activeOrder, cardType, COIN_LIMIT, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js';
+import { activeOrder, cardType, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js';
 import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
-import { armorTargetPriority, cleansePriority, deckCardValue, destructionRolls, destructionSwing, growthPayoff, lockPriority, rowEffectValue, shouldProtectArmor } from './bot-effect-value.js';
+import { armorTargetPriority, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, lockPriority, rowEffectValue, shouldProtectArmor } from './bot-effect-value.js';
 import { cardAbilities, isLocked } from './events.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js';
 
-const COIN_VALUE = .25;
+import { armorBreakEmergence, consumeBonus, delayedCardValue, futureContext, inheritancePayoff, remainingTurns, wantsToHoldInheritance } from './bot-future-value.js';
+
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
 const SIMULATION = { random: () => .5 };
@@ -45,7 +46,7 @@ function potential(card) {
 function boardValue(state, side) {
   const player = state.players[side];
   if (player.passed) return 0;
-  const coins = player.coins ?? 0;
+  const context = futureContext(state, side);
   const ready = new Set(availableOrders(state, side).map(({ card }) => card.id));
   const enemy = state.players[opponent(side)];
   const rot = ROWS.reduce((sum, row) => {
@@ -54,32 +55,29 @@ function boardValue(state, side) {
   }, 0);
   const exposed = units(state, opponent(side)).filter(({ card }) => statusCount(card, 'target')).length;
   const plans = player.hand.some(({ definition }) => definition.keywords?.includes('Цель'));
-  return units(state, side).reduce((sum, unit) => {
+  return context.own.reduce((sum, unit) => {
     const { card, row } = unit;
-    const { definition, power, armor, counter, timer } = card;
+    const { definition, power, timer } = card;
     const abilities = cardAbilities(card);
-    const payout = definition.counter?.effect.steps.find(({ action }) => action === 'coins');
-    const counterBonus = isLocked(card) || !(counter > 0) ? 0 : payout
-      ? Math.min(Math.max(0, payout.amount), COIN_LIMIT - coins) * COIN_VALUE / counter
-      : player.deck.length ? 1.6 / counter : 0;
-    return sum + (armor ?? 0) * .12 + (definition.aiHints?.boardBonus ?? 0)
+    const endTurn = abilities.endTurn?.steps.every(({ action }) => !['spawn', 'advance-growth', 'boost'].includes(action));
+    return sum + delayedCardValue(context, card, row) + (definition.aiHints?.boardBonus ?? 0)
       + (ready.has(card.id) ? 1.15 : activeOrder(unit) ? .35 : 0)
       + (row === 'orbit' && abilities.fieldEvents?.['target-marked'] ? 1.25 : 0)
-      + (abilities.endTurn && (!definition.aiHints?.endTurnNeedsMarkedEnemy || exposed) ? (timer === undefined ? 1.25 : .5 * Math.min(timer, 3)) : 0)
-      + counterBonus + growthPayoff(state, side, card)
+      + (context.turns && endTurn && (!definition.aiHints?.endTurnNeedsMarkedEnemy || exposed) ? (timer === undefined ? 1.25 : .5 * Math.min(timer, 3)) : 0)
       + (!isLocked(card) && card.resilient && state.round < 3 ? (power ?? 0) * .4 : 0)
       + (abilities.scenario ? Math.min(definition.scenario.chapters.length - (card.chapter ?? 0),
         player.hand.filter((entry) => entry.definition.categories?.includes(definition.scenario.category)).length) * 2.5 : 0)
       + (abilities.fieldEvents?.death && ROWS.some((row) =>
         enemy.board[row].some((entry) => entry.statuses?.infection)) ? 1.25 : 0)
-      - .72 * infectionDamage(card);
-  }, (player.leader?.charges ?? 0) * .9 + coins * COIN_VALUE + rot + (plans ? exposed * .65 : 0));
+      - .72 * infectionDamage(card, context.turns);
+  }, Math.min(player.leader?.charges ?? 0, context.turns) * .9 +
+    (context.turns ? (player.coins ?? 0) * context.coinWeight : 0) + rot + (plans ? exposed * .65 : 0));
 }
 
 function value(state, round) {
   const { human, bot } = state.players;
   const handWeight = round === 3 ? .13 : .28;
-  const future = state.phase !== 'playing' || human.passed ? 0 : boardValue(state, 'bot') - boardValue(state, 'human');
+  const future = state.phase !== 'playing' ? 0 : boardValue(state, 'bot') - boardValue(state, 'human');
   const turnsToGrow = bot.passed || human.passed ? 0 : Math.min(4, Math.max(0, bot.hand.length - 1));
   return margin(state) + future + handWeight * bot.hand.reduce((sum, card) =>
     sum + potential(card) + turnsToGrow * (cardAbilities(card).startTurnGrowth ?? 0), 0);
@@ -112,9 +110,10 @@ function placements(state, side, card, rows = ROWS) {
 
 function plays(state, side) {
   const player = state.players[side];
-  const options = playableCards(state, side)
-    .filter((card) => player.usedAbility || !(destructionSwing(state, side, card) < 0))
-    .map((card) => {
+  const legal = playableCards(state, side)
+    .filter((card) => player.usedAbility || !(destructionSwing(state, side, card) < 0));
+  const context = futureContext(state, side);
+  const options = legal.filter((card) => !wantsToHoldInheritance(context, card, legal)).map((card) => {
       const action = { type: 'play', cardId: card.id };
       const cost = (card.definition.provision ?? 4) + (card.power ?? 0) * .15;
       if (cardType(card) === 'effect') return [{ action, cost }];
@@ -134,10 +133,16 @@ function abilities(state, side) {
 function choices(state) {
   const { kind, options, side, cardId, cards, pile = 'deck' } = state.pending;
   const leaderPriority = leaderTargetPriority(state, side, kind);
-  if (leaderPriority || kind === 'lock' || kind === 'cleanse' || kind === 'leader-offering' || kind === 'armor') {
-    const priority = leaderPriority ?? (kind === 'lock' ? lockPriority : kind === 'cleanse' ? cleansePriority
-      : kind === 'armor' ? (unit) => armorTargetPriority(state, side, unit)
-        : (unit) => offeringPriority(state, side, unit, state.pending.amount));
+  const priorities = {
+    lock: lockPriority,
+    cleanse: cleansePriority,
+    armor: (unit) => armorTargetPriority(state, side, unit),
+    'leader-offering': (unit) => offeringPriority(state, side, unit, state.pending.amount),
+    'infection-target': ({ card, side: targetSide }) =>
+      infectionGain(card, state.pending.amount, remainingTurns(state, targetSide)),
+  };
+  const priority = leaderPriority ?? priorities[kind];
+  if (priority) {
     const priorities = options.map((id) => priority(findUnit(state, id), side));
     const best = Math.max(...priorities);
     return options.filter((_, i) => priorities[i] === best).map((id) => ({ type: 'target', cardId: id }));
@@ -173,12 +178,28 @@ function removalShortfall(before, after, actor, card) {
   return Math.max(0, reserve - swing);
 }
 
+function choicePreference(state, side, action) {
+  if (action.type !== 'target') return 0;
+  const { kind, amount } = state.pending ?? {};
+  if (kind === 'armor-row') return -.4 * state.players[side].board[action.cardId]
+    .reduce((sum, card) => sum + armorBreakEmergence(card), 0);
+  if (kind !== 'consume' && kind !== 'spend-armor') return 0;
+  const victim = findUnit(state, action.cardId);
+  if (!victim) return 0;
+  if (kind === 'consume') return Math.min(6, consumeBonus(futureContext(state, side), victim)) * .24;
+  if (kind === 'spend-armor' && victim.card.armor <= (amount || Infinity)) {
+    return -armorBreakEmergence(victim.card) * .4;
+  }
+  return 0;
+}
+
 function evaluateAction(state, side, action, search) {
+  const choiceValue = choicePreference(state, side, action);
   function finish(next, depth) {
     const actor = next.pending?.side ?? next.turn;
     if (depth >= 36 || (!next.pending && (next.phase !== 'playing' || actor !== side ||
         next.players[side].turns !== state.players[side].turns))) {
-      return { next, rating: value(next, state.round) };
+      return { next, rating: value(next, state.round) + (side === 'bot' ? choiceValue : -choiceValue) };
     }
 
     let actions;
@@ -233,13 +254,18 @@ function searchLimit(random) {
   };
 }
 
-function rankPlays(state, search, limit) {
+function rankPlays(state, search, limit, candidateBudget = 22) {
   const ranked = [];
+  const context = futureContext(state, 'bot');
   for (const { action, cost } of plays(state, 'bot')) {
     if (search.expired()) break;
-    const local = limit(22);
+    const local = limit(candidateBudget);
     const candidate = evaluateAction(state, 'bot', action, { expired: () => search.expired() || local.expired() });
-    if (candidate) ranked.push({ ...candidate, action, cost });
+    if (candidate) {
+      const card = state.players.bot.hand.find(({ id }) => id === action.cardId);
+      const inherited = inheritancePayoff(context, card);
+      ranked.push({ ...candidate, rating: candidate.rating + (context.turns > 1 ? .4 * inherited : 0), action, cost });
+    }
   }
   return ranked.sort((a, b) => b.rating - a.rating || a.cost - b.cost);
 }
@@ -305,13 +331,15 @@ export function chooseStrategicTarget(match, pickTarget, difficulty = 'normal', 
   const fallback = pickTarget(match);
   if (match.pending.side !== 'bot') return fallback;
   const state = publicMatch(match);
-  const search = searchLimit(options.random)();
+  const search = searchLimit(options.random)(difficulty === 'hard' ? 850 : BOT_BUDGET_MS);
   const ranked = [];
   for (const action of choices(state)) {
     if (search.expired()) break;
     const candidate = evaluateAction(state, 'bot', action, search);
     if (!candidate) continue;
-    const rating = difficulty === 'hard' ? replyRating(candidate, state.round, search) : candidate.rating;
+    const rating = difficulty === 'hard'
+      ? replyRating(candidate, state.round, search) + .7 * choicePreference(state, 'bot', action)
+      : candidate.rating;
     ranked.push({ action, rating });
   }
   ranked.sort((a, b) => b.rating - a.rating);
@@ -320,7 +348,7 @@ export function chooseStrategicTarget(match, pickTarget, difficulty = 'normal', 
 
 export function chooseStrategicTurn(match, difficulty, oldAction, options = {}) {
   const limit = searchLimit(options.random);
-  const search = limit(difficulty === 'hard' ? (match.playedCard ? 45 : 380) : BOT_BUDGET_MS);
+  const search = limit(difficulty === 'hard' ? (match.playedCard ? 650 : 1750) : BOT_BUDGET_MS);
   const decide = (action, reason, ranked) => report(options, action, reason, ranked);
   const { bot, human } = match.players;
   const { round } = match;
@@ -369,9 +397,9 @@ export function chooseStrategicTurn(match, difficulty, oldAction, options = {}) 
   }
 
   // Give ordinary plays and ability sequences separate shares of the same time budget.
-  const playSearch = limit(hard ? 115 : 155);
-  const ranked = rankPlays(state, { expired: () => search.expired() || playSearch.expired() }, limit);
-  const abilitySearch = limit(hard ? 100 : 130);
+  const playSearch = limit(hard ? 390 : 155);
+  const ranked = rankPlays(state, { expired: () => search.expired() || playSearch.expired() }, limit, hard ? 55 : 22);
+  const abilitySearch = limit(hard ? 240 : 130);
   const withAbilities = rankAbilities(state, { expired: () => search.expired() || abilitySearch.expired() });
   const allowed = ranked.filter((candidate) => preservesArmor(candidate, bot));
   const mustWin = round === 3 || bot.lives === 1;

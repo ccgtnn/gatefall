@@ -1,6 +1,7 @@
 import { availableRows, cleansableStatuses, infectionDamage, isUnit, neighbors, opponent, restoreCard, ROW_LIMIT, statusCount, units } from './board.js';
 import { ROWS } from './card-metadata.js';
 import { canStart, eligiblePileCards, pileCandidates, playPiles, playTiming, rowArmor, rowSide, targets, valueOf } from './effect-queries.js';
+import { armorBreakEmergence, delayedCardValue, futureContext } from './bot-future-value.js';
 import { cardAbilities, deathwishDefinitions, isLocked } from './events.js';
 
 export function shouldProtectArmor(card, player) {
@@ -15,6 +16,9 @@ export function rowDamage(player, row, amount, armorStrip = 0) {
     const breaks = card.armor > 0 && armor <= (shielded ? 0 : amount) &&
       cardAbilities(card).events?.['armor-break']?.steps.some((step) => step.action === 'discard' && step.target.scope === 'source');
     if (breaks) return sum + card.power;
+    if (card.armor > 0 && armor <= (shielded ? 0 : amount) && armorBreakEmergence(card)) {
+      return sum + card.power - armorBreakEmergence(card);
+    }
     return sum + (shielded ? 0 : Math.min(card.power, Math.max(0, amount - armor)));
   }, 0);
 }
@@ -22,8 +26,12 @@ export function rowDamage(player, row, amount, armorStrip = 0) {
 export function rowScatterValue(player, row, amount) {
   const units = player.board[row].filter(isUnit);
   const perUnit = amount / Math.max(1, units.length);
-  return units.reduce((sum, card) => sum +
-    Math.min(card.power, Math.max(0, perUnit - (card.armor ?? 0) - statusCount(card, 'shield'))), 0);
+  return units.reduce((sum, card) => {
+    const absorbed = (card.armor ?? 0) + statusCount(card, 'shield');
+    const emergence = perUnit >= absorbed ? armorBreakEmergence(card) : 0;
+    return sum + (emergence ? card.power - emergence
+      : Math.min(card.power, Math.max(0, perUnit - absorbed)));
+  }, 0);
 }
 
 export function armorTargetPriority(match, side, unit) {
@@ -35,19 +43,6 @@ export function armorTargetPriority(match, side, unit) {
   const formations = player.hand.some(({ definition }) => definition.aiHints?.placement === 'armored-neighbors');
   return Number(Boolean(enablesCost)) * 3 + Number(Boolean(card.definition.aiHints?.armorBreakCostsPower)) * 3 +
     Number(formations && armor === 0) * (neighbors(match, unit).length + 1) + card.power * .1 - armor * .1;
-}
-
-export function growthPayoff(match, side, card) {
-  const { deathwish, events } = cardAbilities(card);
-  const growing = deathwish?.steps.find(({ count, power }) => count?.growth || power?.growth);
-  const evolved = card.growth ?? 0;
-  if (growing?.count) {
-    const enemies = units(match, opponent(side)).filter(({ card }) => isUnit(card)).length;
-    return .5 * Math.min(enemies, growing.count.base + evolved);
-  }
-  if (growing?.power) return .5 * (growing.power.base + evolved);
-  const emergence = events?.['armor-break']?.steps.find(({ action }) => action === 'spawn');
-  return emergence && card.armor > 0 ? .4 * emergence.amount : 0;
 }
 
 export function infectionGain(card, amount, turns = Infinity) {
@@ -204,9 +199,13 @@ function damageSwing({ match, job, card }, step) {
   const stripArmor = step.amount?.result === 'armor' && step.amount.base !== undefined;
   const amounts = options.map((target) => valueOf(match, job, step.amount, target) + (stripArmor ? target.card.armor : 0));
   const highest = Math.max(0, ...amounts);
-  const points = options.map(({ card, side: targetSide }, index) =>
-    statusCount(card, 'shield') || (step.amount?.row && amounts[index] !== highest) ? 0
-      : (targetSide === side ? -1 : 1) * Math.min(card.power, Math.max(0, amounts[index] - (stripArmor ? 0 : card.armor ?? 0))));
+  const points = options.map(({ card, side: targetSide }, index) => {
+    if (statusCount(card, 'shield') || (step.amount?.row && amounts[index] !== highest)) return 0;
+    const armor = stripArmor ? 0 : card.armor ?? 0;
+    const emergence = amounts[index] >= armor && card.armor > 0 ? armorBreakEmergence(card) : 0;
+    const lost = emergence ? card.power - emergence : Math.min(card.power, Math.max(0, amounts[index] - armor));
+    return (targetSide === side ? -1 : 1) * lost;
+  });
   return !selection && !step.mode && ['ally', 'enemy', 'field'].includes(step.target.scope) ? points.reduce((sum, value) => sum + value, 0)
     : points.length ? Math.max(...points) : 0;
 }
@@ -251,5 +250,5 @@ export function deckCardValue(match, side, card) {
   const { deploy, order, endTurn, scenario } = cardAbilities(card);
   const value = (card.power ?? 0) * (definition.enemySide ? -1 : 1) + (card.armor ?? 0) * .15;
   const swing = deploy?.steps.some((step) => step.fullDeck || step.action === 'play-from-discard') ? 0 : effectSwing(match, side, card);
-  return value + swing + growthPayoff(match, side, card) + Number(Boolean(deploy || order || endTurn || scenario));
+  return value + swing + delayedCardValue(futureContext(match, side), card, undefined, true) + Number(Boolean(deploy || order || endTurn || scenario));
 }

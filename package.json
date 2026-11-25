@@ -11,7 +11,7 @@
     "start": "python3 -m http.server 8000 --directory docs",
     "build:pages": "node tools/build-pages.mjs",
     "ctx": "node tools/context.mjs",
-    "test:ui": "node --test tests/base-layout.test.js tests/card-badges.test.js tests/card-motion.test.js tests/card-placement.test.js tests/catalog.test.js tests/context.test.js tests/deck-json.test.js tests/decks.test.js tests/lazy-sections.test.js tests/match-turn.test.js tests/pages-build.test.js tests/recent-decks.test.js tests/sound.test.js tests/test-suites.test.js"
+    "test:ui": "node --test tests/base-layout.test.js tests/bot-search.test.js tests/card-badges.test.js tests/card-motion.test.js tests/card-placement.test.js tests/catalog.test.js tests/context.test.js tests/deck-json.test.js tests/decks.test.js tests/lazy-sections.test.js tests/match-turn.test.js tests/pages-build.test.js tests/recent-decks.test.js tests/sound.test.js tests/test-suites.test.js"
   },
   "engines": {
     "node": ">=22"
