@@ -17,13 +17,27 @@ const files = new Map([
 test('a catalog change updates every importing URL and preserves unrelated module URLs', () => {
   const before = versionModules(files);
   const after = versionModules(new Map(files).set('game/neutral.js', 'export const value = 2;'));
-  assert.match(before.get('index.html'), /\.\/app\.js\?v=legacy&gf=[0-9a-f]{16}/);
+  assert.match(before.get('index.html'), /\.\/app\.js\?gf=[0-9a-f]{16}/);
   assert.match(before.get('game/cards.js'), /\.\/neutral\.js\?gf=[0-9a-f]{16}/);
   assert.notEqual(before.get('game/cards.js'), after.get('game/cards.js'));
   assert.notEqual(before.get('app.js').split('\n')[0], after.get('app.js').split('\n')[0]);
   assert.notEqual(before.get('index.html').split('\n')[0], after.get('index.html').split('\n')[0]);
   assert.equal(before.get('app.js').split('\n')[1], after.get('app.js').split('\n')[1]);
   assert.equal(before.get('index.html').split('\n')[1], after.get('index.html').split('\n')[1]);
+});
+
+test('legacy version aliases resolve to one module URL while other parameters and fragments survive', () => {
+  const built = versionModules(new Map([
+    ['index.html', '<script src="./shared.js?v=branch&amp;layout=wide"></script>'],
+    ['app.js', "import './shared.js?v=one';\nimport './shared.js?v=two';\nimport './shared.js';\nimport './shared.js?layout=wide&v=old#panel';"],
+    ['shared.js', 'export const ready = true;'],
+  ]));
+  const [first, second, unversioned, layout] = built.get('app.js').split('\n');
+  const hash = first.match(/\?gf=([0-9a-f]{16})/)[1];
+  assert.equal(second, first);
+  assert.equal(unversioned, first);
+  assert.equal(layout, `import './shared.js?layout=wide&gf=${hash}#panel';`);
+  assert.equal(built.get('index.html'), `<script src="./shared.js?layout=wide&amp;gf=${hash}"></script>`);
 });
 
 test('cycles have stable versions regardless of file enumeration order', () => {

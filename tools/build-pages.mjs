@@ -4,6 +4,8 @@ import { join, posix, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const moduleUrl = /(["'])(\.{1,2}\/[^"'?#\s]+\.js)(\?[^"'#\s]*)?(#[^"'\s]*)?\1/g;
+// Rewriting imports changes the served bytes even when the input graph stays the same.
+const moduleUrlFormat = 'pages-module-url-2';
 
 function referencedModule(filename, specifier) {
   return posix.normalize(posix.join(posix.dirname(filename), specifier));
@@ -30,7 +32,7 @@ export function versionModules(files) {
       pending.push(...scripts.get(name));
     }
     const inputs = [...reachable].sort().map((name) => [name, files.get(name)]);
-    versions.set(script, createHash('sha256').update(JSON.stringify(inputs)).digest('hex').slice(0, 16));
+    versions.set(script, createHash('sha256').update(JSON.stringify([moduleUrlFormat, inputs])).digest('hex').slice(0, 16));
   }
 
   return new Map([...files].map(([filename, source]) => [
@@ -38,7 +40,12 @@ export function versionModules(files) {
     source.replace(moduleUrl, (match, quote, specifier, query, fragment = '') => {
       const version = versions.get(referencedModule(filename, specifier));
       if (!version) return match;
-      return quote + specifier + (query ? query + '&' : '?') + 'gf=' + version + fragment + quote;
+      const html = filename.endsWith('.html');
+      const params = new URLSearchParams(html ? query?.replaceAll('&amp;', '&') : query);
+      params.delete('v');
+      params.set('gf', version);
+      const search = html ? params.toString().replaceAll('&', '&amp;') : params.toString();
+      return quote + specifier + '?' + search + fragment + quote;
     }),
   ]));
 }
