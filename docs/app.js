@@ -195,7 +195,7 @@ function showNotice(notice, text, duration) {
   hideNotice(notice);
   notice.hidden = false;
   notice.textContent = text;
-  noticeTimers.set(notice, setTimeout(() => hideNotice(notice), duration));
+  if (duration !== undefined) noticeTimers.set(notice, setTimeout(() => hideNotice(notice), duration));
 }
 
 function goTo(view) {

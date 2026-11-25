@@ -106,7 +106,7 @@ test('All Choir cards have full art and crops in the catalog', async () => {
 
 test('The three bronze Psionic effects count toward starting-deck Obsession', () => {
   const definitions = [
-    ['call-of-the-deep', 6], ['mind-strike', 5], ['sleeper-litany', 4],
+    ['call-of-the-deep', 6], ['mind-strike', 5], ['sleeper-litany', 6],
   ].map(([id, provision]) => {
     const definition = cards.get(id);
     assert.equal(definition.type, 'effect');
@@ -142,7 +142,7 @@ test('Call of the Deep transforms and boosts the selected unit in place on eithe
     assert.equal(card.definition.id, TENTACLE.id);
     assert.equal(card.definition.token, true);
     assert.equal(card.power, 11);
-    assert.equal(card.basePower, 3);
+    assert.equal(card.basePower, 2);
     const events = result.log.filter(({ cardId }) => cardId === id).map(({ type, card, amount }) =>
       [type, card?.power ?? amount]);
     assert.deepEqual(events, [['transform', 7], ['boost', 4]]);
@@ -197,7 +197,7 @@ test('Sleeper Litany offers three Choir bronze units and plays one with an owner
     assert.equal(result.log.findLast(({ type }) => type === 'counter').remaining, remaining);
   }
   assert.equal(get(result, id).definition.id, TENTACLE.id);
-  assert.equal(get(result, id).power, 3);
+  assert.equal(get(result, id).power, 2);
   assert.equal(get(result, 'surface-0').chapter, 1);
 });
 
@@ -264,6 +264,7 @@ test('Capture moves the exact card with its strength, armor, statuses and owner,
   enemy.statuses = { shield: 1, infection: 2, target: 1, lock: 1 };
   const choosing = play(initial);
   const match = pick(choosing, 'enemy-0');
+  assert.equal(get(match, 'hand-0').basePower, 1);
   const captured = findUnit(match, enemy.id);
   assert.deepEqual([captured.side, captured.row, captured.card.power, captured.card.armor, captured.card.owner],
     ['human', 'orbit', 3, 3, 'bot']);
@@ -286,7 +287,7 @@ test('Fanatic transforms at two power or less in place, but not on lethal damage
   assert.equal(get(match, 'surface-1').definition.id, FANATIC.id);
   hit(match, 'surface-1', 1);
   assert.deepEqual(human(match).board.surface.map(({ definition, power }) => [definition.id, power]),
-    [['unit-9', 9], [TENTACLE.id, 3], ['unit-9', 9]]);
+    [['unit-9', 9], [TENTACLE.id, 2], ['unit-9', 9]]);
 
   const lethal = setup({ orbit: [FANATIC] });
   hit(lethal, 'orbit-0', 4);

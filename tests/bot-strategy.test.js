@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { COIN_LIMIT, createCard } from '../docs/game/board.js';
 import { CAPTAIN_CARDS, HOUND } from '../docs/game/captains.js';
-import { chooseBotTurn, createBotView } from '../docs/game/bot.js';
+import { chooseBotTurn, createBotView, pickBotTarget } from '../docs/game/bot.js';
+import { delayedCardValue, futureContext } from '../docs/game/bot-future-value.js';
 import { AWAKENING } from '../docs/game/choir.js';
 import { FACTIONS, LARVA } from '../docs/game/cards.js';
 import { applyAction, canEndTurn, canPass, confirmMulligan, createMatch } from '../docs/game/match.js';
@@ -360,7 +361,7 @@ test('the strategic bot values the Fence payout with an empty deck only if coins
   const control = { ...fence, id: 'plain-fence', counter: undefined };
   const match = position();
   match.players.bot.deck = [];
-  match.players.bot.hand = [standard('plain-fence', control), standard('fence', fence)];
+  match.players.bot.hand = [standard('plain-fence', control), standard('fence', fence), plain('later', 1)];
   assert.equal(chooseBotTurn(match, 'normal').cardId, 'fence');
   match.players.bot.coins = COIN_LIMIT;
   assert.equal(chooseBotTurn(match, 'normal').cardId, 'plain-fence');
@@ -435,4 +436,73 @@ test('normal bot makes the same exploratory decision with the same seed', () => 
   assert.deepEqual(decide(1972), first);
   assert.equal(first.cardId, 'ordinary');
   assert.equal(decide(1).cardId, 'slightly-better');
+});
+
+test('all bots hold Genome Keeper with an empty discard and play it with three useful Deathwishes', () => {
+  const match = position(3);
+  const { bot, human } = match.players;
+  const card = (id) => standard(id, FACTIONS.growth.pool.find((definition) => definition.id === id));
+  bot.hand = [card('genome-keeper'), plain('alternative', 4), card('predator')];
+  human.board.surface = [plain('foe', 10), plain('another', 7)];
+  const modes = ['easy', 'normal', 'hard'];
+  for (const mode of modes) assert.notEqual(chooseBotTurn(match, mode, { rolloutSamples: 0 }).cardId, 'genome-keeper');
+  bot.discard = ['acid-capsule', 'cocoon', 'spore-sac'].map(card);
+  for (const mode of modes) assert.equal(chooseBotTurn(match, mode, { rolloutSamples: 0 }).cardId, 'genome-keeper', mode);
+});
+
+test('all bots prefer a Deathwish or Larva over consuming an equally strong plain unit', () => {
+  for (const sacrifice of [standard('larva', LARVA), member('cocoon', 'growth', 'cocoon')]) {
+    const match = position(3);
+    const { bot } = match.players;
+    bot.hand = [member('predator', 'growth', 'predator'), plain('alternate', 3)];
+    bot.board.surface = [plain('blank', sacrifice.power), sacrifice];
+    const pending = applyAction(match, 'bot', { type: 'play', cardId: 'predator', row: 'surface', position: 2 });
+    for (const mode of ['easy', 'normal', 'hard']) {
+      assert.equal(chooseBotTurn(pending, mode, { rolloutSamples: 0 }).cardId, sacrifice.id, mode);
+    }
+  }
+});
+
+test('Vine and Spore Sac gain forecast value as they mature, and Fence needs time to pay out', () => {
+  const match = position(3);
+  match.players.human.board.surface = ['a', 'b', 'c'].map((id) => plain(id, 8));
+  match.players.bot.hand.push(member('predator', 'growth', 'predator'));
+  const context = futureContext(match, 'bot');
+  for (const id of ['vine', 'spore-sac']) {
+    const card = member(id, 'growth', id);
+    const before = delayedCardValue(context, card, 'surface');
+    assert.ok(delayedCardValue(context, { ...card, growth: 2 }, 'surface') > before);
+  }
+  const fence = standard('fence', CAPTAIN_CARDS.find(({ id }) => id === 'stolen-goods-fence'));
+  assert.ok(delayedCardValue(context, fence, 'surface') > 0);
+  match.players.bot.hand = [plain('last', 4)];
+  assert.equal(delayedCardValue(futureContext(match, 'bot'), fence, 'surface'), 0);
+});
+
+test('bot avoids breaking Boil armor when a safer damage or armor target exists', () => {
+  const match = position(3);
+  const definition = FACTIONS.growth.pool.find(({ id }) => id === 'boil');
+  match.players.human.board.surface = [standard('enemy-boil', definition), plain('enemy-unit', 4)];
+  match.pending = { side: 'bot', options: ['enemy-boil', 'enemy-unit'], kind: 'damage', amount: 3 };
+  assert.equal(pickBotTarget(match).cardId, 'enemy-unit');
+  match.players.bot.board.orbit = [standard('own-boil', definition), { ...plain('armored', 2), armor: 1 }];
+  match.pending = { side: 'bot', options: ['own-boil', 'armored'], kind: 'spend-armor' };
+  assert.equal(pickBotTarget(match).cardId, 'armored');
+});
+
+test('hard bot decisions including rollout scores repeat with the same seed', () => {
+  const match = position(3);
+  function decide() {
+    let seed = 4831;
+    let trace;
+    const action = chooseBotTurn(structuredClone(match), 'hard', {
+      random: () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32,
+      rolloutSamples: 2,
+      onDecision: (decision) => { trace = decision; },
+    });
+    return { action, trace };
+  }
+  const first = decide();
+  assert.ok(first.trace.candidates.some(({ samples }) => samples > 0));
+  assert.deepEqual(decide(), first);
 });

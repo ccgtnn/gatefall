@@ -1,5 +1,6 @@
 import { animateHandTurn, animateLifeLoss, animateTurnSparks, presentJournalEvent } from './card-motion.js';
-import { BOT_DELAY_MS, chooseBotTurn } from '../game/bot.js';
+import { BOT_DELAY_MS } from '../game/bot.js';
+import { createBotSearch } from './bot-search.js';
 import { applyAction } from '../game/match.js';
 import { playJournal } from './turn-playback.js';
 import { element } from './dom.js';
@@ -13,6 +14,7 @@ export function createMatchTurn({
   render, recordJournal, onMatchChanged, onCancelTargeting, difficulty, battlefieldStyle,
 }) {
   const { turnNotice, coinNotice, roundNotice } = notices;
+  const botSearch = createBotSearch();
   let match;
   let matchSession = 0;
   let timer;
@@ -24,6 +26,7 @@ export function createMatchTurn({
   function reset(next) {
     matchSession += 1;
     clearTimeout(timer);
+    botSearch.cancel();
     match = next;
     replaying = false;
     targetAction = undefined;
@@ -63,12 +66,18 @@ export function createMatchTurn({
     return overlay;
   }
 
-  function playBotTurn() {
-    let trace;
-    const options = settings.showBotThoughts() ? { onDecision: (decision) => { trace = decision; } } : {};
-    const action = chooseBotTurn(match, difficulty(), options);
-    const next = applyAction(match, 'bot', action);
-    if (trace && next !== match) {
+  async function playBotTurn() {
+    const before = match;
+    const session = matchSession;
+    const level = difficulty();
+    const asyncSearch = level === 'hard' || level === 'normal';
+    if (asyncSearch) showNotice(turnNotice, 'Противник думает…');
+    const result = await botSearch.choose(before, level, settings.showBotThoughts());
+    if (session !== matchSession || match !== before || !result) return;
+    if (asyncSearch) hideNotice(turnNotice);
+    const { action, trace } = result;
+    const next = applyAction(before, 'bot', action);
+    if (trace && next !== before) {
       next.log.push({
         type: 'bot-thought', side: 'bot',
         chosen: describeBotAction(match, action), reason: trace.reason,

@@ -8,6 +8,8 @@ import { rowArmor } from './effect-queries.js';
 import { preferredLeaderUse } from './bot-leaders.js';
 import { effectSwing, infectionGain, shouldProtectArmor } from './bot-effect-value.js';
 
+import { armorBreakEmergence, delayedCardValue, futureContext, wantsToHoldInheritance } from './bot-future-value.js';
+
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
 export const ROLLOUT_SAMPLES = 9;
@@ -95,12 +97,14 @@ function rowValue(player, card, row, position) {
 
 function armorSpendValue(player, row) {
   return rowArmor(player, row) - player.board[row].reduce((sum, card) =>
-    sum + (card.definition.aiHints?.armorBreakCostsPower ? card.power : 0), 0);
+    sum + armorBreakEmergence(card) + (card.definition.aiHints?.armorBreakCostsPower ? card.power : 0), 0);
 }
 
 function fastPlays(match, side) {
   const player = match.players[side];
-  return playableCards(match, side).map((card) => {
+  const context = futureContext(match, side);
+  const legal = playableCards(match, side);
+  return legal.filter((card) => !wantsToHoldInheritance(context, card, legal)).map((card) => {
     const def = card.definition;
     const action = { type: 'play', cardId: card.id };
     const cost = printedValue(card);
@@ -137,7 +141,7 @@ function fastPlays(match, side) {
     return {
       action: { ...action, row: choice.row, position: choice.position },
       points: (card.power ?? 0) * (def.enemySide ? -1 : 1) + (def.deploy || def.endTurn || def.order ? 1 : 0)
-        + choice.value + removal + scenario + scenarioTrigger,
+        + choice.value + removal + scenario + scenarioTrigger + delayedCardValue(context, card, choice.row, true),
       cost, reserve: 0,
     };
   });

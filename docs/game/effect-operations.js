@@ -1,4 +1,4 @@
-import { deathwishDefinitions, deathwishJobs, emit, isLocked } from './events.js';
+import { deathwishJobs, emit, inheritableDeathwishes, isLocked } from './events.js';
 import {
   activeOrder, applyStatus, boost, capture, changeBasePower, changeCoins, cleanse, consume, damage, damageOverflow,
   findInPiles, findUnit, heal, isUnit, opponent, removeUnit, ROW_LIMIT, setRowEffect, spawnCards, statusCount,
@@ -107,15 +107,7 @@ function chooseUnit(match, job, step) {
 function inheritDeathwishes(match, job) {
   const unit = reference(match, job);
   if (unit) {
-    const wishes = new Map();
-    for (const card of match.players[job.side].discard) {
-      if (card.definition.rarity !== 'bronze') continue;
-      for (const definition of deathwishDefinitions(card)) {
-        const signature = JSON.stringify(definition.deathwish);
-        if (!wishes.has(signature)) wishes.set(signature, definition);
-      }
-    }
-    const inheritedDeathwishes = [...wishes.values()];
+    const inheritedDeathwishes = inheritableDeathwishes(match.players[job.side]);
     unit.card.inheritedDeathwishes = inheritedDeathwishes;
     match.log.push({ type: 'inherit-deathwishes', side: unit.side, cardId: unit.card.id, inheritedDeathwishes });
   }

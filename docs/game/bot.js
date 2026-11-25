@@ -2,7 +2,8 @@ import { ROWS } from './card-metadata.js';
 import { cardType, findUnit, isUnit, neighbors, restoreCard, statusCount, units } from './board.js';
 import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
-import { armorTargetPriority, cleansePriority, deckCardValue, destructionSwing, effectSwing, growthPayoff, infectionGain, lockPriority, rowDamage, rowEffectValue, rowScatterValue } from './bot-effect-value.js';
+import { armorTargetPriority, cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, rowDamage, rowEffectValue, rowScatterValue } from './bot-effect-value.js';
+import { armorBreakEmergence, consumeBonus, delayedCardValue, futureContext, inheritancePayoff, wantsToHoldInheritance } from './bot-future-value.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, canEndTurn, canPass, playableCards, totalScore } from './match.js';
 
 import { leaderTargetPriority, offeringPriority, preferredLeaderUse } from './bot-leaders.js';
@@ -14,8 +15,11 @@ export const BOT_DELAY_MS = 700;
 
 export function createBotView(match) {
   const { human, bot } = match.players;
+  const context = futureContext(match, 'bot');
+  const legal = playableCards(match, 'bot')
+    .filter((card) => bot.usedAbility || !(destructionSwing(match, 'bot', card) < 0));
   return {
-    cards: playableCards(match, 'bot').filter((card) => bot.usedAbility || !(destructionSwing(match, 'bot', card) < 0)).map((card) => {
+    cards: legal.filter((card) => !wantsToHoldInheritance(context, card, legal)).map((card) => {
       if (card.definition.enemySide) {
         const lengths = Object.fromEntries(ROWS.map((row) => [row, human.board[row].length]));
         const preferredRow = ROWS.filter((row) => lengths[row] < ROW_LIMIT).reduce((best, row) =>
@@ -23,24 +27,22 @@ export function createBotView(match) {
         return { ...card, preferredRow, destinationLengths: lengths, swing: -(card.power ?? 0) };
       }
       if (cardType(card) === 'effect') return { ...card, swing: effectSwing(match, 'bot', card) };
+      const delayed = delayedCardValue(context, card, undefined, true);
       const rowPreference = card.definition.preferredRow;
       if (rowPreference || card.definition.deploy?.steps.some(({ status }) => status === 'target')) {
         const row = rowPreference && bot.board[rowPreference].length < ROW_LIMIT ? rowPreference : undefined;
         const swing = card.definition.deploy?.sourceRow && !row ? 0 : effectSwing(match, 'bot', card);
-        return { ...card, preferredRow: row, swing: (card.power ?? 0) + swing };
+        return { ...card, preferredRow: row, swing: (card.power ?? 0) + swing + delayed };
       }
       if (card.definition.deploy?.steps.some((step) => step.amount?.playedCategory || step.amount?.startingCategory ||
           step.action === 'play-from-hand' || step.chooseAll)) {
-        return { ...card, swing: (card.power ?? 0) + effectSwing(match, 'bot', card) };
+        return { ...card, swing: (card.power ?? 0) + effectSwing(match, 'bot', card) + delayed };
       }
       if (card.definition.deploy?.steps.some((step) => step.status === 'infection' || step.action === 'replace-leader')) {
-        return { ...card, swing: (card.power ?? 0) + effectSwing(match, 'bot', card) };
+        return { ...card, swing: (card.power ?? 0) + effectSwing(match, 'bot', card) + delayed };
       }
       const preferRowWith = card.definition.aiHints?.preferRowWith;
-      if (!preferRowWith) {
-        const payoff = growthPayoff(match, 'bot', card);
-        return payoff ? { ...card, swing: (card.power ?? 0) + payoff } : card;
-      }
+      if (!preferRowWith) return delayed ? { ...card, swing: (card.power ?? 0) + delayed } : card;
       const rows = ROWS.filter((row) => bot.board[row].length < ROW_LIMIT);
       const allyPower = (row) => bot.board[row].filter(({ definition }) => definition.id === preferRowWith)
         .reduce((sum, unit) => sum + unit.power, 0);
@@ -135,13 +137,6 @@ function lethalDamage(card, amount) {
   return !statusCount(card, 'shield') && amount >= card.power + (card.armor ?? 0);
 }
 
-function sacrificePriority(card, match, side) {
-  const wishes = deathwishDefinitions(card).length;
-  if (wishes) return 100 + 10 * wishes + growthPayoff(match, side, card) * 2 - card.power;
-  if (card.definition.token) return 50;
-  return -card.power;
-}
-
 function bestTarget(candidates, priority) {
   return candidates.reduce((best, unit) => priority(unit) > priority(best) ? unit : best);
 }
@@ -150,7 +145,8 @@ export function pickBotTarget(match) {
   const { kind, amount, amounts, armorStrip, options, preferHigherAmount, scatter } = match.pending;
   const player = match.players[match.pending.side];
   if (kind === 'armor-row') {
-    const row = bestTarget(options, (row) => rowArmor(player, row));
+    const row = bestTarget(options, (row) => rowArmor(player, row) - player.board[row]
+      .reduce((sum, card) => sum + armorBreakEmergence(card), 0));
     return { type: 'target', cardId: row };
   }
   if (kind === 'spawn-row') {
@@ -203,27 +199,30 @@ export function pickBotTarget(match) {
   const highest = Math.max(0, ...Object.values(amounts ?? {}));
   const candidates = preferHigherAmount ? optionsWithUnits.filter(({ card }) => amounts[card.id] === highest) : optionsWithUnits;
   const lethal = kind === 'damage' ? candidates.filter(({ card, side }) =>
-    side !== match.pending.side && lethalDamage(card, amounts?.[card.id] ?? amount)) : [];
+    side !== match.pending.side && lethalDamage(card, amounts?.[card.id] ?? amount) && card.power > armorBreakEmergence(card)) : [];
+  const forecast = kind === 'consume' && futureContext(match, match.pending.side);
   const priorities = {
     damage: ({ card, side }) => {
       const shielded = statusCount(card, 'shield');
-      if (side !== match.pending.side) return shielded ? 0 : card.power;
+      if (side !== match.pending.side) return shielded ? 0
+        : card.power - ((amounts?.[card.id] ?? amount) >= card.armor ? armorBreakEmergence(card) : 0);
       return shielded ? -.5 : -1 - Math.min(card.power, Math.max(0, (amounts?.[card.id] ?? amount) - (card.armor ?? 0)));
     },
     'friendly-damage': ({ card }) => {
       if (statusCount(card, 'shield')) return -.5;
-      if (card.definition.aiHints?.armorBreakCostsPower && card.armor > 0 && card.armor <= 2) return -card.power;
+      if (card.armor > 0 && card.armor <= 2 && (card.definition.aiHints?.armorBreakCostsPower || armorBreakEmergence(card))) return -card.power - 2;
       return -Math.min(card.power, Math.max(0, 2 - (card.armor ?? 0)));
     },
     emp: ({ card }) => Math.min(card.power, 2 + (card.armor ?? 0)) + (card.armor ?? 0) * .1,
-    consume: ({ card }) => sacrificePriority(card, match, match.pending.side),
+    consume: (unit) => 4 * consumeBonus(forecast, unit) - .03 * (unit.card.power ?? 0),
     'leader-offering': (unit) => offeringPriority(match, match.pending.side, unit, amount),
     sacrifice: ({ card }) => -card.power,
     deathwish: ({ card }) => deathwishDefinitions(card).length * 10 + card.power,
     lock: (unit) => lockPriority(unit, match.pending.side),
     cleanse: (unit) => cleansePriority(unit, match.pending.side),
     armor: (unit) => armorTargetPriority(match, match.pending.side, unit),
-    'spend-armor': ({ card }) => amount ? card.armor : card.armor * 100 + card.power,
+    'spend-armor': ({ card }) => (amount ? card.armor : card.armor + card.power * .01) -
+      (card.armor <= (amount || Infinity) ? armorBreakEmergence(card) : 0),
     'infection-target': ({ card }) => infectionGain(card, amount, Math.max(1, match.players[match.pending.side === 'human' ? 'bot' : 'human'].hand.length)),
     infection: (unit) => [unit, ...neighbors(match, unit)].reduce((sum, { card }) =>
       sum + infectionGain(card, 3), 0),
@@ -247,7 +246,9 @@ function beneficialLeader(match, view, allies) {
 
   if (kind !== 'consume') return !view.opponentPassed;
   const sacrifices = allies.filter((unit) => isUnit(unit.card) && neighbors(match, unit).some(({ card }) => isUnit(card)));
-  const { card } = bestTarget(sacrifices, ({ card }) => sacrificePriority(card));
+  if (!sacrifices.length) return false;
+  const context = futureContext(match, 'bot');
+  const { card } = bestTarget(sacrifices, (unit) => consumeBonus(context, unit));
   return card.power >= 2 || deathwishDefinitions(card).length > 0 || view.score === view.opponentScore;
 }
 
@@ -268,6 +269,11 @@ function chooseEasyTurn(match) {
     if (beneficialLeader(match, view, allies) || (!view.cards.length && !match.playedCard && canUseLeader(match, 'bot') && !view.opponentPassed)) return { type: 'leader' };
   }
   if (match.playedCard) return { type: 'end-turn' };
+  const forecast = futureContext(match, 'bot');
+  if (!view.opponentPassed && forecast.turns > 1) {
+    const keeper = view.cards.find((card) => inheritancePayoff(forecast, card) >= 5);
+    if (keeper) return playCard(keeper, view);
+  }
   return chooseBotAction(view);
 }
 
@@ -297,7 +303,7 @@ export function chooseBotTurn(match, difficulty = 'easy', options = {}) {
     const [card] = playableCards(match, 'bot');
     if (card && (totalScore(bot) <= totalScore(human) || (!human.passed && human.hand.length))) {
       const view = createBotView(match);
-      action = playCard(view.cards.find(({ id }) => id === card.id) ?? card, view);
+      action = playCard(view.cards.find(({ id }) => id === card.id) ?? view.cards[0] ?? card, view);
       decision = { reason: 'В решающем раунде продолжаю играть, пока соперник может ответить или ведёт по очкам.' };
     }
   }

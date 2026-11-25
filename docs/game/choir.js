@@ -27,7 +27,7 @@ function tentacle(id, name, power, hit, stats = {}) {
   });
 }
 
-export const TENTACLE = tentacle('ulmarin-tentacle', 'Щупальце Спящего', 3, 1, {
+export const TENTACLE = tentacle('ulmarin-tentacle', 'Щупальце Спящего', 2, 1, {
   art: 'sleeper-tentacle.webp', artCrop: 'sleeper-tentacle-crop.webp',
   rarity: 'bronze', provision: 4,
 });
@@ -134,7 +134,7 @@ export const CHOIR_CARDS = Object.freeze([
       { action: 'return-hand', amount: { result: 'drawn' } }]),
   }),
   card({
-    id: 'abyss-shepherd', name: 'Пастырь бездны', rarity: 'gold', provision: 13, power: 4,
+    id: 'abyss-shepherd', name: 'Пастырь бездны', rarity: 'gold', provision: 13, power: 1,
     art: 'abyss-shepherd.webp', artCrop: 'abyss-shepherd-crop.webp',
     text: 'Одержимость (Псионика): при размещении захвати выбранный вражеский отряд с силой не выше 3 / 4 / 5 / 6 при 3 / 6 / 9 / 12 картах Псионики. При меньшем числе карт Захват не срабатывает.',
     keywords: ['Одержимость', PSIONICS, 'Захват'],
@@ -205,7 +205,7 @@ export const CHOIR_CARDS = Object.freeze([
     deploy: ability([damage(victim, 5)], [{ ref: 'victim', kind: 'damage', amount: 5, targets: fieldUnits }]),
   }),
   psionic({
-    id: 'sleeper-litany', name: 'Литания Спящего', rarity: 'bronze', provision: 4,
+    id: 'sleeper-litany', name: 'Литания Спящего', rarity: 'bronze', provision: 6,
     art: 'sleeper-litany.webp', artCrop: 'sleeper-litany-crop.webp',
     text: 'Покажи 3 случайных бронзовых отряда Безмолвного хора. Выбери один, сотвори и сыграй его. На нём Счётчик 3: когда он закончится, отряд превратится в Щупальце Спящего.',
     keywords: [PSIONICS, 'Сотворение', 'Счётчик', TENTACLE_CATEGORY],

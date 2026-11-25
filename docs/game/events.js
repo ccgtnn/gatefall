@@ -53,6 +53,18 @@ export function deathwishDefinitions(card) {
   ];
 }
 
+export function inheritableDeathwishes(player) {
+  const wishes = new Map();
+  for (const card of player.discard) {
+    if (card.definition.rarity !== 'bronze') continue;
+    for (const definition of deathwishDefinitions(card)) {
+      const signature = JSON.stringify(definition.deathwish);
+      if (!wishes.has(signature)) wishes.set(signature, definition);
+    }
+  }
+  return [...wishes.values()];
+}
+
 export function deathwishJobs(card, context) {
   return deathwishDefinitions(card).map((definition) => ({
     ...context, sourceGrowth: card.growth, ability: definition.deathwish, deathwish: card.definition.name, cardAbility: true,
