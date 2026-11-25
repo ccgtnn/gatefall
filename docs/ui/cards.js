@@ -1,9 +1,9 @@
 import { dialogClose } from './resources.js?v=essence-gain-1';
 import { button, element, selectField, setCardRarity } from './dom.js?v=opponent-reveal-1';
-import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=world-gates-premium-1';
-import { FACTION_CATALOG } from '../game/faction-catalog.js?v=world-gates-premium-1';
-import { basePower, cardType, createCard, isUnit, statusCount } from '../game/board.js?v=world-gates-premium-1';
-import { relatedEffectCards } from '../game/effects.js?v=world-gates-premium-1';
+import { CARD_TYPES, KEYWORDS, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/cards.js?v=world-gates-premium-1-nc1';
+import { FACTION_CATALOG } from '../game/faction-catalog.js?v=world-gates-premium-1-nc1';
+import { basePower, cardType, createCard, isUnit, statusCount } from '../game/board.js?v=world-gates-premium-1-nc1';
+import { relatedEffectCards } from '../game/effects.js?v=world-gates-premium-1-nc1';
 import { resourceIcon } from './resource-icon.js?v=1';
 
 import { deathwishDefinitions } from '../game/events.js?v=ulmarin-1';

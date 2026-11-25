@@ -1,4 +1,4 @@
-import { ROWS } from './cards.js?v=world-gates-premium-1';
+import { ROWS } from './cards.js?v=world-gates-premium-1-nc1';
 import { cardAbilities, emit, isLocked } from './events.js?v=ulmarin-1';
 import { HOUND_CATEGORY } from './captains.js?v=captains-independent-1';
 

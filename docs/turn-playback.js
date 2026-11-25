@@ -1,5 +1,5 @@
-import { recordCardPlay, spendResilience } from './game/board.js?v=world-gates-premium-1';
-import { ROWS } from './game/cards.js?v=world-gates-premium-1';
+import { recordCardPlay, spendResilience } from './game/board.js?v=world-gates-premium-1-nc1';
+import { ROWS } from './game/cards.js?v=world-gates-premium-1-nc1';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;

@@ -1,16 +1,16 @@
 import { refreshPremiumArt, resumeCardVideos } from './card-art.js?v=world-gates-premium-1';
 import { leagueCharacter } from './league-character.js?v=oran-avatar-1';
 import { button, element, selectField } from './dom.js?v=opponent-reveal-1';
-import { createCard } from '../game/board.js?v=world-gates-premium-1';
-import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=world-gates-premium-1';
-import { FACTION_CATALOG } from '../game/faction-catalog.js?v=world-gates-premium-1';
+import { createCard } from '../game/board.js?v=world-gates-premium-1-nc1';
+import { CARD_TYPES, FACTIONS, NEUTRAL, NEUTRAL_CARDS, RARITY_LABELS } from '../game/cards.js?v=world-gates-premium-1-nc1';
+import { FACTION_CATALOG } from '../game/faction-catalog.js?v=world-gates-premium-1-nc1';
 import { CAPTAIN_CARDS } from '../game/captains.js?v=captains-independent-1';
-import { addCardCrop, cardButton, showCard } from './cards.js?v=world-gates-premium-1';
-import { logView, roundText } from './menu.js?v=world-gates-premium-1';
+import { addCardCrop, cardButton, showCard } from './cards.js?v=world-gates-premium-1-nc1';
+import { logView, roundText } from './menu.js?v=world-gates-premium-1-nc1';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js?v=choir-playable-1';
 import { factionFilters } from './faction-filters.js?v=faction-catalog-2';
-import { copyLimit } from '../game/decks.js?v=world-gates-premium-1';
-import { craftPrice, dismantleValue } from '../game/rewards.js?v=world-gates-premium-1';
+import { copyLimit } from '../game/decks.js?v=world-gates-premium-1-nc1';
+import { craftPrice, dismantleValue } from '../game/rewards.js?v=world-gates-premium-1-nc1';
 import { resourceIcon } from './resource-icon.js?v=1';
 import { sectionBack } from './resources.js?v=essence-gain-1';
 

@@ -17,6 +17,7 @@
 | Область | Файлы |
 | --- | --- |
 | Карты, колоды и лидеры | `docs/game/cards.js`, `docs/game/decks.js` |
+| Нейтральные карты | `docs/game/neutral-cards.js`, `tests/neutral-cards.test.js` |
 | Матч, поле и способности | `docs/game/match.js`, `board.js`, `effects.js`, `events.js` в той же папке |
 | Бот и симуляции | `docs/game/bot.js`, `bot-strategy.js`, `bot-rollouts.js` |
 | Экономика и прогресс | `docs/game/rewards.js`, `base.js`, `tavern.js`, `ranks.js`, `league.js` |

@@ -1,4 +1,4 @@
-import { FACTIONS, LARVA, NEUTRAL } from './cards.js?v=world-gates-premium-1';
+import { FACTIONS, LARVA, NEUTRAL } from './cards.js?v=world-gates-premium-1-nc1';
 
 export const TAVERN_REWARDS = Object.freeze({
   normal: Object.freeze({ keys: 2, gold: 100 }),

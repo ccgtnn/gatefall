@@ -1,4 +1,4 @@
-import { createTavernScreen } from './tavern-screen.js?v=world-gates-premium-1';
+import { createTavernScreen } from './tavern-screen.js?v=world-gates-premium-1-nc1';
 import { weeklyBundle } from '../game/outpost.js?v=base-outpost-1';
 import { BUILDINGS, MAX_BUILDING_LEVEL, buildingEffect, buildingPrice, buildingSlot, constructionShortages } from '../game/base.js?v=tavern-1';
 import { button, element } from './dom.js?v=opponent-reveal-1';

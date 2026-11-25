@@ -1,5 +1,5 @@
 import { dialogClose } from './resources.js?v=essence-gain-1';
-import { KEYWORDS } from '../game/cards.js?v=world-gates-premium-1';
+import { KEYWORDS } from '../game/cards.js?v=world-gates-premium-1-nc1';
 import { element } from './dom.js?v=opponent-reveal-1';
 
 export function bindRulesMenu() {

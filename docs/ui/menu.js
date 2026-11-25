@@ -1,7 +1,7 @@
 import { dialogClose } from './resources.js?v=essence-gain-1';
 import { button, element, sideLabel } from './dom.js?v=opponent-reveal-1';
-import { ROW_LABELS } from '../game/cards.js?v=world-gates-premium-1';
-import { cardButton, showCard } from './cards.js?v=world-gates-premium-1';
+import { ROW_LABELS } from '../game/cards.js?v=world-gates-premium-1-nc1';
+import { cardButton, showCard } from './cards.js?v=world-gates-premium-1-nc1';
 
 export function roundText(event) {
   const { scores, winner } = event;
