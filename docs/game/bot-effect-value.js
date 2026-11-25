@@ -1,4 +1,4 @@
-import { availableRows, cleansableStatuses, infectionDamage, isUnit, opponent, restoreCard, ROW_LIMIT, statusCount, units } from './board.js';
+import { availableRows, cleansableStatuses, infectionDamage, isUnit, neighbors, opponent, restoreCard, ROW_LIMIT, statusCount, units } from './board.js';
 import { ROWS } from './card-metadata.js';
 import { canStart, eligiblePileCards, pileCandidates, playPiles, playTiming, rowArmor, rowSide, targets, valueOf } from './effect-queries.js';
 import { cardAbilities, deathwishDefinitions, isLocked } from './events.js';
@@ -24,6 +24,17 @@ export function rowScatterValue(player, row, amount) {
   const perUnit = amount / Math.max(1, units.length);
   return units.reduce((sum, card) => sum +
     Math.min(card.power, Math.max(0, perUnit - (card.armor ?? 0) - statusCount(card, 'shield'))), 0);
+}
+
+export function armorTargetPriority(match, side, unit) {
+  const { card } = unit;
+  const armor = card.armor ?? 0;
+  const player = match.players[side];
+  const abilities = cardAbilities(card);
+  const enablesCost = abilities.order?.cost?.select?.some(({ targets }) => targets.armorAtLeast > armor && targets.armorAtLeast <= armor + 2);
+  const formations = player.hand.some(({ definition }) => definition.aiHints?.placement === 'armored-neighbors');
+  return Number(Boolean(enablesCost)) * 3 + Number(Boolean(card.definition.aiHints?.armorBreakCostsPower)) * 3 +
+    Number(formations && armor === 0) * (neighbors(match, unit).length + 1) + card.power * .1 - armor * .1;
 }
 
 export function infectionGain(card, amount, turns = Infinity) {
@@ -138,7 +149,8 @@ function spawnSwing({ player }, step) {
 function scatterSwing({ match, job, player }, step) {
   const side = opponent(job.side);
   if (step.rowRef) {
-    const amount = valueOf(match, job, step.amount);
+    const amount = step.amount?.result === 'armor'
+      ? Math.max(...ROWS.map((row) => rowArmor(player, row))) : valueOf(match, job, step.amount);
     return Math.max(...ROWS.map((row) => rowScatterValue(match.players[side], row, amount)));
   }
   const health = units(match, side).reduce((sum, { card }) => sum + (card.power ?? 0), 0);
@@ -182,7 +194,7 @@ function damageSwing({ match, job, card }, step) {
   const points = options.map(({ card, side: targetSide }, index) =>
     statusCount(card, 'shield') || (step.amount?.row && amounts[index] !== highest) ? 0
       : (targetSide === side ? -1 : 1) * Math.min(card.power, Math.max(0, amounts[index] - (stripArmor ? 0 : card.armor ?? 0))));
-  return (step.target.infected || step.target.marked) && !step.mode ? points.reduce((sum, value) => sum + value, 0)
+  return !selection && !step.mode && ['ally', 'enemy', 'field'].includes(step.target.scope) ? points.reduce((sum, value) => sum + value, 0)
     : points.length ? Math.max(...points) : 0;
 }
 

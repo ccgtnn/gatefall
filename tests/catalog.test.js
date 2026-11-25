@@ -51,7 +51,7 @@ test('all collectible gold cards are included and catalog filters combine across
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'epic', type: 'unit', category: 'Голем', provision: '9' }),
     ['fire-golem', 'sleeping-mountain', 'old-golem']);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', category: 'Голем', provision: '10' }), ['mystic-golem']);
-  assert.deepEqual(ids({ faction: 'protectorate', rarity: 'gold', category: 'Голем', provision: '9' }), ['imperial-golem']);
+  assert.deepEqual(ids({ faction: 'protectorate', rarity: 'gold', category: 'Голем', provision: '10' }), ['imperial-golem']);
   assert.deepEqual(ids({ query: 'Статуя Императора' }), ['imperial-golem']);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', category: 'Зверь', provision: '11' }), ['carrion-devourer']);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'epic', type: 'unit', category: 'Робот', provision: '8' }), ['helper-robot']);

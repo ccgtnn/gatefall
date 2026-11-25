@@ -299,6 +299,16 @@ test('Orders keep their ready and cooldown states, with one overlay for the fiel
   assert.equal(cooldown.children[1].textContent, 2);
 });
 
+test('charged Orders show the remaining uses, including zero', () => {
+  const generator = makeCard('shield-generator');
+  generator.orderCharges = 0;
+  showCard(generator);
+  const badge = byClass(preview, 'stat-badge-order');
+  assert.equal(badge.attributes['aria-label'], 'Приказ · Осталось зарядов: 0');
+  assert.equal(badge.children.at(-1).textContent, 0);
+  assert.match(byClass(preview, 'preview-stats').textContent, /Осталось зарядов: 0/);
+});
+
 test('lock has its own icon alongside statuses and replaces disabled ability badges', () => {
   const card = makeCard('commander');
   card.statuses = { lock: 1, target: 1, infection: 2 };

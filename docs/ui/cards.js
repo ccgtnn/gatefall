@@ -50,6 +50,7 @@ export function showCard(card, options = {}) {
     stats.push(power === base ? `Сила ${power}` : `Сила / база ${power} / ${base}`, `Броня ${armor ?? 0}`);
   }
   if (locked) stats.push('Блокировка');
+  if (card.orderCharges !== undefined) stats.push('Осталось зарядов: ' + card.orderCharges);
   if (!locked && counter > 0) stats.push(`Счётчик ${counter}`);
   if (!locked && timer !== undefined) stats.push(`Таймер ${timer}`);
   const title = element('h2', null, definition.name);
@@ -348,7 +349,8 @@ function liveBadges(node, card, { orderOnField, showProvision, orderReady, order
     node.append(statBadge('hourglass', (timer === undefined ? 'Счётчик ' : 'Таймер ') + (timer ?? counter), timer ?? counter));
   } else if (definition.order) {
     const label = orderReady ? 'Приказ готов' : orderCooldown ? 'Перезарядка Приказа: ' + orderCooldown : 'Приказ';
-    node.append(orderBadge(orderReady, orderCooldown, label));
+    node.append(orderBadge(orderReady, orderCooldown, card.orderCharges === undefined
+      ? label : label + ' · Осталось зарядов: ' + card.orderCharges, card.orderCharges));
   } else {
     const badge = passiveBadge(card);
     if (badge) node.append(badge);
@@ -373,7 +375,8 @@ function legacyBadges(node, card, orderOnField) {
     if (counter > 0 || timer !== undefined) {
       node.append(statBadge('hourglass', (timer === undefined ? 'Счётчик ' : 'Таймер ') + (timer ?? counter), timer ?? counter));
     } else if (definition.order) {
-      node.append(orderBadge(false, 0, 'Приказ'));
+      node.append(orderBadge(false, 0, card.orderCharges === undefined
+        ? 'Приказ' : 'Приказ · Осталось зарядов: ' + card.orderCharges, card.orderCharges));
     } else {
       const badge = passiveBadge(card);
       if (badge) node.append(badge);

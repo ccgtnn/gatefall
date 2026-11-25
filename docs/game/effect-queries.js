@@ -134,8 +134,7 @@ export function valueOf(match, job, expression, target) {
     return (expression.base ?? 0) + (job.results?.[expression.result] ?? 0) * (expression.scale ?? 1);
   }
   if (expression?.startingCategory) {
-    const source = reference(match, job)?.card;
-    const player = match.players[source?.owner ?? job.side];
+    const player = match.players[job.side];
     const groups = Math.floor((player.startingCategories?.[expression.startingCategory] ?? 0) / expression.every);
     if (groups < (expression.minimum ?? 0)) return -1;
     return Math.min(groups, expression.cap ?? Infinity) * (expression.scale ?? 1) + (expression.base ?? 0);
@@ -144,7 +143,7 @@ export function valueOf(match, job, expression, target) {
     const plays = job.priorCategoryPlays ?? match.players[job.side].categoryPlays;
     return Math.max(0, expression.base + (plays?.[expression.playedCategory] ?? 0) * expression.scale);
   }
-  if (expression?.markedThisMatch) return (match.players[job.side].markedTargets?.length ?? 0) * expression.markedThisMatch;
+  if (expression?.markedThisMatch) return (match.players[job.side].marksPlaced ?? 0) * expression.markedThisMatch;
   if (expression?.count) return targets(match, job, expression.count).length * (expression.scale ?? 1);
   if (expression?.status) return target ? statusCount(target.card, expression.status) * (expression.scale ?? 1) : 0;
   if (expression?.row) return target?.row === expression.row ? expression.then : expression.otherwise;

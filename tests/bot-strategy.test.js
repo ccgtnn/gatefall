@@ -128,11 +128,13 @@ test('the bot cashes in its armored row for Shield Overload', () => {
   // Isolate the armor payoff from the hidden cards sampled by hard mode.
   match.players.human.hand = [];
   match.players.human.deck = [];
-  for (const difficulty of ['normal', 'hard']) {
-    const action = chooseBotTurn(match, difficulty);
-    assert.deepEqual(action, { type: 'play', cardId: 'overload' });
-    const pending = applyAction(match, 'bot', action);
-    assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'surface' });
+  for (const difficulty of ['easy', 'normal', 'hard']) {
+    const pending = applyAction(match, 'bot', { type: 'play', cardId: 'overload' });
+    if (difficulty !== 'easy') assert.deepEqual(chooseBotTurn(match, difficulty), { type: 'play', cardId: 'overload' });
+    const ownRow = chooseBotTurn(pending, difficulty);
+    assert.deepEqual(ownRow, { type: 'target', cardId: 'surface' });
+    const enemy = applyAction(pending, 'bot', ownRow);
+    assert.deepEqual(chooseBotTurn(enemy, difficulty), { type: 'target', cardId: 'orbit' });
   }
 });
 
@@ -186,7 +188,9 @@ test('both strategic bots explore multiple targets in one chain', () => {
 test('hard anticipates a visible Surface-only reply without reading the enemy hand', () => {
   const match = position(3);
   match.players.bot.hand = [plain('ship', 6)];
-  match.players.bot.board.surface = [member('generator', 'protectorate', 'shield-generator')];
+  match.players.bot.board.surface = [standard('armor-aura', {
+    type: 'artifact', endTurn: { steps: [{ action: 'armor', target: { scope: 'neighbors' }, amount: 1 }] },
+  })];
   match.players.human.leader = { ...FACTIONS.protectorate.leaders.find(({ id }) => id === 'fleet-admiral'), charges: 1 };
   assert.equal(chooseBotTurn(match, 'normal').row, 'surface');
   assert.equal(chooseBotTurn(match, 'hard', { rolloutSamples: 0 }).row, 'orbit');
@@ -357,4 +361,24 @@ test('the strategic bot values the Fence payout with an empty deck only if coins
   assert.equal(chooseBotTurn(match, 'normal').cardId, 'fence');
   match.players.bot.coins = COIN_LIMIT;
   assert.equal(chooseBotTurn(match, 'normal').cardId, 'plain-fence');
+});
+
+
+test('all bots can spend a Generator charge on armor synergy', () => {
+  const match = position(3);
+  match.players.bot.hand = [member('formation', 'protectorate', 'standard')];
+  const commander = member('commander', 'protectorate', 'commander');
+  commander.readyAt = 10;
+  match.players.bot.board.surface = [member('generator', 'protectorate', 'shield-generator'), commander, plain('large', 9)];
+  match.players.human.board.surface = [plain('enemy', 20)];
+  match.playedCard = true;
+  const order = { type: 'order', cardId: 'generator' };
+  const pending = applyAction(match, 'bot', order);
+  for (const difficulty of ['easy', 'normal', 'hard']) {
+    assert.deepEqual(chooseBotTurn(match, difficulty), order);
+    assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'commander' });
+  }
+  const result = applyAction(pending, 'bot', chooseBotTurn(pending));
+  assert.equal(result.players.bot.board.surface[1].armor, 2);
+  assert.equal(result.players.bot.board.surface[0].orderCharges, 2);
 });

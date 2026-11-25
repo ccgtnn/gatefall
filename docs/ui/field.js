@@ -101,12 +101,15 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
         face.setAttribute('aria-label', face.getAttribute('aria-label') + ' · Силовой щит активен');
         slot.append(halo);
       }
-      if (activeOrder({ card, row })) {
-        const label = 'Приказ · ' + (ready ? 'готов' : cooldown ? 'осталось ходов: ' + cooldown : 'нет цели');
+      if (activeOrder({ card, row }) || card.orderCharges !== undefined) {
+        const state = statusCount(card, 'lock') ? 'заблокирован' : ready ? 'готов'
+          : card.orderCharges === 0 ? 'заряды исчерпаны' : cooldown ? 'осталось ходов: ' + cooldown : 'нет цели';
+        const charges = card.orderCharges === undefined ? '' : ' · Осталось зарядов: ' + card.orderCharges;
+        const label = 'Приказ · ' + state + charges;
         const order = side === 'human'
           ? button(undefined, () => playHuman({ type: 'order', cardId: card.id }), 'unit-order stat-order-control')
           : element('span', 'unit-order stat-order-control');
-        order.append(orderBadge(ready, cooldown, label));
+        order.append(orderBadge(ready, cooldown, label, card.orderCharges));
         if (side === 'human') order.disabled = !humanCanAct() || !ready;
         order.classList.toggle('order-ready', ready);
         order.classList.toggle('order-sleep', !ready);

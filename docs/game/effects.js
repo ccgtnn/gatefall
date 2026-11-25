@@ -42,7 +42,7 @@ export function availableOrders(match, side) {
   const player = match.players[side];
   return units(match, side).filter((unit) => {
     const order = activeOrder(unit);
-    return order && unit.card.readyAt <= player.turns &&
+    return order && unit.card.readyAt <= player.turns && unit.card.orderUsedTurn !== player.turns &&
       canStart(match, { ability: orderAbility(order), side, sourceId: unit.card.id });
   });
 }
@@ -142,9 +142,7 @@ export const ROW_EFFECTS = Object.freeze({
 export function enqueueStartTurn(match, side) {
   const player = match.players[side];
   const field = units(match, side);
-  for (const unit of [...field, ...units(match, opponent(side))]) {
-    if ((unit.card.owner ?? unit.side) === side) changeBasePower(match, unit, cardAbilities(unit.card).startTurnGrowth);
-  }
+  for (const unit of field) changeBasePower(match, unit, cardAbilities(unit.card).startTurnGrowth);
   for (const pile of ['deck', 'hand', 'discard']) {
     for (const card of player[pile]) changeBasePower(match, { card, side, pile }, cardAbilities(card).startTurnGrowth);
   }
@@ -195,7 +193,8 @@ function tickTimer(match, { card, side }) {
 
 function reduceOrderCooldown(match, unit, amount) {
   const { card, side } = unit;
-  if (!activeOrder(unit) || card.readyAt <= match.players[side].turns) return;
+  const { turns } = match.players[side];
+  if (!activeOrder(unit) || card.readyAt <= turns || card.orderUsedTurn === turns) return;
   card.readyAt = Math.max(match.players[side].turns, card.readyAt - amount);
   match.log.push({ type: 'order-ready', side, cardId: card.id, name: card.definition.name, readyAt: card.readyAt,
     cooldown: card.readyAt - match.players[side].turns });
@@ -233,8 +232,8 @@ export function runEffect(match, job, random) {
     const source = reference(match, job);
     if (!source || isLocked(source.card) || !(source.card.timer > 0)) return;
     const expired = tickTimer(match, source);
-    enqueueCardEffect(match, job.side, source.card, 'startTurnPulse');
-    if (expired) enqueueCardEffect(match, job.side, source.card, 'startTurn');
+    enqueueCardEffect(match, source.side, source.card, 'startTurnPulse');
+    if (expired) enqueueCardEffect(match, source.side, source.card, 'startTurn');
     return;
   }
   const needsSource = job.requiredSource || job.ability.sourceRow;
@@ -335,9 +334,11 @@ export function runEffect(match, job, random) {
   if (step.action === 'select-row') {
     if (!job.refs[step.ref]) {
       const selectionSide = rowSide(job.side, step);
-      const rows = eligibleRows(match.players[selectionSide], step.filter);
+      const player = match.players[selectionSide];
+      const markRow = job.ability.steps.some((part) => part.status === 'target' && part.target?.rowRef === step.ref);
+      const rows = eligibleRows(player, step.filter).filter((row) => !markRow ||
+        player.board[row].some((card) => isUnit(card) && !statusCount(card, 'target')));
       if (rows.length) {
-        const markRow = job.ability.steps.some((part) => part.status === 'target' && part.target?.rowRef === step.ref);
         const kind = markRow ? 'mark-row' : { space: 'spawn-row', armor: 'armor-row', units: 'enemy-row', any: 'row-effect' }[step.filter];
         const damage = job.ability.steps.find((part) => part.action === 'damage' && part.target?.rowRef === step.ref);
         const armor = job.ability.steps.find((part) => part.action === 'armor' && part.target?.rowRef === step.ref);

@@ -15,6 +15,8 @@ function watches(match, event, played, firstLegendary) {
         const rule = abilities.fieldEvents?.[event.type];
         if (rule && (!rule.enemy || event.side !== side) && (!rule.friendly || event.side === side) &&
             (!rule.category || played?.definition.categories?.includes(rule.category)) &&
+            (!rule.shipClasses || rule.shipClasses.some((shipClass) =>
+              played?.definition.shipClass === shipClass || played?.definition.categories?.includes(shipClass))) &&
             (!rule.infected || event.infection > 0)) {
           jobs.push({ ability: rule.ability, side, sourceId: card.id,
             sourceDefinitionId: card.definition.id, requiredSource: true, cardAbility: true });

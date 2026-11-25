@@ -74,7 +74,7 @@ test('Cleansing clears each foreign status and gained Deathwish, keeping power, 
   assert.equal(card.definition.order, selfBoost);
   assert.deepEqual(deathwishDefinitions(card), [card.definition]);
   assert.equal(card.infectionSource, undefined);
-  assert.deepEqual(match.players.bot.markedTargets, ['patient']);
+  assert.equal(match.players.bot.marksPlaced, 1);
   const after = structuredClone(card);
   cleanse(match, patient);
   assert.deepEqual(card, after);

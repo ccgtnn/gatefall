@@ -54,6 +54,7 @@ function createPlayer(side, definitions, random, factionId, leader, charges) {
     exile: [],
     turns: 0,
     coins: 0,
+    marksPlaced: 0,
     usedAbility: false,
     roundActed: false,
     extraSwaps: 0,
@@ -95,6 +96,7 @@ export function createMatch({ decks, humanFaction = decks ? undefined : 'protect
     pending: null,
     playedCard: false,
     ending: null,
+    startingTurn: false,
   };
 }
 
@@ -231,7 +233,7 @@ export function confirmMulligan(match, cardIds = [], { random = Math.random } = 
     next.log.push({ type: 'mulligan', side, count: counts[side], round: next.round });
   }
   beginRound(next);
-  enqueueStartTurn(next, next.turn);
+  beginTurn(next);
   progress(next, random);
   return next;
 }
@@ -290,6 +292,11 @@ function resolveRound(match) {
   match.turn = null;
 }
 
+function beginTurn(match) {
+  match.startingTurn = true;
+  enqueueStartTurn(match, match.turn);
+}
+
 function markPassed(match, side, reason) {
   match.players[side].passed = true;
   match.log.push({ type: 'pass', side, reason });
@@ -320,11 +327,13 @@ function progress(match, random) {
       if (player.passed && match.players[otherSide].passed) resolveRound(match);
       else {
         if (!match.players[otherSide].passed) match.turn = otherSide;
-        enqueueStartTurn(match, match.turn);
+        beginTurn(match);
       }
       continue;
     }
 
+    const startingTurn = match.startingTurn;
+    match.startingTurn = false;
     if (match.playedCard) {
       if (availableOrders(match, side).length || canUseLeader(match, side) || availableFees(match, side).length) return;
       match.ending = 'effects';
@@ -337,6 +346,7 @@ function progress(match, random) {
       continue;
     }
     if (canUseLeader(match, side) || availableOrders(match, side).length) return;
+    if (!startingTurn && player.hand.length === 0) return;
     const reason = player.hand.length === 0 ? 'empty-hand'
       : player.hand.every((card) => cardType(card) === 'effect') ? 'no-target' : 'full-row';
     markPassed(match, side, reason);
@@ -432,7 +442,12 @@ export function applyAction(match, side, action, { random = Math.random, copy = 
     const { card } = availableOrders(next, side).find((unit) => unit.card.id === cardId);
     const order = card.definition.order;
     card.readyAt = current.turns + (order.cooldown ?? 0) + 1;
-    next.log.push({ type: 'order', side, name: card.definition.name, cardId: card.id });
+    if (card.orderCharges !== undefined) {
+      card.orderCharges -= 1;
+      card.orderUsedTurn = current.turns;
+    }
+    next.log.push({ type: 'order', side, name: card.definition.name, cardId: card.id, readyAt: card.readyAt,
+      ...(card.orderCharges !== undefined && { orderCharges: card.orderCharges, orderUsedTurn: card.orderUsedTurn }) });
     next.effects.push({ ability: orderAbility(order), side, sourceId: card.id, requiredSource: true, cardAbility: true });
   }
 

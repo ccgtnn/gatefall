@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { createCard } from '../docs/game/board.js';
+import { availableOrders } from '../docs/game/effects.js';
 import { ROWS } from '../docs/game/cards.js';
 import { DECKS } from './fixtures/prototype-decks.js';
 import {
@@ -201,6 +203,34 @@ test('an empty hand triggers autopass as soon as that player would act', () => {
   assert.deepEqual(roundEvents(match, 'pass'), [
     { type: 'pass', side: 'human', reason: 'empty-hand' },
   ]);
+});
+
+test('explicit End Turn after the last card waits until the next turn to check for autopass', () => {
+  for (const actionAtStart of ['none', 'order', 'draw']) {
+    let match = confirmMulligan(orderedMatch({ human: DECKS.human.slice(0, 1) }), []);
+    match.players.human.board.surface = [createCard('order-window', {
+      name: 'Приказ', power: 4, order: { steps: [{ action: 'boost', target: { scope: 'source' }, amount: 1 }] },
+    })];
+    const [last] = match.players.human.hand;
+    match = applyAction(match, 'human', { type: 'play', cardId: last.id, row: 'orbit', position: 0 });
+    assert.equal(canEndTurn(match, 'human'), true);
+    match = applyAction(match, 'human', { type: 'end-turn' });
+    assert.equal(match.turn, 'bot');
+    assert.equal(match.players.human.passed, false);
+    if (actionAtStart !== 'order') match.players.human.board.surface[0].readyAt = 99;
+    if (actionAtStart === 'order') match.players.human.board.surface[0].readyAt = 1;
+    if (actionAtStart === 'draw') {
+      match.players.human.deck.push(createCard('drawn', DECKS.human[0]));
+      match.players.human.board.surface.push(createCard('timer', {
+        name: 'Таймер', type: 'artifact', timer: 1, startTurn: { steps: [{ action: 'draw', amount: 1 }] },
+      }));
+    }
+    match = playFirst(match);
+    assert.equal(match.players.human.passed, actionAtStart === 'none');
+    assert.equal(match.turn, actionAtStart === 'none' ? 'bot' : 'human');
+    if (actionAtStart === 'order') assert.equal(availableOrders(match, 'human')[0].card.id, 'order-window');
+    if (actionAtStart === 'draw') assert.equal(match.players.human.hand[0].id, 'drawn');
+  }
 });
 
 test('a filled row rejects placement there while the other row accepts the same card', () => {

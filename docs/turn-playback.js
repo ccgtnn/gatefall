@@ -101,9 +101,9 @@ export function applyJournalEvent(state, event) {
     player.board[row].splice(event.position, 0, ...event.cards.map((card) => ({ ...card })));
     return;
   }
-  if (type === 'status' && event.firstTarget) {
+  if (type === 'status' && event.status === 'target' && event.count > 0 && event.attacker) {
     const attacker = state.players[event.attacker];
-    attacker.markedTargets = [...(attacker.markedTargets ?? []), cardId];
+    attacker.marksPlaced = (attacker.marksPlaced ?? 0) + 1;
   }
   if (type === 'consume-group') {
     for (const id of event.cardIds) state.hiddenDuringPlayback.add(id);
@@ -151,7 +151,11 @@ export function applyJournalEvent(state, event) {
       if (event.removed.includes('infection')) delete card.infectionSource;
       if (event.inherited) delete card.inheritedDeathwishes;
     }
-    if (type === 'order-ready') line[index].readyAt = event.readyAt;
+    if (type === 'order-ready' || (type === 'order' && event.readyAt !== undefined)) line[index].readyAt = event.readyAt;
+    if (type === 'order' && event.orderCharges !== undefined) {
+      line[index].orderCharges = event.orderCharges;
+      line[index].orderUsedTurn = event.orderUsedTurn;
+    }
     if (type === 'tick') line[index].timer = event.remaining;
     if (type === 'counter') line[index].counter = event.remaining;
     break;

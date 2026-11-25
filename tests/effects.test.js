@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { chooseBotTurn } from '../docs/game/bot.js';
-import { createCard } from '../docs/game/board.js';
+import { capture, createCard, findUnit, removeUnit, restoreCard } from '../docs/game/board.js';
 import { FACTIONS, FIRST_SIGNAL, NEUTRAL, NEUTRAL_CARDS, LARVA } from '../docs/game/cards.js';
-import { availableOrders } from '../docs/game/effects.js';
+import { availableOrders, runEffect } from '../docs/game/effects.js';
 import { applyAction, availableRows, canEndTurn, confirmMulligan, createMatch, playableCards, ROW_LIMIT } from '../docs/game/match.js';
 
 const definitions = new Map(Object.values(FACTIONS).flatMap(({ deck }) => deck.map((card) => [card.id, card])));
@@ -90,14 +90,14 @@ test('target selection offers only legal cards and holds the turn until resolved
 
 test('on-play adjacency runs once and only boosts the armored neighbors at placement', () => {
   let match = fixture();
-  board(match, 'human', 'surface', unit('left', 'shieldbearer'), unit('right', 'infantry'));
+  board(match, 'human', 'surface', unit('left', 'shieldbearer'), unit('right', 'infantry', { armor: 0 }));
   hand(match, unit('standard', 'standard'), unit('line', 'infantry'));
   match = play(match, 'standard', 1);
-  assert.deepEqual(match.players.human.board.surface.map(({ power }) => power), [5, 4, 2]);
+  assert.deepEqual(match.players.human.board.surface.map(({ power }) => power), [5, 3, 3]);
   match = applyAction(match, 'bot', { type: 'pass' });
   match = play(match, 'line', 2);
-  assert.deepEqual(match.players.human.board.surface.map(({ power }) => power), [5, 4, 2, 2]);
-  assert.deepEqual(match.players.human.board.surface.map(({ armor }) => armor), [2, 2, 0, 2]);
+  assert.deepEqual(match.players.human.board.surface.map(({ power }) => power), [5, 3, 3, 3]);
+  assert.deepEqual(match.players.human.board.surface.map(({ armor }) => armor), [2, 2, 2, 2]);
 });
 
 test('damage spends armor first and sends a killed unit to discard, then resolves its deathwish', () => {
@@ -154,7 +154,7 @@ test('a deathwish owner chooses even during the other side’s turn', () => {
   assert.equal(events(match, 'deathwish').length, 1);
   assert.strictEqual(target(match, 'payer', 'human'), match);
   match = target(match, 'payer', 'bot');
-  assert.equal(match.players.human.board.surface[0].power, 2);
+  assert.equal(match.players.human.board.surface[0].power, 1);
   assert.equal(events(match, 'deathwish').length, 1);
   assert.equal(match.turn, 'bot');
 });
@@ -178,7 +178,7 @@ test('ravager redirects the sacrifice’s current power to damage, without a bas
   board(match, 'bot', 'surface', unit('enemy', 'warden'));
   match = target(target(play(match, 'ravager'), 'sacrifice'), 'enemy');
   assert.equal(match.players.human.board.surface[0].power, 4);
-  assert.equal(match.players.bot.board.surface[0].power, 3);
+  assert.equal(match.players.bot.board.surface[0].power, 2);
   assert.equal(match.players.bot.board.surface[0].armor, 0);
 });
 
@@ -229,7 +229,7 @@ test('leaders spend a configurable charge without ending the turn', () => {
   board(match, 'human', 'surface', unit('left', 'shieldbearer'), unit('center', 'infantry'), unit('right', 'warden'));
   match = target(applyAction(match, 'human', { type: 'leader' }), 'center');
   match = target(applyAction(match, 'human', { type: 'leader' }), 'center');
-  assert.deepEqual(match.players.human.board.surface.map(({ armor }) => armor), [8, 6, 9]);
+  assert.deepEqual(match.players.human.board.surface.map(({ armor }) => armor), [8, 8, 9]);
   assert.equal(match.turn, 'human');
   assert.equal(match.players.human.leader.charges, 0);
   assert.strictEqual(applyAction(match, 'human', { type: 'leader' }), match);
@@ -325,7 +325,7 @@ test('the bot targets lethal damage through armor before a stronger opponent', (
   const match = fixture();
   board(match, 'human', 'surface',
     unit('shield', 'shieldbearer'),
-    unit('killable', 'infantry'),
+    unit('killable', 'infantry', { armor: 0 }),
     unit('strong', 'bastion', { power: 110 }));
   match.pending = { side: 'bot', kind: 'damage', amount: 3, options: ['shield', 'killable', 'strong'] };
   assert.deepEqual(chooseBotTurn(match), { type: 'target', cardId: 'killable' });
@@ -373,7 +373,7 @@ test('orbital salvo hits either row, ignores artifacts, and goes directly to the
   for (const [row, damage] of [['orbit', 3], ['surface', 5]]) {
     let match = fixture();
     hand(match, unit('salvo', 'orbital-salvo'));
-    board(match, 'bot', row, unit('enemy', 'warden', { armor: 0 }), unit('artifact', 'incubator'));
+    board(match, 'bot', row, unit('enemy', 'warden', { armor: 0, power: 6 }), unit('artifact', 'incubator'));
     for (const line of ['orbit', 'surface']) {
       board(match, 'human', line, ...Array.from({ length: ROW_LIMIT }, (_, i) =>
         unit(`${line}-${i}`, 'shield-generator')));
@@ -410,7 +410,7 @@ test('artifacts count toward the row cap and have no power or armor; Destroy can
   board(match, 'human', 'orbit', ...Array.from({ length: 8 }, (_, i) => unit(`orb-${i}`, 'warden')));
   match = play(match, 'generator', 8, 'human', 'orbit');
   assert.equal(match.players.human.board.orbit.length, 9);
-  assert.equal(match.players.human.board.orbit.at(-2).armor, 4);
+  assert.equal(match.players.human.board.orbit.at(-2).armor, 3);
   match = applyAction(match, 'bot', { type: 'pass' });
   assert.strictEqual(play(match, 'warden', 9, 'human', 'orbit'), match);
   assert.notStrictEqual(play(match, 'warden'), match);
@@ -512,7 +512,7 @@ test('Reinforcements offers random eligible physical copies, then plays one in t
   const place = (position) => applyAction(match, 'human', { type: 'place', row: 'surface', position });
   assert.strictEqual(place(3), match);
   const next = place(1);
-  assert.deepEqual(next.players.human.board.surface.map(({ id, armor }) => [id, armor]), [['left', 2], ['c', 0], ['right', 2]]);
+  assert.deepEqual(next.players.human.board.surface.map(({ id, armor }) => [id, armor]), [['left', 2], ['c', 2], ['right', 2]]);
   assert.deepEqual(next.players.human.deck.map(({ id }) => id), ['a', 'b', 'd', 'effect', 'gold']);
   assert.deepEqual(next.players.human.discard.map(({ id }) => id), ['offer']);
   assert.deepEqual(events(next, 'play').map(({ from }) => from), [undefined, 'deck']);
@@ -550,6 +550,79 @@ test('Swarm Call can play a four-power Growth bronze and spawns beside a unit af
   assert.deepEqual(events(match, 'spawn').map(({ position }) => position), [1, 3, 3]);
 });
 
+test('the Shield Generator spends one charge per turn, then stays on the field', () => {
+  let match = fixture();
+  hand(match, unit('generator', 'shield-generator'), unit('spare-two', 'frigate'), unit('spare-three', 'frigate'));
+  board(match, 'human', 'surface', unit('ally', 'frigate'));
+  board(match, 'bot', 'surface', unit('enemy', 'frigate'));
+  const order = { type: 'order', cardId: 'generator' };
+  match = play(match, 'generator', 1);
+  assert.equal(findUnit(match, 'generator').card.orderCharges, 3);
+  assert.equal(match.turn, 'bot');
+  assert.strictEqual(applyAction(match, 'human', order), match);
+  match = applyAction(match, 'bot', { type: 'pass' });
+  for (const [charge, armor] of [[2, 2], [1, 4], [0, 6]]) {
+    match = applyAction(match, 'human', order);
+    assert.ok(match.pending.options.includes('ally'));
+    assert.ok(!match.pending.options.includes('generator') && !match.pending.options.includes('enemy'));
+    match = target(match, 'ally');
+    const { card } = findUnit(match, 'generator');
+    assert.equal(card.orderCharges, charge);
+    assert.equal(restoreCard(card).orderCharges, charge);
+    assert.equal(findUnit(match, 'ally').card.armor, armor);
+    assert.strictEqual(applyAction(match, 'human', order), match);
+    if (charge > 0) {
+      runEffect(match, { side: 'human', sourceId: card.id, ability: {
+        steps: [{ action: 'ready-order', target: { scope: 'source' } }],
+      } }, () => 0);
+      assert.strictEqual(applyAction(match, 'human', order), match);
+      while (match.effects.length) runEffect(match, match.effects.shift(), () => 0);
+      match = play(match, charge === 2 ? 'spare-two' : 'spare-three', 0);
+    }
+  }
+  assert.deepEqual(events(match, 'order').map(({ orderCharges }) => orderCharges), [2, 1, 0]);
+  assert.ok(!availableOrders(match, 'human').length);
+});
+
+test('captured orders, end-turn effects and start-turn growth follow the current side', () => {
+  let match = fixture();
+  const shot = { action: 'damage', target: { scope: 'enemy', type: 'unit' }, amount: 2, mode: 'random' };
+  const boostAlly = { action: 'boost', target: { scope: 'ally', type: 'unit', exclude: 'source' }, amount: 1 };
+  hand(match, unit('pass-card', 'frigate'));
+  board(match, 'human', 'surface', unit('ally', 'frigate'));
+  board(match, 'bot', 'surface', unit('enemy', 'frigate', { power: 10 }), unit('captured', 'frigate', {
+    order: { steps: [shot] }, endTurn: { steps: [shot, boostAlly] }, startTurnGrowth: 1,
+    deathwish: { steps: [boostAlly] },
+  }));
+  capture(match, 'human', findUnit(match, 'captured'));
+  match = applyAction(match, 'human', { type: 'order', cardId: 'captured' }, { random: () => 0 });
+  assert.equal(findUnit(match, 'enemy').card.power, 8);
+  match = play(match, 'pass-card');
+  assert.equal(findUnit(match, 'enemy').card.power, 6);
+  assert.equal(findUnit(match, 'ally').card.power, 5);
+  assert.equal(findUnit(match, 'captured').card.basePower, 4);
+  match = applyAction(match, 'bot', { type: 'pass' }, { random: () => 0 });
+  assert.equal(findUnit(match, 'captured').card.basePower, 5);
+  removeUnit(match, findUnit(match, 'captured'), 'damage');
+  assert.equal(match.players.bot.discard.at(-1).id, 'captured');
+  while (match.effects.length) runEffect(match, match.effects.shift(), () => 0);
+  assert.equal(findUnit(match, 'ally').card.power, 6);
+});
+
+test('capture changes the recipient of a previously queued field reaction', () => {
+  const match = fixture();
+  board(match, 'human', 'surface', unit('ally', 'frigate'));
+  board(match, 'bot', 'surface', unit('enemy', 'frigate'), unit('captured', 'frigate'));
+  match.effects.push({
+    side: 'bot', sourceId: 'captured', requiredSource: true, cardAbility: true,
+    ability: { steps: [{ action: 'boost', target: { scope: 'ally', type: 'unit', exclude: 'source' }, amount: 2 }] },
+  });
+  capture(match, 'human', findUnit(match, 'captured'));
+  while (match.effects.length) runEffect(match, match.effects.shift(), () => 0);
+  assert.equal(findUnit(match, 'ally').card.power, 6);
+  assert.equal(findUnit(match, 'enemy').card.power, 4);
+});
+
 test('Shield Overload spends only the selected armor and scatters independent hits among surviving units', () => {
   let match = fixture();
   hand(match, unit('overload', 'shield-overload'));
@@ -558,9 +631,16 @@ test('Shield Overload spends only the selected armor and scatters independent hi
   board(match, 'bot', 'surface', unit('fragile', 'cocoon', { power: 1 }), unit('shield', 'shieldbearer'), unit('artifact', 'incubator'));
   match = play(match, 'overload');
   assert.deepEqual(match.pending.options, ['orbit', 'surface']);
+  board(match, 'bot', 'orbit', unit('untouched', 'warden'));
   match = target(match, 'surface');
+  assert.equal(match.pending.kind, 'enemy-row');
+  assert.equal(match.pending.amount, 4);
+  assert.deepEqual(match.pending.options, ['orbit', 'surface']);
+  assert.equal(events(match, 'damage').length, 0);
   assert.equal(match.players.human.board.orbit[0].armor, 2);
   assert.deepEqual(match.players.human.board.surface.map(({ armor }) => armor), [0, 0]);
+  match = target(match, 'surface');
+  assert.equal(match.players.bot.board.orbit[0].armor, 3);
   assert.deepEqual(events(match, 'damage').map(({ cardId, amount, scattered }) => [cardId, amount, scattered]),
     [['fragile', 1, true], ['shield', 1, true], ['shield', 1, true], ['shield', 1, true]]);
   assert.equal(match.players.bot.board.surface[0].power, 2);
@@ -584,7 +664,11 @@ test('Broodlord groups only larvae in its row and doubles their current power', 
 test('printed stats, titles and rarity match the approved balance', () => {
   const all = [...Object.values(FACTIONS).flatMap(({ pool }) => pool), ...NEUTRAL_CARDS];
   const expected = {
-    smelter: { power: 2 }, warden: { armor: 3 }, anvil: { rarity: 'epic', provision: 8 },
+    smelter: { power: 2 }, warden: { power: 5, armor: 3, provision: 5 },
+    'orbital-shield': { armor: 2 }, reinforcements: { provision: 5 }, standard: { provision: 4, power: 3 },
+    'scout-frigate': { provision: 4, power: 2, shipClass: 'Лёгкий корабль' }, spotter: { power: 5 },
+    'shield-generator': { provision: 4 }, 'imperial-golem': { provision: 10 }, aurelian: { provision: 12 },
+    engineer: { provision: 4 }, infantry: { power: 3, armor: 2 }, 'orbital-salvo': { provision: 4 }, anvil: { rarity: 'epic', provision: 8 },
     colonel: { name: 'Октавиан Рейн', rarity: 'gold', provision: 10 },
     commander: { name: 'Кассия Фульмина', rarity: 'epic', provision: 8 },
     'shield-overload': { provision: 12 }, cocoon: { power: 3 }, 'spore-sac': { provision: 4, power: 4 },
@@ -616,11 +700,11 @@ test('Acid Gland infects a single strongest enemy through armor and resolves a t
   assert.equal(match.players.human.board.surface[0].readyAt, readyAt);
   assert.deepEqual(events(match, 'status').map(({ cardId, count }) => [cardId, count]), [['second', 4]]);
   assert.equal(match.players.bot.board.surface[0].armor, 3);
-  assert.equal(match.players.bot.board.surface[0].power, 6);
+  assert.equal(match.players.bot.board.surface[0].power, 5);
   assert.equal(match.turn, 'bot');
   match = applyAction(match, 'bot', { type: 'pass' });
   assert.equal(match.players.bot.board.surface[0].armor, 3);
-  assert.equal(match.players.bot.board.surface[0].power, 5);
+  assert.equal(match.players.bot.board.surface[0].power, 4);
   assert.equal(match.players.bot.board.surface[0].statuses.infection, 3);
 });
 
@@ -636,13 +720,13 @@ test('Spitter infects on deployment and its reusable Order bypasses armor when i
   assert.equal(events(match, 'damage').length, 0);
   assert.equal(match.turn, 'bot');
   match = applyAction(match, 'bot', { type: 'pass' });
-  assert.equal(match.players.bot.board.orbit[0].power, 5);
+  assert.equal(match.players.bot.board.orbit[0].power, 4);
   assert.equal(match.players.bot.board.orbit[0].armor, 3);
 
   const order = { type: 'order', cardId: 'spitter' };
   match = target(applyAction(match, 'human', order), 'second');
   assert.equal(match.players.bot.board.orbit[1].statuses.infection, 3);
-  assert.equal(match.players.bot.board.orbit[1].power, 6);
+  assert.equal(match.players.bot.board.orbit[1].power, 5);
   for (let i = 0; i < 3; i++) {
     assert.strictEqual(applyAction(match, 'human', order), match);
     match = play(match, 'plain-' + i, i + 1);
