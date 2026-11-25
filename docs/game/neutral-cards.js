@@ -13,7 +13,7 @@ const strongestPresent = { targets: strongest };
 const annihilate = { action: 'destroy', target: strongest, visual: 'annihilation' };
 
 export const ANNIHILATION = Object.freeze({
-  id: 'annihilation', name: 'Аннигиляция', art: 'annihilation.webp?v=neutral-palette-1', removalReserve: 8, faction: NEUTRAL, type: 'effect', rarity: 'gold', provision: 12,
+  id: 'annihilation', name: 'Аннигиляция', art: 'annihilation.webp', removalReserve: 8, faction: NEUTRAL, type: 'effect', rarity: 'gold', provision: 12,
   text: 'Уничтожь сильнейший отряд на поле, свой или чужой. При равенстве выбери случайный из сильнейших. Инициатива: уничтожь все отряды с наибольшей силой.',
   deploy: { ...ability([{ ...annihilate, mode: 'random' }]), when: strongestPresent },
   initiative: { ...ability([annihilate]), when: strongestPresent },
@@ -44,7 +44,7 @@ export const NEUTRAL_CARDS = Object.freeze([
       keywords: ['Блокировка'],
     }],
     ['veteran-mercenary', 'Наёмник-ветеран', 'bronze', 4, 3, 'Нанеси 2 урона своему отряду. Усиль себя на 3.', {
-      art: 'veteran-mercenary.webp?v=neutral-palette-1',
+      art: 'veteran-mercenary.webp',
       deploy: ability([action('damage', chosen('ally'), 2), action('boost', self, 3)],
         [choice('ally', allies, 'Выбери свой отряд для 2 урона.', { kind: 'friendly-damage', amount: 2 })]),
       keywords: ['Урон', 'Усиление'],
@@ -59,16 +59,16 @@ export const NEUTRAL_CARDS = Object.freeze([
       keywords: ['Очищение'],
     }],
     ['smuggler', 'Контрабандист', 'bronze', 4, 3, 'Инициатива: усиль себя на 3.', {
-      art: 'smuggler.webp?v=neutral-palette-1',
+      art: 'smuggler.webp',
       initiative: ability([action('boost', self, 3)]), keywords: ['Инициатива', 'Усиление'],
     }],
     ['recon-drone', 'Разведдрон', 'bronze', 4, 4, 'Посмотри свою колоду и выбери карту. Она становится верхней.', {
-      art: 'recon-drone.webp?v=neutral-palette-1',
+      art: 'recon-drone.webp',
       deploy: ability([{ action: 'choose-deck-top' }]),
     }],
     ['emp-grenade', 'ЭМИ-граната', 'bronze', 5, null, 'Сними всю броню с вражеского отряда. Нанеси 2 урона плюс число снятых единиц брони.', {
       removalReserve: 4,
-      art: 'emp-grenade.webp?v=neutral-palette-1',
+      art: 'emp-grenade.webp',
       type: 'effect',
       deploy: ability([
         { ...action('armor', chosen('enemy'), { stat: 'armor', scale: -1 }), save: 'armor' },
@@ -78,7 +78,7 @@ export const NEUTRAL_CARDS = Object.freeze([
     }],
     ['gravity-pulse', 'Гравитационный импульс', 'bronze', 7, null, 'Выбери вражеский ряд: сними 1 броню и нанеси 1 урон всем отрядам в нём.', {
       removalReserve: 4,
-      art: 'gravity-pulse.webp?v=neutral-palette-1',
+      art: 'gravity-pulse.webp',
       type: 'effect', deploy: ability([
         { action: 'select-row', ref: 'row', filter: 'units', prompt: 'Выбери вражеский ряд для Гравитационного импульса.' },
         action('armor', { ...enemies, rowRef: 'row' }, -1),
@@ -86,16 +86,16 @@ export const NEUTRAL_CARDS = Object.freeze([
       ]), keywords: ['Броня', 'Урон'],
     }],
     ['liaison', 'Связной', 'gold', 9, 4, 'Счётчик 4: возьми карту.', {
-      art: 'liaison.webp?v=neutral-palette-1',
+      art: 'liaison.webp',
       counter: { amount: 4, effect: ability([{ action: 'draw', amount: 1 }]) },
       keywords: ['Счётчик'],
     }],
     ['field-medic', 'Полевой реаниматор', 'gold', 9, 3, 'Сыграй обычный отряд из своего сброса.', {
-      art: 'field-medic.webp?v=neutral-palette-1',
+      art: 'field-medic.webp',
       deploy: ability([{ action: 'play-from-discard', filter: { rarity: 'bronze' } }]),
     }],
     ['gate-relic', 'Реликт врат', 'gold', 9, null, 'Приказ (перезарядка 2): усиль свой отряд на 3.', {
-      art: 'gate-relic.webp?v=neutral-palette-1',
+      art: 'gate-relic.webp',
       type: 'artifact', order: {
         ...ability([action('boost', chosen('ally'), 3)],
           [choice('ally', allies, 'Выбери свой отряд для усиления на 3.', { kind: 'boost' })]),
@@ -104,7 +104,7 @@ export const NEUTRAL_CARDS = Object.freeze([
     }],
     ['bounty-hunter', 'Охотник за головами', 'gold', 10, 4, 'Нанеси 6 урона вражескому отряду. Если он погиб от этого удара, усиль себя на 2.', {
       removalReserve: 5,
-      art: 'bounty-hunter.webp?v=neutral-palette-1',
+      art: 'bounty-hunter.webp',
       deploy: ability([
         { ...action('damage', chosen('enemy'), 6), save: 'kill' },
         action('boost', self, { result: 'kill', scale: 2 }),
@@ -121,7 +121,7 @@ export const NEUTRAL_CARDS = Object.freeze([
         keywords: ['Приказ', 'Урон', 'Порождение'],
       }],
     ['gate-guardian', 'Хранитель врат', 'gold', 10, 12, 'Броня 4. Уязвимость: отправь эту карту в сброс.', {
-      art: 'gate-guardian.webp?v=neutral-palette-1',
+      art: 'gate-guardian.webp',
       armor: 4, aiHints: { armorBreakCostsPower: true }, events: { 'armor-break': ability([action('discard', self)]) },
       keywords: ['Броня', 'Уязвимость'],
     }],
@@ -144,7 +144,7 @@ export const NEUTRAL_CARDS = Object.freeze([
         startTurn: ability([{ action: 'break', target: self }, { action: 'scatter', amount: 1, visual: 'lightning' }]),
       }],
     ['old-golem', 'Старый голем', 'epic', 9, 9, 'Силовой щит. После розыгрыша тобой любого Голема, включая эту карту, усиливается на 1, пока находится на поле.', {
-      art: 'old-golem.webp?v=force-sphere-1', categories: ['Голем'], shield: true, keywords: ['Силовой щит', 'Усиление'],
+      art: 'old-golem.webp', categories: ['Голем'], shield: true, keywords: ['Силовой щит', 'Усиление'],
       fieldEvents: { play: { friendly: true, category: 'Голем', ability: ability([action('boost', self, 1)]) } },
     }],
     ['fire-golem', 'Огненный голем', 'epic', 9, 5,
@@ -186,7 +186,7 @@ export const NEUTRAL_CARDS = Object.freeze([
       }],
     ['helper-robot', 'Робот-помощник', 'epic', 8, 4,
       'Когда ты впервые за матч разыгрываешь легендарную карту, призови Робота-помощника из колоды в случайный свой ряд, где есть место.', {
-        art: 'helper-robot.webp?v=art-28', categories: ['Робот'], keywords: ['Призыв'],
+        art: 'helper-robot.webp', categories: ['Робот'], keywords: ['Призыв'],
         pileEvents: { play: { friendly: true, pile: 'deck', firstLegendary: true,
           ability: ability([{ action: 'summon-from-deck', row: 'random' }]) } },
       }],

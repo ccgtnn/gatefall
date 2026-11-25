@@ -1,3 +1,4 @@
+import { assetUrl } from '../asset-url.js';
 import { leagueCharacter } from './league-character.js';
 import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js';
 import { insertionPoint, placementEffectRows } from '../card-placement.js';
@@ -258,7 +259,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     const art = player.factionId === 'growth' ? 'back-growth.webp' : 'back-protectorate.webp';
     for (let index = 0; index < player.hand.length; index += 1) {
       const back = element('img');
-      back.src = './art/' + art;
+      back.src = assetUrl('./art/' + art);
       back.alt = '';
       backs.append(back);
     }

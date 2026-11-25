@@ -970,7 +970,7 @@ ul.deck-invalid { padding-inline-start: 1.1rem; margin: 0; font-size: .8rem; }
 }
 [data-rarity="gold"] {
   --rarity-border-color: #efc351;
-  --rarity-frame: url('./art/rarity-frame-gold.png?v=brighter-1');
+  --rarity-frame: url('./art/rarity-frame-gold.png');
 }
 [data-rarity]:not(.card-preview)::before {
   position: absolute;

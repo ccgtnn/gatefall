@@ -1,3 +1,4 @@
+import { assetUrl } from '../asset-url.js';
 import { button, element } from './dom.js';
 import { REWARD_SECTIONS, rewardState } from '../game/reward-book.js';
 import { resourceIcon } from './resource-icon.js';
@@ -116,7 +117,7 @@ export function mountRewardBook(progress, { dialog: book, shell }) {
     chart.setAttribute('role', 'region');
     chart.setAttribute('aria-label', 'Маршруты · ' + title);
     const plot = element('div', 'reward-plot');
-    plot.style.setProperty('--reward-map-image', `url('./art/${image}')`);
+    plot.style.setProperty('--reward-map-image', `url('${assetUrl('./art/' + image)}')`);
     const edges = document.createElementNS(svgNamespace, 'svg');
     edges.setAttribute('class', 'reward-edges');
     edges.setAttribute('viewBox', '0 0 100 100');

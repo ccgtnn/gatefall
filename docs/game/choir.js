@@ -28,16 +28,16 @@ function tentacle(id, name, power, hit, stats = {}) {
 }
 
 export const TENTACLE = tentacle('ulmarin-tentacle', 'Щупальце Спящего', 2, 1, {
-  art: 'sleeper-tentacle.webp?v=choir-art-6', artCrop: 'sleeper-tentacle-crop.webp?v=choir-art-6',
+  art: 'sleeper-tentacle.webp', artCrop: 'sleeper-tentacle-crop.webp',
   rarity: 'bronze', provision: 4,
 });
 export const LARGE_TENTACLE = tentacle('ulmarin-large-tentacle', 'Большое щупальце Спящего', 8, 2, {
-  art: 'sleeper-great-tentacle.webp?v=choir-art-4', artCrop: 'sleeper-great-tentacle-crop.webp?v=choir-art-4',
+  art: 'sleeper-great-tentacle.webp', artCrop: 'sleeper-great-tentacle-crop.webp',
 });
 
 export const FANATIC = card({
   id: 'ulmarin-fanatic', name: 'Фанатик Спящего', rarity: 'bronze', provision: 4, power: 4, categories: [CULTIST],
-  art: 'sleeper-fanatic.webp?v=choir-art-1', artCrop: 'sleeper-fanatic-crop.webp?v=choir-art-1',
+  art: 'sleeper-fanatic.webp', artCrop: 'sleeper-fanatic-crop.webp',
   text: 'Когда сила падает до 2 или ниже и отряд выживает, превращается в Щупальце Спящего с базовой силой.',
   events: { 'power-loss': { ...ability([{ action: 'transform', target: self, card: TENTACLE }]),
     when: { targets: { ...self, powerAtMost: 2 } } } },
@@ -46,7 +46,7 @@ const fanaticToken = card({ ...FANATIC, token: true });
 
 export const SLEEPER = card({
   id: 'ulmarin-sleeper', name: 'Спящий под Вратами', rarity: 'gold', power: 8, doomed: true, token: true,
-  art: 'sleeper-under-gates.webp?v=choir-art-1', artCrop: 'sleeper-under-gates-crop.webp?v=choir-art-1',
+  art: 'sleeper-under-gates.webp', artCrop: 'sleeper-under-gates-crop.webp',
   text: 'Обречённость. В конце твоего хода: нанеси 1 урон каждому соседу. Если нанёс урон, усиль себя на суммарный урон и восстанови Приказ. Приказ: нанеси сильнейшему вражескому отряду урон, равный числу твоих культистов Спящего и Щупалец.',
   keywords: ['Обречённость', 'Конец хода', 'Соседи', 'Урон', 'Усиление', 'Приказ'],
   endTurn: ability([
@@ -63,7 +63,7 @@ export const SLEEPER = card({
 
 export const AWAKENING = psionic({
   id: 'ulmarin-awakening', name: 'Пробуждение Спящего', type: 'artifact', rarity: 'gold', provision: 12, resilience: true,
-  art: 'sleeper-awakening.webp?v=choir-art-1', artCrop: 'sleeper-awakening-crop.webp?v=choir-art-1',
+  art: 'sleeper-awakening.webp', artCrop: 'sleeper-awakening-crop.webp',
   text: 'Стойкость. Главы открываются по одной при появлении нового Щупальца на твоей стороне. Пролог: призови по Фанатику Спящего слева и справа. Глава 1: усиль на 1 всех культистов Спящего в своей колоде. Глава 2: выбери свой отряд. Когда он погибнет или будет уничтожен, призови Большое щупальце Спящего на Поверхность. Глава 3: если за матч сыграно хотя бы 7 эффектов Псионики, призови Спящего под Вратами в ряд сценария.',
   keywords: ['Стойкость', 'Сценарий', PSIONICS, TENTACLE_CATEGORY],
   scenario: {
@@ -85,14 +85,14 @@ const victim = ref('victim');
 export const CHOIR_CARDS = Object.freeze([
   card({
     id: 'whisper-interpreter', name: 'Толкователь шёпота', rarity: 'bronze', provision: 5, power: 1,
-    art: 'whisper-interpreter.webp?v=choir-art-2', artCrop: 'whisper-interpreter-crop.webp?v=choir-art-2',
+    art: 'whisper-interpreter.webp', artCrop: 'whisper-interpreter-crop.webp',
     text: 'При размещении: сыграй карту Псионики из руки, затем возьми карту.', keywords: [PSIONICS],
     deploy: ability([{ action: 'play-from-hand', filter: { anyType: true, category: PSIONICS },
       prompt: 'Выбери карту Псионики из руки.' }, { action: 'draw', amount: 1 }]),
   }),
   card({
     id: 'forbidden-scroll-keeper', name: 'Хранитель запретных свитков', rarity: 'epic', provision: 7, power: 1,
-    art: 'forbidden-scroll-keeper.webp?v=choir-art-2', artCrop: 'forbidden-scroll-keeper-crop.webp?v=choir-art-2',
+    art: 'forbidden-scroll-keeper.webp', artCrop: 'forbidden-scroll-keeper-crop.webp',
     text: 'При размещении: сыграй карту Псионики из колоды.', keywords: [PSIONICS],
     deploy: ability([{ action: 'play-from-deck', chooseAll: true, filter: { anyType: true, category: PSIONICS },
       prompt: 'Выбери карту Псионики из колоды.' }]),
@@ -100,13 +100,13 @@ export const CHOIR_CARDS = Object.freeze([
   FANATIC,
   card({
     id: 'depth-neophyte', name: 'Неофит глубин', rarity: 'bronze', provision: 5, power: 4, categories: [CULTIST],
-    art: 'depth-neophyte.webp?v=choir-art-2', artCrop: 'depth-neophyte-crop.webp?v=choir-art-2',
+    art: 'depth-neophyte.webp', artCrop: 'depth-neophyte-crop.webp',
     text: 'Одержимость (Псионика): при размещении усиль себя на 1 за каждые 3 карты Псионики.',
     keywords: ['Одержимость', PSIONICS, 'Усиление'], deploy: ability([boost(obsession)]),
   }),
   card({
     id: 'cult-dreamer', name: 'Сновидец культа', rarity: 'epic', provision: 7, power: 3,
-    art: 'cult-dreamer.webp?v=choir-art-3', artCrop: 'cult-dreamer-crop.webp?v=choir-art-3',
+    art: 'cult-dreamer.webp', artCrop: 'cult-dreamer-crop.webp',
     text: 'Одержимость (Псионика): при размещении возьми по карте за каждые 3 карты Псионики. Верни столько же выбранных карт из руки в случайные места колоды.',
     keywords: ['Одержимость', PSIONICS],
     deploy: ability([{ action: 'draw', amount: obsession, save: 'drawn' },
@@ -114,7 +114,7 @@ export const CHOIR_CARDS = Object.freeze([
   }),
   card({
     id: 'abyss-shepherd', name: 'Пастырь бездны', rarity: 'gold', provision: 12, power: 4,
-    art: 'abyss-shepherd.webp?v=choir-art-4', artCrop: 'abyss-shepherd-crop.webp?v=choir-art-4',
+    art: 'abyss-shepherd.webp', artCrop: 'abyss-shepherd-crop.webp',
     text: 'Одержимость (Псионика): при размещении захвати выбранный вражеский отряд с силой не выше 3 / 4 / 5 / 6 при 3 / 6 / 9 / 12 картах Псионики. При меньшем числе карт Захват не срабатывает.',
     keywords: ['Одержимость', PSIONICS, 'Захват'],
     deploy: ability([{ action: 'capture', target: victim }], [{
@@ -124,28 +124,28 @@ export const CHOIR_CARDS = Object.freeze([
   }),
   psionic({
     id: 'alien-dream', name: 'Чужой сон', rarity: 'bronze', provision: 5,
-    art: 'stranger-dream.webp?v=choir-art-4', artCrop: 'stranger-dream-crop.webp?v=choir-art-4',
+    art: 'stranger-dream.webp', artCrop: 'stranger-dream-crop.webp',
     text: 'Покажи 3 случайные обычные карты фракции противника. Сотвори и сыграй одну из них.',
     keywords: [PSIONICS, 'Сотворение'],
     deploy: ability([{ action: 'create-play', faction: 'enemy', rarity: 'bronze', amount: 3 }]),
   }),
   psionic({
     id: 'sleeper-revelation', name: 'Откровение Спящего', rarity: 'gold', provision: 10,
-    art: 'sleeper-revelation.webp?v=choir-art-4', artCrop: 'sleeper-revelation-crop.webp?v=choir-art-4',
+    art: 'sleeper-revelation.webp', artCrop: 'sleeper-revelation-crop.webp',
     text: 'Одержимость (Псионика): покажи 1 / 2 / 3 / 4 случайных легендарных эффекта любой фракции при 3 / 6 / 9 / 12 картах Псионики. Сотвори и сыграй один из них.',
     keywords: ['Одержимость', PSIONICS, 'Сотворение'],
     deploy: ability([{ action: 'create-play', rarity: 'gold', type: 'effect', amount: { ...obsession, cap: 4 } }]),
   }),
   card({
     id: 'altar-guardian', name: 'Страж алтаря', rarity: 'epic', provision: 8, power: 4, armor: 2, categories: [CULTIST],
-    art: 'altar-guardian.webp?v=choir-art-2', artCrop: 'altar-guardian-crop.webp?v=choir-art-2',
+    art: 'altar-guardian.webp', artCrop: 'altar-guardian-crop.webp',
     text: 'Броня 2. Уязвимость. Одержимость (Псионика): усиль себя на 2 за каждые 3 карты Псионики.',
     keywords: ['Броня', 'Уязвимость', 'Одержимость', PSIONICS, 'Усиление'],
     events: { 'armor-break': ability([boost({ ...obsession, scale: 2 })]) },
   }),
   psionic({
     id: 'minor-offering', name: 'Малое подношение', rarity: 'bronze', provision: 4,
-    art: 'lesser-offering.webp?v=choir-art-4', artCrop: 'lesser-offering-crop.webp?v=choir-art-4',
+    art: 'lesser-offering.webp', artCrop: 'lesser-offering-crop.webp',
     text: 'Нанеси 2 урона выбранному своему отряду, затем призови Щупальце Спящего в тот же ряд.',
     keywords: [PSIONICS, 'Урон', 'Порождение'],
     deploy: ability([{ action: 'remember-row', target: victim, ref: 'victimRow' }, damage(victim, 2),
@@ -154,7 +154,7 @@ export const CHOIR_CARDS = Object.freeze([
   }),
   psionic({
     id: 'great-sacrifice', name: 'Великая жертва', rarity: 'gold', provision: 9,
-    art: 'great-sacrifice.webp?v=choir-art-4', artCrop: 'great-sacrifice-crop.webp?v=choir-art-4',
+    art: 'great-sacrifice.webp', artCrop: 'great-sacrifice-crop.webp',
     text: 'Нанеси по 2 урона трём разным своим отрядам, затем призови по Щупальцу Спящего в ряду каждой жертвы. При нехватке места используй другой ряд.',
     keywords: [PSIONICS, 'Урон', 'Порождение'],
     deploy: ability([
@@ -168,7 +168,7 @@ export const CHOIR_CARDS = Object.freeze([
   }),
   psionic({
     id: 'call-of-the-deep', name: 'Зов глубин', rarity: 'bronze', provision: 6,
-    art: 'call-of-the-deep.webp?v=choir-art-5', artCrop: 'call-of-the-deep-crop.webp?v=choir-art-5',
+    art: 'call-of-the-deep.webp', artCrop: 'call-of-the-deep-crop.webp',
     text: 'Преврати выбранный отряд в Щупальце Спящего с базовой силой на той же стороне и на том же месте, затем усиль его на 4.',
     keywords: [PSIONICS, TENTACLE_CATEGORY, 'Усиление'],
     deploy: ability([
@@ -178,14 +178,14 @@ export const CHOIR_CARDS = Object.freeze([
   }),
   psionic({
     id: 'mind-strike', name: 'Ментальный удар', rarity: 'bronze', provision: 5,
-    art: 'mind-strike.webp?v=choir-art-5', artCrop: 'mind-strike-crop.webp?v=choir-art-5',
+    art: 'mind-strike.webp', artCrop: 'mind-strike-crop.webp',
     text: 'Нанеси 5 урона выбранному отряду.',
     keywords: [PSIONICS, 'Урон'],
     deploy: ability([damage(victim, 5)], [{ ref: 'victim', kind: 'damage', amount: 5, targets: fieldUnits }]),
   }),
   psionic({
     id: 'sleeper-litany', name: 'Литания Спящего', rarity: 'bronze', provision: 4,
-    art: 'sleeper-litany.webp?v=choir-art-5', artCrop: 'sleeper-litany-crop.webp?v=choir-art-5',
+    art: 'sleeper-litany.webp', artCrop: 'sleeper-litany-crop.webp',
     text: 'Усиль на 1 всех культистов Спящего на своей стороне.',
     keywords: [PSIONICS, CULTIST, 'Усиление'],
     deploy: ability([{ action: 'boost', target: { ...allies, category: CULTIST }, amount: 1 }]),

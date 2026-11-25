@@ -1,3 +1,4 @@
+import { assetUrl } from '../asset-url.js';
 import { createTavernScreen } from './tavern-screen.js';
 import { weeklyBundle } from '../game/outpost.js';
 import { BUILDINGS, MAX_BUILDING_LEVEL, buildingEffect, buildingPrice, buildingSlot, constructionShortages } from '../game/base.js';
@@ -66,7 +67,7 @@ export function createBaseGrid(shell, progress, labels, materialIcon) {
       const art = element('img');
       art.alt = '';
       art.width = art.height = 640;
-      art.src = './art/base-card-' + definition.art + '.webp';
+      art.src = assetUrl('./art/base-card-' + definition.art + '.webp');
       art.addEventListener('error', () => art.remove(), { once: true });
       picture.append(art);
     }

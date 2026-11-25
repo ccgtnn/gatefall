@@ -1,3 +1,4 @@
+import { assetUrl } from '../asset-url.js';
 import { FACTIONS } from '../game/cards.js';
 import { createCard } from '../game/board.js';
 import { decorateCard } from './cards.js';
@@ -15,8 +16,8 @@ const frames = [
 
 const battlefields = [
   { id: 'standard', name: 'Стандартное поле', art: 'home-nebula.webp' },
-  { id: 'wood', name: 'Деревянная доска', art: 'battlefield-wood.webp?v=2' },
-  { id: 'metal', name: 'Тактический стол', art: 'battlefield-metal.webp?v=2' },
+  { id: 'wood', name: 'Деревянная доска', art: 'battlefield-wood.webp' },
+  { id: 'metal', name: 'Тактический стол', art: 'battlefield-metal.webp' },
   { id: 'new-year', name: 'Новогодний стол', art: 'battlefield-new-year.webp' },
 ];
 
@@ -71,7 +72,7 @@ export function decorationsScreen(phase, framesPreference, battlefieldPreference
   const fieldOptions = decorationOptions('Поле боя · ПК', battlefields, battlefieldPreference, ({ art }) => {
     const image = element('img', 'decoration-field');
     image.alt = '';
-    image.src = './art/' + art;
+    image.src = assetUrl('./art/' + art);
     return image;
   });
 

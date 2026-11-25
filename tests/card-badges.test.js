@@ -134,13 +134,13 @@ test('premium selection updates existing copies and persists independently for b
     choice.value = 'premium';
     choice.listeners.change();
     const video = byClass(face, 'card-art-video');
-    assert.equal(video.src, './art/synaptic-parasite-hand.mp4?v=loop-1');
+    assert.equal(video.src, './art/synaptic-parasite-hand.mp4');
     assert.equal(video.poster, './art/synaptic-parasite.webp');
     assert.ok(video.autoplay && video.muted && video.loop && video.playsInline);
-    assert.equal(byClass(preview, 'card-art-video').src, './art/synaptic-parasite-preview.mp4?v=loop-1');
+    assert.equal(byClass(preview, 'card-art-video').src, './art/synaptic-parasite-preview.mp4');
     assert.equal(byClass(other, 'card-art-crop').tag, 'img');
     selectPremiumArt(devourer, true);
-    assert.equal(byClass(other, 'card-art-video').src, './art/carrion-devourer-card.mp4?v=loop-1');
+    assert.equal(byClass(other, 'card-art-video').src, './art/carrion-devourer-card.mp4');
     assert.deepEqual(JSON.parse(saved.get(PREMIUM_ART_KEY)), [id, devourer]);
 
     const restored = await import('../docs/ui/card-art.js?test-reload');
@@ -176,7 +176,7 @@ test('World Gates uses its own premium clips on the small and full card faces', 
     mode.listeners.change();
     for (const [root, file] of [[face, 'world-gates-card.mp4'], [preview, 'world-gates-preview.mp4']]) {
       const video = byClass(root, 'card-art-video');
-      assert.equal(video.src, `./art/${file}?v=loop-1`);
+      assert.equal(video.src, `./art/${file}`);
       assert.ok(video.loop && video.muted && video.playsInline);
       await access(new URL(`../docs/art/${file}`, import.meta.url));
     }

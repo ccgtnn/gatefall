@@ -1,3 +1,4 @@
+import { assetUrl } from '../asset-url.js';
 import { createBaseGrid } from './base-grid.js';
 import { BASE_OVERLAYS, BASE_POSITIONS, baseLayout, overlayStyle } from './base-layout.js';
 import { BASE_PLOTS, BUILDING_BY_PLOT, BUILDINGS, MATERIALS, buildingEffect, constructionShortages } from '../game/base.js';
@@ -133,7 +134,7 @@ function createOverlayBaseScreen(progress, dialog, shell, updateMaterials) {
         const image = element('img', 'base-overlay-' + role);
         image.alt = '';
         image.draggable = false;
-        image.src = source;
+        image.src = assetUrl(source);
         layer.append(image);
         if (role === 'silhouette') {
           image.decode().then(() => { view.mask = makeMask(image); }).catch(() => {});

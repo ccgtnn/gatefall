@@ -14,7 +14,7 @@ export const BASE_OVERLAYS = {
     rect: [925, 105, 340, 413],
   },
   5: {
-    image: './art/base-tavern-overlay.webp?v=base-mine-1',
+    image: './art/base-tavern-overlay.webp',
     silhouette: './art/base-tavern-silhouette.webp',
     rect: [936, 254, 496, 428],
   },
