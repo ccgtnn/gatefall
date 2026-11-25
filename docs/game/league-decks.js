@@ -5,7 +5,13 @@ const presets = Object.fromEntries(PRESETS.map((deck) => [deck.id, deck]));
 function leagueDeck(id, presetId, replacements) {
   const base = presets['preset-' + presetId];
   const cardIds = [...base.cardIds];
-  for (const [out, incoming] of replacements) cardIds[cardIds.indexOf(out)] = incoming;
+  for (const [out, incoming] of replacements) {
+    const index = cardIds.indexOf(out);
+    if (index === -1) {
+      throw new Error(`League deck "${id}" (preset "${presetId}"): cannot replace missing card "${out}" with "${incoming}".`);
+    }
+    cardIds[index] = incoming;
+  }
   return { ...base, id: 'league-' + id, cardIds };
 }
 

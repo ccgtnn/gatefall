@@ -3,7 +3,7 @@ import { access } from 'node:fs/promises';
 import test from 'node:test';
 import { announcePlay, applyStatus, createCard, damage, findUnit, spawnCards, statusCount, weaken } from '../docs/game/board.js';
 import { chooseBotTurn, pickBotTarget } from '../docs/game/bot.js';
-import { KEYWORDS } from '../docs/game/cards.js';
+import { FACTIONS, KEYWORDS } from '../docs/game/cards.js';
 import { AWAKENING, CHOIR_CARDS, CULTIST, FANATIC, LARGE_TENTACLE, PSIONICS, SLEEPER, TENTACLE } from '../docs/game/choir.js';
 import { collection, copyLimit, inspectDeck, PRESETS } from '../docs/game/decks.js';
 import { availableOrders, canUseLeader, enqueueEndTurn, runEffect } from '../docs/game/effects.js';
@@ -67,7 +67,7 @@ test('Choir collectible cards are owned by default and can start a match', async
   assert.equal(match.players.human.factionId, 'choir');
   assert.equal(match.players.human.startingCategories[PSIONICS], 8);
   assert.equal(canUseLeader(match, 'human'), false);
-  assert.equal(await economy.buyPack('choir'), 'unknown');
+  assert.equal(await economy.buyPack('choir'), 'unaffordable');
   for (const word of [PSIONICS, CULTIST, 'Щупальце', 'Одержимость', 'Захват', 'Сотворение']) assert.ok(KEYWORDS[word]);
 });
 
@@ -334,8 +334,9 @@ test('Scenario prologue surrounds the artifact and Fanatic transformation trigge
   assert.deepEqual(human(result).deck.map(({ power, basePower }) => [power, basePower]), [[5, 5], [4, 4]]);
 });
 
-test('Chapter two destroys the selected ally and immediately summons a large tentacle', () => {
-  let match = setup({ orbit: [AWAKENING, unit(2), unit(9)] });
+test('Chapter two destroys the selected ally, triggers its deathwish and summons a large tentacle', () => {
+  const spores = FACTIONS.growth.deck.find(({ id }) => id === 'spore-sac');
+  let match = setup({ orbit: [AWAKENING, spores, unit(9)] });
   spawnCards(match, 'bot', 'surface', 0, 1, TENTACLE);
   drain(match);
   assert.equal(get(match, 'orbit-0').chapter, 0);
@@ -348,7 +349,10 @@ test('Chapter two destroys the selected ally and immediately summons a large ten
   assert.ok(get(match, 'orbit-2'));
   assert.equal(match.pending, null);
   assert.equal(human(match).board.surface.at(-1).definition.id, LARGE_TENTACLE.id);
-  const destroyed = match.log.findIndex(({ type, cardId }) => type === 'destroy' && cardId === 'orbit-1');
+  assert.equal(human(match).discard[0].id, 'orbit-1');
+  assert.ok(human(match).board.orbit.some(({ definition }) => definition.id === 'larva'));
+  const destroyed = match.log.findIndex(({ type, reason, cardId }) =>
+    type === 'death' && reason === 'destroy' && cardId === 'orbit-1');
   const summoned = match.log.findIndex(({ type, cards }) =>
     type === 'spawn' && cards.some(({ definition }) => definition.id === LARGE_TENTACLE.id));
   assert.ok(destroyed >= 0 && summoned > destroyed);

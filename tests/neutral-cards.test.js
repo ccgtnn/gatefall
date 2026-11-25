@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createCard, findUnit, statusCount } from '../docs/game/board.js';
+import { applyStatus, createCard, findUnit, statusCount } from '../docs/game/board.js';
 import { chooseBotTurn } from '../docs/game/bot.js';
 import { FACTIONS, FIRST_SIGNAL, NEUTRAL_CARDS } from '../docs/game/cards.js';
 import { availableOrders } from '../docs/game/effects.js';
@@ -247,6 +247,8 @@ test('Carrion Devourer keeps its growth through a round and Resurrection, then s
   match = applyAction(match, 'human', { type: 'place', row: 'orbit', position: 0 });
   assert.equal(findUnit(match, beast.id).card.power, 9);
 
+  // Annihilation exiles the resurrected beast only once it is doomed.
+  applyStatus(match, findUnit(match, beast.id), 'doomed', 1);
   match.players.bot.hand = [card('annihilation'), unit('enemy')];
   match = play(match, 'annihilation');
   assert.equal(findUnit(match, beast.id), undefined);

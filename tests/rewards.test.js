@@ -13,13 +13,18 @@ function localStorage(snapshot) {
   };
 }
 
+test('every playable faction has its own booster', () => {
+  const ids = BOOSTER_FACTIONS.map(({ id }) => id);
+  assert.deepEqual(new Set(ids), new Set([...Object.keys(FACTIONS), 'neutral']));
+  assert.equal(ids.length, new Set(ids).size);
+});
+
 const chapters = REWARD_SECTIONS.flatMap((section) => section.chapters);
 
 test('the book has two sections, five chapters and reachable rare rewards', () => {
   const storage = localStorage();
   assert.equal(createRewardProgress(storage).get().keys, 0);
   assert.deepEqual(REWARD_SECTIONS.map(({ chapters }) => chapters.length), [3, 2]);
-  assert.deepEqual(BOOSTER_FACTIONS.map(({ id }) => id), ['protectorate', 'growth', 'captains', 'neutral']);
   assert.equal(new Set(chapters.flatMap(({ nodes }) => nodes.map(({ id }) => id))).size, 120);
   const layouts = new Set();
   assert.deepEqual(chapters.map(({ nodes }) => nodes.length), [21, 21, 21, 29, 28]);
@@ -174,7 +179,7 @@ test('inventory snapshots stay isolated and see saves from another wallet before
   assert.deepEqual(second.inventory().pendingPack.revealed, [id]);
 });
 
-test('already opened rewards fund the shop once and persist a faction booster purchase', async () => {
+test('already opened rewards fund the shop once and persist a Choir booster purchase', async () => {
   const storage = localStorage();
   storage.setItem(REWARD_STORAGE_KEY, JSON.stringify({ unlocked: [
     'neutral:signal', 'neutral:supply', 'neutral:junction', 'neutral:upper-cache',
@@ -183,11 +188,15 @@ test('already opened rewards fund the shop once and persist a faction booster pu
   assert.equal(wallet.inventory().gold, 130);
   assert.equal(wallet.inventory().essence, 835);
   assert.equal(wallet.inventory().boosters.neutral, 1);
-  assert.equal(await wallet.buyPack('growth'), 'done');
+  assert.equal(await wallet.buyPack('choir'), 'done');
   const reloaded = createRewardProgress(storage);
-  assert.equal(reloaded.inventory().boosters.growth, 1);
+  assert.equal(reloaded.inventory().boosters.choir, 1);
   assert.equal(reloaded.inventory().gold, 30);
-  assert.equal(await reloaded.buyPack('growth'), 'unaffordable');
+  assert.equal(await reloaded.buyPack('choir'), 'unaffordable');
+  assert.equal(await reloaded.openPack('choir'), 'done');
+  const { cards } = reloaded.inventory().pendingPack;
+  assert.equal(cards.length, 5);
+  assert.ok(cards.every((id) => FACTIONS.choir.pool.some((card) => card.id === id && !card.token)));
   assert.equal(await reloaded.unlock('neutral:signal'), 'unlocked');
   assert.equal(reloaded.inventory().gold, 30);
 });
@@ -397,7 +406,7 @@ test('booster rewards in two chapters share the same faction inventory', async (
   assert.equal(wallet.inventory().boosters.neutral, 2);
   assert.equal(await wallet.openPack('neutral'), 'done');
   const copy = createRewardProgress(storage);
-  assert.deepEqual(copy.inventory().boosters, { neutral: 1, protectorate: 0, growth: 0, captains: 0 });
+  assert.deepEqual(copy.inventory().boosters, { neutral: 1, protectorate: 0, growth: 0, captains: 0, choir: 0 });
   assert.equal(copy.inventory().pendingPack.faction, 'neutral');
 });
 

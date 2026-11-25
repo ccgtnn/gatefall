@@ -182,7 +182,8 @@ test('strategic bots simulate favorable uses and legal choices for every leader'
       match.round = 3;
       human.board.surface = [unit('enemy-a'), unit('enemy-b'), unit('enemy-c')];
       bot.board.surface = [unit('friendly-a'), unit('friendly-b'), unit('friendly-c')];
-      bot.hand = [unit('plain', 4)];
+      bot.hand = [unit('plain', 4), unit('spare', 4)];
+      if (leader.id === 'marshal') bot.hand[0] = member('standard', 'standard');
       if (leader.id === 'devourer') {
         bot.board.surface[0] = createCard('cocoon', FACTIONS.growth.pool.find(({ id }) => id === 'cocoon'));
       }

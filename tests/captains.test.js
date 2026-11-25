@@ -200,7 +200,7 @@ test('Правый Клык destroys a chosen Hound, draws, bottoms a chosen car
   assert.ok(match.pending.options.includes('deck-1'));
   match = target(match, 'hand-1');
   assert.equal(human(match).deck.at(-1).id, 'hand-1');
-  assert.equal(human(match).exile[0].id, 'surface-1');
+  assert.equal(human(match).discard[0].id, 'surface-1');
   assert.equal(availableOrders(match, 'human').length, 0);
   match = fee(match, 'orbit-1');
   assert.equal(human(match).coins, 0);
@@ -385,7 +385,7 @@ test('on its next owner turn the turret changes art, shoots one random ally, the
   const events = next.log.slice(deployed.log.length);
   const art = events.findIndex(({ type }) => type === 'art-state');
   const shot = events.findIndex(turretShot);
-  const destroy = events.findIndex(({ type, cardId }) => type === 'destroy' && cardId === 'hand-1');
+  const destroy = events.findIndex(({ type, reason, cardId }) => type === 'death' && reason === 'destroy' && cardId === 'hand-1');
   assert.ok(art >= 0 && shot > art && destroy > shot);
   assert.deepEqual([events[shot].cardId, events[shot].side, events[shot].amount, events[shot].sourceId],
     ['surface-1', 'human', 1, 'hand-1']);
@@ -398,7 +398,7 @@ test('on its next owner turn the turret changes art, shoots one random ally, the
   assert.equal(findUnit(replay, 'hand-1'), undefined);
   assert.equal(findUnit(next, 'orbit-1').card.power, 5);
   assert.equal(findUnit(next, 'hand-1'), undefined);
-  assert.ok(human(next).exile.some(({ id }) => id === 'hand-1'));
+  assert.ok(human(next).discard.some(({ id }) => id === 'hand-1'));
 });
 
 test('a turret with no allied target still breaks and one removed early cannot fire', () => {

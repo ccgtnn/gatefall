@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { statSync } from 'node:fs';
 import { inspectDeck } from '../docs/game/decks.js';
 import { FACTIONS } from '../docs/game/cards.js';
-import { FACTION_CATALOG } from '../docs/game/faction-catalog.js';
+import { FACTION_CATALOG, UPCOMING_FACTIONS } from '../docs/game/faction-catalog.js';
 import { LEAGUE_CHARACTERS } from '../docs/game/league-characters.js';
 import { LEAGUE_CONTEXT_LINES } from '../docs/game/league-context-lines.js';
 import { leagueDeckFor } from '../docs/game/league-decks.js';
@@ -54,6 +54,14 @@ test('all 31 characters have ranked places, eight occasions, and legal decks', (
   }
 });
 
+test('every league deck has valid replacements at actual card positions', () => {
+  const decks = new Set(LEAGUE_CHARACTERS.map((character) => leagueDeckFor(character)));
+  for (const { id, cardIds, ...deck } of decks) {
+    assert.equal(Object.hasOwn(cardIds, '-1'), false, id);
+    assert.ok(inspectDeck({ id, cardIds, ...deck }).valid, id);
+  }
+});
+
 test('every league character has a portrait file', () => {
   const art = new URL('../docs/art/', import.meta.url);
   for (const { name, avatar } of LEAGUE_CHARACTERS) {
@@ -66,6 +74,8 @@ test('every league character has a portrait file', () => {
 test('the faction catalog starts with playable factions and covers the league characters', () => {
   const playable = Object.keys(FACTIONS);
   assert.deepEqual(Object.keys(FACTION_CATALOG).slice(0, playable.length), playable);
+  for (const id of playable) assert.ok(!Object.hasOwn(UPCOMING_FACTIONS, id), id);
+  assert.ok(!Object.hasOwn(FACTION_CATALOG, 'core'));
   for (const { name, loreFaction } of LEAGUE_CHARACTERS) {
     if (loreFaction !== 'neutral') {
       assert.ok(Object.hasOwn(FACTION_CATALOG, loreFaction), `${name}: missing faction ${loreFaction}`);
@@ -74,7 +84,7 @@ test('the faction catalog starts with playable factions and covers the league ch
 });
 
 test('future factions use temporary decks until their own deck is registered', () => {
-  for (const loreFaction of ['captains', 'choir', 'flawless', 'core', 'void']) {
+  for (const loreFaction of ['captains', 'choir', 'flawless', 'void']) {
     const deck = { factionId: loreFaction };
     const bots = LEAGUE_CHARACTERS.filter((character) => character.loreFaction === loreFaction);
     assert.ok(bots.length);

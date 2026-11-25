@@ -172,7 +172,7 @@ function removalShortfall(before, after, actor, card) {
   for (const event of after.log.slice(before.log.length)) {
     if (event.sourceDefinitionId !== card.definition.id) continue;
     const lost = event.type === 'damage' ? event.lost
-      : event.type === 'destroy' || event.type === 'discard' ? event.power ?? 0 : 0;
+      : event.reason === 'destroy' || event.type === 'discard' ? event.power ?? 0 : 0;
     swing += event.side === actor ? -lost : lost;
   }
   return Math.max(0, reserve - swing);
@@ -355,7 +355,7 @@ export function chooseStrategicTurn(match, difficulty, oldAction, options = {}) 
   const hard = difficulty === 'hard';
   const lead = totalScore(bot) - totalScore(human);
   const canPass = !bot.usedAbility && !match.playedCard;
-  if (canPass && lead > 0 && (human.passed || (round === 3 && !human.hand.length))) {
+  if (canPass && round < 3 && lead > 0 && human.passed) {
     return decide(PASS, 'Очков для победы уже хватает.');
   }
 

@@ -30,19 +30,20 @@ test('Annihilation is a neutral gold Effect, with one copy in each faction deck'
   }
 });
 
-test('Annihilation exiles the strongest unit on either side, ignoring armor and deathwish', () => {
+test('Annihilation kills the strongest unit on either side through armor and triggers its deathwish', () => {
   for (const side of ['human', 'bot']) {
     const match = fixture();
-    const target = unit('strongest', 9, { armor: 12, deathwish: { steps: [] } });
+    const spores = FACTIONS.growth.deck.find(({ id }) => id === 'spore-sac');
+    const target = createCard('strongest', { ...spores, power: 9, armor: 12 });
     const player = match.players[side];
     player.board.orbit = [unit('weaker', 8), target, createCard('artifact', { ...FIRST_SIGNAL, power: 30 })];
     const next = applyAction(match, 'human', cast);
-    assert.equal(next.players[side].exile[0].id, target.id);
-    assert.equal(next.players[side].exile[0].armor, 12);
-    assert.ok(!next.players[side].discard.some(({ id }) => id === target.id));
-    assert.ok(!next.log.some(({ type }) => type === 'deathwish' || type === 'damage'));
-    assert.equal(next.log.find(({ type }) => type === 'destroy').visual, 'annihilation');
-    assert.equal(next.players.human.discard[0].id, 'spell');
+    assert.equal(next.players[side].exile.length, 0);
+    assert.equal(next.players[side].discard.find(({ id }) => id === target.id).armor, 12);
+    assert.equal(next.players[side].board.orbit[1].definition.id, 'larva');
+    assert.ok(!next.log.some(({ type }) => type === 'damage'));
+    assert.equal(next.log.find(({ type, reason }) => type === 'death' && reason === 'destroy').visual, 'annihilation');
+    assert.ok(next.players.human.discard.some(({ id }) => id === 'spell'));
     assert.equal(match.players.human.roundActed, false);
   }
 });
@@ -52,22 +53,22 @@ test('Initiative snapshots all strongest units, including ties within one row an
   match.players.human.board.orbit = [unit('friendly-one', 8), unit('friendly-two', 8), unit('weak', 7)];
   match.players.bot.board.surface = [unit('enemy', 8)];
   const next = applyAction(match, 'human', cast, { random: () => assert.fail('Initiative does not draw a target') });
-  assert.deepEqual(next.players.human.exile.map(({ id }) => id), ['friendly-one', 'friendly-two']);
-  assert.deepEqual(next.players.bot.exile.map(({ id }) => id), ['enemy']);
+  assert.deepEqual(next.players.human.discard.filter(({ id }) => id !== 'spell').map(({ id }) => id), ['friendly-one', 'friendly-two']);
+  assert.deepEqual(next.players.bot.discard.filter(({ id }) => id !== 'spell').map(({ id }) => id), ['enemy']);
   assert.equal(next.players.human.board.orbit[0].id, 'weak');
   assert.equal(next.players.human.roundActed, true);
   assert.equal(next.players.bot.roundActed, false);
 });
 
-test('a regular cast randomly exiles exactly one tied unit, even when it is friendly', () => {
+test('a regular cast randomly destroys exactly one tied unit, even when it is friendly', () => {
   for (const [roll, side] of [[0, 'human'], [.99, 'bot']]) {
     const match = fixture();
     match.players.human.roundActed = true;
     match.players.human.board.orbit = [unit('friendly', 8)];
     match.players.bot.board.surface = [unit('enemy', 8)];
     const next = applyAction(match, 'human', cast, { random: () => roll });
-    assert.equal(next.players[side].exile.length, 1);
-    assert.equal(next.log.filter(({ type }) => type === 'destroy').length, 1);
+    assert.equal(next.players[side].discard.filter(({ id }) => id !== 'spell').length, 1);
+    assert.equal(next.log.filter(({ type, reason }) => type === 'death' && reason === 'destroy').length, 1);
   }
 });
 
@@ -80,7 +81,7 @@ test('a leader or Order consumes Initiative, and the next round resets it', () =
     match.players.bot.board.orbit = [unit('enemy', 8)];
     const activated = applyAction(match, 'human', action);
     assert.equal(activated.players.human.roundActed, true);
-    assert.equal(applyAction(activated, 'human', cast, { random: () => .99 }).players.human.exile.length, 0);
+    assert.equal(applyAction(activated, 'human', cast, { random: () => .99 }).players.human.discard.filter(({ id }) => id !== 'spell').length, 0);
   }
 
   let match = fixture();
@@ -98,7 +99,7 @@ test('an empty field or artifact-only field cannot consume Initiative', () => {
   assert.equal(match.players.human.roundActed, false);
 });
 
-test('both strategic bots value an Initiative sweep and avoid exiling their only strongest unit', () => {
+test('both strategic bots value an Initiative sweep and avoid destroying their only strongest unit', () => {
   for (const difficulty of ['normal', 'hard']) {
     const match = fixture();
     match.round = 3;
@@ -125,7 +126,7 @@ test('a prior card play removes Initiative through the rest of the round for tha
   assert.equal(match.players.bot.roundActed, false);
   match = applyAction(match, 'bot', { type: 'play', cardId: 'opponent-spare', row: 'surface', position: 0 });
   const next = applyAction(match, 'human', cast, { random: () => 0 });
-  assert.deepEqual(next.players.human.exile.map(({ id }) => id), ['spare']);
+  assert.deepEqual(next.players.human.discard.filter(({ id }) => id !== 'spell').map(({ id }) => id), ['spare']);
   assert.equal(next.players.bot.exile.length, 0);
 });
 

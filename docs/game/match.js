@@ -315,6 +315,7 @@ function progress(match, random) {
     const player = match.players[side];
     const otherSide = opponent(side);
     if (match.ending === 'effects') {
+      if (match.playedCard && player.hand.length === 0) markPassed(match, side, 'empty-hand');
       match.ending = 'advance';
       enqueueEndTurn(match, side);
       continue;

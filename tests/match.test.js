@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCard } from '../docs/game/board.js';
-import { availableOrders } from '../docs/game/effects.js';
+import { availableFees, availableOrders, canUseLeader } from '../docs/game/effects.js';
 import { ROWS } from '../docs/game/cards.js';
 import { DECKS } from './fixtures/prototype-decks.js';
 import {
@@ -191,46 +191,52 @@ test('after a split in two rounds, round three decides the match', () => {
   assert.equal(roundEvents(match, 'draw').length, 4);
 });
 
-test('an empty hand triggers autopass as soon as that player would act', () => {
-  const shortDeck = DECKS.human.slice(0, 1);
-  let match = playFirst(confirmMulligan(orderedMatch({ human: shortDeck, starter: 'bot' }), []));
-  match = playFirst(match);
-  assert.equal(match.turn, 'bot');
-  assert.equal(match.players.human.passed, false);
-  match = playFirst(match);
-  assert.equal(match.turn, 'bot');
-  assert.equal(match.players.human.passed, true);
-  assert.deepEqual(roundEvents(match, 'pass'), [
-    { type: 'pass', side: 'human', reason: 'empty-hand' },
-  ]);
+test('automatic End Turn after the last card passes immediately on either side', () => {
+  for (const side of ['human', 'bot']) {
+    const other = side === 'human' ? 'bot' : 'human';
+    const match = confirmMulligan(orderedMatch({ [side]: DECKS[side].slice(0, 1), starter: side }), []);
+    match.players[side].leader = null;
+    match.players[side].board.surface = [];
+    const [last] = match.players[side].hand;
+    const next = applyAction(match, side, { type: 'play', cardId: last.id, row: 'orbit', position: 0 });
+    assert.equal(next.turn, other, side);
+    assert.equal(next.players[side].passed, true, side);
+    assert.deepEqual(roundEvents(next, 'pass'), [{ type: 'pass', side, reason: 'empty-hand' }]);
+  }
 });
 
-test('explicit End Turn after the last card waits until the next turn to check for autopass', () => {
-  for (const actionAtStart of ['none', 'order', 'draw']) {
-    let match = confirmMulligan(orderedMatch({ human: DECKS.human.slice(0, 1) }), []);
-    match.players.human.board.surface = [createCard('order-window', {
-      name: 'Приказ', power: 4, order: { steps: [{ action: 'boost', target: { scope: 'source' }, amount: 1 }] },
-    })];
-    const [last] = match.players.human.hand;
-    match = applyAction(match, 'human', { type: 'play', cardId: last.id, row: 'orbit', position: 0 });
-    assert.equal(canEndTurn(match, 'human'), true);
-    match = applyAction(match, 'human', { type: 'end-turn' });
-    assert.equal(match.turn, 'bot');
-    assert.equal(match.players.human.passed, false);
-    if (actionAtStart !== 'order') match.players.human.board.surface[0].readyAt = 99;
-    if (actionAtStart === 'order') match.players.human.board.surface[0].readyAt = 1;
-    if (actionAtStart === 'draw') {
-      match.players.human.deck.push(createCard('drawn', DECKS.human[0]));
-      match.players.human.board.surface.push(createCard('timer', {
-        name: 'Таймер', type: 'artifact', timer: 1, startTurn: { steps: [{ action: 'draw', amount: 1 }] },
-      }));
-    }
-    match = playFirst(match);
-    assert.equal(match.players.human.passed, actionAtStart === 'none');
-    assert.equal(match.turn, actionAtStart === 'none' ? 'bot' : 'human');
-    if (actionAtStart === 'order') assert.equal(availableOrders(match, 'human')[0].card.id, 'order-window');
-    if (actionAtStart === 'draw') assert.equal(match.players.human.hand[0].id, 'drawn');
+test('End Turn passes with an empty hand even when the leader, an Order and a Fee are ready', () => {
+  const match = confirmMulligan(orderedMatch({ human: DECKS.human.slice(0, 1) }), []);
+  const { human } = match.players;
+  const boost = { steps: [{ action: 'boost', target: { scope: 'source' }, amount: 1 }] };
+  human.board.surface = [createCard('abilities', {
+    name: 'Способности', power: 4, order: boost, fee: { coins: 1, ...boost },
+  })];
+  human.coins = 2;
+  human.leader = { name: 'Лидер', charges: 2, ability: { steps: [{ action: 'coins', amount: 1 }] } };
+  const [last] = human.hand;
+  const played = applyAction(match, 'human', { type: 'play', cardId: last.id, row: 'orbit', position: 0 });
+  assert.equal(played.players.human.passed, false);
+  assert.equal(canEndTurn(played, 'human'), true);
+  assert.equal(canUseLeader(played, 'human'), true);
+  assert.equal(availableOrders(played, 'human')[0].card.id, 'abilities');
+  assert.equal(availableFees(played, 'human')[0].card.id, 'abilities');
+
+  const ended = applyAction(played, 'human', { type: 'end-turn' });
+  assert.equal(ended.turn, 'bot');
+  assert.equal(ended.players.human.passed, true);
+  assert.equal(ended.players.human.leader.charges, 2);
+  const afterBot = playFirst(ended);
+  assert.equal(afterBot.turn, 'bot');
+
+  let withAbilities = played;
+  for (const action of [{ type: 'leader' }, { type: 'order', cardId: 'abilities' }, { type: 'fee', cardId: 'abilities' }]) {
+    const next = applyAction(withAbilities, 'human', action);
+    assert.notStrictEqual(next, withAbilities, action.type);
+    assert.equal(next.turn, 'human', action.type);
+    withAbilities = next;
   }
+  assert.equal(applyAction(withAbilities, 'human', { type: 'end-turn' }).players.human.passed, true);
 });
 
 test('a filled row rejects placement there while the other row accepts the same card', () => {

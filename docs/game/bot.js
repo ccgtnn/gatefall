@@ -1,10 +1,10 @@
 import { ROWS } from './card-metadata.js';
-import { cardType, findUnit, isUnit, neighbors, restoreCard, statusCount, units } from './board.js';
+import { cardType, findUnit, isUnit, neighbors, placementSide, restoreCard, statusCount, units } from './board.js';
 import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
 import { armorTargetPriority, cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, rowDamage, rowEffectValue, rowScatterValue } from './bot-effect-value.js';
 import { armorBreakEmergence, consumeBonus, delayedCardValue, futureContext, inheritancePayoff, wantsToHoldInheritance } from './bot-future-value.js';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, canEndTurn, canPass, playableCards, totalScore } from './match.js';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, availableRows, canEndTurn, canPass, playableCards, totalScore } from './match.js';
 
 import { leaderTargetPriority, offeringPriority, preferredLeaderUse } from './bot-leaders.js';
 import { deathwishDefinitions } from './events.js';
@@ -102,7 +102,7 @@ function weakestWinningCards(ordered, rowLengths, target) {
 
 function playCard(card, view) {
   if (cardType(card) === 'effect') return { type: 'play', cardId: card.id };
-  const row = card.preferredRow ?? ROWS.reduce((best, next) => view.rowLengths[next] < view.rowLengths[best] ? next : best);
+  const row = card.definition.requiredRow ?? card.preferredRow ?? ROWS.reduce((best, next) => view.rowLengths[next] < view.rowLengths[best] ? next : best);
   return { type: 'play', cardId: card.id, row, position: (card.destinationLengths ?? view.rowLengths)[row] };
 }
 
@@ -299,12 +299,17 @@ export function chooseBotTurn(match, difficulty = 'easy', options = {}) {
     action = { type: 'end-turn' };
     decision = { reason: 'Способность уже использована. Завершаю ход.' };
   } else if (action.type === 'pass' && match.round === 3) {
-    const { bot, human } = match.players;
     const [card] = playableCards(match, 'bot');
-    if (card && (totalScore(bot) <= totalScore(human) || (!human.passed && human.hand.length))) {
+    if (card) {
       const view = createBotView(match);
-      action = playCard(view.cards.find(({ id }) => id === card.id) ?? view.cards[0] ?? card, view);
-      decision = { reason: 'В решающем раунде продолжаю играть, пока соперник может ответить или ведёт по очкам.' };
+      if (view.cards.length) action = playCard(view.cards[0], view);
+      else if (cardType(card) === 'effect') action = { type: 'play', cardId: card.id };
+      else {
+        const player = match.players[placementSide('bot', card)];
+        const [row] = availableRows(player, card);
+        action = { type: 'play', cardId: card.id, row, position: player.board[row].length };
+      }
+      decision = { reason: 'В решающем раунде продолжаю играть, пока есть допустимый розыгрыш.' };
     }
   }
   options.onDecision?.({ reason: 'Ход по правилам лёгкого бота.', candidates: [], ...decision, action });
