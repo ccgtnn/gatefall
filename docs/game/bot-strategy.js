@@ -1,20 +1,22 @@
 import { leaderTargetPriority, offeringPriority, preferredLeaderUse } from './bot-leaders.js';
+import { cardPotential, evaluatePosition, EVAL_WEIGHTS as W } from './bot-evaluation.js';
 import { compareRollouts } from './bot-rollouts.js';
 import { ROWS } from './card-metadata.js';
-import { activeOrder, cardType, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js';
+import { cardType, createCard, findUnit, placementSide } from './board.js';
 import { availableFees, availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
-import { armorTargetPriority, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, lockPriority, pendingUnitPriority, rowEffectValue, shouldProtectArmor, tributeOptions, tributeTarget } from './bot-effect-value.js';
-import { cardAbilities, isLocked } from './events.js';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, availableRows, canEndTurn, canPass, playableCards, totalScore } from './match.js';
+import { armorTargetPriority, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, lockPriority, pendingUnitPriority, shouldProtectArmor, tributeOptions, tributeTarget } from './bot-effect-value.js';
+import { cardAbilities } from './events.js';
+import { ROW_LIMIT, applyAction, availableRows, canEndTurn, canPass, playableCards, totalScore } from './match.js';
 
-import { armorBreakEmergence, consumeBonus, delayedCardValue, futureContext, inheritancePayoff, remainingTurns, wantsToHoldInheritance } from './bot-future-value.js';
+import { armorBreakEmergence, consumeBonus, futureContext, inheritancePayoff, remainingTurns, wantsToHoldInheritance } from './bot-future-value.js';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
 const SIMULATION = { random: () => .5 };
-const UNKNOWN_PLAY = { id: 'unknown-play', definition: { type: 'effect', deploy: { steps: [] } } };
-
+const UNKNOWN_PLAY = createCard('unknown-play', {
+  id: 'unknown-play', name: 'Неизвестная карта', type: 'unit', power: W.defaultPower,
+});
 
 export function publicMatch(match) {
   const { bot, human } = match.players;
@@ -23,64 +25,10 @@ export function publicMatch(match) {
     log: [],
     players: {
       bot: { ...bot, deck: [...bot.deck].sort((a, b) => a.id.localeCompare(b.id)), exile: [] },
-      human: { ...human, deck: [], exile: [], publicHandSize: human.hand.length,
+      human: { ...human, deck: [], exile: [], publicHandSize: human.hand.length, publicDeckSize: human.deck.length,
         hand: human.hand.length ? [UNKNOWN_PLAY] : [] },
     },
   };
-}
-
-function margin(state) {
-  const result = state.log.findLast(({ type }) => type === 'round-end');
-  if (result) return result.scores.bot - result.scores.human;
-  return totalScore(state.players.bot) - totalScore(state.players.human);
-}
-
-function potential(card) {
-  const { aiHints, provision } = card.definition;
-  const { deploy, endTurn, order } = cardAbilities(card);
-  if (aiHints?.handPotential !== undefined) return aiHints.handPotential;
-  return (card.power ?? (provision ?? 5) * .7)
-    + (deploy ? 1 : 0) + (endTurn || order ? 1.5 : 0);
-}
-
-function boardValue(state, side) {
-  const player = state.players[side];
-  if (player.passed) return 0;
-  const context = futureContext(state, side);
-  const ready = new Set(availableOrders(state, side).map(({ card }) => card.id));
-  const enemy = state.players[opponent(side)];
-  const rot = ROWS.reduce((sum, row) => {
-    const effect = enemy.rowEffects?.[row];
-    return sum + (effect?.type === 'rot' ? rowEffectValue(enemy, row, effect.remaining, false) : 0);
-  }, 0);
-  const exposed = units(state, opponent(side)).filter(({ card }) => statusCount(card, 'target')).length;
-  const plans = player.hand.some(({ definition }) => definition.keywords?.includes('Цель'));
-  return context.own.reduce((sum, unit) => {
-    const { card, row } = unit;
-    const { definition, power, timer } = card;
-    const abilities = cardAbilities(card);
-    const endTurn = abilities.endTurn?.steps.every(({ action }) => !['spawn', 'advance-growth', 'boost'].includes(action));
-    return sum + delayedCardValue(context, card, row) + (definition.aiHints?.boardBonus ?? 0)
-      + (ready.has(card.id) ? 1.15 : activeOrder(unit) ? .35 : 0)
-      + (row === 'orbit' && abilities.fieldEvents?.['target-marked'] ? 1.25 : 0)
-      + (context.turns && endTurn && (!definition.aiHints?.endTurnNeedsMarkedEnemy || exposed) ? (timer === undefined ? 1.25 : .5 * Math.min(timer, 3)) : 0)
-      + (!isLocked(card) && card.resilient && state.round < 3 ? (power ?? 0) * .4 : 0)
-      + (abilities.scenario ? Math.min(definition.scenario.chapters.length - (card.chapter ?? 0),
-        player.hand.filter((entry) => entry.definition.categories?.includes(definition.scenario.category)).length) * 2.5 : 0)
-      + (abilities.fieldEvents?.death && ROWS.some((row) =>
-        enemy.board[row].some((entry) => entry.statuses?.infection)) ? 1.25 : 0)
-      - .72 * infectionDamage(card, context.turns);
-  }, Math.min(player.leader?.charges ?? 0, context.turns) * .9 +
-    (context.turns ? (player.coins ?? 0) * context.coinWeight : 0) + rot + (plans ? exposed * .65 : 0));
-}
-
-function value(state, round) {
-  const { human, bot } = state.players;
-  const handWeight = round === 3 ? .13 : .28;
-  const future = state.phase !== 'playing' ? 0 : boardValue(state, 'bot') - boardValue(state, 'human');
-  const turnsToGrow = bot.passed || human.passed ? 0 : Math.min(4, Math.max(0, bot.hand.length - 1));
-  return margin(state) + future + handWeight * bot.hand.reduce((sum, card) =>
-    sum + potential(card) + turnsToGrow * (cardAbilities(card).startTurnGrowth ?? 0), 0);
 }
 
 function usesNeighbors(ability) {
@@ -172,7 +120,7 @@ function choices(state, all = false) {
   }
   const ids = kind === 'deck-top'
     ? state.players[side].deck.filter(({ id }) => options.includes(id))
-      .sort((a, b) => potential(b) - potential(a)).map(({ id }) => id)
+      .sort((a, b) => cardPotential(b) - cardPotential(a)).map(({ id }) => id)
     : options;
   return ids.map((id) => ({ type: 'target', cardId: id }));
 }
@@ -180,7 +128,10 @@ function choices(state, all = false) {
 function removalShortfall(before, after, actor, card) {
   const reserve = card?.definition?.removalReserve;
   if (actor !== 'bot' || !reserve) return 0;
-  if (before.players.human.passed && margin(after) > 0) return 0;
+  if (before.players.human.passed) {
+    const result = after.log.findLast(({ type }) => type === 'round-end');
+    if (result ? result.winner === 'bot' : totalScore(after.players.bot) > totalScore(after.players.human)) return 0;
+  }
   let swing = 0;
   for (const event of after.log.slice(before.log.length)) {
     if (event.sourceDefinitionId !== card.definition.id) continue;
@@ -203,20 +154,20 @@ function choicePreference(state, side, action) {
   if (priority) {
     const unit = findUnit(state, action.cardId);
     const best = Math.max(...state.pending.options.map((id) => priority(findUnit(state, id), side)));
-    return Math.max(-8, .65 * (priority(unit, side) - best));
+    return Math.max(-W.targetPenaltyCap, W.targetPriority * (priority(unit, side) - best));
   }
   if (kind === 'hand-bottom' || kind === 'hand-return') {
     const card = state.players[side].hand.find(({ id }) => id === action.cardId);
-    return card ? -.5 * deckCardValue(state, side, card) : 0;
+    return card ? -W.handChoice * deckCardValue(state, side, card) : 0;
   }
-  if (kind === 'armor-row') return -.4 * state.players[side].board[action.cardId]
+  if (kind === 'armor-row') return -W.armorChoice * state.players[side].board[action.cardId]
     .reduce((sum, card) => sum + armorBreakEmergence(card), 0);
   if (kind !== 'consume' && kind !== 'spend-armor') return 0;
   const victim = findUnit(state, action.cardId);
   if (!victim) return 0;
-  if (kind === 'consume') return Math.min(6, consumeBonus(futureContext(state, side), victim)) * .24;
+  if (kind === 'consume') return Math.min(W.consumeCap, consumeBonus(futureContext(state, side), victim)) * W.consumeChoice;
   if (kind === 'spend-armor' && victim.card.armor <= (amount || Infinity)) {
-    return -armorBreakEmergence(victim.card) * .4;
+    return -armorBreakEmergence(victim.card) * W.armorChoice;
   }
   return 0;
 }
@@ -227,7 +178,7 @@ function evaluateAction(state, side, action, search) {
     const actor = next.pending?.side ?? next.turn;
     if (depth >= 36 || (!next.pending && (next.phase !== 'playing' || actor !== side ||
         next.players[side].turns !== state.players[side].turns))) {
-      return { next, rating: value(next, state.round) + (side === 'bot' ? choiceValue : -choiceValue) };
+      return { next, rating: evaluatePosition(next, 'bot') + (side === 'bot' ? choiceValue : -choiceValue) };
     }
 
     let actions;
@@ -253,6 +204,7 @@ function evaluateAction(state, side, action, search) {
     const card = move.type === 'play' && before.players[actor].hand.find(({ id }) => id === move.cardId);
     const rolls = destructionRolls(before, actor, card);
     let worst;
+    let worstRating;
     let total = 0;
     let shortfall = 0;
     for (const roll of rolls) {
@@ -262,13 +214,13 @@ function evaluateAction(state, side, action, search) {
       if (!result) return;
       shortfall += removalShortfall(before, result.next, actor, card);
       total += result.rating;
-      // Keep a conservative outcome for pass calculations when targets are random.
-      if (!worst || (actor === 'bot' ? margin(result.next) < margin(worst) : margin(result.next) > margin(worst))) {
+      if (!worst || (actor === 'bot' ? result.rating < worstRating : result.rating > worstRating)) {
         worst = result.next;
+        worstRating = result.rating;
       }
     }
     const reserveCost = shortfall / rolls.length;
-    return { next: worst, rating: total / rolls.length - reserveCost * 1.5, reserveCost };
+    return { next: worst, rating: total / rolls.length - reserveCost * W.removalReserve, reserveCost };
   }
   return advance(state, side, action, 0);
 }
@@ -298,7 +250,7 @@ function rankPlays(state, search, limit, level) {
     if (candidate) {
       const card = state.players.bot.hand.find(({ id }) => id === action.cardId);
       const inherited = inheritancePayoff(context, card);
-      ranked.push({ ...candidate, rating: candidate.rating + (context.turns > 1 ? .4 * inherited : 0), action, cost });
+      ranked.push({ ...candidate, rating: candidate.rating + (context.turns > 1 ? W.inheritedWish * inherited : 0), action, cost });
     }
   }
   return ranked.sort((a, b) => b.rating - a.rating || a.cost - b.cost);
@@ -314,7 +266,7 @@ function rankAbilities(state, search, level) {
   return ranked.sort((a, b) => b.rating - a.rating);
 }
 
-function replyRating(candidate, round, search, level) {
+function replyRating(candidate, search, level) {
   const state = candidate.next;
   if (state.phase !== 'playing' || state.turn !== 'human' || state.players.human.passed) return candidate.rating;
   const actions = [...plays(state, 'human').map(({ action }) => action), ...abilities(state, 'human')];
@@ -323,24 +275,9 @@ function replyRating(candidate, round, search, level) {
   for (const action of actions.slice(0, level.candidates)) {
     if (search.expired()) break;
     const response = evaluateAction(state, 'human', action, search);
-    if (response) worst = Math.min(worst, value(response.next, round));
+    if (response) worst = Math.min(worst, response.rating);
   }
-  return Number.isFinite(worst) ? candidate.rating + .7 * (worst - value(state, round)) : candidate.rating;
-}
-
-function cheapestTwoTurnWin(ranked, search, limit, level) {
-  const tried = new Set();
-  let best;
-  for (const first of ranked) {
-    const { next, action } = first;
-    if (search.expired() || tried.size >= 4) break;
-    if (tried.has(action.cardId) || next.phase !== 'playing' || next.turn !== 'bot' || next.pending) continue;
-    tried.add(action.cardId);
-    const second = rankPlays(next, search, limit, level).filter(({ next }) => margin(next) > 0)
-      .sort((a, b) => a.cost - b.cost)[0];
-    if (second && (!best || first.cost + second.cost < best.cost)) best = { action, cost: first.cost + second.cost };
-  }
-  return best;
+  return Number.isFinite(worst) ? candidate.rating + W.visibleReply * (worst - evaluatePosition(state, 'bot')) : candidate.rating;
 }
 
 function report(options, action, reason, candidates = []) {
@@ -374,29 +311,35 @@ function distinct(candidates, key) {
 
 function selectRanked(options, level, ranked, reason, decide = (action, reason, ranked) => report(options, action, reason, ranked)) {
   const best = ranked[0];
-  if (level.errorRate > 0) {
+  const random = options.random ?? Math.random;
+  if (level.errorRate > 0 && ranked.length > 1 && random() < level.errorRate) {
+    const pass = ranked.find(({ action }) => action.type === 'pass');
+    if (pass && best !== pass && level.passMistakeRate > 0 && random() < level.passMistakeRate) {
+      return decide(pass.action, 'Ошибаюсь с моментом паса.', ranked);
+    }
     const choices = distinct(ranked, (action) => [action.type, action.cardId ?? action.row].join('/'));
-    const top = (choices.length > 1 ? choices : ranked).slice(0, 3);
-    const random = options.random ?? Math.random;
-    if (top.length > 1 && random() < level.errorRate) {
-      const choice = top[1 + Math.min(top.length - 2, Math.floor(random() * (top.length - 1)))];
-      return decide(choice.action, 'Выбираю другой ход из ближайших по оценке.', ranked);
+    const pool = (choices.length > 1 ? choices : ranked).slice(1, level.errorPool);
+    if (pool.length) {
+      const choice = pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))];
+      return decide(choice.action, 'Выбираю ход с более низкой оценкой.', ranked);
     }
   }
-  return decide(best.action, reason, ranked);
+  return decide(best.action, best.action.type === 'pass' ? 'Пас сохраняет лучшую позицию на матч.' : reason, ranked);
 }
 
 function forecast(match, ranked, level, search, options) {
   if (ranked.length < 2 || level.horizon === 'turn') return ranked;
   const shortlist = distinct(ranked, (action) => [action.type, action.cardId, action.row].join('/'))
     .slice(0, level.candidates);
+  const pass = ranked.find(({ action }) => action.type === 'pass');
+  if (pass && !shortlist.includes(pass)) shortlist[shortlist.length - 1] = pass;
   const simulated = shortlist.length > 1 && compareRollouts(match, shortlist, {
     ...options, expired: search.expired, horizon: level.horizon, memory: level.memory,
     rolloutSamples: options.rolloutSamples ?? level.samples,
   });
   if (simulated?.length) return simulated;
   return shortlist.map((candidate) => ({
-    ...candidate, rating: replyRating(candidate, match.round, search, level),
+    ...candidate, rating: replyRating(candidate, search, level),
   })).sort((a, b) => b.rating - a.rating);
 }
 
@@ -425,110 +368,50 @@ export function chooseStrategicTarget(match, level, options) {
 export function chooseStrategicTurn(match, level, options) {
   const limit = searchLimit(options.random);
   const search = limit(level.budgetMs);
-  const repeatable = availableOrders(match, 'bot').find(({ card }) => card.definition.aiHints?.useOrderWhenReady);
+  const state = publicMatch(match);
+  const { bot, human } = state.players;
+  const lead = totalScore(bot) - totalScore(human);
+  const legal = playableCards(state, 'bot');
+  // The deciding round requires a play whenever one is available.
+  const mayPass = canPass(state, 'bot') && (state.round !== 3 || !legal.length);
+  const preserveLead = human.passed && lead > 0;
+  const repeatable = !preserveLead && availableOrders(state, 'bot').find(({ card }) => card.definition.aiHints?.useOrderWhenReady);
+  const preferredLeader = !human.passed && preferredLeaderUse(state, 'bot');
   const decide = (action, reason, ranked) => {
-    if (repeatable && action.type === 'play') {
-      return report(options, { type: 'order', cardId: repeatable.card.id }, 'Использую Приказ на порождение до размещения карты.');
+    if (action.type === 'play' || action.type === 'end-turn') {
+      if (preferredLeader) return report(options, { type: 'leader' }, 'Использую подходящий момент для способности лидера.');
+      if (repeatable) return report(options, { type: 'order', cardId: repeatable.card.id }, 'Использую Приказ на порождение.');
     }
     return report(options, action, reason, ranked);
   };
-  const select = (candidates, reason) => selectRanked(options, level, candidates, reason, decide);
-  const { bot, human } = match.players;
-  const { round } = match;
-  const plansRounds = level.horizon !== 'turn';
-  const lead = totalScore(bot) - totalScore(human);
-  const mayPass = canPass(match, 'bot');
-  const legal = playableCards(match, 'bot');
-  if (mayPass && lead > 0 && human.passed && (round < 3 || !legal.length)) {
-    return decide(PASS, 'Очков для победы уже хватает.');
-  }
-
-  const previousRound = match.log.findLast(({ type }) => type === 'round-end');
-  const dryPass = round === 2 && previousRound?.winner === 'bot' && bot.lives > human.lives;
-  const roundStart = match.log.findLastIndex(({ type }) => type === 'round-start');
-  const spent = match.log.slice(roundStart + 1).filter(({ type, side, from }) => type === 'play' && side === 'bot' && !from).length;
-  const afterDraw = (count) => Math.min(HAND_LIMIT, count + ROUND_DRAW);
-  if (plansRounds && mayPass && dryPass && !human.passed) {
-    return decide(PASS, 'После победы в первом раунде сохраняю карты.');
-  }
-  const average = Math.max(3, bot.hand.reduce((sum, card) => sum + (card.power ?? 4), 0) / Math.max(1, bot.hand.length));
-  const safeLead = Math.max(16, average * 2);
-  if (plansRounds && mayPass && round === 1 && !human.passed && lead > safeLead && spent >= 2) {
-    return decide(PASS, 'В первом раунде уже есть запас очков.');
-  }
-
-  if (!(human.passed && lead > 0) && preferredLeaderUse(match, 'bot')) {
-    return decide({ type: 'leader' }, 'Использую подходящий момент для способности лидера.');
-  }
-  const state = publicMatch(match);
   const share = (fraction) => {
     const local = limit(level.budgetMs * fraction);
     return { expired: () => search.expired() || local.expired() };
   };
-  if (canEndTurn(match, 'bot')) {
-    if (human.passed && lead > 0) return decide(END, 'Очков уже достаточно. Сохраняю Приказы.');
-    const local = share(.44);
-    const baseline = evaluateAction(state, 'bot', END, local);
-    const ranked = rankAbilities(state, local, level);
-    ranked.push({ ...baseline, action: END, rating: baseline ? baseline.rating + .08 : -Infinity });
-    ranked.sort((a, b) => b.rating - a.rating);
-    const candidates = baseline ? forecast(match, ranked, level, search, options) : ranked;
-    return select(candidates, 'Сравниваю завершение хода и доступные способности.');
+  const canEnd = canEndTurn(state, 'bot');
+  const local = share(.16);
+  const baseline = canEnd ? evaluateAction(state, 'bot', END, local) : undefined;
+  const pass = mayPass ? evaluateAction(state, 'bot', PASS, local) : undefined;
+  const ranked = canEnd ? [] : rankPlays(state, share(.35), limit, level)
+    .filter((candidate) => preservesArmor(candidate, bot));
+  const efficient = ranked.filter(({ reserveCost }) => reserveCost === 0);
+  // A listed removal reserve protects finishers when another play is available.
+  const alternatives = efficient.length ? efficient : ranked;
+  const candidates = [...alternatives, ...rankAbilities(state, share(.16), level)];
+  if (pass) candidates.push({ ...pass, action: PASS });
+  if (baseline) candidates.push({ ...baseline, action: END, rating: baseline.rating + W.endTurnTie });
+  candidates.sort((a, b) => b.rating - a.rating || Number(b.action.type === 'pass') - Number(a.action.type === 'pass')
+    || (a.cost ?? 0) - (b.cost ?? 0));
+  if (candidates.length) {
+    return selectRanked(options, level, forecast(match, candidates, level, search, options),
+      'Сравниваю позицию на матч для доступных ходов.', decide);
   }
-
-  const ranked = rankPlays(state, share(.35), limit, level);
-  const withAbilities = rankAbilities(state, share(.16), level);
-  const allowed = ranked.filter((candidate) => preservesArmor(candidate, bot));
-  const mustWin = round === 3 || bot.lives === 1;
-  const canConserve = mayPass && (!mustWin || allowed.some(({ reserveCost }) => reserveCost === 0));
-  const ready = canConserve ? allowed.filter(({ reserveCost }) => reserveCost === 0) : allowed;
-  if (!ready.length) {
-    if (withAbilities.length) return select(withAbilities, 'Использую доступную способность.');
-    const harmful = legal.every((card) => destructionSwing(state, 'bot', card) < 0);
-    if (mayPass && (!legal.length || (!mustWin && (ranked.length || harmful)))) {
-      return decide(PASS, 'Сохраняю карты для подходящего момента.');
-    }
-    const [card] = legal;
-    if (!card) return decide(abilities(state, 'bot')[0] ?? END, 'Завершаю ход без доступного розыгрыша.');
-    const recipient = state.players[placementSide('bot', card)];
-    const [row] = availableRows(recipient, card);
-    const placement = cardType(card) === 'effect' ? {} : { row, position: recipient.board[row].length };
-    return decide(ranked[0]?.action ?? { type: 'play', cardId: card.id, ...placement }, 'Выбираю допустимый розыгрыш.');
-  }
-
-  const bestGain = Math.max(0, ...ready.map(({ next }) => margin(next) - lead));
-  const expectedCards = bestGain > 0 ? Math.max(1, Math.ceil((1 - lead) / bestGain)) : Infinity;
-  const affordable = (cards) => afterDraw(bot.hand.length - cards) + 1 >= afterDraw(human.hand.length);
-  if (plansRounds && mayPass && round === 1 && !human.passed && lead < -average &&
-      !affordable(expectedCards)) {
-    return decide(PASS, 'Догонять в первом раунде слишком дорого.', ready);
-  }
-
-  if (human.passed && round < 3) {
-    const winning = allowed.filter(({ next }) => margin(next) > 0).sort((a, b) => a.cost - b.cost || b.rating - a.rating);
-    if (winning.length && (!mayPass || round > 1 || affordable(1))) {
-      return select(winning, 'Закрываю раунд самой дешёвой картой, которой хватает для победы.');
-    }
-    if (plansRounds) {
-      const twoTurnWin = cheapestTwoTurnWin(ready, share(.12), limit, level);
-      if (twoTurnWin && (!mayPass || !dryPass && (round > 1 || affordable(2)))) {
-        return decide(twoTurnWin.action, 'Закрываю раунд двумя недорогими картами.', ready);
-      }
-      if (mayPass && (dryPass || (round === 1 && !affordable(expectedCards)))) {
-        return decide(PASS, 'Дальнейшая борьба за раунд слишком дорога.', ready);
-      }
-    }
-  }
-
-  const candidates = [...ready, ...withAbilities].sort((a, b) => b.rating - a.rating).slice(0, level.candidates);
-  if (plansRounds && mayPass && ((round === 1 && spent >= 2 && (lead > 0 || spent >= 4)) ||
-      (round === 2 && bot.lives > human.lives))) {
-    const pass = evaluateAction(state, 'bot', PASS, search);
-    if (pass) {
-      if (candidates.length === level.candidates) candidates.pop();
-      candidates.push({ ...pass, action: PASS });
-    }
-  }
-  return select(forecast(match, candidates, level, search, options),
-    'Выбираю по оценке розыгрыша и доступному горизонту прогноза.');
+  if (canEnd) return decide(END, 'Завершаю ход.');
+  if (mayPass && !legal.length) return decide(PASS, 'Нет доступных розыгрышей.');
+  const [card] = legal;
+  if (!card) return decide(abilities(state, 'bot')[0] ?? END, 'Завершаю ход без доступного розыгрыша.');
+  const recipient = state.players[placementSide('bot', card)];
+  const [row] = availableRows(recipient, card);
+  const placement = cardType(card) === 'effect' ? {} : { row, position: recipient.board[row].length };
+  return decide({ type: 'play', cardId: card.id, ...placement }, 'Выбираю допустимый розыгрыш.');
 }
