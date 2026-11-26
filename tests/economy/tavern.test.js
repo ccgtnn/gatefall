@@ -21,7 +21,7 @@ function setup(quest = 'wins', snapshot = {
   let time = previousDay;
   let roll = (TAVERN_QUESTS.findIndex(({ id }) => id === quest) + .1) / TAVERN_QUESTS.length;
   const storage = {
-    get length() { return saved ? 0 : 1; },
+    get length() { return saved ? 1 : 0; },
     key: () => REWARD_STORAGE_KEY,
     getItem: () => saved,
     setItem: (_key, value) => { saved = value; },
