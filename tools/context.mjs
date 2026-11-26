@@ -1,4 +1,4 @@
-import { readFile, realpath } from 'node:fs/promises';
+import { readFile, readdir, realpath } from 'node:fs/promises';
 import { extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -45,6 +45,7 @@ const languages = new Map([
 function usage() {
   return [
     'npm run --silent ctx -- <пакет> [дополнительные файлы]',
+    'npm run --silent ctx -- --map',
     '',
     ...Object.entries(profiles).map(([id, [name]]) => `  ${id.padEnd(13)} ${name}`),
   ].join('\n');
@@ -73,14 +74,45 @@ function renderSource({ name, language, source }) {
   return `## ${name}\n\n${fence}${language}\n${text}${fence}`;
 }
 
+export function listExports(source) {
+  const declaration = /^[\t ]*export[\t ]+(?:default[\t ]+)?(?:async[\t ]+)?(function|const|class)(?:[\t ]*\*[\t ]*|[\t ]+)([\w$]+)/gm;
+  return Array.from(source.matchAll(declaration), (match) => `${match[1]} ${match[2]}`);
+}
+
+async function javascriptFiles(root, directory = root) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+    const absolute = resolve(directory, entry.name);
+    const name = relative(root, absolute).split(sep).join('/');
+    if (['.git', 'node_modules', 'coverage', 'tools/review-export'].includes(name)) continue;
+    if (entry.isDirectory()) files.push(...await javascriptFiles(root, absolute));
+    else if (entry.isFile() && ['.js', '.mjs'].includes(extname(entry.name))) files.push({ absolute, name });
+  }
+  return files;
+}
+
+export async function createExportMap(root) {
+  const files = await javascriptFiles(await realpath(root));
+  return (await Promise.all(files.map(async ({ absolute, name }) => {
+    const exports = listExports(await readFile(absolute, 'utf8'));
+    return `${name} — ${exports.length ? exports.join(', ') : '(нет export)'}`;
+  }))).join('\n');
+}
+
 async function main([id, ...extra]) {
   if (!id || id === '--help' || id === '-h') {
     process.stdout.write(usage() + '\n');
     return;
   }
+  const root = await realpath(fileURLToPath(new URL('../', import.meta.url)));
+  if (id === '--map') {
+    if (extra.length) throw new Error('Режим --map не принимает дополнительные аргументы.');
+    process.stdout.write(await createExportMap(root) + '\n');
+    return;
+  }
   if (!Object.hasOwn(profiles, id)) throw new Error(`Неизвестный пакет (${id}).\n${usage()}`);
   const [title, paths] = profiles[id];
-  const root = await realpath(fileURLToPath(new URL('../', import.meta.url)));
   const sources = await Promise.all([...new Set(['AGENTS.md', 'CONTRACTS.md', ...paths, ...extra])]
     .map((name) => loadSource(root, name)));
   const files = [...new Map(sources.filter(Boolean).map((file) => [file.name, file])).values()];
@@ -88,9 +120,11 @@ async function main([id, ...extra]) {
   process.stdout.write([header, ...files.map(renderSource)].join('\n\n') + '\n');
 }
 
-try {
-  await main(process.argv.slice(2));
-} catch (error) {
-  process.stderr.write(error.message + '\n');
-  process.exitCode = 1;
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    await main(process.argv.slice(2));
+  } catch (error) {
+    process.stderr.write(error.message + '\n');
+    process.exitCode = 1;
+  }
 }
