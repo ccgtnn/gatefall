@@ -39,6 +39,9 @@
 | Персонажи и реплики Лиги | `docs/game/data/league-characters.js`, `docs/game/data/league-context-lines.js` |
 | Коллекция, крафт и бустеры | `docs/game/collection-economy.js`, `tests/economy/rewards.test.js` |
 | Главы и маршруты Книги наград | `docs/game/reward-book.js`, `tests/economy/rewards.test.js` |
+| Экран Лиги | `docs/ui/league-screen.js`; соперник в `league-opponent.js`, таблицы и награды в `league-standings.js` |
+| Интерфейс Книги наград | `docs/ui/reward-book.js`; карта маршрута и узлы в `reward-book-map.js` |
+| Магазин и открытие бустеров | Фасад `docs/ui/booster-screens.js`; магазин в `booster-shop.js`, открытие в `booster-opening.js`, общие элементы в `booster-shared.js` |
 | Экран «Все карты» | `docs/ui/catalog-screen.js`, `tests/ui/catalog.test.js` |
 | Отложенная загрузка экранов | `docs/ui/resources.js`, `tests/ui/lazy-sections.test.js` |
 | Ход, бот, выбор целей и анимации матча | `docs/ui/match-turn.js`, `tests/ui/match-turn.test.js` |
