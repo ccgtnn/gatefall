@@ -5,7 +5,7 @@ import { ROWS } from './card-metadata.js';
 import { cardType, createCard, findUnit, placementSide } from './board.js';
 import { availableFees, availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
-import { armorTargetPriority, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, lockPriority, pendingUnitPriority, shouldProtectArmor, tributeOptions, tributeTarget } from './bot-effect-value.js';
+import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, lockPriority, pendingUnitPriority, shouldProtectArmor, tributeOptions, tributeTarget } from './bot-effect-value.js';
 import { cardAbilities } from './events.js';
 import { ROW_LIMIT, applyAction, availableRows, canEndTurn, canPass, playableCards, totalScore } from './match.js';
 
@@ -25,6 +25,9 @@ export function botSearchState(match, knowsDeckList = false) {
     ? visibleSupply(match, true, true).map(({ card }) => card) : undefined;
   return {
     ...match,
+    // Draw and hand-bottom journal entries include private cards for playback.
+    // The search only needs public plays for faction-based sampling.
+    log: match.log.filter(({ type }) => type === 'play'),
     players: {
       bot: { ...bot, startingDeck: undefined, deck: bot.deck.toSorted((a, b) => a.id.localeCompare(b.id)) },
       human: { ...human, startingDeck: undefined, knownDeck, deck: [],
@@ -267,10 +270,16 @@ function rankPlays(state, search, limit, level) {
 
 function rankAbilities(state, search, level) {
   const ranked = [];
+  const { bot, human } = state.players;
+  const finishFee = state.round === 3 && !bot.hand.length && human.passed
+    ? beneficialFee(state, 'bot', { allCoinsSurplus: true }) : undefined;
   for (const action of abilities(state, 'bot').slice(0, level.candidates)) {
     if (search.expired()) break;
     const candidate = evaluateAction(state, 'bot', action, search);
-    if (candidate) ranked.push({ ...candidate, action });
+    if (candidate) {
+      const tie = action.type === 'fee' && action.cardId === finishFee?.cardId ? W.finalFeeTie : 0;
+      ranked.push({ ...candidate, rating: candidate.rating + tie, action });
+    }
   }
   return ranked.sort((a, b) => b.rating - a.rating);
 }

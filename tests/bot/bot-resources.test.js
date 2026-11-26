@@ -20,15 +20,18 @@ test('level 4 spends its last coin before ending a final turn with an empty hand
   bot.hand = [];
   bot.board.orbit = [eyes(), standard('hound', HOUND)];
   bot.coins = 1;
-  human.board.orbit = [plain('lead', 9)];
+  human.board.orbit = [plain('lead', 8)];
   human.hand = [];
   human.passed = true;
-  for (const playedCard of [false, true]) {
-    match.playedCard = playedCard;
-    assert.deepEqual(decide(match), fee);
-    const pending = applyAction(match, 'bot', fee);
-    const next = applyAction(pending, 'bot', { type: 'target', cardId: 'hound' });
-    assert.equal(next.players.bot.coins, 0);
+  for (const lead of [7, 8]) {
+    human.board.orbit[0].power = lead;
+    for (const playedCard of [false, true]) {
+      match.playedCard = playedCard;
+      assert.deepEqual(decide(match), fee);
+      const pending = applyAction(match, 'bot', fee);
+      const next = applyAction(pending, 'bot', { type: 'target', cardId: 'hound' });
+      assert.equal(next.players.bot.coins, 0);
+    }
   }
 });
 
@@ -41,8 +44,11 @@ test('level 4 spends surplus coins in the first round with just one useful Fee',
   human.board.orbit = [plain('lead', 9)];
   human.passed = true;
   const context = futureContext(match, 'bot');
+  assert.equal(coinValue(context, 1), 1.25);
   assert.ok(Math.abs(coinValue(context, 9) - coinValue(context, 8) - .1) < 1e-9);
   assert.deepEqual(decide(match), fee);
+  bot.board.surface = [standard('second-eyes', eyes().definition)];
+  assert.equal(coinValue(futureContext(match, 'bot'), 2), 1.35);
 });
 
 test('a shield gains value against a known or visible heavy direct hit', () => {

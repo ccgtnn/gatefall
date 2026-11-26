@@ -23,7 +23,7 @@ export function pendingUnitPriority(match, { kind, side, job }) {
   }
 }
 
-function bestFee(match, side, { coins = match.players[side].coins, tributeRow, spawned = 0 } = {}) {
+function bestFee(match, side, { coins = match.players[side].coins, tributeRow, spawned = 0, allCoinsSurplus = false } = {}) {
   const fees = availableFees(match, side);
   if (!fees.length) return;
   const player = match.players[side];
@@ -37,7 +37,8 @@ function bestFee(match, side, { coins = match.players[side].coins, tributeRow, s
     const free = ROW_LIMIT - player.board[row].length - (row === tributeRow ? spawned : 0);
     if (fee.coins > coins || (fee.needsSourceSpace && free <= 0)) continue;
     const job = { side, sourceId: card.id, ability: fee };
-    let value = coinValue(context, coins - fee.coins) - coinValue(context, coins);
+    const capacity = allCoinsSurplus ? 0 : undefined;
+    let value = coinValue(context, coins - fee.coins, capacity) - coinValue(context, coins, capacity);
     for (const step of fee.steps) {
       if (step.action === 'spawn') {
         value += Math.min(step.amount, free) * step.card.power;
@@ -65,8 +66,8 @@ function bestFee(match, side, { coins = match.players[side].coins, tributeRow, s
   return best;
 }
 
-export function beneficialFee(match, side) {
-  const best = bestFee(match, side);
+export function beneficialFee(match, side, options) {
+  const best = bestFee(match, side, options);
   if (best) return { type: 'fee', cardId: best.cardId };
 }
 

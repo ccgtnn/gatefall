@@ -39,8 +39,11 @@ export function visibleSupply(match, memory = true, knowsDeckList = false) {
       if (!card.definition.token && !card.definition.stratagem) known.set(card.id, card.definition.id);
     }
     for (const event of match.log) {
-      if (event.type === 'play' && event.side === 'human' && event.card?.definition && !event.card.definition.token) {
+      if (event.type === 'play' && (event.side === 'human' || knowsDeckList) && event.card?.definition && !event.card.definition.token) {
         known.set(event.cardId, event.card.definition.id);
+      }
+      if (knowsDeckList && event.type === 'spawn' && event.from === 'deck') {
+        for (const card of event.cards ?? []) known.set(card.id, card.definition.id);
       }
     }
   }

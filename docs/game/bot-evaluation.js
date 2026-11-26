@@ -52,6 +52,7 @@ export const EVAL_WEIGHTS = Object.freeze({
   inheritedWish: .4,
   visibleReply: .88,
   endTurnTie: .08,
+  finalFeeTie: .10, // Prefer a useful Fee if the final result is already secured.
   targetPriority: .65,
   targetPenaltyCap: 8,
   handChoice: .5,

@@ -28,19 +28,24 @@ function liveTurns(match, side) {
     Number(match.turn === side && match.playedCard));
 }
 
-function feeUses(context, fee, card, row, turns) {
+function feeUses(context, fee, card, row, turns, forecast, placing = false) {
   const { match, side, own, player } = context;
-  if (fee.needsSourceSpace && freeSlots(context, row) <= 0) return 0;
+  const slots = forecast?.slots[row] ?? freeSlots(context, row) - Number(placing);
+  if (fee.needsSourceSpace && slots <= 0) return 0;
   const step = fee.steps.find(({ action }) => ['spawn', 'transform', 'ready-order'].includes(action));
   if (!step) return 0;
   if (step.action === 'spawn') {
-    if (!(step.card.power > 0)) return 0;
-    return Math.ceil(freeSlots(context, row) / step.amount);
+    if (!(step.card.power > 0) || !(step.amount > 0)) return 0;
+    if (forecast) forecast.slots[row] = 0;
+    return Math.ceil(Math.max(0, slots) / step.amount);
   }
   if (step.action === 'transform') {
     const pick = fee.select?.find(({ ref }) => ref === step.target.ref);
-    return pick ? targets(match, { side, sourceId: card.id, ability: fee }, pick.targets, true)
-      .filter(({ card: target }) => step.card.power > target.power).length : 0;
+    if (!pick) return 0;
+    const eligible = targets(match, { side, sourceId: card.id, ability: fee }, pick.targets, true)
+      .filter(({ card: target }) => step.card.power > target.power && !forecast?.transformed.has(target.id));
+    for (const target of eligible) forecast?.transformed.add(target.card.id);
+    return eligible.length;
   }
   const order = cardAbilities(card).order;
   if (!order || !units(match, opponent(side)).some(({ card }) => isUnit(card))) return 0;
@@ -73,10 +78,11 @@ function coinCapacity(context, future = false) {
   if (!turns) return 0;
   const field = future ? own.filter(({ card }) => card.resilient) : own;
   let capacity = 0;
+  const forecast = { slots: Object.fromEntries(ROWS.map((row) => [row, freeSlots(context, row)])), transformed: new Set() };
   for (const { card, row } of field) {
     const { fee } = cardAbilities(card);
     if (fee && (!card.definition.requiredRow || card.definition.requiredRow === row)) {
-      capacity += fee.coins * feeUses(context, fee, card, row, turns);
+      capacity += fee.coins * feeUses(context, fee, card, row, turns, forecast);
     }
     if (capacity >= COIN_LIMIT) return COIN_LIMIT;
   }
@@ -86,7 +92,7 @@ function coinCapacity(context, future = false) {
     if (!future && cardType(card) !== 'effect' && !rows.length) return 0;
     const { deploy, fee } = cardAbilities(card);
     return Math.max(0, ...((rows.length ? rows : ROWS).map((row) => coinSteps(context, deploy, row) +
-      (fee ? fee.coins * feeUses(context, fee, card, row, turns) : 0))));
+      (fee ? fee.coins * feeUses(context, fee, card, row, turns, undefined, true) : 0))));
   }).sort((a, b) => b - a);
   capacity += handCosts.slice(0, canPlay).reduce((sum, cost) => sum + cost, 0);
   const leader = player.leader;
