@@ -50,16 +50,9 @@ export const EVAL_WEIGHTS = Object.freeze({
   infection: .72,
   markedTarget: .65,
   removalReserve: 1.5,
-  inheritedWish: .4,
   visibleReply: .88,
   endTurnTie: .08,
   feeTie: .10, // Prefer realizing a comparable Fee now.
-  targetPriority: .65,
-  targetPenaltyCap: 8,
-  handChoice: .5,
-  armorChoice: .4,
-  consumeChoice: .24,
-  consumeCap: 6,
   rolloutShare: .55,
   rolloutScale: 22,
 });
@@ -75,12 +68,12 @@ export function cardPotential(card) {
 
 function boardValue(state, side, context) {
   const player = state.players[side];
-  if (player.passed) return 0;
-  const ready = new Set(availableOrders(state, side).map(({ card }) => card.id));
+  const { passed } = context;
+  const ready = new Set(passed ? [] : availableOrders(state, side).map(({ card }) => card.id));
   const enemy = state.players[opponent(side)];
   const rot = ROWS.reduce((sum, row) => {
     const effect = enemy.rowEffects?.[row];
-    return sum + (effect?.type === 'rot' ? rowEffectValue(enemy, row, effect.remaining, false) : 0);
+    return sum + (effect?.type === 'rot' ? rowEffectValue(enemy, row, effect.remaining, false, context.opponentTurns) : 0);
   }, 0);
   const exposed = units(state, opponent(side)).filter(({ card }) => statusCount(card, 'target')).length;
   const plans = player.hand.some(({ definition }) => definition.keywords?.includes('Цель'));
@@ -88,17 +81,22 @@ function boardValue(state, side, context) {
     const { card, row } = unit;
     const { definition, timer } = card;
     const abilities = cardAbilities(card);
-    const endTurn = abilities.endTurn?.steps.every(({ action }) => !['spawn', 'advance-growth', 'boost'].includes(action));
-    return sum + delayedCardValue(context, card, row) + (definition.aiHints?.boardBonus ?? 0)
-      + (ready.has(card.id) ? W.readyOrder : activeOrder(unit) ? W.coolingOrder : 0)
+    const endTurn = abilities.endTurn?.steps.every(({ action, target }) =>
+      !['spawn', 'advance-growth', 'boost'].includes(action) && !(action === 'damage' && target?.scope === 'neighbors'));
+    const orderValue = !passed && card.orderCharges === undefined
+      ? (ready.has(card.id) ? W.readyOrder : activeOrder(unit) ? W.coolingOrder : 0) : 0;
+    const delayed = delayedCardValue(context, card, row)
+      - W.infection * infectionDamage(card, Math.min(context.turns, statusCount(card, 'infection')));
+    if (passed) return sum + delayed;
+    return sum + delayed + (definition.aiHints?.boardBonus ?? 0)
+      + orderValue
       + (row === 'orbit' && abilities.fieldEvents?.['target-marked'] ? W.markReaction : 0)
       + (context.turns && endTurn && (!definition.aiHints?.endTurnNeedsMarkedEnemy || exposed) ? (timer === undefined ? W.endTurn : W.timerTurn * Math.min(timer, W.timerLimit)) : 0)
       + (abilities.scenario ? Math.min(definition.scenario.chapters.length - (card.chapter ?? 0),
         player.hand.filter((entry) => entry.definition.categories?.includes(definition.scenario.category)).length) * W.scenarioChapter : 0)
       + (abilities.fieldEvents?.death && ROWS.some((row) =>
-        enemy.board[row].some((entry) => entry.statuses?.infection)) ? W.deathReaction : 0)
-      - W.infection * infectionDamage(card, Math.min(context.turns, statusCount(card, 'infection')));
-  }, leaderUses(context) * leaderChargeValue(context) + coinValue(context) + rot + (plans ? exposed * W.markedTarget : 0));
+        enemy.board[row].some((entry) => entry.statuses?.infection)) ? W.deathReaction : 0);
+  }, rot + (passed ? 0 : leaderUses(context) * leaderChargeValue(context) + coinValue(context) + (plans ? exposed * W.markedTarget : 0)));
 }
 
 function handCards(player, play, roundChanged, growthTurns) {
@@ -139,7 +137,7 @@ function passOutcome(active, waiting, activeInfo, waitingInfo, round) {
 
   // Spend the fewest plays, then use the cheapest card that can close the gap.
   const cards = activeInfo.cards.toSorted((a, b) => a - b);
-  let gain = lead;
+  let gain = activeInfo.score - waitingInfo.score;
   let spent = 0;
   while (gain <= 0 && cards.length) {
     const sufficient = cards.findIndex((points) => Math.max(W.minimumOutput, points) > -gain);
@@ -165,16 +163,17 @@ export function evaluatePosition(state, side, projection) {
   const rival = state.players[other];
   const round = Math.min(3, state.round);
   const projectedSide = projection && state.turn;
+  const passingSide = projection?.type === 'pass' ? projectedSide : undefined;
   const info = (key, player) => {
     const move = projectedSide === key ? projection : undefined;
-    const context = futureContext(state, key);
+    const context = futureContext(state, key, passingSide);
     const passed = player.passed || move?.type === 'pass';
-    const growthTurns = round < 3 && !passed ? Math.min(W.handGrowthTurns, context.turns) : 0;
+    const growthTurns = round < 3 ? Math.min(W.handGrowthTurns, context.turns) : 0;
     const cards = handCards(player, move, state.phase === 'mulligan', growthTurns);
     const raw = totalScore(player) + (move?.gain ?? 0);
     return {
       passed, cards, turns: context.turns, raw,
-      score: raw + (passed ? 0 : W.futureBoard * boardValue(state, key, context)),
+      score: raw + W.futureBoard * boardValue(state, key, context),
       reserve: round === 3 && (passed || !context.turns) ? 0 : reserve(player, cards, round),
       carry: round < 3 ? carryoverValue(context, passed) : 0,
     };

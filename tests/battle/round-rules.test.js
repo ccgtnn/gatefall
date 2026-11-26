@@ -35,13 +35,13 @@ test('leader locks pass until a card is played, then the next owner turn can pas
   assert.equal(canPass(match, 'human'), true);
 });
 
-test('resolving an ability with no legal play ends that turn without a pass, for either side', () => {
+test('resolving the last ability skips a turn with a nonempty but unplayable hand', () => {
   for (const side of ['human', 'bot']) {
     let match = confirmMulligan(setup(side), []);
     const player = match.players[side];
     player.board.orbit = [unit('ally')];
-    // Both an empty hand and a nonempty hand with no legal targets take this route.
-    player.hand = side === 'human' ? [] : [unit('cast', 'orbital-salvo')];
+    player.leader = null;
+    player.hand = [unit('cast', 'orbital-salvo')];
     match = action(action(match, 'order', FIRST_SIGNAL.id), 'target', 'ally');
     assert.notEqual(match.turn, side);
     assert.equal(match.players[side].passed, false);

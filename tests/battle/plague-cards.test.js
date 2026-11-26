@@ -53,7 +53,7 @@ test('Rot Midge can order immediately and waits two owner turns to use the order
   match = act(match, 'order', 'rot-midge');
   assert.deepEqual(match.pending.options, ['enemy']);
   match = act(match, 'target', 'enemy');
-  assert.equal(infection(match, 'enemy'), 2);
+  assert.equal(infection(match, 'enemy'), 1);
   assert.equal(findUnit(match, 'rot-midge').card.readyAt, 3);
   assert.equal(act(match, 'order', 'rot-midge'), match);
   assert.equal(match.players.human.turns, 1);
@@ -61,6 +61,7 @@ test('Rot Midge can order immediately and waits two owner turns to use the order
 
 test('the carrier infects itself and both neighbors; a hard bot picks a legal enemy slot', () => {
   let match = fixture('plague-carrier');
+  match.players.bot.passed = false;
   match.players.bot.board.orbit = [unit('left'), unit('right')];
   match = act(match, 'play', 'plague-carrier', 1);
   assert.deepEqual(match.players.bot.board.orbit.map(({ id }) => id), ['left','plague-carrier','right']);
@@ -101,10 +102,10 @@ test('Rot targets any enemy row and Pestilence replaces both rows for three turn
   assert.equal(match.pending.selectionSide, 'bot');
   assert.ok(match.pending.options.includes(pickBotTarget(match).cardId));
   match = act(match, 'target', 'surface');
-  assert.equal(match.players.bot.rowEffects.surface.remaining, 3);
+  assert.equal(match.players.bot.rowEffects.surface.remaining, 2);
   assert.equal(match.players.bot.rowEffects.orbit, undefined);
   match = act(match, 'play', 'pestilence');
-  assert.deepEqual(Object.values(match.players.bot.rowEffects).map((effect) => effect.remaining), [3,3]);
+  assert.deepEqual(Object.values(match.players.bot.rowEffects).map((effect) => effect.remaining), [2,2]);
   assert.deepEqual(Object.values(match.players.bot.rowEffects).map((effect) => effect.sourceDefinitionId), ['pestilence','pestilence']);
   assert.deepEqual(match.players.human.rowEffects, {});
 });
@@ -119,9 +120,9 @@ test('Rot Giant gains base power in the pile and damages all infected opponents 
   assert.equal(basePower(match.players.human.hand[0]), 5);
   match = act(match, 'play', 'rot-giant', 1);
   assert.equal(findUnit(match,'rot-giant').card.power, 5);
-  assert.deepEqual(['plain','infected','armor'].map((id) => findUnit(match,id).card.power), [5,4,8]);
+  assert.deepEqual(['plain','infected','armor'].map((id) => findUnit(match,id).card.power), [5,2,6]);
   assert.equal(findUnit(match,'armor').card.armor, 0);
-  assert.equal(infection(match,'infected'), 2);
+  assert.equal(infection(match,'infected'), 0);
 });
 
 test('Plague Burst adds three ticks to existing infections on both sides and leaves clean units alone', () => {
@@ -137,7 +138,7 @@ test('Plague Burst adds three ticks to existing infections on both sides and lea
     [['ally', 4], ['armored', 8], ['weak', 6]]);
   assert.equal(infection(match, 'ally'), 3); // Its owner completed the turn.
   assert.equal(findUnit(match, 'armored').card.armor, 2);
-  assert.equal(findUnit(match, 'weak').card.power, 2);
+  assert.equal(findUnit(match, 'weak').card.power, 1);
   assert.equal(infection(match, 'clean'), 0);
 });
 
@@ -170,7 +171,7 @@ test('Spore Season summons two Acid Glands, opens two chapters from Rot plays an
   assert.equal(match.players.bot.rowEffects.orbit, undefined);
   match = act(match, 'end-turn');
   match = act(match, 'play', 'boil', 4);
-  assert.equal(findUnit(match, 'target').card.power, 6);
+  assert.equal(findUnit(match, 'target').card.power, 4);
   assert.equal(findUnit(match, 'clean').card.power, 8);
   match = act(match, 'play', 'rot-scavenger', 5);
   assert.equal(findUnit(match, 'spore-season').card.chapter, 2);
@@ -211,7 +212,7 @@ test('Vine ticks on each owner turn and infects three distinct enemies when n re
   assert.equal(findUnit(match, 'vine').card.growth, 2);
   damage(match, findUnit(match, 'vine'), 2);
   match = act(match, 'play', 'finish', 1);
-  assert.deepEqual(['a', 'b', 'c', 'd'].map((id) => infection(match, id)), [2, 2, 2, 0]);
+  assert.deepEqual(['a', 'b', 'c', 'd'].map((id) => infection(match, id)), [1, 1, 1, 0]);
 });
 
 test('Spore Sac releases a strength-three larva after two owner turns and that larva never grows', () => {
@@ -242,6 +243,7 @@ test('Incubator Order creates two larvae in the chosen row and can be used once 
 
 test('Swarm Call can place an enemy-side bronze from the deck and spawns next to it on that side', () => {
   let match = fixture('swarm-call');
+  match.players.bot.passed = false;
   match.players.human.deck.push(card('plague-carrier'));
   match.players.bot.board.orbit = [unit('enemy')];
   match = act(match, 'play', 'swarm-call');

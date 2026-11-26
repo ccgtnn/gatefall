@@ -120,7 +120,11 @@ test('Creation offers opposing bronze cards or tiered gold effects and plays the
   assert.equal(played.log.find(({ cardId }) => cardId === created.id).from, 'created');
 
   for (const [count, offer] of [[2, 0], [3, 1], [6, 2], [9, 3], [12, 4], [15, 4]]) {
-    const match = play(setup({ count, hand: [cards.get('sleeper-revelation')], orbit: [unit(6)], enemies: [unit(8)] }));
+    const availableUnit = { ...unit(2), rarity: 'bronze', provision: 4 };
+    const setupMatch = setup({ count, hand: [cards.get('sleeper-revelation')], deck: [availableUnit],
+      orbit: [unit(6)], enemies: [unit(8)] });
+    human(setupMatch).discard = [createCard('discarded', availableUnit)];
+    const match = play(setupMatch);
     assert.equal(match.pending?.options.length ?? 0, offer);
     assert.ok(match.pending?.cards.every(({ definition }) => definition.rarity === 'gold' && definition.type === 'effect') ?? true);
   }

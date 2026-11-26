@@ -1,10 +1,10 @@
-import { EVAL_WEIGHTS as W } from './bot-evaluation.js';
+import { cardPotential, EVAL_WEIGHTS as W } from './bot-evaluation.js';
 import { handCount } from './bot-hand.js';
-import { availableRows, cleansableStatuses, infectionDamage, isUnit, neighbors, opponent, restoreCard, ROW_LIMIT, statusCount, units } from './board.js';
+import { availableRows, cleansableStatuses, HAND_LIMIT, infectionDamage, isUnit, neighbors, opponent, restoreCard, ROW_LIMIT, statusCount, units } from './board.js';
 import { availableFees, orderAbility } from './effects.js';
 import { ROWS } from './card-metadata.js';
 import { canStart, eligiblePileCards, pileCandidates, playPiles, playTiming, reference, rowArmor, rowSide, targets, valueOf } from './effect-queries.js';
-import { armorBreakEmergence, consumeBonus, coinValue, delayedCardValue, futureContext } from './bot-future-value.js';
+import { armorBreakSwing, consumeBonus, coinValue, delayedCardValue, futureContext, remainingTurns } from './bot-future-value.js';
 import { cardAbilities, deathwishDefinitions, isLocked } from './events.js';
 
 export function pendingUnitPriority(match, { kind, side, job }) {
@@ -47,7 +47,13 @@ export function feePayoff(context, { card }, free, later = false) {
     const damage = ability.steps.find(({ action, target }) => action === 'damage' && target.rowRef);
     const enemy = match.players[opponent(side)];
     const payoff = damage ? Math.max(...ROWS.map((row) => rowDamage(enemy, row, damage.amount))) : 0;
-    return value + payoff - cost;
+    const draw = ability.steps.some(({ action }) => action === 'draw');
+    const weakest = player.hand.length ? Math.min(...player.hand.map(cardPotential)) : 0;
+    const swapValue = draw && player.deck.length && handCount(player) < HAND_LIMIT
+      ? Math.max(0, player.deck.reduce((sum, card) => sum + cardPotential(card), 0) / player.deck.length
+        - weakest)
+      : 0;
+    return value + payoff + swapValue - cost;
   }, 0);
 }
 
@@ -87,13 +93,8 @@ export function rowDamage(player, row, amount, armorStrip = 0) {
   return player.board[row].filter(isUnit).reduce((sum, card) => {
     const armor = Math.max(0, (card.armor ?? 0) - armorStrip);
     const shielded = statusCount(card, 'shield') > 0;
-    const breaks = card.armor > 0 && armor <= (shielded ? 0 : amount) &&
-      cardAbilities(card).events?.['armor-break']?.steps.some((step) => step.action === 'discard' && step.target.scope === 'source');
-    if (breaks) return sum + card.power;
-    if (card.armor > 0 && armor <= (shielded ? 0 : amount) && armorBreakEmergence(card)) {
-      return sum + card.power - armorBreakEmergence(card);
-    }
-    return sum + (shielded ? 0 : Math.min(card.power, Math.max(0, amount - armor)));
+    const swing = armor <= (shielded ? 0 : amount) ? armorBreakSwing(card) : undefined;
+    return sum + (swing === undefined ? (shielded ? 0 : Math.min(card.power, Math.max(0, amount - armor))) : -swing);
   }, 0);
 }
 
@@ -102,9 +103,8 @@ export function rowScatterValue(player, row, amount) {
   const perUnit = amount / Math.max(1, units.length);
   return units.reduce((sum, card) => {
     const absorbed = (card.armor ?? 0) + statusCount(card, 'shield');
-    const emergence = perUnit >= absorbed ? armorBreakEmergence(card) : 0;
-    return sum + (emergence ? card.power - emergence
-      : Math.min(card.power, Math.max(0, perUnit - absorbed)));
+    const swing = perUnit >= absorbed ? armorBreakSwing(card) : undefined;
+    return sum + (swing === undefined ? Math.min(card.power, Math.max(0, perUnit - absorbed)) : -swing);
   }, 0);
 }
 
@@ -146,12 +146,11 @@ export function cleansePriority({ card, side }, actor) {
   return side === actor ? -value : value;
 }
 
-export function rowEffectValue(player, row, turns = 3, incremental = true) {
-  if (player.passed) return 0;
+export function rowEffectValue(player, row, turns = 3, incremental = true, horizonTurns = handCount(player) + 1) {
   const candidates = player.board[row].filter(isUnit);
   if (!candidates.length) return 0;
   const previous = incremental ? player.rowEffects?.[row]?.remaining ?? 0 : 0;
-  const horizon = Math.max(0, Math.min(turns, handCount(player) + 1) - previous);
+  const horizon = Math.max(0, Math.min(turns, horizonTurns) - previous);
   return horizon * candidates.reduce((sum, card) => sum +
     (statusCount(card, 'infection') ? Math.min(card.power, Math.max(0, 2 - (card.armor ?? 0))) : Math.min(card.power, 2) * .75), 0)
     / candidates.length;
@@ -180,8 +179,10 @@ export function destructionRolls(match, side, card) {
 }
 
 function rowEffectSwing({ match, job }, step) {
-  const defender = match.players[rowSide(job.side, step)];
-  const values = ROWS.map((row) => rowEffectValue(defender, row, step.amount));
+  const side = rowSide(job.side, step);
+  const defender = match.players[side];
+  const turns = defender.passed ? remainingTurns(match, side) : undefined;
+  const values = ROWS.map((row) => rowEffectValue(defender, row, step.amount, true, turns));
   return step.row === 'all' ? values.reduce((sum, value) => sum + value, 0) : Math.max(...values);
 }
 
@@ -270,8 +271,9 @@ function infectionSwing({ match, job, applyInfection }, step) {
   const candidates = targets(match, job, selection?.targets ?? step.target, Boolean(selection && selection.mode !== 'random'));
   const gains = candidates.map((target) => {
     const defender = match.players[target.side];
-    return defender.passed ? 0 : (target.side === job.side ? -1 : 1) *
-      infectionGain(target.card, valueOf(match, job, step.amount, target), Math.max(1, handCount(defender)));
+    const ticks = defender.passed ? remainingTurns(match, target.side) : Math.max(1, handCount(defender));
+    return (target.side === job.side ? -1 : 1) *
+      infectionGain(target.card, valueOf(match, job, step.amount, target), ticks);
   });
   return (selection ? Math.max(0, ...gains) : gains.reduce((sum, gain) => sum + gain, 0)) * .75;
 }
@@ -295,8 +297,8 @@ function damageSwing({ match, job, card }, step) {
   const points = options.map(({ card, side: targetSide }, index) => {
     if (statusCount(card, 'shield') || (step.amount?.row && amounts[index] !== highest)) return 0;
     const armor = stripArmor ? 0 : card.armor ?? 0;
-    const emergence = amounts[index] >= armor && card.armor > 0 ? armorBreakEmergence(card) : 0;
-    const lost = emergence ? card.power - emergence : Math.min(card.power, Math.max(0, amounts[index] - armor));
+    const swing = amounts[index] >= armor ? armorBreakSwing(card) : undefined;
+    const lost = swing === undefined ? Math.min(card.power, Math.max(0, amounts[index] - armor)) : -swing;
     return (targetSide === side ? -1 : 1) * lost;
   });
   return !selection && !step.mode && ['ally', 'enemy', 'field'].includes(step.target.scope) ? points.reduce((sum, value) => sum + value, 0)

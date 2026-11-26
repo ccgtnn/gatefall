@@ -4,7 +4,7 @@ import { cardType, findUnit, isUnit, neighbors, placementSide, restoreCard, stat
 import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
 import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, pendingUnitPriority, rowDamage, rowEffectValue, rowScatterValue } from './bot-effect-value.js';
-import { armorBreakEmergence, consumeBonus, delayedCardValue, futureContext, inheritancePayoff, wantsToHoldInheritance } from './bot-future-value.js';
+import { armorBreakSwing, consumeBonus, delayedCardValue, futureContext, inheritancePayoff, remainingTurns, wantsToHoldInheritance } from './bot-future-value.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, availableRows, canEndTurn, canPass, playableCards, totalScore } from './match.js';
 
 import { leaderTargetPriority, offeringPriority, preferredLeaderUse } from './bot-leaders.js';
@@ -149,8 +149,8 @@ export function pickBotTarget(match) {
   const { kind, amount, amounts, armorStrip, options, preferHigherAmount, scatter } = match.pending;
   const player = match.players[match.pending.side];
   if (kind === 'armor-row') {
-    const row = bestTarget(options, (row) => rowArmor(player, row) - player.board[row]
-      .reduce((sum, card) => sum + armorBreakEmergence(card), 0));
+    const row = bestTarget(options, (row) => rowArmor(player, row) + player.board[row]
+      .reduce((sum, card) => sum + (armorBreakSwing(card) ?? 0), 0));
     return { type: 'target', cardId: row };
   }
   if (kind === 'spawn-row') {
@@ -159,7 +159,7 @@ export function pickBotTarget(match) {
   }
   if (kind === 'row-effect') {
     const enemy = match.players[match.pending.selectionSide];
-    return { type: 'target', cardId: bestTarget(options, (row) => rowEffectValue(enemy, row, amount)) };
+    return { type: 'target', cardId: bestTarget(options, (row) => rowEffectValue(enemy, row, amount, true, enemy.passed ? remainingTurns(match, match.pending.selectionSide) : undefined)) };
   }
   if (kind === 'mark-row') {
     const enemy = match.players[match.pending.selectionSide];
@@ -205,19 +205,21 @@ export function pickBotTarget(match) {
   const candidates = allies.length ? allies
     : preferHigherAmount ? optionsWithUnits.filter(({ card }) => amounts[card.id] === highest) : optionsWithUnits;
   const lethal = kind === 'damage' ? candidates.filter(({ card, side }) =>
-    side !== match.pending.side && lethalDamage(card, amounts?.[card.id] ?? amount) && card.power > armorBreakEmergence(card)) : [];
+    side !== match.pending.side && lethalDamage(card, amounts?.[card.id] ?? amount) && (armorBreakSwing(card) ?? -card.power) < 0) : [];
   const forecast = kind === 'consume' && futureContext(match, match.pending.side);
   const priorities = {
     damage: ({ card, side }) => {
-      const shielded = statusCount(card, 'shield');
-      if (side !== match.pending.side) return shielded ? 0
-        : card.power - ((amounts?.[card.id] ?? amount) >= card.armor ? armorBreakEmergence(card) : 0);
-      return shielded ? -.5 : -1 - Math.min(card.power, Math.max(0, (amounts?.[card.id] ?? amount) - (card.armor ?? 0)));
+      if (statusCount(card, 'shield')) return side === match.pending.side ? -.5 : 0;
+      const hit = amounts?.[card.id] ?? amount;
+      const swing = hit >= card.armor ? armorBreakSwing(card) : undefined;
+      if (side !== match.pending.side) return swing === undefined ? card.power : -swing;
+      return swing ?? (-1 - Math.min(card.power, Math.max(0, hit - (card.armor ?? 0))));
     },
     'friendly-damage': ({ card }) => {
       if (statusCount(card, 'shield')) return -.5;
-      if (card.armor > 0 && card.armor <= 2 && (card.definition.aiHints?.armorBreakCostsPower || armorBreakEmergence(card))) return -card.power - 2;
-      return -Math.min(card.power, Math.max(0, 2 - (card.armor ?? 0)));
+      const hit = amount || 2;
+      const swing = card.armor <= hit ? armorBreakSwing(card) : undefined;
+      return swing ?? -Math.min(card.power, Math.max(0, hit - (card.armor ?? 0)));
     },
     emp: ({ card }) => Math.min(card.power, 2 + (card.armor ?? 0)) + (card.armor ?? 0) * .1,
     consume: (unit) => 4 * consumeBonus(forecast, unit) - .03 * (unit.card.power ?? 0),
@@ -227,9 +229,9 @@ export function pickBotTarget(match) {
     lock: (unit) => lockPriority(unit, match.pending.side),
     cleanse: (unit) => cleansePriority(unit, match.pending.side),
     armor: (unit) => armorTargetPriority(match, match.pending.side, unit),
-    'spend-armor': ({ card }) => (amount ? card.armor : card.armor + card.power * .01) -
-      (card.armor <= (amount || Infinity) ? armorBreakEmergence(card) : 0),
-    'infection-target': ({ card }) => infectionGain(card, amount, Math.max(1, handCount(match.players[match.pending.side === 'human' ? 'bot' : 'human']))),
+    'spend-armor': ({ card }) => (amount ? card.armor : card.armor + card.power * .01) +
+      (card.armor <= (amount || Infinity) ? armorBreakSwing(card) ?? 0 : 0),
+    'infection-target': ({ card, side }) => infectionGain(card, amount, remainingTurns(match, side)),
     infection: (unit) => [unit, ...neighbors(match, unit)].reduce((sum, { card }) =>
       sum + infectionGain(card, 3), 0),
     'target-mark': ({ card }) => Math.min(3, card.power) - (card.armor ?? 0) * .3 - statusCount(card, 'shield') * 2,
@@ -276,7 +278,7 @@ export function chooseEasyTurn(match) {
     if (fee) return fee;
     if (beneficialLeader(match, view, allies) || (!view.cards.length && !match.playedCard && canUseLeader(match, 'bot') && !view.opponentPassed)) return { type: 'leader' };
   }
-  if (match.playedCard) return { type: 'end-turn' };
+  if (canEndTurn(match, 'bot')) return { type: 'end-turn' };
   const forecast = futureContext(match, 'bot');
   if (!view.opponentPassed && forecast.turns > 1) {
     const keeper = view.cards.find((card) => inheritancePayoff(forecast, card) >= 5);

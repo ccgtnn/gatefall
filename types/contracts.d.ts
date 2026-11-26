@@ -421,7 +421,7 @@ export interface MatchState {
   effects: EffectJob[];
   pending: PendingState | null;
   playedCard: boolean;
-  ending: 'effects' | 'advance' | null;
+  ending: 'effects' | 'advance' | 'empty-start' | null;
   startingTurn: boolean;
   surrendered?: boolean;
 }

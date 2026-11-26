@@ -5,15 +5,19 @@ import { feePayoff } from './bot-effect-value.js';
 import { carriedCoins } from './match-setup.js';
 import { EVAL_WEIGHTS as W } from './bot-evaluation.js';
 import { leaderCooldown } from './effects.js';
-import { canStart, matchesPileFilter, targets, valueOf } from './effect-queries.js';
+import { canStart, matchesPileFilter, stepAllowed, targets, valueOf } from './effect-queries.js';
 import { cardAbilities, deathwishDefinitions, inheritableDeathwishes, isLocked } from './events.js';
 
-export function remainingTurns(match, side) {
-  const player = match.players[side];
-  if (match.phase !== 'playing' || player.passed) return 0;
+export function remainingTurns(match, side, passingSide) {
+  if (match.phase !== 'playing') return 0;
+  const other = opponent(side);
+  const passed = match.players[side].passed || passingSide === side;
+  if (passed && (match.players[other].passed || passingSide === other)) return 0;
+  const active = passed ? other : side;
+  const player = match.players[active];
   const handSize = handCount(player);
   // Cap forecasts even with a full hand: either side may pass early.
-  return Math.min(4, handSize + Number(match.turn === side && (match.playedCard || (player.usedAbility && handSize === 0))));
+  return Math.min(4, handSize + Number(match.turn === active && (match.playedCard || (player.usedAbility && handSize === 0))));
 }
 
 function consumes(ability) {
@@ -63,7 +67,7 @@ function feeRates(context, unit, turns, slots, transformed, future) {
     const offering = order.select?.find(({ kind }) => kind === 'destroy');
     const offerings = offering ? own.filter(({ card: ally }) => ally.id !== card.id &&
       (!offering.targets.category || ally.definition.categories?.includes(offering.targets.category))).length : turns;
-    const unavailableNow = card.readyAt <= player.turns || card.orderUsedTurn === player.turns;
+    const unavailableNow = !future && card.orderUsedTurn === player.turns;
     const payoff = feePayoff(context, unit, slots[row], future || turns > 1);
     const uses = Math.min(offerings, Math.max(0, turns - Number(unavailableNow)));
     for (let use = 0; use < uses; use += 1) addCoinUse(rates, fee.coins, payoff);
@@ -222,17 +226,21 @@ function protectionValue(context, card) {
     + shield * (threat > 0 ? Math.min(W.shieldMaxHit, threat, (card.power ?? 0) + armor) : W.shieldWithoutThreat);
 }
 
-export function futureContext(match, side) {
+export function futureContext(match, side, passingSide) {
   const player = match.players[side];
   const own = units(match, side);
   const other = opponent(side);
-  const turns = remainingTurns(match, side);
-  const attacks = remainingTurns(match, other);
+  const passed = player.passed || passingSide === side;
+  const opponentPassed = match.players[other].passed || passingSide === other;
+  const turns = remainingTurns(match, side, passingSide);
+  const opponentTurns = remainingTurns(match, other, passingSide);
+  const attacks = opponentPassed ? 0 : opponentTurns;
   const available = player.hand.some((card) => consumes(cardAbilities(card).deploy) || consumes(cardAbilities(card).order)) ||
     own.some((unit) => consumes(activeOrder(unit)) && unit.card.readyAt < player.turns + turns) ||
     (player.leader?.charges > 0 && consumes(player.leader.ability));
   const inDeck = !available && player.deck.some(({ definition }) => consumes(definition.deploy) || consumes(definition.order));
-  return { match, side, player, own, turns, attacks, get resourceTurns() { return liveTurns(match, side); },
+  return { match, side, player, own, turns, attacks, opponentTurns, passed,
+    get resourceTurns() { return passed ? 0 : liveTurns(match, side); },
     armorPlans: player.hand.some(({ definition }) => definition.aiHints?.placement === 'armored-neighbors'),
     triggerChance: available ? .68 : inDeck ? .48 : .32 };
 }
@@ -244,7 +252,7 @@ function freeSlots(context, row) {
 
 function enemyImpact(context, job, step) {
   if (!step.target) return 0;
-  const { match, side, attacks } = context;
+  const { match, side, opponentTurns } = context;
   const candidates = targets(match, job, step.target).filter((target) => isUnit(target.card));
   if (!candidates.length) return 0;
   const points = candidates.map((target) => {
@@ -255,8 +263,7 @@ function enemyImpact(context, job, step) {
     if (step.action === 'damage') return sign * Math.min(card.power, statusCount(card, 'shield') ? 0 : Math.max(0, amount - (card.armor ?? 0)));
     if (step.status === 'infection') {
       const current = statusCount(card, 'infection');
-      // An infection can still be useful later in a long round, but never ticks on a passed defender.
-      const ticks = target.side === side ? context.turns : attacks;
+      const ticks = target.side === side ? context.turns : opponentTurns;
       return sign * (infectionDamage(card, Math.min(ticks, current + amount)) - infectionDamage(card, Math.min(ticks, current)));
     }
     return 0;
@@ -299,10 +306,43 @@ export function inheritancePayoff(context, card) {
   return deathwishPayoff(context, card, undefined, inheritableDeathwishes(context.player));
 }
 
-export function armorBreakEmergence(card) {
-  if (!(card.armor > 0)) return 0;
-  const steps = cardAbilities(card).events?.['armor-break']?.steps ?? [];
-  return steps.reduce((sum, step) => step.action === 'spawn' ? sum + step.amount * (step.card.power ?? 0) : sum, 0);
+// Undefined means armor break does not remove the unit; zero is a genuine even trade.
+export function armorBreakSwing(card) {
+  const steps = cardAbilities(card).events?.['armor-break']?.steps;
+  if (!(card.armor > 0) || !steps?.some(({ action, target }) =>
+    ['kill', 'discard', 'destroy'].includes(action) && target?.scope === 'source')) return;
+  return steps.reduce((sum, step) => step.action === 'spawn' ? sum + step.amount * (step.card.power ?? 0) : sum, -card.power);
+}
+
+function endTurnValue(context, card, ability, row, turns) {
+  if (!ability || !turns) return 0;
+  const { match, side, passed, player } = context;
+  const job = { side, ability, sourceId: card.id, results: {} };
+  let value = 0;
+  for (const step of ability.steps) {
+    if (!stepAllowed(match, job, step)) continue;
+    if (step.action === 'spawn') {
+      value += delayedAbilityValue(context, card, { steps: [step] }, row, false, turns) * .67;
+    } else if (step.action === 'damage' && step.target?.scope === 'neighbors') {
+      const hit = targets(match, job, step.target).reduce((sum, unit) => {
+        const target = unit.card;
+        const amount = valueOf(match, job, step.amount, unit);
+        if (statusCount(target, 'shield')) return sum;
+        const lost = Math.min(target.power, Math.max(0, amount * turns - (target.armor ?? 0)));
+        if (step.save) job.results[step.save] = (job.results[step.save] ?? 0) + lost;
+        const emergence = amount * turns >= target.armor ? armorBreakSwing(target) : undefined;
+        return sum + (unit.side === side ? 1 : -1) * (emergence ?? -lost);
+      }, 0);
+      value += hit * .65;
+    } else if (step.action === 'boost' && step.target?.scope === 'source') {
+      const amount = valueOf(match, job, step.amount);
+      value += amount * (step.amount?.result ? 1 : turns) * .65;
+    } else if (step.action === 'ready-order' && !passed && card.readyAt > player.turns) {
+      const order = activeOrder({ card, row });
+      if (order && canStart(match, { ...job, ability: order })) value += W.readyOrder - W.coolingOrder;
+    }
+  }
+  return value;
 }
 
 export function delayedCardValue(context, card, row, inHand = false) {
@@ -312,24 +352,20 @@ export function delayedCardValue(context, card, row, inHand = false) {
   const armor = card.armor ?? 0;
   const protection = protectionValue(context, card);
   const armorSynergy = turns && armor > 0 && context.armorPlans ? .55 : 0;
-  const emergence = armor > 0 && attacks ? armorBreakEmergence(card) * .45 : 0;
+  const emergence = armor > 0 && attacks ? (armorBreakSwing(card) ?? 0) * .45 : 0;
   const wish = deathwishPayoff(context, card, row) + (inHand ? inheritancePayoff(context, card) : 0);
   const activation = turns ? triggerChance : .25;
   const futureTurns = Math.min(turns, card.timer ?? turns);
-  const endSteps = abilities.endTurn?.steps ?? [];
-  const spawnGrowth = endSteps.some(({ action }) => action === 'spawn')
-    ? delayedAbilityValue(context, card, abilities.endTurn, row, false, futureTurns) * .67 : 0;
-  const powerGrowth = endSteps.reduce((sum, step) =>
-    step.action === 'boost' && step.target.scope === 'source' && typeof step.amount === 'number' ? sum + step.amount : sum, 0);
-  const growth = powerGrowth * .65 * futureTurns + (card.growth !== undefined && wish ? .22 * futureTurns : 0);
+  const engine = endTurnValue(context, card, abilities.endTurn, row, futureTurns);
+  const growth = (abilities.startTurnGrowth ?? 0) * .65 * futureTurns + (card.growth !== undefined && wish ? .22 * futureTurns : 0);
   const countdown = !isLocked(card) && card.counter > 0 && card.counter <= turns ? card.definition.counter?.effect : undefined;
   const coins = countdown?.steps.find(({ action }) => action === 'coins');
   const counter = countdown ? coins ? coinValue(context, Math.min(COIN_LIMIT, (player.coins ?? 0) + Math.max(0, coins.amount))) - coinValue(context)
     : countdown.steps.some(({ action }) => action === 'draw') ? (player.deck.length ? 1.6 : 0)
       : delayedAbilityValue(context, card, countdown, row) : 0;
-  const charges = !isLocked(card) && card.orderCharges > 0
-    ? Math.min(card.orderCharges, Math.max(0, turns - Math.max(0, card.readyAt - player.turns))) * .48 : 0;
-  return protection + armorSynergy + emergence + activation * wish + spawnGrowth + growth + counter * .8 + charges;
+  const charges = card.orderCharges > 0 && activeOrder({ card, row })
+    ? Math.min(card.orderCharges, Math.max(0, context.resourceTurns - Math.max(0, card.readyAt - player.turns))) * .48 : 0;
+  return protection + armorSynergy + emergence + activation * wish + engine + growth + counter * .8 + charges;
 }
 
 export function consumeBonus(context, unit) {
@@ -346,9 +382,14 @@ export function wantsToHoldInheritance(context, card, alternatives) {
 
 export function carryoverValue(context, passed) {
   const { own, player } = context;
-  const resilience = own.reduce((total, { card }) => {
+  const resilience = own.reduce((total, { card, row }) => {
     if (!card.resilient || isLocked(card)) return total;
-    return total + (card.power ?? 0) * W.carriedUnit + protectionValue(context, card) * W.carriedUnit;
+    const { endTurn, order, scenario } = cardAbilities(card);
+    const carriedArtifact = cardType(card) === 'artifact'
+      ? delayedAbilityValue(context, card, endTurn, row, false, 2) +
+        (order ? W.readyOrder : 0) + (scenario ? (scenario.chapters.length - (card.chapter ?? 0)) * W.scenarioChapter / 2 : 0)
+      : 0;
+    return total + ((card.power ?? 0) + carriedArtifact + protectionValue(context, card)) * W.carriedUnit;
   }, 0);
   const currentUses = passed ? 0 : leaderUses(context);
   const carryLeader = Math.min(Math.max(0, (player.leader?.charges ?? 0) - currentUses), leaderUses(context, true));

@@ -39,6 +39,7 @@ export function heal(match, unit) {
   const { card, side } = unit;
   const { sidePower, rowPower } = card.definition;
   card.power = basePower(card) + (card[sidePower?.key] ?? 0) + (card[rowPower?.key] ?? 0);
+  delete card.lockedAuraPower;
   match.log.push({ type: 'heal', side, cardId: card.id, power: card.power });
 }
 

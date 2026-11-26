@@ -48,6 +48,7 @@ export function canPass(match, side) {
  */
 export function canEndTurn(match, side) {
   return match.phase === 'playing' && match.turn === side && !match.pending &&
+    !match.players[side].passed &&
     (match.playedCard || (match.players[side].usedAbility && !playableCards(match, side).length));
 }
 
@@ -198,11 +199,27 @@ export function markPassed(match, side, reason) {
   match.log.push({ type: 'pass', side, reason });
 }
 
+// A passed player cannot make decisions. Resolve any choices made by its automatic effects.
+function resolvePassedChoice(match, random) {
+  const { side, job, options, key, kind, selectionSide } = match.pending;
+  const choice = options[Math.floor(random() * options.length)];
+  job.refs[key] = kind === 'deck-placement'
+    ? { row: choice, position: match.players[selectionSide ?? side].board[choice].length }
+    : choice;
+  match.effects.unshift(job);
+  match.pending = null;
+}
+
 export function progress(match, random) {
-  while (match.phase === 'playing' && !match.pending) {
+  while (match.phase === 'playing') {
+    if (match.pending) {
+      if (!match.players[match.pending.side].passed) return;
+      resolvePassedChoice(match, random);
+      continue;
+    }
     if (match.effects.length > 0) {
       const job = match.effects.shift();
-      if (job.discard) match.players[job.side].discard.push(job.discard);
+      if (job.discard) discardCard(match, job.side, job.discard, Boolean(statusCount(job.discard, 'doomed')));
       else runEffect(match, job, random);
       continue;
     }
@@ -210,8 +227,8 @@ export function progress(match, random) {
     const side = match.turn;
     const player = match.players[side];
     const otherSide = opponent(side);
-    if (match.ending === 'effects') {
-      if (match.playedCard && player.hand.length === 0) markPassed(match, side, 'empty-hand');
+    if (match.ending === 'effects' || match.ending === 'empty-start') {
+      if (!player.passed && player.hand.length === 0) markPassed(match, side, 'empty-hand');
       match.ending = 'advance';
       enqueueEndTurn(match, side);
       continue;
@@ -223,7 +240,8 @@ export function progress(match, random) {
       player.usedAbility = false;
       if (player.passed && match.players[otherSide].passed) resolveRound(match);
       else {
-        if (!match.players[otherSide].passed) match.turn = otherSide;
+        match.turn = otherSide;
+        if (match.players[otherSide].passed) match.ending = 'empty-start';
         beginTurn(match);
       }
       continue;
@@ -236,13 +254,14 @@ export function progress(match, random) {
       match.ending = 'effects';
       continue;
     }
-    if (playableCards(match, side).length || availableFees(match, side).length) return;
+    if (playableCards(match, side).length || availableFees(match, side).length ||
+        canUseLeader(match, side) || availableOrders(match, side).length) return;
     if (player.usedAbility) {
+      if (player.hand.length === 0) return;
       match.log.push({ type: 'turn-skip', side });
       match.ending = 'effects';
       continue;
     }
-    if (canUseLeader(match, side) || availableOrders(match, side).length) return;
     if (!startingTurn && player.hand.length === 0) return;
     const reason = player.hand.length === 0 ? 'empty-hand'
       : player.hand.every((card) => cardType(card) === 'effect') ? 'no-target' : 'full-row';

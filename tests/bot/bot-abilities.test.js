@@ -198,12 +198,14 @@ test('all bots hold Genome Keeper with an empty discard and play it with three u
   for (const mode of modes) assert.equal(chooseBotTurn(match, mode, { rolloutSamples: 0 }).cardId, 'genome-keeper', mode);
 });
 
-test('all bots prefer a Deathwish or Larva over consuming an equally strong plain unit', () => {
+test('all bots prefer a useful sacrifice when remaining units offer the same board value', () => {
   for (const sacrifice of [standard('larva', LARVA), member('cocoon', 'growth', 'cocoon')]) {
     const match = position(3);
     const { bot } = match.players;
     bot.hand = [member('predator', 'growth', 'predator'), plain('alternate', 3)];
-    bot.board.surface = [plain('blank', sacrifice.power), sacrifice];
+    const blank = plain('blank', sacrifice.power);
+    blank.definition.aiHints = { boardBonus: sacrifice.definition.aiHints?.boardBonus ?? 0 };
+    bot.board.surface = [blank, sacrifice];
     const pending = applyAction(match, 'bot', { type: 'play', cardId: 'predator', row: 'surface', position: 2 });
     for (const mode of [2, 4, 6]) {
       assert.equal(chooseBotTurn(pending, mode, { rolloutSamples: 0 }).cardId, sacrifice.id, mode);

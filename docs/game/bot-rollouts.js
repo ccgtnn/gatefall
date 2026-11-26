@@ -10,7 +10,7 @@ import { handCount } from './bot-hand.js';
 import { preferredLeaderUse } from './bot-leaders.js';
 import { beneficialFee, effectSwing, infectionGain, shouldProtectArmor, tributeTarget } from './bot-effect-value.js';
 
-import { armorBreakEmergence, delayedCardValue, futureContext, wantsToHoldInheritance } from './bot-future-value.js';
+import { armorBreakSwing, delayedCardValue, futureContext, wantsToHoldInheritance } from './bot-future-value.js';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -40,7 +40,8 @@ export function visibleSupply(match, memory = true, knowsDeckList = false) {
       if (!card.definition.token && !card.definition.stratagem) known.set(card.id, card.definition.id);
     }
     for (const event of match.log) {
-      if (event.type === 'play' && (event.side === 'human' || knowsDeckList) && event.card?.definition && !event.card.definition.token) {
+      if (event.side !== 'human') continue;
+      if (event.type === 'play' && event.card?.definition && !event.card.definition.token) {
         known.set(event.cardId, event.card.definition.id);
       }
       if (knowsDeckList && event.type === 'spawn' && event.from === 'deck') {
@@ -96,7 +97,7 @@ function rowValue(player, card, row, position) {
   const nearby = adjacent.filter(isUnit);
   if (card.definition.enemySide) {
     const step = card.definition.deploy?.steps.find(({ target, status }) => target?.scope === 'neighbors' && status === 'infection');
-    return step && !player.passed ? nearby.reduce((sum, unit) => sum + infectionGain(unit, step.amount), 0) : 0;
+    return step ? nearby.reduce((sum, unit) => sum + infectionGain(unit, step.amount), 0) : 0;
   }
   if (shouldProtectArmor(card, player)) {
     return -rowArmor(player, row) * .25;
@@ -111,8 +112,8 @@ function rowValue(player, card, row, position) {
 }
 
 function armorSpendValue(player, row) {
-  return rowArmor(player, row) - player.board[row].reduce((sum, card) =>
-    sum + armorBreakEmergence(card) + (card.definition.aiHints?.armorBreakCostsPower ? card.power : 0), 0);
+  return rowArmor(player, row) + player.board[row].reduce((sum, card) =>
+    sum + (armorBreakSwing(card) ?? 0), 0);
 }
 
 function fastPlays(match, side) {

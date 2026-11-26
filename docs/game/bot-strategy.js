@@ -6,11 +6,11 @@ import { ROWS } from './card-metadata.js';
 import { cardType, createCard, findUnit, placementSide } from './board.js';
 import { availableFees, availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
-import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, lockPriority, pendingUnitPriority, shouldProtectArmor, tributeOptions, tributeTarget } from './bot-effect-value.js';
+import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, lockPriority, pendingUnitPriority, shouldProtectArmor, tributeOptions } from './bot-effect-value.js';
 import { cardAbilities } from './events.js';
 import { ROW_LIMIT, applyAction, availableRows, canEndTurn, canPass, playableCards, totalScore } from './match.js';
 
-import { armorBreakEmergence, consumeBonus, futureContext, inheritancePayoff, remainingTurns, wantsToHoldInheritance } from './bot-future-value.js';
+import { armorBreakSwing, consumeBonus, futureContext, remainingTurns, wantsToHoldInheritance } from './bot-future-value.js';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -21,7 +21,11 @@ const UNKNOWN_PLAY = createCard('unknown-play', {
 
 export function botSearchState(match, knowsDeckList = false) {
   const { bot, human } = match.players;
-  if (human.publicHandSize !== undefined) return match;
+  if (human.publicHandSize !== undefined) {
+    if (knowsDeckList || (!human.knownDeck && !Object.keys(human.startingCategories ?? {}).length)) return match;
+    return { ...match, players: { ...match.players,
+      human: { ...human, startingCategories: {}, knownDeck: undefined } } };
+  }
   const knownDeck = knowsDeckList && human.startingDeck
     ? visibleSupply(match, true, true).map(({ card }) => card) : undefined;
   return {
@@ -31,7 +35,7 @@ export function botSearchState(match, knowsDeckList = false) {
     log: match.log.filter(({ type }) => type === 'play'),
     players: {
       bot: { ...bot, startingDeck: undefined, deck: bot.deck.toSorted((a, b) => a.id.localeCompare(b.id)) },
-      human: { ...human, startingDeck: undefined, knownDeck, deck: [],
+      human: { ...human, startingDeck: undefined, startingCategories: knowsDeckList ? human.startingCategories : {}, knownDeck, deck: [],
         publicHandSize: handCount(human), publicDeckSize: human.deck.length, handMasked: true,
         hand: human.hand.map((_, index) => ({ ...UNKNOWN_PLAY, id: `unknown-play-${index}` })) },
     },
@@ -116,15 +120,14 @@ function targetPriority(state) {
 
 function choices(state, all = false) {
   const { kind, options: legal, side, cardId, cards, pile = 'deck' } = state.pending;
-  if (kind === 'tribute') return all
-    ? tributeOptions(state).map(({ cardId }) => ({ type: 'target', cardId })) : [tributeTarget(state)];
+  if (kind === 'tribute') return tributeOptions(state).slice(0, all ? Infinity : 3).map(({ cardId }) => ({ type: 'target', cardId }));
   const allies = kind === 'transform' ? legal.filter((id) => findUnit(state, id)?.side === side) : [];
   const options = allies.length ? allies : legal;
   const priority = targetPriority(state);
   if (priority) {
     const ranked = options.map((id) => ({ id, score: priority(findUnit(state, id), side) }))
       .sort((a, b) => b.score - a.score);
-    return (all ? ranked : ranked.filter(({ score }) => score === ranked[0].score))
+    return ranked.slice(0, all ? Infinity : 3)
       .map(({ id }) => ({ type: 'target', cardId: id }));
   }
   if (kind === 'deck-placement') {
@@ -170,23 +173,19 @@ function choicePreference(state, side, action) {
     return chosen ? chosen.score - ranked[0].score : 0;
   }
   const priority = state.pending && targetPriority(state);
-  if (priority) {
-    const unit = findUnit(state, action.cardId);
-    const best = Math.max(...state.pending.options.map((id) => priority(findUnit(state, id), side)));
-    return Math.max(-W.targetPenaltyCap, W.targetPriority * (priority(unit, side) - best));
-  }
+  if (priority) return priority(findUnit(state, action.cardId), side);
   if (kind === 'hand-bottom' || kind === 'hand-return') {
     const card = state.players[side].hand.find(({ id }) => id === action.cardId);
-    return card ? -W.handChoice * deckCardValue(state, side, card) : 0;
+    return card ? -deckCardValue(state, side, card) : 0;
   }
-  if (kind === 'armor-row') return -W.armorChoice * state.players[side].board[action.cardId]
-    .reduce((sum, card) => sum + armorBreakEmergence(card), 0);
+  if (kind === 'armor-row') return state.players[side].board[action.cardId]
+    .reduce((sum, card) => sum + (armorBreakSwing(card) ?? 0), 0);
   if (kind !== 'consume' && kind !== 'spend-armor') return 0;
   const victim = findUnit(state, action.cardId);
   if (!victim) return 0;
-  if (kind === 'consume') return Math.min(W.consumeCap, consumeBonus(futureContext(state, side), victim)) * W.consumeChoice;
+  if (kind === 'consume') return consumeBonus(futureContext(state, side), victim);
   if (kind === 'spend-armor' && victim.card.armor <= (amount || Infinity)) {
-    return -armorBreakEmergence(victim.card) * W.armorChoice;
+    return armorBreakSwing(victim.card) ?? 0;
   }
   return 0;
 }
@@ -199,7 +198,7 @@ function evaluateAction(state, side, action, search) {
     const actor = next.pending?.side ?? next.turn;
     if (depth >= 36 || (!next.pending && (next.phase !== 'playing' || actor !== side ||
         next.players[side].turns !== state.players[side].turns))) {
-      const rating = evaluatePosition(next, 'bot') + (side === 'bot' ? choiceValue : -choiceValue);
+      const rating = evaluatePosition(next, 'bot');
       const contribution = finalRound ? positionStrength(next, side, state.round) - strength : 0;
       return { next, rating, contribution };
     }
@@ -246,7 +245,7 @@ function evaluateAction(state, side, action, search) {
       }
     }
     const reserveCost = shortfall / rolls.length;
-    return { next: worst, rating: total / rolls.length - reserveCost * W.removalReserve, contribution: contribution / rolls.length, reserveCost };
+    return { next: worst, rating: total / rolls.length - reserveCost * W.removalReserve, contribution: contribution / rolls.length, reserveCost, choiceValue };
   }
   return advance(state, side, action, 0);
 }
@@ -268,16 +267,11 @@ function searchLimit(random) {
 
 function rankPlays(state, search, limit, level) {
   const ranked = [];
-  const context = futureContext(state, 'bot');
   for (const { action, cost } of plays(state, 'bot').slice(0, level.candidates)) {
     if (search.expired()) break;
     const local = limit(Math.max(15, level.budgetMs / 40));
     const candidate = evaluateAction(state, 'bot', action, { expired: () => search.expired() || local.expired() });
-    if (candidate) {
-      const card = state.players.bot.hand.find(({ id }) => id === action.cardId);
-      const inherited = inheritancePayoff(context, card);
-      ranked.push({ ...candidate, rating: candidate.rating + (context.turns > 1 ? W.inheritedWish * inherited : 0), action, cost });
-    }
+    if (candidate) ranked.push({ ...candidate, action, cost });
   }
   return ranked.sort((a, b) => b.rating - a.rating || a.cost - b.cost);
 }
@@ -392,7 +386,7 @@ export function chooseStrategicTarget(match, level, options) {
     if (candidate) ranked.push({ ...candidate, action });
   }
   if (!ranked.length) return report(options, options.pickTarget(match), 'Выбираю допустимую цель.');
-  ranked.sort((a, b) => b.rating - a.rating);
+  ranked.sort((a, b) => b.rating - a.rating || b.choiceValue - a.choiceValue);
   return selectRanked(options, level, forecast(match, ranked, level, search, options),
     'Выбор цели или позиции по итогам розыгрыша.');
 }

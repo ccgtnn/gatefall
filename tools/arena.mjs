@@ -1,3 +1,4 @@
+import { mirrorMatch, other } from './arena-position.mjs';
 import { BOT_LEVELS, readBotLevel } from '../docs/game/bot-levels.js';
 import { availableParallelism } from 'node:os';
 import { writeFileSync } from 'node:fs';
@@ -7,40 +8,6 @@ import { Worker, isMainThread, parentPort, workerData } from 'node:worker_thread
 
 function randomFrom(seed) {
   return () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32);
-}
-
-const other = (side) => side === 'bot' ? 'human' : 'bot';
-const swap = (side) => side == null ? side : other(side);
-const reverseSides = ({ bot, human }) => ({ human: bot, bot: human });
-const mirrorEvent = (event) => ({
-  ...event, side: swap(event.side), winner: swap(event.winner), attacker: swap(event.attacker),
-  ...(event.boardSide && { boardSide: swap(event.boardSide) }),
-  ...(event.owner && { owner: swap(event.owner) }),
-  ...(event.scores && { scores: reverseSides(event.scores) }),
-});
-function mirrorPlayer(player) {
-  const mirrorCard = (card) => card.owner || card.infectionSource?.attacker
-    ? { ...card, ...(card.owner && { owner: swap(card.owner) }),
-      ...(card.infectionSource && { infectionSource: { ...card.infectionSource, attacker: swap(card.infectionSource.attacker) } }) } : card;
-  return { ...player,
-    board: Object.fromEntries(Object.entries(player.board).map(([row, cards]) => [row, cards.map(mirrorCard)])),
-    rowEffects: Object.fromEntries(Object.entries(player.rowEffects ?? {}).map(([row, effect]) =>
-      [row, { ...effect, attacker: swap(effect.attacker) }])),
-  };
-}
-
-function mirror(match) {
-  return {
-    ...match,
-    turn: swap(match.turn), starter: swap(match.starter),
-    players: { human: mirrorPlayer(match.players.bot), bot: mirrorPlayer(match.players.human) },
-    log: match.log.map(mirrorEvent),
-    effects: match.effects.map(mirrorEvent),
-    pending: match.pending && {
-      ...mirrorEvent(match.pending), selectionSide: swap(match.pending.selectionSide),
-      job: mirrorEvent(match.pending.job),
-    },
-  };
 }
 
 async function run({ root, trials, rolloutSamples, trace, collectCards, progress, newNeutrals }) {
@@ -104,7 +71,7 @@ async function run({ root, trials, rolloutSamples, trace, collectCards, progress
       const choosing = performance.now();
       const level = levels[side];
       const skill = levelsSupported ? level : level <= 2 ? 'easy' : level <= 5 ? 'normal' : 'hard';
-      const action = chooseBotTurn(side === 'bot' ? match : mirror(match), skill, options);
+      const action = chooseBotTurn(side === 'bot' ? match : mirrorMatch(match), skill, options);
       if (levels[side] >= 6) hardTimings.push(performance.now() - choosing);
       const next = applyAction(match, side, action, { random });
       if (collectCards && action.type === 'play') {
