@@ -8,8 +8,8 @@ const profiles = {
     'docs/game/effect-operations.js', 'docs/game/effect-piles.js', 'docs/game/effect-queries.js', 'docs/game/effect-schema.js', 'docs/game/events.js', 'docs/game/card-metadata.js', 'tests/battle/round-rules.test.js',
   ]],
   bot: ['Стратегия и симуляции бота', [
-    'docs/game/bot.js', 'docs/game/bot-strategy.js', 'docs/game/bot-rollouts.js',
-    'docs/game/bot-effect-value.js', 'docs/game/bot-leaders.js', 'tests/bot/bot-strategy.test.js',
+    'docs/game/bot.js', 'docs/game/bot-strategy.js', 'docs/game/bot-levels.js', 'docs/game/bot-rollouts.js',
+    'docs/game/bot-effect-value.js', 'docs/game/bot-future-value.js', 'docs/game/bot-leaders.js', 'tests/bot/bot-strategy.test.js',
   ]],
   economy: ['Сохранения, награды и экономика', [
     'docs/game/rewards.js', 'docs/game/collection-economy.js', 'docs/game/base.js',
@@ -17,7 +17,7 @@ const profiles = {
   ]],
   ui: ['Оболочка игры и управление экранами', [
     'docs/app.js', 'docs/ui/dom.js', 'docs/ui/resources.js', 'docs/ui/settings.js',
-    'docs/ui/match-turn.js', 'docs/ui/match-session.js', 'docs/ui/app-timers.js', 'tests/ui/match-turn.test.js',
+    'docs/ui/match-turn.js', 'docs/ui/match-session.js', 'docs/ui/bot-search.js', 'docs/ui/bot-worker.js', 'docs/ui/app-timers.js', 'tests/ui/match-turn.test.js',
   ]],
   'ui:battle': ['Поле и действия игрока', [
     'docs/ui/match-turn.js', 'docs/ui/field.js', 'docs/ui/hand.js', 'docs/ui/targeting.js',

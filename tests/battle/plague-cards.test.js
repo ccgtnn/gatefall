@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { applyStatus, basePower, createCard, damage, findUnit, statusCount } from '../../docs/game/board.js';
-import { chooseBotTurn, pickBotTarget } from '../../docs/game/bot.js';
+import { pickBotTarget } from '../../docs/game/bot.js';
+import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
 import { FACTIONS, NEUTRAL_CARDS } from '../../docs/game/cards.js';
 import { inspectDeck, PRESETS } from '../../docs/game/decks.js';
 import { applyAction, createDeckMatch, createMatch } from '../../docs/game/match.js';
@@ -72,7 +73,7 @@ test('the carrier infects itself and both neighbors; a hard bot picks a legal en
   match.players.bot.hand = [card('plague-carrier')];
   match.players.human.board.orbit = Array.from({ length: 9 }, (_, i) => unit('blocked-' + i));
   match.players.human.board.surface = [unit('left'),unit('right')];
-  const move = chooseBotTurn(match, 'hard', { random, rolloutSamples: 1 });
+  const move = chooseBotTurn(match, 6, { random, rolloutSamples: 1 });
   assert.equal(move.row, 'surface');
   assert.notEqual(applyAction(match, 'bot', move), match);
 });

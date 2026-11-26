@@ -26,19 +26,21 @@ function shuffle(cards, random) {
   return cards;
 }
 
-export function visibleSupply(match) {
+export function visibleSupply(match, memory = true) {
   const player = match.players.human;
   const faction = FACTIONS[player.factionId];
   if (!faction) return [];
   const known = new Map();
-  const field = Object.entries(match.players).flatMap(([side, owner]) =>
-    Object.values(owner.board).flat().filter((card) => (card.owner ?? side) === 'human'));
-  for (const card of [...player.discard, ...player.exile, ...field]) {
-    if (!card.definition.token && !card.definition.stratagem) known.set(card.id, card.definition.id);
-  }
-  for (const event of match.log) {
-    if (event.type === 'play' && event.side === 'human' && event.card?.definition && !event.card.definition.token) {
-      known.set(event.cardId, event.card.definition.id);
+  if (memory) {
+    const field = Object.entries(match.players).flatMap(([side, owner]) =>
+      Object.values(owner.board).flat().filter((card) => (card.owner ?? side) === 'human'));
+    for (const card of [...player.discard, ...player.exile, ...field]) {
+      if (!card.definition.token && !card.definition.stratagem) known.set(card.id, card.definition.id);
+    }
+    for (const event of match.log) {
+      if (event.type === 'play' && event.side === 'human' && event.card?.definition && !event.card.definition.token) {
+        known.set(event.cardId, event.card.definition.id);
+      }
     }
   }
   const available = collection(player.factionId);
@@ -231,25 +233,33 @@ function assessment(match, round) {
   return Math.tanh((cards + lives + opening) / (round === 1 ? 14 : 11));
 }
 
-function rollout(sample, action, pickTarget, random, expired) {
+function rollout(sample, action, pickTarget, random, expired, horizon) {
   // This copy belongs to a single trial, so intermediate action states can share its nested storage.
   let match = structuredClone(sample);
   const round = match.round;
   const options = { random, copy: (state) => ({ ...state }) };
   let move = action;
   let firstRoundValue;
-  for (let step = 0; step < 150; step++) {
+  let answered = false;
+  for (let step = 0; step < 300; step++) {
     if (expired()) return;
-    const side = match.pending?.side ?? match.turn;
+    const active = match.turn;
+    const side = match.pending?.side ?? active;
     const next = applyAction(match, side, move, options);
     if (next === match) return;
     match = next;
+    if (horizon === 'reply') {
+      answered ||= active === 'human' && !match.pending && match.turn !== 'human';
+      if (answered || match.phase !== 'playing' || (!match.pending && match.players.human.passed)) {
+        return assessment(match, round);
+      }
+    }
     if (match.phase === 'finished') {
       const outcome = assessment(match, match.round);
       return firstRoundValue === undefined ? outcome : .75 * outcome + .25 * firstRoundValue;
     }
     if (match.phase === 'mulligan') {
-      if (round === 3) return assessment(match, round);
+      if (horizon === 'round' || round === 3) return assessment(match, round);
       firstRoundValue ??= assessment(match, round);
       const swaps = match.players.human.hand.toSorted((a, b) => printedValue(a) - printedValue(b))
         .slice(0, mulliganLimit(match, 'human')).map(({ id }) => id);
@@ -260,8 +270,11 @@ function rollout(sample, action, pickTarget, random, expired) {
   }
 }
 
-export function compareRollouts(match, candidates, { pickTarget, expired, random = seeded(match.round * 65537 + match.players.bot.turns * 31 + match.players.human.turns), rolloutSamples = ROLLOUT_SAMPLES }) {
-  const supply = visibleSupply(match);
+export function compareRollouts(match, candidates, {
+  pickTarget, expired, horizon = 'match', memory = true, rolloutSamples = ROLLOUT_SAMPLES,
+  random = seeded(match.round * 65537 + match.players.bot.turns * 31 + match.players.human.turns),
+}) {
+  const supply = visibleSupply(match, memory);
   const human = match.players.human;
   if (supply.length < human.hand.length + human.deck.length) return [];
   const totals = candidates.map(() => 0);
@@ -271,7 +284,7 @@ export function compareRollouts(match, candidates, { pickTarget, expired, random
     const seed = Math.floor(random() * 2 ** 32);
     const scores = [];
     for (const { action } of candidates) {
-      const result = rollout(sampled, action, pickTarget, seeded(seed), expired);
+      const result = rollout(sampled, action, pickTarget, seeded(seed), expired, horizon);
       if (result === undefined) break;
       scores.push(result);
     }

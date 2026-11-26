@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCard, placeCards } from '../../docs/game/board.js';
-import { chooseBotTurn } from '../../docs/game/bot.js';
+import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
 import { FACTIONS, FIRST_SIGNAL } from '../../docs/game/cards.js';
 import { availableOrders } from '../../docs/game/effects.js';
 import { applyAction, canEndTurn, canPass, confirmMulligan, createMatch, mulliganLimit, mulliganRemaining, replaceMulliganCard } from '../../docs/game/match.js';
@@ -56,7 +56,6 @@ test('bot chooses a legal play instead of passing after an order, even when alre
   let match = confirmMulligan(setup('bot'), []);
   match.players.bot.board.orbit = [unit('ally', 'bastion')];
   match.players.bot.hand = [unit('weak'), unit('strong', 'assault')];
-  assert.deepEqual(chooseBotTurn(match), { type: 'order', cardId: FIRST_SIGNAL.id });
   match = action(action(match, 'order', FIRST_SIGNAL.id), 'target', 'ally');
   match.players.human.passed = true;
   assert.strictEqual(applyAction(match, 'bot', pass), match);

@@ -2,13 +2,16 @@ import { ROWS } from './card-metadata.js';
 import { cardType, findUnit, isUnit, neighbors, placementSide, restoreCard, statusCount, units } from './board.js';
 import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
-import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, pendingUnitPriority, rowDamage, rowEffectValue, rowScatterValue, tributeTarget } from './bot-effect-value.js';
+import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, pendingUnitPriority, rowDamage, rowEffectValue, rowScatterValue } from './bot-effect-value.js';
 import { armorBreakEmergence, consumeBonus, delayedCardValue, futureContext, inheritancePayoff, wantsToHoldInheritance } from './bot-future-value.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, availableRows, canEndTurn, canPass, playableCards, totalScore } from './match.js';
 
 import { leaderTargetPriority, offeringPriority, preferredLeaderUse } from './bot-leaders.js';
 import { deathwishDefinitions } from './events.js';
+import { BOT_LEVELS, readBotLevel } from './bot-levels.js';
 import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js';
+
+export { BOT_LEVELS } from './bot-levels.js';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
@@ -254,7 +257,7 @@ function beneficialLeader(match, view, allies) {
   return card.power >= 2 || deathwishDefinitions(card).length > 0 || view.score === view.opponentScore;
 }
 
-function chooseEasyTurn(match) {
+export function chooseEasyTurn(match) {
   if (match.pending) return pickBotTarget(match);
   const view = createBotView(match);
   const enemies = units(match, 'human').filter(({ card }) => isUnit(card));
@@ -278,47 +281,18 @@ function chooseEasyTurn(match) {
     const keeper = view.cards.find((card) => inheritancePayoff(forecast, card) >= 5);
     if (keeper) return playCard(keeper, view);
   }
-  return chooseBotAction(view);
+  const action = chooseBotAction(view);
+  if (action.type !== 'pass' || match.round !== 3) return action;
+  const [card] = playableCards(match, 'bot');
+  if (!card) return action;
+  if (cardType(card) === 'effect') return { type: 'play', cardId: card.id };
+  const player = match.players[placementSide('bot', card)];
+  const [row] = availableRows(player, card);
+  return { type: 'play', cardId: card.id, row, position: player.board[row].length };
 }
 
-export function chooseBotTurn(match, difficulty = 'easy', options = {}) {
-  let decision;
-  const strategy = { ...options, pickTarget: pickBotTarget, onDecision: (trace) => { decision = trace; } };
-  let action;
-  const repeatableOrder = !match.pending && match.phase === 'playing' && match.turn === 'bot' &&
-    availableOrders(match, 'bot').find(({ card }) => card.definition.aiHints?.useOrderWhenReady);
-  if (match.pending?.kind === 'tribute' && difficulty !== 'easy') {
-    action = tributeTarget(match);
-  } else if (['sacrifice', 'tribute', 'hand-bottom'].includes(match.pending?.kind)) {
-    action = pickBotTarget(match);
-  } else if (match.pending && (difficulty !== 'easy' || match.pending.kind === 'deck-placement')) {
-    action = chooseStrategicTarget(match, pickBotTarget, difficulty, strategy);
-  } else {
-    const fallback = chooseEasyTurn(match);
-    action = difficulty === 'normal' || difficulty === 'hard'
-      ? chooseStrategicTurn(match, difficulty, fallback, strategy) : fallback;
-  }
-  if (action.type === 'pass' && !canPass(match, 'bot') && canEndTurn(match, 'bot')) {
-    action = { type: 'end-turn' };
-    decision = { reason: 'Способность уже использована. Завершаю ход.' };
-  } else if (action.type === 'pass' && match.round === 3) {
-    const [card] = playableCards(match, 'bot');
-    if (card) {
-      const view = createBotView(match);
-      if (view.cards.length) action = playCard(view.cards[0], view);
-      else if (cardType(card) === 'effect') action = { type: 'play', cardId: card.id };
-      else {
-        const player = match.players[placementSide('bot', card)];
-        const [row] = availableRows(player, card);
-        action = { type: 'play', cardId: card.id, row, position: player.board[row].length };
-      }
-      decision = { reason: 'В решающем раунде продолжаю играть, пока есть допустимый розыгрыш.' };
-    }
-  }
-  if (repeatableOrder && action.type !== 'pass') {
-    action = { type: 'order', cardId: repeatableOrder.card.id };
-    decision = { reason: 'Использую готовый Приказ на порождение.' };
-  }
-  options.onDecision?.({ reason: 'Ход по правилам лёгкого бота.', candidates: [], ...decision, action });
-  return action;
+export function chooseBotTurn(match, mastery, options = {}) {
+  const level = BOT_LEVELS[readBotLevel(mastery)];
+  const strategy = { ...options, pickTarget: pickBotTarget };
+  return match.pending ? chooseStrategicTarget(match, level, strategy) : chooseStrategicTurn(match, level, strategy);
 }

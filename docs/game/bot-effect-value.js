@@ -18,7 +18,7 @@ export function pendingUnitPriority(match, { kind, side, job }) {
       const finalPower = transform?.preservePower ? card.power : transform?.card.power ?? card.power;
       const gain = finalPower - card.power;
       // Prefer friendly targets, then actual strength gained and the weaker original unit.
-      return (targetSide === side ? 1 : -1) * gain - card.power * .01;
+      return (targetSide === side ? 1 : -1) * gain - card.power * (transform?.preservePower ? .4 : .01);
     };
   }
 }
@@ -218,11 +218,11 @@ function spawnSwing({ player, card }, step) {
   return 0;
 }
 
-export function tributeTarget(match) {
+export function tributeOptions(match) {
   const { side, options, job, tiers } = match.pending;
   const origin = job && reference(match, job);
   const spawn = job?.ability.steps[job.index]?.spawn;
-  if (!origin || !spawn) return { type: 'target', cardId: options[0] };
+  if (!origin || !spawn) return options.map((cardId) => ({ cardId, score: 0 }));
   const { player, coinWeight } = futureContext(match, side);
   const free = ROW_LIMIT - player.board[origin.row].length;
   const score = (option) => {
@@ -231,8 +231,11 @@ export function tributeTarget(match) {
     const fee = bestFee(match, side, { coins: remaining, tributeRow: origin.row, spawned });
     return spawned * (spawn.card.power ?? 0) + remaining * coinWeight + (fee?.value ?? 0);
   };
-  const cardId = options.reduce((best, option) => score(option) > score(best) ? option : best);
-  return { type: 'target', cardId };
+  return options.map((cardId) => ({ cardId, score: score(cardId) })).sort((a, b) => b.score - a.score);
+}
+
+export function tributeTarget(match) {
+  return { type: 'target', cardId: tributeOptions(match)[0].cardId };
 }
 
 function scatterSwing({ match, job, player }, step) {

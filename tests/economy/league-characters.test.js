@@ -48,9 +48,11 @@ test('all 31 characters have ranked places, eight occasions, and legal decks', (
       assert.ok(Object.values(bot.lines).every((lines) => new Set(lines).size === 2));
       assert.ok(inspectDeck(bot.deck).valid, bot.name);
     }
-    const difficulty = bots.slice().sort((a, b) => a.strength - b.strength).map((bot) => bot.difficulty);
-    const [low, high] = [['easy', 'normal'], ['normal', 'hard'], ['hard', 'hard'], ['hard', 'hard']][tier];
-    assert.deepEqual(difficulty, [...Array(4).fill(low), ...Array(tier ? 4 : 3).fill(high)]);
+    const levels = bots.toSorted((a, b) => a.strength - b.strength).map((bot) => bot.level);
+    assert.deepEqual(levels, [
+      [1, 1, 1, 2, 2, 3, 3], [2, 2, 2, 3, 3, 3, 4, 4],
+      [4, 4, 4, 5, 5, 5, 6, 6], [5, 5, 5, 6, 6, 6, 7, 7],
+    ][tier]);
   }
 });
 

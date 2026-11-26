@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { chooseBotTurn } from '../../docs/game/bot.js';
+import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
 import { createCard, damage, findUnit, restoreCard, transformUnit } from '../../docs/game/board.js';
 import { LARVA } from '../../docs/game/cards.js';
 import { availableOrders, runEffect } from '../../docs/game/effects.js';

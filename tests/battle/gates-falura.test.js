@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCard, damage, findUnit, removeUnit, statusCount } from '../../docs/game/board.js';
-import { chooseBotTurn } from '../../docs/game/bot.js';
+import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
 import { NEUTRAL_CARDS, SHADOW } from '../../docs/game/cards.js';
 import { canUseLeader, leaderCooldown } from '../../docs/game/effects.js';
 import { applyAction, canPlayCard, confirmMulligan, createMatch } from '../../docs/game/match.js';
@@ -55,7 +55,7 @@ test('Resurrection supports the bot and is legal on a full board only with a cas
   player.discard.push(card('gravity-pulse'));
   match = move(match, 'play', 'resurrection');
   assert.deepEqual(match.pending.options, ['gravity-pulse']);
-  const choice = chooseBotTurn(match, 'normal', { random });
+  const choice = chooseBotTurn(match, 4, { random });
   assert.deepEqual(choice, { type: 'target', cardId: 'gravity-pulse' });
   assert.equal(applyAction(match, 'bot', choice, { random }).pending.kind, 'enemy-row');
 });
@@ -127,16 +127,16 @@ test('World Gates can play and deploy an artifact chosen by the hard bot', () =>
   let match = setup('world-gates', 'bot');
   match.players.bot.deck = [card('falura')];
   match = move(match, 'play', 'world-gates');
-  const choice = chooseBotTurn(match, 'hard', { random, rolloutSamples: 1 });
+  const choice = chooseBotTurn(match, 6, { random, rolloutSamples: 1 });
   assert.deepEqual(choice, { type: 'target', cardId: 'falura' });
   match = applyAction(match, 'bot', choice, { random });
-  const placement = chooseBotTurn(match, 'hard', { random, rolloutSamples: 1 });
+  const placement = chooseBotTurn(match, 6, { random, rolloutSamples: 1 });
   assert.equal(placement.type, 'place');
   match = applyAction(match, 'bot', placement, { random });
   const bot = match.players.bot;
   assert.equal(bot.board[placement.row].length, 3);
   assert.equal(bot.leader.order.sourceDefinitionId, 'falura');
-  assert.deepEqual(chooseBotTurn(match, 'hard', { random, rolloutSamples: 1 }), { type: 'leader' });
+  assert.deepEqual(chooseBotTurn(match, 7, { random, rolloutSamples: 1 }), { type: 'leader' });
 });
 
 test('World Gates allows effects with a full board, rejects illegal targets and does not cast into an empty deck', () => {

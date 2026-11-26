@@ -104,7 +104,7 @@ test('live faction matches resolve all choices, keep card identities unique, and
       const player = match.players[side];
       const [card] = playableCards(match, side);
       let action;
-      if (side === 'bot') action = chooseBotTurn(match);
+      if (side === 'bot') action = chooseBotTurn(match, 1, { random });
       else if (match.pending?.kind === 'deck-placement') {
         const row = match.pending.options[0];
         action = { type: 'place', row, position: player.board[row].length };

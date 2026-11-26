@@ -1,7 +1,8 @@
+import { botLevelLabel } from '../game/bot-levels.js';
 import { on } from './app-events.js';
 import { DIAMOND, LEAGUE_BOTS, LEAGUES, LEAGUE_RULES, leagueDivision, leagueOpponent, leagueStake, leagueTable, leagueTicket } from '../game/league.js';
 import { leagueAvatar, LORE_FACTIONS, setLeagueSpeech } from './league-character.js';
-import { leagueProfile, leagueRecord, leagueRoundRecord, LEAGUE_DIFFICULTY_LABELS } from './league-profile.js';
+import { leagueProfile, leagueRecord, leagueRoundRecord } from './league-profile.js';
 import { button, createBusyGuard, element, selectField } from './dom.js';
 import { sectionBack } from './resources.js';
 
@@ -176,7 +177,7 @@ export function leagueScreen(phase, actions, signal) {
       const details = element('div', 'league-opponent-details');
       const identity = element('div', 'league-opponent-summary');
       identity.append(challenger,
-        element('p', 'muted league-opponent-info', `${bot.deck.name} · ${LEAGUE_DIFFICULTY_LABELS[bot.difficulty]}`));
+        element('p', 'muted league-opponent-info', `${bot.deck.name} · ${botLevelLabel(bot.level)}`));
       details.append(identity, greeting);
       const controls = element('div', 'league-opponent-controls');
       opponent.append(element('h3', null, label), details, controls);

@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { COIN_LIMIT, ROW_LIMIT, createCard } from '../../docs/game/board.js';
 import { CAPTAIN_CARDS, HOUND } from '../../docs/game/captains.js';
-import { chooseBotTurn, createBotView, pickBotTarget } from '../../docs/game/bot.js';
+import { createBotView, pickBotTarget } from '../../docs/game/bot.js';
+import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
+import { BOT_LEVELS, chooseBotTurn as decideAtLevel } from '../../docs/game/bot.js';
+import { visibleSupply } from '../../docs/game/bot-rollouts.js';
+import { readBotLevel } from '../../docs/game/bot-levels.js';
 import { delayedCardValue, futureContext, remainingTurns } from '../../docs/game/bot-future-value.js';
 import { publicMatch } from '../../docs/game/bot-strategy.js';
 import { deckCardValue, effectSwing } from '../../docs/game/bot-effect-value.js';
@@ -35,46 +39,46 @@ test('strategic bots do not bank a one-card lead and can pass with a large lead'
   const match = position();
   match.players.bot.board.orbit = [plain('lead', 7)];
   match.log.push({ type: 'play', side: 'bot' });
-  assert.equal(chooseBotTurn(match, 'normal').type, 'play');
-  assert.equal(chooseBotTurn(match, 'hard').type, 'play');
-  assert.equal(chooseBotTurn(match, 'easy').type, 'play');
+  assert.equal(chooseBotTurn(match, 4).type, 'play');
+  assert.equal(chooseBotTurn(match, 6).type, 'play');
+  assert.equal(chooseBotTurn(match, 2).type, 'play');
 
   match.log.push({ type: 'play', side: 'bot' });
   match.players.bot.board.orbit[0].power = 20;
-  assert.deepEqual(chooseBotTurn(match, 'normal'), pass);
-  assert.deepEqual(chooseBotTurn(match, 'hard'), pass);
+  assert.deepEqual(chooseBotTurn(match, 4), pass);
+  assert.deepEqual(chooseBotTurn(match, 6), pass);
 });
 
-test('normal spends its last removal in round two when a life is at stake', () => {
+test('level 4 spends its last removal in round two when a life is at stake', () => {
   const match = position(2, 'human');
   match.players.bot.lives = 1;
   match.players.human.board.orbit = [plain('small-enemy', 2)];
   match.players.bot.hand = [member('salvo', 'protectorate', 'orbital-salvo')];
-  assert.deepEqual(chooseBotTurn(match, 'normal'), { type: 'play', cardId: 'salvo' });
+  assert.deepEqual(chooseBotTurn(match, 4), { type: 'play', cardId: 'salvo' });
 
   match.players.bot.lives = 2;
-  assert.deepEqual(chooseBotTurn(match, 'normal'), pass);
+  assert.deepEqual(chooseBotTurn(match, 4), pass);
 });
 
 test('round one gives up expensive chases and respects the no-pass rule after an ability', () => {
   const match = position();
   match.players.human.board.orbit = [plain('ahead', 25)];
-  assert.deepEqual(chooseBotTurn(match, 'normal'), pass);
+  assert.deepEqual(chooseBotTurn(match, 4), pass);
   match.players.bot.usedAbility = true;
-  assert.equal(chooseBotTurn(match, 'normal').type, 'play');
+  assert.equal(chooseBotTurn(match, 4).type, 'play');
 });
 
 test('round two can dry pass after winning round one and fights after losing it', () => {
   const won = position(2, 'bot');
-  assert.deepEqual(chooseBotTurn(won, 'normal'), pass);
-  assert.deepEqual(chooseBotTurn(won, 'hard'), pass);
+  assert.deepEqual(chooseBotTurn(won, 4), pass);
+  assert.deepEqual(chooseBotTurn(won, 6), pass);
   won.players.human.passed = true;
-  assert.equal(chooseBotTurn(won, 'normal').type, 'play');
+  assert.equal(chooseBotTurn(won, 4).type, 'play');
 
   const lost = position(2, 'human');
   lost.players.human.board.orbit = [plain('ahead', 18)];
-  assert.equal(chooseBotTurn(lost, 'normal').type, 'play');
-  assert.equal(chooseBotTurn(lost, 'hard').type, 'play');
+  assert.equal(chooseBotTurn(lost, 4).type, 'play');
+  assert.equal(chooseBotTurn(lost, 6).type, 'play');
 });
 
 test('in the deciding round every bot keeps playing while a card is legal, even with a winning lead', () => {
@@ -86,7 +90,7 @@ test('in the deciding round every bot keeps playing while a card is legal, even 
   human.hand = [];
   for (const opponentPassed of [true, false]) {
     human.passed = opponentPassed;
-    for (const difficulty of ['easy', 'normal', 'hard']) {
+    for (const difficulty of [2, 4, 6]) {
       const action = chooseBotTurn(match, difficulty);
       assert.equal(action.type, 'play', difficulty);
       assert.notStrictEqual(applyAction(match, 'bot', action), match, difficulty);
@@ -94,30 +98,26 @@ test('in the deciding round every bot keeps playing while a card is legal, even 
   }
 
   bot.board.surface = Array.from({ length: ROW_LIMIT }, (_, i) => plain('filled-' + i, 1));
-  for (const difficulty of ['easy', 'normal', 'hard']) {
+  for (const difficulty of [2, 4, 6]) {
     assert.deepEqual(chooseBotTurn(match, difficulty), pass, difficulty);
   }
 });
 
-test('the easy bot evaluates deathwish sacrifices and skips the leader when there are no adjacent units', () => {
+test('the level 2 bot evaluates deathwish sacrifices and skips the leader when there are no legal victims', () => {
   const match = position();
   const { bot } = match.players;
-  bot.leader = { name: 'Пожиратель', charges: 1, ability: {
-    select: [{ ref: 'victim', targets: { scope: 'ally' }, kind: 'consume' }],
-    steps: [{ action: 'consume', target: { scope: 'ref', ref: 'victim' } }],
-  } };
+  bot.leader = { ...FACTIONS.growth.leaders.find(({ id }) => id === 'devourer'), charges: 1 };
   bot.board.orbit = [member('spores', 'growth', 'spore-sac'), plain('neighbor', 4)];
-  assert.equal(chooseBotTurn(match, 'easy').type, 'leader');
-  bot.board.orbit.pop();
-  bot.board.surface = [plain('other-row', 4)];
-  assert.equal(chooseBotTurn(match, 'easy').type, 'play');
+  assert.equal(chooseBotTurn(match, 2).type, 'leader');
+  bot.board.orbit = [];
+  assert.equal(chooseBotTurn(match, 2).type, 'play');
 });
 
 test('the strategic bot inserts between two armored allies for the double boost', () => {
   const match = position(3);
   match.players.bot.hand = [member('standard', 'protectorate', 'standard')];
   match.players.bot.board.surface = [member('left', 'protectorate', 'assault'), member('right', 'protectorate', 'warden')];
-  for (const difficulty of ['normal', 'hard']) {
+  for (const difficulty of [4, 6]) {
     assert.deepEqual(chooseBotTurn(match, difficulty),
       { type: 'play', cardId: 'standard', row: 'surface', position: 1 });
   }
@@ -128,7 +128,7 @@ test('strategic bot uses a zealous Scavenger order to trigger a deathwish across
   match.players.bot.hand = [member('eater', 'growth', 'scavenger')];
   match.players.bot.board.surface = [member('cocoon', 'growth', 'cocoon'), standard('larva', LARVA)];
   const played = applyAction(match, 'bot', { type: 'play', cardId: 'eater', row: 'orbit', position: 0 });
-  for (const difficulty of ['normal', 'hard']) {
+  for (const difficulty of [4, 6]) {
     const order = chooseBotTurn(played, difficulty);
     assert.deepEqual(order, { type: 'order', cardId: 'eater' });
     const pending = applyAction(played, 'bot', order);
@@ -142,7 +142,7 @@ test('changing the opponent’s hidden cards or either deck order cannot change 
   hidden.players.human.hand = hidden.players.human.hand.map(({ id }) => plain(id, 1000));
   hidden.players.human.deck = hidden.players.human.deck.toReversed().map(({ id }) => plain(id, 1000));
   hidden.players.bot.deck.reverse();
-  for (const difficulty of ['normal', 'hard']) {
+  for (const difficulty of [4, 6]) {
     assert.deepEqual(chooseBotTurn(match, difficulty), chooseBotTurn(hidden, difficulty));
   }
 });
@@ -156,9 +156,9 @@ test('the bot cashes in its armored row for Shield Overload', () => {
   // Isolate the armor payoff from the hidden cards sampled by hard mode.
   match.players.human.hand = [];
   match.players.human.deck = [];
-  for (const difficulty of ['easy', 'normal', 'hard']) {
+  for (const difficulty of [2, 4, 6]) {
     const pending = applyAction(match, 'bot', { type: 'play', cardId: 'overload' });
-    if (difficulty !== 'easy') assert.deepEqual(chooseBotTurn(match, difficulty), { type: 'play', cardId: 'overload' });
+    if (difficulty !== 2) assert.deepEqual(chooseBotTurn(match, difficulty), { type: 'play', cardId: 'overload' });
     const ownRow = chooseBotTurn(pending, difficulty);
     assert.deepEqual(ownRow, { type: 'target', cardId: 'surface' });
     const enemy = applyAction(pending, 'bot', ownRow);
@@ -175,7 +175,7 @@ test('the bot plays Broodlord in the row with three larvae', () => {
   match.players.human.hand = [];
   match.players.human.deck = [];
   match.players.human.board.orbit = [plain('enemy', 9)];
-  for (const difficulty of ['normal', 'hard']) {
+  for (const difficulty of [4, 6]) {
     const action = chooseBotTurn(match, difficulty);
     assert.equal(action.cardId, 'lord');
     assert.equal(action.row, 'surface');
@@ -189,7 +189,7 @@ test('the bot plays Broodlord in the row with three larvae', () => {
 });
 
 test('bot preserves finishers when their current payoff is weak', () => {
-  for (const difficulty of ['normal', 'hard']) {
+  for (const difficulty of [4, 6]) {
     const shields = position(3);
     shields.players.bot.hand = [member('overload', 'protectorate', 'shield-overload'), plain('ordinary', 4)];
     shields.players.bot.board.orbit = [member('small', 'protectorate', 'assault')];
@@ -208,12 +208,12 @@ test('both strategic bots explore multiple targets in one chain', () => {
   match.players.bot.board.surface = [plain('costly', 8), member('spores', 'growth', 'spore-sac')];
   match.players.human.board.surface = [plain('small', 2), plain('large', 6)];
   const pending = applyAction(match, 'bot', { type: 'play', cardId: 'shot', row: 'orbit', position: 0 });
-  for (const difficulty of ['normal', 'hard']) {
+  for (const difficulty of [4, 6]) {
     assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'spores' });
   }
 });
 
-test('hard anticipates a visible Surface-only reply without reading the enemy hand', () => {
+test('level 6 anticipates a visible Surface-only reply without reading the enemy hand', () => {
   const match = position(3);
   match.players.bot.hand = [plain('ship', 6), plain('spare', 1)];
   match.players.bot.board.surface = [standard('armor-aura', {
@@ -223,12 +223,12 @@ test('hard anticipates a visible Surface-only reply without reading the enemy ha
     select: [{ ref: 'enemy', targets: { scope: 'enemy', type: 'unit', row: 'surface' } }],
     steps: [{ action: 'damage', target: { scope: 'ref', ref: 'enemy' }, amount: 4 }],
   } };
-  assert.equal(chooseBotTurn(match, 'normal').row, 'surface');
-  assert.equal(chooseBotTurn(match, 'hard', { rolloutSamples: 0 }).row, 'orbit');
+  assert.equal(chooseBotTurn(match, 2).row, 'surface');
+  assert.equal(chooseBotTurn(match, 6, { rolloutSamples: 0 }).row, 'orbit');
 });
 
 test('the deciding round refuses to pass with legal cards when behind or the opponent can still reply', () => {
-  for (const difficulty of ['easy', 'normal', 'hard']) {
+  for (const difficulty of [2, 4, 6]) {
     const match = position(3);
     match.players.bot.hand = [plain('one', 1), plain('two', 2)];
     match.players.bot.board.orbit = [plain('ahead', 20)];
@@ -241,30 +241,30 @@ test('the deciding round refuses to pass with legal cards when behind or the opp
   }
 });
 
-test('hard defends a passed second-round bleed with a cheap win', () => {
+test('level 6 defends a passed second-round bleed with a cheap win', () => {
   const match = position(2, 'human');
   match.players.bot.lives = 1;
   match.players.human.passed = true;
   match.players.human.board.orbit = [plain('bleed', 4)];
   match.players.bot.hand = [member('finisher', 'growth', 'colossus'), plain('cheap', 5)];
-  assert.equal(chooseBotTurn(match, 'hard').cardId, 'cheap');
+  assert.equal(chooseBotTurn(match, 6).cardId, 'cheap');
 });
 
-test('hard places Gate Guardian outside the row it is building for Shield Overload', () => {
+test('level 6 places Gate Guardian outside the row it is building for Shield Overload', () => {
   const match = position(3);
   match.players.bot.hand = [member('guard', 'protectorate', 'gate-guardian'),
     member('overload', 'protectorate', 'shield-overload')];
   match.players.bot.board.orbit = [member('bastion', 'protectorate', 'bastion')];
-  const action = chooseBotTurn(match, 'hard');
+  const action = chooseBotTurn(match, 6);
   assert.equal(action.cardId, 'guard');
   assert.equal(action.row, 'surface');
 });
 
-test('hard reports ranked public decisions and scores from completed rollouts without mutating the match', () => {
+test('level 6 reports ranked public decisions and scores from completed rollouts without mutating the match', () => {
   const match = position(3);
   const before = structuredClone(match);
   let trace;
-  const action = chooseBotTurn(match, 'hard', {
+  const action = chooseBotTurn(match, 6, {
     rolloutSamples: 2, onDecision: (report) => { trace = report; },
   });
   assert.deepEqual(match, before);
@@ -286,13 +286,13 @@ test('the bot prioritizes new infection over refreshing an already infected enem
   fresh.armor = 10;
   match.players.human.board.orbit = [already, fresh];
   const pending = applyAction(match, 'bot', { type: 'order', cardId: 'spitter' });
-  for (const difficulty of ['easy', 'normal', 'hard']) {
+  for (const difficulty of [2, 4, 6]) {
     assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'fresh' });
   }
 });
 
 test('all difficulties use Skara at low coins and save her charge near the cap', () => {
-  for (const mode of ['easy', 'normal', 'hard']) {
+  for (const mode of [2, 4, 6]) {
     const match = position(3);
     match.players.bot.leader = { ...FACTIONS.captains.leader, charges: 1 };
     match.players.bot.coins = 2;
@@ -306,7 +306,7 @@ test('all difficulties use Skara at low coins and save her charge near the cap',
 });
 
 test('all difficulties prefer weak offerings and use the Priest to open an Awakening chapter', () => {
-  for (const mode of ['easy', 'normal', 'hard']) {
+  for (const mode of [2, 4, 6]) {
     const match = position(3);
     match.players.bot.leader = { ...FACTIONS.choir.leader };
     match.players.bot.board.surface = [plain('strong', 6), plain('weak', 1)];
@@ -329,7 +329,7 @@ test('the bot pays the highest affordable tribute for the Hound Recruiter', () =
     const pending = applyAction(match, 'bot', { type: 'play', cardId: 'recruiter', row: 'surface', position: 0 });
     assert.equal(pending.pending.kind, 'tribute');
 
-    for (const difficulty of ['easy', 'normal', 'hard']) {
+    for (const difficulty of [2, 4, 6]) {
       const action = chooseBotTurn(pending, difficulty);
       assert.deepEqual(action, { type: 'target', cardId: cost });
       const resolved = applyAction(pending, 'bot', action);
@@ -340,7 +340,10 @@ test('the bot pays the highest affordable tribute for the Hound Recruiter', () =
 });
 
 test('the bot completes Right Fang’s order by moving its least valuable hand card to the bottom', () => {
-  const match = position();
+  const match = position(3);
+  match.players.human.passed = true;
+  match.players.human.hand = [];
+  match.players.human.deck = [];
   match.players.bot.board.orbit = [member('fang', 'captains', 'hound-right-fang'), standard('hound', HOUND)];
   match.players.bot.hand = [plain('strong', 8), plain('weak', 2)];
   match.players.bot.deck = [plain('drawn', 5), plain('already-in-deck', 4)];
@@ -349,7 +352,7 @@ test('the bot completes Right Fang’s order by moving its least valuable hand c
   assert.equal(pending.pending.kind, 'hand-bottom');
   assert.ok(pending.pending.options.includes('drawn'));
 
-  for (const difficulty of ['easy', 'normal', 'hard']) {
+  for (const difficulty of [2, 4, 6]) {
     const action = chooseBotTurn(pending, difficulty);
     assert.deepEqual(action, { type: 'target', cardId: 'weak' });
     const resolved = applyAction(pending, 'bot', action);
@@ -371,13 +374,12 @@ test('all bots end a turn with an empty hand after already using an order', () =
     standard('strong-hound', HOUND),
   ];
   bot.board.orbit[2].power = 6;
-  const first = chooseBotTurn(match, 'easy');
-  assert.deepEqual(first, { type: 'order', cardId: 'order' });
+  const first = { type: 'order', cardId: 'order' };
   const next = applyAction(match, 'bot', first);
   assert.equal(next.players.bot.usedAbility, true);
   assert.equal(canPass(next, 'bot'), false);
   assert.equal(canEndTurn(next, 'bot'), true);
-  for (const difficulty of ['easy', 'normal', 'hard']) {
+  for (const difficulty of [2, 4, 6]) {
     const action = chooseBotTurn(next, difficulty);
     assert.deepEqual(action, { type: 'end-turn' });
     assert.notStrictEqual(applyAction(next, 'bot', action), next);
@@ -391,9 +393,9 @@ test('the strategic bot values the Fence payout with an empty deck only if coins
   const match = position();
   match.players.bot.deck = [];
   match.players.bot.hand = [standard('plain-fence', control), standard('fence', fence), plain('later', 1)];
-  assert.equal(chooseBotTurn(match, 'normal').cardId, 'fence');
+  assert.equal(chooseBotTurn(match, 4).cardId, 'fence');
   match.players.bot.coins = COIN_LIMIT;
-  assert.equal(chooseBotTurn(match, 'normal').cardId, 'plain-fence');
+  assert.equal(chooseBotTurn(match, 4).cardId, 'plain-fence');
 });
 
 
@@ -407,7 +409,7 @@ test('all bots can spend a Generator charge on armor synergy', () => {
   match.playedCard = true;
   const order = { type: 'order', cardId: 'generator' };
   const pending = applyAction(match, 'bot', order);
-  for (const difficulty of ['easy', 'normal', 'hard']) {
+  for (const difficulty of [2, 4, 6]) {
     assert.deepEqual(chooseBotTurn(match, difficulty), order);
     assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'commander' });
   }
@@ -418,7 +420,7 @@ test('all bots can spend a Generator charge on armor synergy', () => {
 
 
 test('each bot uses Incubator each turn with space and targets the available row', () => {
-  for (const difficulty of ['easy', 'normal', 'hard']) {
+  for (const difficulty of [2, 4, 6]) {
     let match = position(3);
     const { bot, human } = match.players;
     bot.board.orbit = [member('incubator', 'growth', 'incubator'),
@@ -439,7 +441,7 @@ test('each bot uses Incubator each turn with space and targets the available row
 });
 
 test('Predator lets every bot choose a friendly Deathwish rather than an enemy', () => {
-  for (const difficulty of ['easy', 'normal', 'hard']) {
+  for (const difficulty of [2, 4, 6]) {
     const match = position(3);
     match.players.bot.hand = [member('predator', 'growth', 'predator')];
     match.players.bot.board.surface = [member('cocoon', 'growth', 'cocoon')];
@@ -451,29 +453,13 @@ test('Predator lets every bot choose a friendly Deathwish rather than an enemy',
   }
 });
 
-test('normal bot makes the same exploratory decision with the same seed', () => {
-  function seeded(seed) {
-    return () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32;
-  }
-
-  const match = position(3);
-  match.players.bot.hand = [plain('ordinary', 5), standard('slightly-better', {
-    id: 'slightly-better', name: 'Slightly better', power: 5, aiHints: { boardBonus: .04 },
-  })];
-  const decide = (seed) => chooseBotTurn(structuredClone(match), 'normal', { random: seeded(seed) });
-  const first = decide(1972);
-  assert.deepEqual(decide(1972), first);
-  assert.equal(first.cardId, 'ordinary');
-  assert.equal(decide(1).cardId, 'slightly-better');
-});
-
 test('all bots hold Genome Keeper with an empty discard and play it with three useful Deathwishes', () => {
   const match = position(3);
   const { bot, human } = match.players;
   const card = (id) => standard(id, FACTIONS.growth.pool.find((definition) => definition.id === id));
   bot.hand = [card('genome-keeper'), plain('alternative', 4), card('predator')];
   human.board.surface = [plain('foe', 10), plain('another', 7)];
-  const modes = ['easy', 'normal', 'hard'];
+  const modes = [2, 4, 6];
   for (const mode of modes) assert.notEqual(chooseBotTurn(match, mode, { rolloutSamples: 0 }).cardId, 'genome-keeper');
   bot.discard = ['acid-capsule', 'cocoon', 'spore-sac'].map(card);
   for (const mode of modes) assert.equal(chooseBotTurn(match, mode, { rolloutSamples: 0 }).cardId, 'genome-keeper', mode);
@@ -486,7 +472,7 @@ test('all bots prefer a Deathwish or Larva over consuming an equally strong plai
     bot.hand = [member('predator', 'growth', 'predator'), plain('alternate', 3)];
     bot.board.surface = [plain('blank', sacrifice.power), sacrifice];
     const pending = applyAction(match, 'bot', { type: 'play', cardId: 'predator', row: 'surface', position: 2 });
-    for (const mode of ['easy', 'normal', 'hard']) {
+    for (const mode of [2, 4, 6]) {
       assert.equal(chooseBotTurn(pending, mode, { rolloutSamples: 0 }).cardId, sacrifice.id, mode);
     }
   }
@@ -519,12 +505,12 @@ test('bot avoids breaking Boil armor when a safer damage or armor target exists'
   assert.equal(pickBotTarget(match).cardId, 'armored');
 });
 
-test('hard bot decisions including rollout scores repeat with the same seed', () => {
+test('level 6 bot decisions including rollout scores repeat with the same seed', () => {
   const match = position(3);
   function decide() {
     let seed = 4831;
     let trace;
-    const action = chooseBotTurn(structuredClone(match), 'hard', {
+    const action = chooseBotTurn(structuredClone(match), 6, {
       random: () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32,
       rolloutSamples: 2,
       onDecision: (decision) => { trace = decision; },
@@ -559,7 +545,7 @@ test('all difficulties pay to restore Left Fang when it can hit a packed enemy r
   human.passed = true;
   match.playedCard = true;
   const fee = { type: 'fee', cardId: 'fang' };
-  for (const difficulty of ['easy', 'normal', 'hard']) {
+  for (const difficulty of [2, 4, 6]) {
     const options = { random: () => .5, rolloutSamples: 0 };
     assert.deepEqual(chooseBotTurn(match, difficulty, options), fee, difficulty);
     const ready = applyAction(match, 'bot', fee);
@@ -567,7 +553,7 @@ test('all difficulties pay to restore Left Fang when it can hit a packed enemy r
     assert.deepEqual(chooseBotTurn(ready, difficulty, options), { type: 'order', cardId: 'fang' }, difficulty);
   }
   human.board.surface = [];
-  for (const difficulty of ['easy', 'normal', 'hard']) {
+  for (const difficulty of [2, 4, 6]) {
     assert.deepEqual(chooseBotTurn(match, difficulty), { type: 'end-turn' }, difficulty);
   }
 });
@@ -586,7 +572,7 @@ test('Fang Orders destroy a weak Hound, accounting for a useful Deathwish', () =
   const pending = applyAction(match, 'bot', { type: 'order', cardId: 'fang' });
   // A grown Larva can repay more than the extra strength spent on the victim.
   pending.players.bot.board.orbit[2].growth = 3;
-  for (const difficulty of ['easy', 'normal', 'hard']) {
+  for (const difficulty of [2, 4, 6]) {
     assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'useful-deathwish' }, difficulty);
   }
   pending.players.bot.board.orbit[2].growth = 0;
@@ -597,10 +583,11 @@ test('Call of the Deep prefers the weakest ally even with a stronger enemy on th
   const match = position(3);
   const { bot, human } = match.players;
   bot.hand.push(member('call', 'choir', 'call-of-the-deep'));
-  bot.board.orbit = [plain('strong-ally', 9), plain('weak-ally', 2)];
+  bot.board.orbit = [plain('weak-ally', 2)];
+  bot.board.surface = [plain('strong-ally', 9)];
   human.board.surface = [plain('enemy', 15)];
   const pending = applyAction(match, 'bot', { type: 'play', cardId: 'call' });
-  for (const difficulty of ['easy', 'normal', 'hard']) {
+  for (const difficulty of [2, 4, 6]) {
     assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'weak-ally' }, difficulty);
   }
 });
@@ -620,7 +607,7 @@ test('a bot with a winning lead passes before using the Incubator', () => {
   const match = position();
   match.players.bot.board.surface = [member('incubator', 'growth', 'incubator'), plain('lead', 12)];
   match.players.human.passed = true;
-  for (const difficulty of ['easy', 'normal', 'hard']) {
+  for (const difficulty of [2, 4, 6]) {
     assert.deepEqual(chooseBotTurn(match, difficulty), pass, difficulty);
   }
 });
@@ -664,8 +651,8 @@ test('strategic placement respects a mandatory row even when the preferred row d
   match.players.bot.hand = [plain('spare', 1), resident];
   match.players.human.passed = true;
   match.players.human.board.surface = [plain('lead', 6)];
-  for (const difficulty of ['normal', 'hard']) {
-    assert.deepEqual(chooseBotTurn(match, difficulty, { random: () => 0 }),
+  for (const difficulty of [4, 6]) {
+    assert.deepEqual(chooseBotTurn(match, difficulty),
       { type: 'play', cardId: 'resident', row: 'surface', position: 0 });
   }
 });
@@ -681,9 +668,100 @@ test('strategic tribute spends only for seats it can fill and keeps coins for us
   bot.board.surface = Array.from({ length: ROW_LIMIT - 4 }, (_, i) => plain('filler-' + i, 3));
   const pending = applyAction(match, 'bot', { type: 'play', cardId: 'recruiter', row: 'surface', position: bot.board.surface.length });
   assert.equal(pending.pending.kind, 'tribute');
-  for (const difficulty of ['normal', 'hard']) {
+  for (const difficulty of [4, 6]) {
     assert.equal(chooseBotTurn(pending, difficulty).cardId, '3');
   }
   pending.players.bot.board.surface.splice(0, 2);
-  assert.equal(chooseBotTurn(pending, 'hard').cardId, '6');
+  assert.equal(chooseBotTurn(pending, 6).cardId, '6');
+});
+
+test('the seven levels increase in depth, candidates, samples, memory and budget', () => {
+  assert.deepEqual(Object.keys(BOT_LEVELS).map(Number), [1, 2, 3, 4, 5, 6, 7]);
+  const horizons = ['turn', 'reply', 'round', 'match'];
+  for (let number = 2; number <= 7; number += 1) {
+    const previous = BOT_LEVELS[number - 1];
+    const level = BOT_LEVELS[number];
+    assert.ok(level.errorRate < previous.errorRate);
+    assert.ok(horizons.indexOf(level.horizon) >= horizons.indexOf(previous.horizon));
+    assert.ok(level.candidates > previous.candidates && level.samples >= previous.samples);
+    assert.ok(Number(level.memory) >= Number(previous.memory));
+    assert.ok(level.budgetMs > previous.budgetMs);
+  }
+  assert.equal(BOT_LEVELS[7].errorRate, 0);
+});
+
+test('saved legacy bot settings migrate to levels 2, 4 and 6', () => {
+  for (const [saved, level] of [['easy', 2], ['normal', 4], ['hard', 6], ['1', 1], ['7', 7], [6, 6]]) {
+    assert.equal(readBotLevel(saved), level);
+  }
+  for (const invalid of [null, 'unknown', 8, 0, '3.5']) assert.equal(readBotLevel(invalid), 4);
+});
+
+test('a seed reproduces the decision and trace at levels 1, 4 and 7', () => {
+  const match = position(3);
+  match.players.bot.hand = [plain('strong', 9), plain('mid', 6), plain('weak', 3)];
+  function decide(level) {
+    let seed = 2468;
+    let trace;
+    const action = decideAtLevel(match, level, {
+      random: () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32,
+      onDecision: (value) => { trace = value; },
+    });
+    return { action, trace };
+  }
+  for (const level of [1, 4, 7]) {
+    const result = decide(level);
+    assert.deepEqual(decide(level), result);
+    assert.equal(result.action.type, 'play');
+    if (level > 1) assert.ok(result.trace.candidates[0].samples > 0);
+  }
+});
+
+test('level 1 can select a weaker move or target and level 7 always uses the best rating', () => {
+  const match = position(3);
+  match.players.bot.hand = [plain('strong', 10), plain('mid', 7), plain('weak', 3)];
+  match.players.human.deck = [];
+  match.players.human.hand = [];
+  for (const level of [1, 7]) {
+    assert.equal(decideAtLevel(match, level, { random: () => .99 }).cardId, 'strong');
+    assert.equal(decideAtLevel(match, level, { random: () => 0 }).cardId, level === 7 ? 'strong' : 'mid');
+  }
+
+  const { bot, human } = match.players;
+  bot.hand = [standard('shot', { id: 'shot', name: 'Shot', type: 'effect', deploy: {
+    select: [{ ref: 'victim', kind: 'damage', amount: 6, targets: { scope: 'enemy', type: 'unit' } }],
+    steps: [{ action: 'damage', target: { scope: 'ref', ref: 'victim' }, amount: 6 }],
+  } }), plain('spare', 1)];
+  human.board.orbit = [plain('strong', 8), plain('mid', 5), plain('weak', 2)];
+  const pending = applyAction(match, 'bot', { type: 'play', cardId: 'shot' });
+  assert.equal(decideAtLevel(pending, 1, { random: () => .99 }).cardId, 'strong');
+  assert.equal(decideAtLevel(pending, 1, { random: () => 0 }).cardId, 'mid');
+  assert.equal(decideAtLevel(pending, 7, { random: () => 0 }).cardId, 'strong');
+});
+
+test('the shared evaluation values a strong deploy effect above raw power at all seven levels', () => {
+  const match = position(3);
+  const { bot, human } = match.players;
+  human.passed = true;
+  human.board.surface = [plain('decisive-enemy', 16)];
+  bot.hand = [plain('strength', 7), standard('deploy', {
+    id: 'deploy', name: 'Deploy', power: 3,
+    deploy: { steps: [{ action: 'damage', target: { scope: 'enemy' }, amount: 15 }] },
+  })];
+  for (const level of [1, 2, 3, 4, 5, 6, 7]) {
+    assert.equal(chooseBotTurn(match, level).cardId, 'deploy', String(level));
+  }
+});
+
+test('memory removes both a played card and a visible copy from the hidden supply only once each', () => {
+  const match = position();
+  const card = member('used', 'protectorate', 'infantry');
+  match.players.human.factionId = 'protectorate';
+  match.players.human.board.orbit = [card];
+  match.log.push({ type: 'play', side: 'human', cardId: card.id, card });
+  const options = (memory) => visibleSupply(match, memory).filter(({ card }) => card.id === 'infantry').length;
+  assert.equal(options(false), 2);
+  assert.equal(options(true), 1);
+  match.log.push({ type: 'play', side: 'human', cardId: 'other-copy', card });
+  assert.equal(options(true), 0);
 });

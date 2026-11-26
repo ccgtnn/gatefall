@@ -15,16 +15,12 @@ const leagueRewards = [
   ['Алмазная', { gold: 1000, boosters: 3, gateShards: 5 }],
 ];
 
-export const LEAGUE_DIFFICULTIES = Object.freeze([
-  { upperRank: 4, lower: 'easy', upper: 'normal' },
-  { upperRank: 4, lower: 'normal', upper: 'hard' },
-  { upperRank: 8, lower: 'hard', upper: 'hard' },
-  { upperRank: 8, lower: 'hard', upper: 'hard' },
-]);
+const LEAGUE_MIN_LEVELS = Object.freeze([1, 2, 4, 5]);
+const divisionSizes = LEAGUE_MIN_LEVELS.map((_, tier) => LEAGUE_CHARACTERS.filter((bot) => bot.tier === tier).length);
 
-export function leagueDifficulty(tier, strength) {
-  const { upperRank, lower, upper } = LEAGUE_DIFFICULTIES[tier];
-  return strength <= upperRank ? lower : upper;
+export function leagueLevel(tier, strength) {
+  const offset = Math.floor((strength - 1) * 3 / divisionSizes[tier]);
+  return LEAGUE_MIN_LEVELS[tier] + Math.max(0, Math.min(2, offset));
 }
 
 export const LEAGUE_BOTS = new Map(LEAGUE_CHARACTERS.map((character) => {
@@ -32,8 +28,8 @@ export const LEAGUE_BOTS = new Map(LEAGUE_CHARACTERS.map((character) => {
   return [character.id, {
     ...character,
     deck: leagueDeckFor(character),
-    difficulty: leagueDifficulty(tier, strength),
-    strengthScale: LEAGUE_CHARACTERS.filter((bot) => bot.tier === tier).length,
+    level: leagueLevel(tier, strength),
+    strengthScale: divisionSizes[tier],
     simulationStrength: strength + tier * LEAGUE_RULES.simulationTierStep,
   }];
 }));

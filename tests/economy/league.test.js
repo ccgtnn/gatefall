@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { PRESETS } from '../../docs/game/decks.js';
 import {
   createLeague, DIAMOND, finishLeagueMatch, LEAGUE_BOTS, LEAGUE_RULES, LEAGUES, leagueDivision, leagueOpponent,
-  leagueSchedule, leagueStake, leagueTable, leagueTicket, leagueWeek,
+  leagueLevel, leagueSchedule, leagueStake, leagueTable, leagueTicket, leagueWeek,
   reserveLeagueMatch, resetLeagueWeek, upgradeLeague,
 } from '../../docs/game/league.js';
 import { createDeckMatch } from '../../docs/game/match.js';
@@ -329,10 +329,10 @@ test('all divisions exchange exactly their top and bottom pairs and reset simult
   const visitors = leagueTable(league.season).map(({ id }) => LEAGUE_BOTS.get(id)).filter((bot) => bot?.tier === 0);
   assert.ok(visitors.length);
   for (const visitor of visitors) {
-    assert.equal(visitor.difficulty, visitor.strength <= 4 ? 'easy' : 'normal');
+    assert.equal(visitor.level, leagueLevel(visitor.tier, visitor.strength));
     assert.equal(visitor.deck.factionId, ['growth', 'captains', 'choir'].includes(visitor.loreFaction) ? visitor.loreFaction : 'protectorate');
   }
-  assert.equal(LEAGUE_BOTS.get('frontier-rookie-3').difficulty, 'hard');
+  assert.equal(LEAGUE_BOTS.get('frontier-rookie-3').level, 6);
 });
 
 test('a player finishing in the bottom two is relegated but keeps the weekly peak', () => {
