@@ -1,0 +1,97 @@
+.sandbox-page {
+  min-height: 100dvh;
+  background: radial-gradient(ellipse at top, #1c2a3b, #10151d 65%);
+}
+
+#sandbox {
+  width: min(100% - 1.5rem, 100rem);
+  margin-inline: auto;
+  padding-block: 1rem 3rem;
+}
+
+.sandbox-header {
+  display: grid;
+  gap: .35rem;
+  margin-block-end: 1rem;
+}
+
+.sandbox-tabs, .sandbox-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+  margin-block-end: 1rem;
+}
+
+.sandbox-tab[aria-pressed="true"] {
+  color: #fff0c3;
+  border-color: #e4bf79;
+  background: #493b2a;
+}
+
+.sandbox-controls { align-items: end; }
+.sandbox-field { min-width: min(100%, 15rem); }
+.sandbox-field[hidden] { display: none; }
+.sandbox-section[hidden] { display: none; }
+.sandbox-section > h2 { margin-block-end: .65rem; font-size: 1.35rem; }
+.sandbox-section > .muted { margin-block-end: 1rem; max-width: 70ch; }
+
+.sandbox-card-states {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.sandbox-card-state {
+  display: grid;
+  gap: .45rem;
+  justify-items: stretch;
+  min-width: 0;
+}
+
+.sandbox-card-state h3 { margin: 0; font-size: .9rem; text-align: center; }
+.sandbox-card-state > .hand-card, .sandbox-card-state > .slot {
+  width: 100%;
+  height: 15rem;
+  min-height: 0;
+}
+.sandbox-card-state > .slot { display: grid; }
+.sandbox-card-state .unit-face { height: 100%; }
+
+.sandbox-row-preview {
+  display: block;
+  min-height: 22rem;
+  padding: .65rem;
+  overflow-x: auto;
+  border: 1px solid #354754;
+  border-radius: 8px;
+  background: #101829;
+}
+
+.sandbox-row-preview .side {
+  min-width: 48rem;
+  min-height: 20rem;
+  grid-template-rows: repeat(2, minmax(8rem, 1fr));
+}
+
+.sandbox-catalog-grid { align-items: start; }
+.sandbox-catalog-grid .catalog-entry { height: auto; }
+.sandbox-catalog-grid h3 { margin: .35rem 0 0; font-size: .9rem; }
+.sandbox-card-text { margin: 0; color: #d2d7df; font-size: .78rem; line-height: 1.35; }
+
+.sandbox-inline-dialog[open] {
+  position: static;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  margin-block-start: 1rem;
+  overflow: visible;
+}
+.sandbox-inline-dialog .section-back { display: none; }
+.sandbox-inline-dialog .reward-shell { padding-block-start: 1rem; }
+
+@media (max-width: 40rem) {
+  #sandbox { width: min(100% - 1rem, 100rem); }
+  .sandbox-card-states { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
+  .sandbox-card-state > .hand-card, .sandbox-card-state > .slot { height: 13rem; }
+}
