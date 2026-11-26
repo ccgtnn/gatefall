@@ -49,7 +49,7 @@
 | Старт, выход и результаты матча | `docs/ui/match-session.js`, `docs/ui/match-result.js` |
 | Фоновое обновление Таверны, рангов и Лиги | `docs/ui/app-timers.js`, `tests/economy/app-timers.test.js` |
 | Навигация и события экранов | `docs/app.js`, `docs/ui/app-history.js`, `docs/ui/app-events.js` |
-| Размещение карт и анимации | `docs/ui/card-placement.js`, `turn-playback.js`, `card-motion.js`; примитивы в `card-motion-core.js`, полёты и исчезновение в `card-motion-card-effects.js`, попадания в `card-motion-hit-effects.js` |
+| Размещение карт и анимации | `docs/ui/card-placement.js`, `turn-playback.js`, `card-motion.js`; примитивы в `card-motion-core.js`, полёты и исчезновения в `card-motion-card-effects.js`, попадания в `card-motion-hit-effects.js` |
 | Отрисовка поля боя | Фасад `docs/ui/field.js`; ряды в `field-rows.js`, панели в `field-panels.js`, выбор карт и платы в `field-choices.js` |
 | Просмотр и оформление карт | Фасад `docs/ui/cards.js`; предпросмотр в `card-preview.js`, бейджи в `card-badges.js`, инспекция в `card-inspection.js`, кнопка в `card-button.js` |
 | Экраны и редактор колод | Фасад `docs/ui/deck-builder.js`; списки в `deck-list.js`, редактор в `deck-editor.js`, выбор фракции в `deck-faction-picker.js`, общие расчёты в `deck-shared.js` |
@@ -65,6 +65,7 @@
 
 - Для мелких правок во время работы запускайте только тематические тесты. Перед каждым коммитом запускайте полный `npm test`. Новые тесты размещайте в `tests/battle/`, `tests/bot/`, `tests/economy/` или `tests/ui/`. Общие хелперы и тестовые данные храните в `tests/helpers/`. `npm test` обнаруживает тесты автоматически.
 - Браузер не открывать. Визуальные изменения пользователь проверяет сам после деплоя. Браузер — только если пользователь прямо попросил в задаче.
+- Визуальные проверки — через sandbox.html (пользователь), агенты браузер не открывают.
 - Одна задача — одна ветка. Вливайте её в `main` в день работы.
 - Изменения геймдизайна согласуйте с владельцем.
 - Сборка GitHub Pages проставляет версии JS, CSS и медиа по хешу содержимого. Версии вручную не меняйте. Для динамических URL медиа используйте `assetUrl`.
