@@ -25,7 +25,7 @@ test('status mutations go through the registry and armor keeps its previous depl
   assert.ok(match.players.human.exile.includes(target.card));
 });
 
-test('infection adds duration, ticks only at owner end and expires without consuming armor', () => {
+test('infection adds duration and expires at owner end even on empty turns without consuming armor', () => {
   let match = fixture();
   applyStatus(match, findUnit(match, 'infected'), 'infection', 2);
   applyStatus(match, findUnit(match, 'infected'), 'infection', 1);
@@ -38,7 +38,7 @@ test('infection adds duration, ticks only at owner end and expires without consu
     assert.equal(statusCount(card, 'infection'), remaining);
     assert.equal(card.power, remaining + 1);
     assert.equal(card.armor, 3);
-    assert.equal(findUnit(match, 'enemy').card.power, 4);
+    assert.equal(findUnit(match, 'enemy').card.power, remaining + 1);
   }
 });
 

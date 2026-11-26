@@ -8,7 +8,7 @@ import { activeOrder, applyStatus, changeBasePower, damage, findUnit, isUnit, op
   setRowEffect, statusCount, statusEndTurn, units } from './board.js';
 import { ROWS, ROW_LABELS } from './card-metadata.js';
 import { effectOperations, tickTimer } from './effect-operations.js';
-import { canStart, PAUSED, REPEAT, reference, SCHEDULED, targets, valueOf, viableChoices } from './effect-queries.js';
+import { canStart, PAUSED, REPEAT, reference, SCHEDULED, stepAllowed, targets, valueOf, viableChoices } from './effect-queries.js';
 
 export { relatedEffectCards } from './effect-piles.js';
 export { canCast, playTiming, rowArmor } from './effect-queries.js';
@@ -206,13 +206,7 @@ export function runEffect(match, job, random) {
     throw new Error(`Unknown effect action "${step.action}" at step ${job.index + 1}` +
       (job.sourceDefinitionId ? ` of "${job.sourceDefinitionId}"` : ''));
   }
-  const holdsCategory = step.when?.orAlliesCategory &&
-    units(match, job.side).every(({ card }) => card.definition.categories?.includes(step.when.orAlliesCategory));
-  const coins = match.players[job.side].coins ?? 0;
-  if ((step.requiresResult && !job.results[step.requiresResult]) ||
-      (step.sourceRow && reference(match, job)?.row !== step.sourceRow) ||
-      (step.when?.targets && !holdsCategory && !targets(match, job, step.when.targets).length) ||
-      coins < (step.when?.coinsAtLeast ?? 0) || coins >= (step.when?.coinsBelow ?? Infinity)) {
+  if (!stepAllowed(match, job, step)) {
     job.index += 1;
     match.effects.unshift(job);
     return;

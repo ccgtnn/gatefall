@@ -94,6 +94,7 @@ test('all bot difficulties favor a cooling Order and shield an exposed key unit'
     match.turn = 'bot';
     const commander = member('cooling', 'commander');
     commander.readyAt = bot.turns + 2;
+    if (leader === 'fleet-admiral') commander.statuses = { shield: 1 };
     const shielded = unit('shielded', 30);
     shielded.statuses = { shield: 1 };
     const key = member('key', 'orbital-shield');
@@ -102,7 +103,7 @@ test('all bot difficulties favor a cooling Order and shield an exposed key unit'
     human.board.surface = [unit('enemy', 40)];
     for (const difficulty of [2, 4, 6]) {
       const pending = act(match, leaderAction, 'bot');
-      assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: expected });
+      assert.deepEqual(chooseBotTurn(pending, difficulty, { rolloutSamples: 0 }), { type: 'target', cardId: expected });
     }
   }
 });

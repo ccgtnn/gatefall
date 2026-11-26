@@ -20,7 +20,7 @@ function spawn(match, job, step) {
     if (remaining <= 0) break;
     const nearSource = origin?.row === row && (origin.side === job.side || step.row === 'source');
     const side = nearSource ? origin.side : job.side;
-    const index = position === 'death' ? job.position
+    const index = position === 'death' ? Math.min(job.position, match.players[side].board[row].length)
       : nearSource && position ? origin.position + Number(position === 'right')
         : Math.min(fallback?.position ?? Infinity, match.players[side].board[row].length);
     const count = step.overflow ? Math.min(remaining, ROW_LIMIT - match.players[side].board[row].length) : step.amount;

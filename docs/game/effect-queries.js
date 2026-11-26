@@ -1,10 +1,12 @@
 import { availableRows, captureDestination, cardType, cleansableStatuses, findInPiles, findUnit, isUnit, neighbors, opponent, placementSide, statusCount, units } from './board.js';
+import { CARD_DEFINITIONS } from './card-registry.js';
 import { ROWS } from './card-metadata.js';
 import { cardAbilities, deathwishDefinitions } from './events.js';
 
 export function chooseSubset(cards, count, random) {
-  return Array.from({ length: Math.min(count, cards.length) }, () =>
-    cards.splice(Math.floor(random() * cards.length), 1)[0].id);
+  const remaining = [...cards];
+  return Array.from({ length: Math.min(count, remaining.length) }, () =>
+    remaining.splice(Math.floor(random() * remaining.length), 1)[0].id);
 }
 
 export const PAUSED = Symbol('paused effect step');
@@ -123,11 +125,47 @@ export function eligibleRows(player, filter) {
 export const rowSide = (side, step) => step.side === 'enemy' || step.filter === 'units' ? opponent(side) : side;
 
 
+export function stepAllowed(match, job, step) {
+  const { when, requiresResult, sourceRow } = step;
+  if (requiresResult && !job.results?.[requiresResult]) return false;
+  if (sourceRow && reference(match, job)?.row !== sourceRow) return false;
+  const coins = match.players[job.side].coins ?? 0;
+  if (coins < (when?.coinsAtLeast ?? 0) || coins >= (when?.coinsBelow ?? Infinity)) return false;
+  if (!when?.targets || targets(match, job, when.targets).length) return true;
+  return Boolean(when.orAlliesCategory &&
+    units(match, job.side).every(({ card }) => card.definition.categories?.includes(when.orAlliesCategory)));
+}
+
+export function creationCandidates(sourceId, step, faction) {
+  return CARD_DEFINITIONS.filter((definition) => !definition.token &&
+    definition.id !== sourceId && definition.rarity === step.rarity &&
+    (!faction || definition.faction === faction) && (!step.type || definition.type === step.type));
+}
+
+export function playableOffer(match, job, step, firstOnly = false) {
+  const { side } = job;
+  const faction = step.faction === 'enemy' ? match.players[opponent(side)].factionId : step.faction;
+  if ((step.faction === 'enemy' && !faction) || !(valueOf(match, job, step.amount) > 0)) return [];
+  const chain = [...(job.pileChoices?.creationChain ?? []), job.sourceDefinitionId];
+  const result = [];
+  for (const definition of creationCandidates(job.sourceDefinitionId, step, faction)) {
+    if (chain.includes(definition.id)) continue;
+    const card = { id: definition.id, definition };
+    if (cardType(card) === 'effect'
+      ? !canCast(match, side, card, { ...job.pileChoices, creationChain: chain })
+      : !availableRows(match.players[placementSide(side, card)], card).length) continue;
+    result.push(card);
+    if (firstOnly) break;
+  }
+  return result;
+}
+
 export function canStart(match, job) {
   const { when, select, steps } = job.ability;
   if (steps.some((step) => (step.action === 'play-from-deck' &&
     !eligiblePileCards(match, job.side, 'deck', step, job.pileChoices).length) ||
-    (step.action === 'play-from-discard' && !eligiblePileCards(match, job.side, 'discard', step, job.pileChoices).length))) return false;
+    (step.action === 'play-from-discard' && !eligiblePileCards(match, job.side, 'discard', step, job.pileChoices).length) ||
+    (step.action === 'create-play' && !playableOffer(match, job, step, true).length))) return false;
   if (steps.some((step) => step.action === 'select-row' && !eligibleRows(match.players[rowSide(job.side, step)], step.filter).length)) return false;
   return (!when || targets(match, job, when.targets, when.selectable).length >= (when.atLeast ?? 1)) &&
     (!select?.length || viableChoices(match, job, 0).length > 0);
@@ -139,7 +177,7 @@ export function playTiming(match, side, card) {
 
 export function canCast(match, side, card, pileChoices, timing = playTiming(match, side, card)) {
   const ability = cardAbilities(card)[timing];
-  return Boolean(ability && canStart(match, { ability, side, pileChoices }));
+  return Boolean(ability && canStart(match, { ability, side, sourceDefinitionId: card.definition.id, pileChoices }));
 }
 
 export function valueOf(match, job, expression, target) {

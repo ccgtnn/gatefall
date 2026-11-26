@@ -36,7 +36,7 @@ function resumeEffect(match, side, action, random, copy) {
 export function applyAction(match, side, action, { random = Math.random, copy = structuredClone } = {}) {
   if (match.phase !== 'playing') return match;
   if (match.pending) return resumeEffect(match, side, action, random, copy);
-  if (match.turn !== side) return match;
+  if (match.turn !== side || match.players[side].passed) return match;
 
   const player = match.players[side];
   const { type, cardId } = action;

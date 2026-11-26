@@ -162,13 +162,14 @@ test('the bot prioritizes new infection over refreshing an already infected enem
   }
 });
 
-test('bot avoids breaking Boil armor when a safer damage or armor target exists', () => {
+test('bot avoids breaking enemy fresh Boil and allied grown Boil when alternatives exist', () => {
   const match = position(3);
   const definition = FACTIONS.growth.pool.find(({ id }) => id === 'boil');
   match.players.human.board.surface = [standard('enemy-boil', definition), plain('enemy-unit', 4)];
   match.pending = { side: 'bot', options: ['enemy-boil', 'enemy-unit'], kind: 'damage', amount: 3 };
   assert.equal(pickBotTarget(match).cardId, 'enemy-unit');
   match.players.bot.board.orbit = [standard('own-boil', definition), { ...plain('armored', 2), armor: 1 }];
+  match.players.bot.board.orbit[0].power = 8;
   match.pending = { side: 'bot', options: ['own-boil', 'armored'], kind: 'spend-armor' };
   assert.equal(pickBotTarget(match).cardId, 'armored');
 });
@@ -211,7 +212,7 @@ test('Fang Orders destroy a weak Hound, accounting for a useful Deathwish', () =
   human.board.surface = [plain('enemy', 5)];
   const pending = applyAction(match, 'bot', { type: 'order', cardId: 'fang' });
   // A grown Larva can repay more than the extra strength spent on the victim.
-  pending.players.bot.board.orbit[2].growth = 3;
+  pending.players.bot.board.orbit[2].growth = 5;
   for (const difficulty of [2, 4, 6]) {
     assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'useful-deathwish' }, difficulty);
   }

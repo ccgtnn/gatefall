@@ -1,17 +1,11 @@
-import { announcePlay, appearanceJobs, availableRows, cardType, changeBasePower, createCard, opponent,
+import { announcePlay, appearanceJobs, availableRows, cardType, changeBasePower, createCard,
   placementSide, placeCards, playDestination, refreshPlacedPower, restoreCard, takeCards } from './board.js';
 import { NEUTRAL } from './card-metadata.js';
 import { CARD_DEFINITIONS, cardsForFaction } from './card-registry.js';
 import { FACTIONS } from './cards.js';
 import { cardAbilities } from './events.js';
-import { chooseSubset, eligiblePileCards, matchesPileFilter, pauseForChoice, pileCandidates,
-  playPiles, playTiming, reference, REPEAT, valueOf } from './effect-queries.js';
-
-function creationCandidates(sourceId, step, faction) {
-  return CARD_DEFINITIONS.filter((definition) => !definition.token &&
-    definition.id !== sourceId && definition.rarity === step.rarity &&
-    (!faction || definition.faction === faction) && (!step.type || definition.type === step.type));
-}
+import { chooseSubset, creationCandidates, eligiblePileCards, matchesPileFilter, pauseForChoice, pileCandidates,
+  playableOffer, playPiles, playTiming, reference, REPEAT, valueOf } from './effect-queries.js';
 
 export function relatedEffectCards(definition) {
   const fixed = new Map();
@@ -44,14 +38,8 @@ export function relatedEffectCards(definition) {
 }
 
 function createOffer(match, job, step, random) {
-  const other = match.players[opponent(job.side)];
-  const faction = step.faction === 'enemy' ? other.factionId : step.faction;
-  if (step.faction === 'enemy' && !faction) return [];
-  const candidates = creationCandidates(job.sourceDefinitionId, step, faction)
-    .map((definition) => createCard(definition.id, definition));
-  const eligible = candidates.filter((card) => cardType(card) === 'effect' ||
-    availableRows(match.players[placementSide(job.side, card)], card).length);
-  const offered = chooseSubset(eligible, valueOf(match, job, step.amount), random);
+  const candidates = playableOffer(match, job, step);
+  const offered = chooseSubset(candidates, valueOf(match, job, step.amount), random);
   return offered.map((id) => {
     const { definition } = candidates.find((card) => card.id === id);
     return createCard(`token-${++match.tokenCount}`, step.counter ? { ...definition, counter: step.counter } : definition);
