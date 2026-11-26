@@ -11,6 +11,7 @@
     "start": "python3 -m http.server 8000 --directory docs",
     "build:pages": "node tools/build-pages.mjs",
     "ctx": "node tools/context.mjs",
+    "export:review": "node tools/export-review.mjs",
     "test:ui": "node --test \"tests/ui/*.test.js\"",
     "check:types": "npx -y -p typescript tsc -p jsconfig.json --noEmit"
   },
