@@ -26,6 +26,11 @@ export const TAVERN_QUESTS = Object.freeze([
 export const TAVERN_QUEST_BY_ID = new Map(TAVERN_QUESTS.map((quest) => [quest.id, quest]));
 export const questComplete = ({ id, progress }) => progress >= TAVERN_QUEST_BY_ID.get(id).goal;
 
+export function tavernRewardCount(tavern) {
+  if (!tavern) return 0;
+  return tavern.pending.length + tavern.slots.filter((quest) => !quest.claimed && questComplete(quest)).length;
+}
+
 function localDay(time) {
   const midnight = new Date(time);
   midnight.setHours(0, 0, 0, 0);

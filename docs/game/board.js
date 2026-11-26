@@ -52,6 +52,10 @@ export function placeCards(player, row, position, cards) {
   player.board[row].splice(position, 0, ...cards);
 }
 
+/**
+ * @param {import('../../types/contracts').PlayerState} player
+ * @param {Partial<import('../../types/contracts').Placement>} destination
+ */
 export function playDestination(player, { row, position }) {
   if (!ROWS.includes(row)) return null;
   const line = player.board[row];

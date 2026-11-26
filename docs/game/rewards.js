@@ -1,3 +1,8 @@
+// @ts-check
+
+/** @typedef {import('../../types/contracts').Progress} Progress */
+/** @typedef {import('../../types/contracts').ProgressOptions} ProgressOptions */
+
 import { rankRewards, syncRanks } from './ranks.js';
 import { advanceTavern, questComplete, replaceTavernQuest, syncTavern, TAVERN_QUEST_BY_ID, tavernEventAmounts, trackTavernMatch } from './tavern.js';
 import { createLeague, DIAMOND, finishLeagueMatch, leagueStake, needsLeagueReset, reserveLeagueMatch, resetLeagueWeek, upgradeLeague } from './league.js';
@@ -23,6 +28,12 @@ export const REWARD_STORAGE_KEY = 'gatefall.reward-book';
 const count = (value) => Number.isSafeInteger(value) && value > 0 ? value : 0;
 const startingBalance = (value, legacyAmount) => Number.isSafeInteger(value) && value >= 0 ? value : legacyAmount;
 
+/**
+ * @param {Pick<Storage, 'getItem' | 'setItem'>} [storage]
+ * @param {Pick<LockManager, 'request'>} [locks]
+ * @param {ProgressOptions} [options]
+ * @returns {Progress}
+ */
 export function createRewardProgress(storage, locks, { random = Math.random, now = Date.now, enqueueReward: publishReward } = {}) {
   const listeners = new Set();
   let saved = null;

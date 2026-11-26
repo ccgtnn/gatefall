@@ -1,3 +1,4 @@
+import { on } from './app-events.js';
 import { assetUrl } from './asset-url.js';
 import { FACTIONS } from '../game/cards.js';
 import { createCard } from '../game/board.js';
@@ -55,7 +56,7 @@ function createChoicePreferences(storage, root, key, attribute, choices) {
   };
 }
 
-export function decorationsScreen(phase, framesPreference, battlefieldPreference, back) {
+export function decorationsScreen(phase, framesPreference, battlefieldPreference, back, signal) {
   phase.textContent = '';
   const panel = element('section', 'decorations-panel');
   const heading = element('h2', null, 'Украшения');
@@ -95,7 +96,7 @@ export function decorationsScreen(phase, framesPreference, battlefieldPreference
     function update() {
       for (const { id, choice } of options) choice.setAttribute('aria-pressed', String(id === preferences.current()));
     }
-    panel.addEventListener('decorations-change', update);
+    on('decorations-change', update, { signal });
     update();
     section.append(element('h3', null, label), grid);
     return section;

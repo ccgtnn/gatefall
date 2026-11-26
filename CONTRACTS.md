@@ -1,5 +1,7 @@
 # Контракты Gatefall
 
+Точные формы объектов описаны в [types/contracts.d.ts](types/contracts.d.ts).
+
 ## Матч и карты
 
 - `MatchState` создаёт `createMatch`. Стороны имеют ключи `human` и `bot`. Состояние хранит `phase` (`mulligan`, `playing`, `finished`), номер `round`, `starter`, текущий `turn`, `pending`, очередь `effects`, журнал `log` и `result` (`win`, `loss`, `draw` или `null`). Результат считается со стороны игрока.

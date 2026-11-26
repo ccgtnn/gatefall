@@ -1,3 +1,4 @@
+import { on } from './app-events.js';
 import { leagueCharacter } from './league-character.js';
 import { button, element } from './dom.js';
 import { FACTIONS } from '../game/cards.js';
@@ -24,7 +25,7 @@ export function leaderScreen(phaseLabel, factionId, start, back) {
   return panel;
 }
 
-export function finishedScreen(match, phaseLabel, start, leaveMatch, showThoughts, canReplay, league, { saving, failed, notice, opponent, reply }) {
+export function finishedScreen(match, phaseLabel, start, leaveMatch, showThoughts, canReplay, league, { saving, failed, notice, opponent, reply }, signal) {
   phaseLabel.textContent = `Матч завершён · раундов ${match.round}`;
   const game = element('div', 'game');
   const panel = element('section', 'panel finish');
@@ -44,7 +45,7 @@ export function finishedScreen(match, phaseLabel, start, leaveMatch, showThought
     replay.disabled = saving || failed || !playable;
     missing.hidden = playable || saving;
   }
-  panel.addEventListener('collection-change', updateReplay);
+  on('collection-change', updateReplay, { signal });
   updateReplay();
   if (failed) {
     actions.append(button('Повторить сохранение', leaveMatch, 'button primary'));
