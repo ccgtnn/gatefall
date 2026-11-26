@@ -24,8 +24,11 @@
 | Словарь способностей | `docs/game/card-keywords.js` |
 | Нейтральные карты | `docs/game/neutral-cards.js`, `tests/battle/neutral-cards.test.js` |
 | Реестр и общие свойства карт | `docs/game/card-registry.js`, `card-metadata.js`, `tests/ui/catalog.test.js` |
-| Матч, поле и способности | `docs/game/match.js`, `board.js`, `effects.js`, `events.js` в той же папке |
-| Пассивные бонусы силы | `docs/game/board.js` и определения с `sidePower` или `rowPower`, `tests/battle/captains.test.js` |
+| Создание матча, раунды, пас и действия | `docs/game/match-setup.js`, `match-rounds.js`, `match-actions.js`. Публичные импорты через `match.js` |
+| Ряды, размещение и перемещение карт | `docs/game/board-placement.js`. Публичные импорты поля через `board.js` |
+| Сила, урон, гибель и ауры | `docs/game/board-power.js`, определения с `sidePower` или `rowPower`, `tests/battle/captains.test.js` |
+| Статусы, броня и эффекты рядов | `docs/game/board-status.js` |
+| Очередь способностей и реакции на события | `docs/game/effects.js`, `events.js` |
 | Бот и симуляции | `docs/game/bot.js`, `bot-levels.js`, `bot-strategy.js`, `bot-evaluation.js`, `bot-rollouts.js` |
 | Подсказки стратегии | `aiHints` в определениях карт, [CONTRACTS.md](CONTRACTS.md) |
 | Оценка эффектов ботом | `stepValues` в `docs/game/bot-effect-value.js`, учёт будущих ходов в `docs/game/bot-future-value.js`, `npm run test:bot` |
