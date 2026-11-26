@@ -48,14 +48,13 @@
 .tossed-coin {
   display: grid;
   place-items: center;
-  width: clamp(40px, 10dvh, 76px);
-  height: clamp(40px, 10dvh, 76px);
+  width: clamp(34px, 10dvh, 76px);
+  aspect-ratio: 1;
   border: 2px solid var(--coin-rim);
   border-radius: 50%;
-  background: radial-gradient(ellipse at 50% 35%, var(--coin-light), var(--coin-dark));
+  background: radial-gradient(circle, var(--coin-light), var(--coin-dark));
   color: #fff;
-  box-shadow: 0 0 14px #000a, 0 0 0 3px var(--coin-dark) inset;
-  font-size: clamp(.6rem, 2.4dvh, 1rem);
+  box-shadow: 0 0 12px var(--coin-light), inset 0 0 0 2px var(--coin-dark);
 }
 .coin-first {
   --coin-rim: #b5e6ff;
@@ -63,20 +62,21 @@
   --coin-dark: #173b80;
 }
 .coin-second {
-  --coin-rim: #ffc1ae;
-  --coin-light: #db7961;
-  --coin-dark: #801717;
+  --coin-rim: #ffc2ae;
+  --coin-light: #dd575f;
+  --coin-dark: #801c32;
 }
 
 .rules-dialog {
   width: min(94vw, 37rem);
-  max-height: calc(100dvh - 2rem);
+  max-height: calc(100dvh - 22px);
   color: inherit;
+  padding: clamp(.65rem, 3vw, 1.25rem);
 }
 .rules-dialog::backdrop { background: #070e16af; }
 .rules-dialog ul { padding-inline-start: 1.25rem; }
 .rules-dialog li + li { margin-top: .45rem; }
-.rules-dialog dt { font-weight: 700; color: #c7e8fa; }
+.rules-dialog dt { margin-top: .55rem; font-weight: 700; color: #c7e8fa; }
 .rules-dialog dd { margin: .15rem 0 0; }
 .deck-choice .deck-record { font-size: .76rem; color: #e2eff7; font-variant-numeric: tabular-nums; }
 
@@ -89,13 +89,12 @@
   padding: .55rem;
   background: #101e29;
 }
-.deck-offer h2 { margin: 0 0 .45rem; font-size: clamp(.85rem, 2.1dvh, 1.2rem); }
+.deck-offer h2 { margin: 0 0 .45rem; font-size: clamp(.85rem, 3.5dvh, 1.2rem); }
 .deck-choice-cards { display: flex; justify-content: center; gap: .4rem; }
 .deck-choice-cards .hand-card {
   flex: 1 1 0;
-  min-width: 0;
   max-width: 7rem;
-  min-height: 0;
+  min-width: 0;
   aspect-ratio: 2 / 3;
   height: auto;
   max-height: 46dvh;
@@ -109,7 +108,7 @@
   background: #0b1822e8;
   line-height: 1.1;
   overflow-wrap: anywhere;
-  font-size: clamp(.6rem, 2.7dvh, .9rem);
+  font-size: clamp(.6rem, 2.7dvh, .88rem);
 }
 .placement-choices {
   position: absolute;
@@ -140,7 +139,7 @@
   line-height: 1.1;
 }
 
-.leader-placeholder { color: var(--faction-edge, #a9bbc9); font-size: 1.14em; }
+.leader-placeholder { color: var(--faction-edge, #a9bbc9); font-size: 1.14rem; }
 
 .pile-offer {
   max-height: 88dvh;
@@ -157,7 +156,7 @@
 }
 .pile-offer .hand-card {
   width: 100%;
-  height: 100%;
+  min-width: 0;
   touch-action: pan-y;
 }
 
@@ -168,9 +167,9 @@
   border-radius: inherit;
   background:
     radial-gradient(ellipse at 12% 68%, #75c4fa58, transparent 44%),
-    radial-gradient(ellipse at 42% 88%, #2a83ff50, transparent 50%),
+    radial-gradient(ellipse at 42% 88%, #2a83ff50, transparent 54%),
     radial-gradient(ellipse at 74% 73%, #5c78fa59, transparent 50%),
-    radial-gradient(ellipse at 96% 83%, #63c4ff43, transparent 50%);
+    radial-gradient(ellipse at 96% 83%, #63c4ff43, transparent 45%);
   pointer-events: none;
   content: '';
 }
@@ -182,7 +181,7 @@
   border-radius: inherit;
   background:
     radial-gradient(ellipse at 14% 83%, #89de6752, transparent 46%),
-    radial-gradient(ellipse at 38% 66%, #73bc4544, transparent 50%),
+    radial-gradient(ellipse at 38% 66%, #73bc4544, transparent 52%),
     radial-gradient(ellipse at 65% 92%, #8cc95350, transparent 48%),
     radial-gradient(ellipse at 90% 73%, #61cb6849, transparent 48%),
     linear-gradient(0deg, #36733645, transparent 67%);
@@ -213,7 +212,7 @@
 .aim-curve {
   stroke: var(--aim-color);
   stroke-width: 3;
-  filter: drop-shadow(0 0 5px var(--aim-color));
+  filter: drop-shadow(0 0 4px var(--aim-color));
 }
 
 .match-screen .aim-snapped {
