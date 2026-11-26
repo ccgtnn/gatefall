@@ -12,8 +12,13 @@ const STARTING_LIVES = 2;
 export const MATCH_RULES = Object.freeze({
   nextStarter: 'winner',
   leaderCharges: 1,
-  coinsPersistBetweenRounds: true,
+  coinCarryRatio: 0.5,
 });
+
+/** @param {MatchState} match */
+export function carriedCoins(match, coins) {
+  return Math.floor(coins * (match.rules.coinCarryRatio ?? MATCH_RULES.coinCarryRatio));
+}
 
 function emptyBoard() {
   return { orbit: [], surface: [] };

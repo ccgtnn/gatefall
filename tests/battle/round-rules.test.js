@@ -71,7 +71,7 @@ test('mulligan skips all copies of selected cards, preserves skipped deck order 
   player.hand = [unit('first', 'assault'), unit('second', 'infantry'), unit('kept', 'assault')];
   player.deck = [unit('assault-copy', 'assault'), unit('infantry-copy', 'infantry'),
     unit('valid-a', 'bastion'), unit('valid-b', 'cocoon'), unit('last', 'assault')];
-  match = confirmMulligan(match, ['first', 'second']);
+  match = confirmMulligan(match, ['first', 'second'], { random: () => .99 });
   assert.deepEqual(match.players.human.hand.map(({ id }) => id), ['valid-a', 'valid-b', 'kept']);
   assert.deepEqual(match.players.human.deck.map(({ id }) => id), ['assault-copy', 'infantry-copy', 'last', 'first', 'second']);
   match.players.human.hand.push(...Array.from({ length: 7 }, (_, i) => unit('fill-' + i)));
@@ -80,6 +80,17 @@ test('mulligan skips all copies of selected cards, preserves skipped deck order 
   assert.equal(mulliganLimit(match, 'human'), 5);
   match = confirmMulligan(match, ['valid-a']);
   assert.equal(match.players.human.hand[0].id, 'assault-copy');
+});
+
+test('mulligan returns cards at a seeded position in both replacement paths', () => {
+  const match = setup();
+  match.players.human.hand = [unit('original', 'assault')];
+  match.players.human.deck = [unit('draw', 'bastion'), unit('keep-a'), unit('keep-b'), unit('keep-c')];
+  const options = { random: () => .3 };
+  for (const next of [replaceMulliganCard(match, 'original', options), confirmMulligan(match, ['original'], options)]) {
+    assert.equal(next.players.human.hand[0].id, 'draw');
+    assert.deepEqual(next.players.human.deck.map(({ id }) => id), ['keep-a', 'original', 'keep-b', 'keep-c']);
+  }
 });
 
 test('the bot uses the same blacklist and an impossible replacement keeps the original hand', () => {
@@ -104,16 +115,16 @@ test('instant mulligan replaces the same slot repeatedly and keeps excluded copi
     unit('second', 'cocoon'), unit('last', 'spitter'),
   ];
   assert.strictEqual(replaceMulliganCard(setupMatch, 'missing'), setupMatch);
-  let match = replaceMulliganCard(setupMatch, 'original');
+  let match = replaceMulliganCard(setupMatch, 'original', { random: () => .99 });
   assert.deepEqual(match.players.human.hand.map(({ id }) => id), ['left', 'replacement', 'right']);
   assert.equal(human.hand[1].id, 'original');
   assert.equal(mulliganRemaining(match), 2);
 
-  match = replaceMulliganCard(match, 'replacement');
+  match = replaceMulliganCard(match, 'replacement', { random: () => .99 });
   assert.equal(match.players.human.hand[1].id, 'second');
   assert.equal(mulliganRemaining(match), 1);
   assert.strictEqual(confirmMulligan(match, ['left', 'right']), match);
-  match = replaceMulliganCard(match, 'second');
+  match = replaceMulliganCard(match, 'second', { random: () => .99 });
   assert.equal(match.players.human.hand[1].id, 'last');
   assert.equal(mulliganRemaining(match), 0);
   assert.strictEqual(replaceMulliganCard(match, 'last'), match);

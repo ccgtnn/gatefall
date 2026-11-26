@@ -369,7 +369,7 @@ const growthLeaders = Object.freeze([
     id: 'devourer', provisionBonus: 15, name: 'Пожиратель', art: 'devourer.webp', charges: 3,
     text: 'Приказ (3 заряда): поглоти свой отряд. На его месте призови Порождение пожирателя с силой поглощённого отряда.',
     order: { cooldown: 0, usesCharges: true },
-    aiHints: { leaderConsume: true },
+    aiHints: { leaderConsume: true, leaderChargeValue: 2 },
     ability: ability([{ action: 'consume', target: chosen('victim'), replacement: DEVOURER_SPAWN }],
       [choice('victim', allies, 'Выбери жертву для Пожирателя.', { kind: 'consume' })]),
   },
@@ -382,6 +382,7 @@ const growthLeaders = Object.freeze([
   },
   {
     id: 'carrier', provisionBonus: 15, name: 'Носитель', art: 'carrier.webp', keywords: ['Заражение'], text: 'Наложить Заражение 3 на вражеский отряд и его соседей.',
+    aiHints: { leaderChargeValue: 4 },
     ability: ability([
       { ...action('status', chosen('enemy'), 3), status: 'infection' },
       { ...action('status', { ...adjacent, of: 'enemy' }, 3), status: 'infection' },

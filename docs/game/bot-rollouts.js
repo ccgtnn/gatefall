@@ -6,6 +6,7 @@ import { collection, copyLimit } from './decks.js';
 import { applyAction, canEndTurn, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js';
 import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
+import { handCount } from './bot-hand.js';
 import { preferredLeaderUse } from './bot-leaders.js';
 import { beneficialFee, effectSwing, infectionGain, shouldProtectArmor, tributeTarget } from './bot-effect-value.js';
 
@@ -64,7 +65,7 @@ export function visibleSupply(match, memory = true, knowsDeckList = false) {
 
 export function samplePosition(match, supply, random) {
   const { human, bot } = match.players;
-  const handSize = human.publicHandSize ?? human.hand.length;
+  const handSize = handCount(human);
   const deckSize = human.publicDeckSize ?? human.deck.length;
   const cards = supply.map(({ card, weight }) => ({ card, key: random() ** (1 / weight) }))
     .sort((a, b) => b.key - a.key)
@@ -77,7 +78,7 @@ export function samplePosition(match, supply, random) {
     log: [],
     players: {
       bot: { ...bot, deck: shuffle(order, random) },
-      human: { ...human, startingDeck: undefined, knownDeck: undefined, publicHandSize: undefined, publicDeckSize: undefined,
+      human: { ...human, startingDeck: undefined, knownDeck: undefined, publicHandSize: undefined, handMasked: undefined, publicDeckSize: undefined,
         hand: cards.slice(0, handSize), deck: cards.slice(handSize) },
     },
   };
@@ -186,8 +187,9 @@ function quickAction(match, side, pickTarget) {
   }
   if (match.playedCard) {
     const [order] = availableOrders(match, side);
-    if (enemy.passed && lead > 0) return END;
-    return order ? { type: 'order', cardId: order.card.id } : beneficialFee(match, side) ?? END;
+    const fee = beneficialFee(match, side);
+    if (enemy.passed && lead > 0) return fee ?? END;
+    return order ? { type: 'order', cardId: order.card.id } : fee ?? END;
   }
   const legalPass = canPass(match, side);
   const plays = fastPlays(match, side);
@@ -199,6 +201,9 @@ function quickAction(match, side, pickTarget) {
   }
   const rank = ({ points, reserve }) => points - Math.max(0, reserve - points) * W.removalReserve;
   let best = plays.reduce((best, play) => rank(play) > rank(best) ? play : best);
+  if (legalPass && match.round === 3 && plays.every(({ points }) => points < 0)) {
+    return beneficialFee(match, side) ?? PASS;
+  }
   if (legalPass && match.round < 3) {
     const rating = (play) => evaluatePosition(match, side, { ...play.action, gain: play.points });
     if (enemy.passed) {
@@ -261,11 +266,11 @@ export function compareRollouts(match, candidates, {
   if (!rolloutSamples) return [];
   const supply = visibleSupply(match, memory, knowsDeckList);
   const { human, bot } = match.players;
-  const publicHandSize = human.publicHandSize ?? human.hand.length;
+  const publicHandSize = handCount(human);
   const publicDeckSize = human.publicDeckSize ?? human.deck.length;
   if (supply.length < publicHandSize + publicDeckSize) return [];
   const masked = { ...match, log: [], players: { bot: { ...bot, startingDeck: undefined }, human: { ...human, startingDeck: undefined,
-    hand: [], deck: [], publicHandSize, publicDeckSize } } };
+    hand: [], deck: [], handMasked: undefined, publicHandSize, publicDeckSize } } };
   const totals = candidates.map(() => 0);
   let samples = 0;
   for (; samples < rolloutSamples && !expired(); samples++) {

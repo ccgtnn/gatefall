@@ -44,11 +44,11 @@ test('level 4 spends surplus coins in the first round with just one useful Fee',
   human.board.orbit = [plain('lead', 9)];
   human.passed = true;
   const context = futureContext(match, 'bot');
-  assert.equal(coinValue(context, 1), 1.25);
+  assert.equal(coinValue(context, 1), 1.2);
   assert.ok(Math.abs(coinValue(context, 9) - coinValue(context, 8) - .1) < 1e-9);
   assert.deepEqual(decide(match), fee);
   bot.board.surface = [standard('second-eyes', eyes().definition)];
-  assert.equal(coinValue(futureContext(match, 'bot'), 2), 1.35);
+  assert.equal(coinValue(futureContext(match, 'bot'), 2), 1.2);
 });
 
 test('a shield gains value against a known or visible heavy direct hit', () => {

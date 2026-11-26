@@ -53,7 +53,8 @@ test('public bot analysis forecasts the real number of human turns without readi
     const match = position();
     match.players.human.hand = Array.from({ length: count }, (_, i) => plain('hidden-' + i, 5));
     const state = publicMatch(match);
-    assert.deepEqual(state.players.human.hand.map(({ id }) => id), count ? ['unknown-play'] : []);
+    assert.equal(new Set(state.players.human.hand.map(({ id }) => id)).size, count);
+    assert.ok(state.players.human.hand.every(({ definition }) => definition.id === 'unknown-play'));
     assert.equal(state.players.human.publicHandSize, count);
     assert.equal(remainingTurns(state, 'human'), Math.min(4, count));
   }

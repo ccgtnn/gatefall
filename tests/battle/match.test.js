@@ -62,19 +62,19 @@ test('hands start at ten and the coin decides who opens round one', () => {
   }
 });
 
-test('mulligan replaces up to three distinct cards before play and returns them to the bottom', () => {
+test('mulligan replaces up to three distinct cards before play and reinserts them using the random source', () => {
   const setup = orderedMatch();
   const { human, bot } = setup.players;
   const ids = human.hand.slice(0, 4).map((card) => card.id);
   assert.strictEqual(confirmMulligan(setup, ids), setup);
   assert.strictEqual(confirmMulligan(setup, [bot.hand[0].id]), setup);
 
-  const match = confirmMulligan(setup, ids.slice(0, 3));
+  const match = confirmMulligan(setup, ids.slice(0, 3), { random: () => 0 });
   assert.deepEqual(match.players.human.hand.slice(0, 3), human.deck.slice(0, 3));
-  assert.deepEqual(match.players.human.deck.slice(-3), human.hand.slice(0, 3));
+  assert.deepEqual(match.players.human.deck.slice(0, 3), human.hand.slice(0, 3).reverse());
   assert.equal(match.players.human.hand.length, HAND_LIMIT);
   const weakest = [...bot.hand].sort((left, right) => left.power - right.power).slice(0, 3);
-  assert.deepEqual(match.players.bot.deck.slice(-3).map(({ id }) => id).sort(), weakest.map(({ id }) => id).sort());
+  assert.deepEqual(match.players.bot.deck.slice(0, 3).map(({ id }) => id), weakest.map(({ id }) => id).reverse());
   assert.strictEqual(confirmMulligan(match, [ids[3]]), match);
   assert.deepEqual(setup.players.human.hand.slice(0, 4).map((card) => card.id), ids);
 });
@@ -261,7 +261,7 @@ test('128 reproducible matches terminate and keep each side’s cards in exactly
       roll = (Math.imul(1664525, roll) + 1013904223) >>> 0;
       return roll / 0x100000000;
     };
-    let match = confirmMulligan(createMatch({ decks: DECKS, random }), []);
+    let match = confirmMulligan(createMatch({ decks: DECKS, random }), [], { random });
     for (let turn = 0; turn < 100 && match.phase !== 'finished'; turn += 1) {
       if (match.phase === 'mulligan') {
         match = confirmMulligan(match, [], { random });

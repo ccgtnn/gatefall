@@ -85,16 +85,14 @@ test('Удачное дельце grants five coins up to nine, separately for e
   }
 });
 
-test('coins persist by default or are cleared for both sides between rounds when disabled', () => {
-  for (const setting of [undefined, false]) {
-    const match = setup({ surface: [HOUND], coins: 4, rules: setting === undefined ? undefined : { coinsPersistBetweenRounds: setting } });
-    match.players.bot.coins = 5;
-    const next = pass(pass(match), 'bot');
-    assert.equal(next.round, 2);
-    assert.equal(next.phase, 'mulligan');
-    assert.equal(human(next).coins, setting === false ? 0 : 4);
-    assert.equal(next.players.bot.coins, setting === false ? 0 : 5);
-  }
+test('half the coins carry to the next round, rounded down independently for each side', () => {
+  const match = setup({ surface: [HOUND], coins: 7 });
+  match.players.bot.coins = 1;
+  const next = pass(pass(match), 'bot');
+  assert.equal(next.round, 2);
+  assert.equal(next.phase, 'mulligan');
+  assert.equal(human(next).coins, 3);
+  assert.equal(next.players.bot.coins, 0);
 });
 
 test('Бригадир can spawn repeatedly in the same turn and rejects insufficient coins or a full row', () => {

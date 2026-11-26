@@ -1,7 +1,8 @@
+import { handCount } from './bot-hand.js';
 import { ROWS } from './card-metadata.js';
 import { activeOrder, infectionDamage, opponent, statusCount, units } from './board.js';
 import { rowEffectValue } from './bot-effect-value.js';
-import { carryoverValue, coinValue, delayedCardValue, futureContext, leaderUses } from './bot-future-value.js';
+import { carryoverValue, coinValue, delayedCardValue, futureContext, leaderUses, leaderChargeValue } from './bot-future-value.js';
 import { availableOrders } from './effects.js';
 import { cardAbilities } from './events.js';
 import { HAND_LIMIT, ROUND_DRAW, totalScore } from './match.js';
@@ -37,7 +38,7 @@ export const EVAL_WEIGHTS = Object.freeze({
   shieldMaxHit: 6,
   knownHitChance: .65,
   shieldWithoutThreat: .15,
-  leaderCharge: 6,
+  leaderChargeCap: 6,
   readyOrder: 1.15,
   coolingOrder: .35,
   markReaction: 1.25,
@@ -52,7 +53,7 @@ export const EVAL_WEIGHTS = Object.freeze({
   inheritedWish: .4,
   visibleReply: .88,
   endTurnTie: .08,
-  finalFeeTie: .10, // Prefer a useful Fee if the final result is already secured.
+  feeTie: .10, // Prefer realizing a comparable Fee now.
   targetPriority: .65,
   targetPenaltyCap: 8,
   handChoice: .5,
@@ -97,12 +98,12 @@ function boardValue(state, side, context) {
       + (abilities.fieldEvents?.death && ROWS.some((row) =>
         enemy.board[row].some((entry) => entry.statuses?.infection)) ? W.deathReaction : 0)
       - W.infection * infectionDamage(card, Math.min(context.turns, statusCount(card, 'infection')));
-  }, leaderUses(context) * W.leaderCharge + coinValue(context) + rot + (plans ? exposed * W.markedTarget : 0));
+  }, leaderUses(context) * leaderChargeValue(context) + coinValue(context) + rot + (plans ? exposed * W.markedTarget : 0));
 }
 
 function handCards(player, play, roundChanged, growthTurns) {
   if (player.publicHandSize !== undefined) {
-    const remaining = Math.max(0, player.publicHandSize - Number(!player.hand.length));
+    const remaining = Math.max(0, handCount(player) - Number(play?.type === 'play'));
     const draw = roundChanged ? Math.min(ROUND_DRAW, player.publicDeckSize, HAND_LIMIT - remaining) : 0;
     const count = remaining + draw;
     return Array.from({ length: count }, () => W.defaultPower);
@@ -131,7 +132,10 @@ function passOutcome(active, waiting, activeInfo, waitingInfo, round) {
   const win = roundStake(active, waiting);
   const loss = -roundStake(waiting, active);
   if (lead > 0) return win;
-  if (!activeInfo.cards.length) return lead < 0 ? loss : 0;
+  // A tied round costs both players a life. With one life each, it ends in a draw.
+  const tie = active.lives === waiting.lives ? 0 : active.lives > waiting.lives ? win : loss;
+  const pass = lead < 0 ? loss : tie;
+  if (!activeInfo.cards.length) return pass;
 
   // Spend the fewest plays, then use the cheapest card that can close the gap.
   const cards = activeInfo.cards.toSorted((a, b) => a - b);
@@ -143,10 +147,10 @@ function passOutcome(active, waiting, activeInfo, waitingInfo, round) {
     gain += Math.max(W.minimumOutput, points);
     spent += 1;
   }
-  if (gain <= 0) return lead < 0 ? loss : 0;
+  if (gain <= 0) return pass;
   const cost = activeInfo.reserve - reserve(active, cards, round);
   const confidence = spent <= W.cheapCatchupCards ? W.cheapConversion : W.projectedConversion;
-  return Math.max(lead < 0 ? loss : 0, confidence * win + (1 - confidence) * loss - cost);
+  return Math.max(pass, confidence * win + (1 - confidence) * loss - cost);
 }
 
 // A caller can score a cheap one-move projection for rollout policy. The full search
@@ -185,11 +189,11 @@ export function evaluatePosition(state, side, projection) {
     return base;
   }
   if (left.passed) {
-    if (own.lives === 1 && right.raw > left.raw) return -W.matchWin;
+    if (own.lives === 1 && (right.raw > left.raw || right.raw === left.raw && rival.lives > own.lives)) return -W.matchWin;
     return base - passOutcome(rival, own, right, left, round);
   }
   if (right.passed) {
-    if (rival.lives === 1 && left.raw > right.raw) return W.matchWin;
+    if (rival.lives === 1 && (left.raw > right.raw || left.raw === right.raw && own.lives > rival.lives)) return W.matchWin;
     return base + passOutcome(own, rival, left, right, round);
   }
 
@@ -201,4 +205,13 @@ export function evaluatePosition(state, side, projection) {
   const uncertainty = W.scoreScale + (left.turns + right.turns) * W.uncertaintyPerTurn;
   const stake = pressure >= 0 ? roundStake(own, rival) : roundStake(rival, own);
   return base + W.roundInfluence[round - 1] * stake * Math.tanh(pressure / uncertainty);
+}
+
+// Finished simulations clear the board. The round journal retains its last score.
+export function positionStrength(state, side, round = state.round) {
+  const other = opponent(side);
+  const roundEnded = state.phase === 'finished' || state.round !== round;
+  const scores = roundEnded && state.log.findLast((event) => event.type === 'round-end' && event.round === round)?.scores;
+  return scores ? scores[side] - scores[other]
+    : totalScore(state.players[side]) - totalScore(state.players[other]);
 }

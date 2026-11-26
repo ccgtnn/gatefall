@@ -124,6 +124,7 @@ test('both strategic bots explore multiple targets in one chain', () => {
 
 test('level 6 anticipates a visible Surface-only reply without reading the enemy hand', () => {
   const match = position(3);
+  match.players.human.hand.length = 2;
   match.players.bot.hand = [plain('ship', 6), plain('spare', 1)];
   match.players.bot.board.surface = [standard('armor-aura', {
     type: 'artifact', endTurn: { steps: [{ action: 'armor', target: { scope: 'neighbors' }, amount: 1 }] },

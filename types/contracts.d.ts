@@ -317,6 +317,7 @@ export interface PlayerState {
   rowEffects: Partial<Record<Row, RowEffect>>;
   startingCategories: Counts;
   publicHandSize?: number;
+  handMasked?: boolean;
   categoryPlays?: Counts;
   effectCategoryPlays?: Counts;
   playedLegendary?: boolean;
@@ -387,7 +388,7 @@ export interface PendingState {
 export interface MatchRules {
   nextStarter: 'winner' | 'alternate';
   leaderCharges: number;
-  coinsPersistBetweenRounds: boolean;
+  coinCarryRatio: number;
 }
 
 export interface MatchEvent {

@@ -8,6 +8,7 @@ import {
   refreshRowPower, refreshSidePower, spendResilience, statusCount, takeCards,
 } from './board.js';
 import { FIRST_SIGNAL } from './cards.js';
+import { carriedCoins } from './match-setup.js';
 import { ROWS } from './card-metadata.js';
 import { availableFees, availableOrders, canCast, canUseLeader, enqueueEndTurn, enqueueStartTurn, runEffect } from './effects.js';
 
@@ -58,7 +59,7 @@ export function mulliganRemaining(match) {
   return match.phase === 'mulligan' ? mulliganLimit(match, 'human') - match.mulligan.used : 0;
 }
 
-function swapCards(player, selectedIds, excluded = []) {
+function swapCards(player, selectedIds, random, excluded = []) {
   const blacklist = new Set(excluded);
   for (const card of player.hand) {
     if (selectedIds.has(card.id)) blacklist.add(card.definition.id);
@@ -71,18 +72,21 @@ function swapCards(player, selectedIds, excluded = []) {
     returned.push(card);
     return player.deck.splice(index, 1)[0];
   });
-  player.deck.push(...returned);
+  for (const card of returned) {
+    const position = Math.floor(random() * (player.deck.length + 1));
+    player.deck.splice(position, 0, card);
+  }
   return returned.length;
 }
 
-export function replaceMulliganCard(match, cardId) {
+export function replaceMulliganCard(match, cardId, { random = Math.random } = {}) {
   if (!mulliganRemaining(match)) return match;
   const card = match.players.human.hand.find(({ id }) => id === cardId);
   if (!card) return match;
 
   const next = structuredClone(match);
   const { mulligan } = next;
-  if (!swapCards(next.players.human, new Set([cardId]), mulligan.excluded)) return match;
+  if (!swapCards(next.players.human, new Set([cardId]), random, mulligan.excluded)) return match;
   mulligan.used += 1;
   if (!mulligan.excluded.includes(card.definition.id)) mulligan.excluded.push(card.definition.id);
   return next;
@@ -116,8 +120,8 @@ export function confirmMulligan(match, cardIds = [], { random = Math.random } = 
   const botChoices = [...bot.hand].sort((left, right) => mulliganValue(left) - mulliganValue(right))
     .slice(0, mulliganLimit(next, 'bot')).map(({ id }) => id);
   const counts = {
-    human: next.mulligan.used + swapCards(human, selectedIds, next.mulligan.excluded),
-    bot: swapCards(bot, new Set(botChoices)),
+    human: next.mulligan.used + swapCards(human, selectedIds, random, next.mulligan.excluded),
+    bot: swapCards(bot, new Set(botChoices), random),
   };
   for (const side of SIDES) {
     next.players[side].extraSwaps = 0;
@@ -175,7 +179,8 @@ function resolveRound(match) {
   for (const side of SIDES) {
     refreshSidePower(match, side);
     for (const row of ROWS) refreshRowPower(match, side, row);
-    if (!match.rules.coinsPersistBetweenRounds) changeCoins(match, side, -(match.players[side].coins ?? 0));
+    const coins = match.players[side].coins ?? 0;
+    changeCoins(match, side, carriedCoins(match, coins) - coins);
     drawForRound(match, side);
   }
   match.phase = 'mulligan';

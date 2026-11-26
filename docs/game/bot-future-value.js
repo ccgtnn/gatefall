@@ -1,5 +1,8 @@
 import { activeOrder, availableRows, cardType, COIN_LIMIT, infectionDamage, isUnit, opponent, placementSide, ROW_LIMIT, statusCount, units } from './board.js';
+import { handCount } from './bot-hand.js';
 import { ROWS } from './card-metadata.js';
+import { feePayoff } from './bot-effect-value.js';
+import { carriedCoins } from './match-setup.js';
 import { EVAL_WEIGHTS as W } from './bot-evaluation.js';
 import { leaderCooldown } from './effects.js';
 import { canStart, matchesPileFilter, targets, valueOf } from './effect-queries.js';
@@ -8,118 +11,175 @@ import { cardAbilities, deathwishDefinitions, inheritableDeathwishes, isLocked }
 export function remainingTurns(match, side) {
   const player = match.players[side];
   if (match.phase !== 'playing' || player.passed) return 0;
-  const handSize = Math.max(player.hand.length, (player.publicHandSize ?? 0) - Number(!player.hand.length));
+  const handSize = handCount(player);
   // Cap forecasts even with a full hand: either side may pass early.
-  return Math.min(4, handSize + Number(match.turn === side && (match.playedCard || player.usedAbility)));
+  return Math.min(4, handSize + Number(match.turn === side && (match.playedCard || (player.usedAbility && handSize === 0))));
 }
 
 function consumes(ability) {
   return ability?.steps.some(({ action }) => action === 'consume');
 }
 
-
 function liveTurns(match, side) {
   const player = match.players[side];
+  if (match.phase === 'mulligan') return handCount(player);
   if (match.phase !== 'playing' || player.passed) return 0;
-  const hidden = player.publicHandSize === undefined ? undefined : player.publicHandSize - Number(!player.hand.length);
+  const hidden = player.publicHandSize === undefined ? undefined : handCount(player);
   const hand = hidden ?? player.hand.filter((card) => availableRows(match.players[placementSide(side, card)], card).length ||
     cardType(card) === 'effect').length;
   return Math.max(match.turn === side ? 1 : 0, hand +
     Number(match.turn === side && match.playedCard));
 }
 
-function feeUses(context, fee, card, row, turns, forecast, placing = false) {
+function addCoinUse(rates, cost, payoff) {
+  const rate = Math.min(W.usefulCoin, payoff / cost);
+  if (rate <= W.surplusCoin) return;
+  for (let coin = 0; coin < cost; coin += 1) rates.push(rate);
+}
+
+function feeRates(context, unit, turns, slots, transformed, future) {
   const { match, side, own, player } = context;
-  const slots = forecast?.slots[row] ?? freeSlots(context, row) - Number(placing);
-  if (fee.needsSourceSpace && slots <= 0) return 0;
+  const { card, row } = unit;
+  const { fee, order } = cardAbilities(card);
+  const rates = [];
   const step = fee.steps.find(({ action }) => ['spawn', 'transform', 'ready-order'].includes(action));
-  if (!step) return 0;
+  if (!step || (fee.needsSourceSpace && slots[row] <= 0)) return rates;
   if (step.action === 'spawn') {
-    if (!(step.card.power > 0) || !(step.amount > 0)) return 0;
-    if (forecast) forecast.slots[row] = 0;
-    return Math.ceil(Math.max(0, slots) / step.amount);
-  }
-  if (step.action === 'transform') {
+    if (!(step.card.power > 0 && step.amount > 0)) return rates;
+    while (slots[row] > 0 && rates.length < COIN_LIMIT) {
+      const count = Math.min(slots[row], step.amount);
+      addCoinUse(rates, fee.coins, count * step.card.power);
+      slots[row] -= count;
+    }
+  } else if (step.action === 'transform') {
     const pick = fee.select?.find(({ ref }) => ref === step.target.ref);
-    if (!pick) return 0;
-    const eligible = targets(match, { side, sourceId: card.id, ability: fee }, pick.targets, true)
-      .filter(({ card: target }) => step.card.power > target.power && !forecast?.transformed.has(target.id));
-    for (const target of eligible) forecast?.transformed.add(target.card.id);
-    return eligible.length;
+    if (!pick) return rates;
+    for (const { card: target } of targets(match, { side, sourceId: card.id, ability: fee }, pick.targets, true)) {
+      if (transformed.has(target.id) || step.card.power <= target.power) continue;
+      addCoinUse(rates, fee.coins, step.card.power - target.power + .2 * ((step.card.armor ?? 0) - (target.armor ?? 0)));
+      transformed.add(target.id);
+    }
+  } else if (order) {
+    const offering = order.select?.find(({ kind }) => kind === 'destroy');
+    const offerings = offering ? own.filter(({ card: ally }) => ally.id !== card.id &&
+      (!offering.targets.category || ally.definition.categories?.includes(offering.targets.category))).length : turns;
+    const unavailableNow = card.readyAt <= player.turns || card.orderUsedTurn === player.turns;
+    const payoff = feePayoff(context, unit, slots[row], future || turns > 1);
+    const uses = Math.min(offerings, Math.max(0, turns - Number(unavailableNow)));
+    for (let use = 0; use < uses; use += 1) addCoinUse(rates, fee.coins, payoff);
   }
-  const order = cardAbilities(card).order;
-  if (!order || !units(match, opponent(side)).some(({ card }) => isUnit(card))) return 0;
-  const offering = order.select?.find(({ kind }) => kind === 'destroy');
-  const offerings = offering ? own.filter(({ card: ally }) => ally.id !== card.id &&
-    (!offering.targets.category || ally.definition.categories?.includes(offering.targets.category))).length : turns;
-  const unavailableNow = card.readyAt <= player.turns || card.orderUsedTurn === player.turns;
-  return Math.min(offerings, Math.max(0, turns - Number(unavailableNow)));
+  return rates;
 }
 
-function coinSteps(context, ability, row) {
-  return (ability?.steps ?? []).reduce((total, step) => {
-    if (step.action === 'coins' && typeof step.amount === 'number' && step.amount < 0) return total - step.amount;
-    if (step.action !== 'choose-tribute' || !(step.spawn?.card?.power > 0)) return total;
-    const slots = Math.max(0, freeSlots(context, row) - Number(Boolean(row)));
-    const usable = Object.entries(step.tiers).sort(([a], [b]) => Number(a) - Number(b));
-    let output = 0;
-    let cost = 0;
-    for (const [price, count] of usable) {
+function deployCoinRates(deploy, slots) {
+  const rates = [];
+  for (const step of deploy?.steps ?? []) {
+    if (step.action === 'coins' && typeof step.amount === 'number' && step.amount < 0) {
+      const cost = -step.amount;
+      const penalty = deploy.steps.find((other) => other.action === 'weaken' && other.when?.coinsBelow === cost);
+      if (penalty) addCoinUse(rates, cost, penalty.amount);
+    }
+    if (step.action !== 'choose-tribute' || !(step.spawn?.card?.power > 0)) continue;
+    const tiers = Object.entries(step.tiers).sort(([a], [b]) => Number(a) - Number(b));
+    let previous = 0;
+    let spent = 0;
+    for (const [price, count] of tiers) {
       const produced = Math.min(slots, count);
-      if (produced > output) { output = produced; cost = Number(price); }
+      if (produced <= previous) break;
+      addCoinUse(rates, Number(price) - spent, (produced - previous) * step.spawn.card.power);
+      previous = produced;
+      spent = Number(price);
     }
-    return total + cost;
-  }, 0);
+  }
+  return rates;
 }
 
-function coinCapacity(context, future = false) {
-  const { player, own, match, side, resourceTurns } = context;
-  const turns = future ? 3 + player.hand.length : resourceTurns;
-  if (!turns) return 0;
-  const field = future ? own.filter(({ card }) => card.resilient) : own;
-  let capacity = 0;
-  const forecast = { slots: Object.fromEntries(ROWS.map((row) => [row, freeSlots(context, row)])), transformed: new Set() };
-  for (const { card, row } of field) {
-    const { fee } = cardAbilities(card);
-    if (fee && (!card.definition.requiredRow || card.definition.requiredRow === row)) {
-      capacity += fee.coins * feeUses(context, fee, card, row, turns, forecast);
-    }
-    if (capacity >= COIN_LIMIT) return COIN_LIMIT;
-  }
+const coinRateSum = (rates) => rates.reduce((sum, rate) => sum + rate, 0);
+
+function coinRates(context, future = false) {
+  const { player, own, match, side } = context;
+  const turns = future ? Math.max(1, handCount(player)) : context.resourceTurns;
+  if (!turns) return [];
+  const field = future ? own.filter(({ card }) => card.resilient && !isLocked(card)) : own;
+  const slots = Object.fromEntries(ROWS.map((row) => [row, future
+    ? ROW_LIMIT - field.filter((unit) => unit.row === row).length : freeSlots(context, row)]));
+  const rate = (unit) => {
+    const { fee } = cardAbilities(unit.card);
+    return feePayoff(context, unit, slots[unit.row]) / fee.coins;
+  };
+  const fees = field.filter(({ card, row }) => cardAbilities(card).fee &&
+    (!card.definition.requiredRow || card.definition.requiredRow === row));
+  fees.sort((a, b) => rate(b) - rate(a));
+  const transformed = new Set();
+  const rates = fees.flatMap((unit) => feeRates(context, unit, turns, slots, transformed, future));
   const canPlay = Math.max(0, turns - Number(!future && match.turn === side && match.playedCard));
-  const handCosts = player.hand.map((card) => {
-    const rows = availableRows(match.players[placementSide(side, card)], card);
-    if (!future && cardType(card) !== 'effect' && !rows.length) return 0;
+  const handRates = player.hand.map((card) => {
     const { deploy, fee } = cardAbilities(card);
-    return Math.max(0, ...((rows.length ? rows : ROWS).map((row) => coinSteps(context, deploy, row) +
-      (fee ? fee.coins * feeUses(context, fee, card, row, turns, undefined, true) : 0))));
-  }).sort((a, b) => b - a);
-  capacity += handCosts.slice(0, canPlay).reduce((sum, cost) => sum + cost, 0);
-  const leader = player.leader;
-  if (leaderUses(context, future) && canStart(match, { side, ability: leader.ability })) {
-    capacity += leaderUses(context, future) * coinSteps(context, leader.ability);
-  }
-  return Math.min(COIN_LIMIT, capacity);
+    if (!fee && !deploy?.steps.some(({ action, amount }) => action === 'choose-tribute' || action === 'coins' && amount < 0)) {
+      return [];
+    }
+    const recipient = placementSide(side, card);
+    const rows = future && recipient === side
+      ? ROWS.filter((row) => (!card.definition.requiredRow || card.definition.requiredRow === row) && slots[row] > 0)
+      : availableRows(match.players[recipient], card);
+    if (cardType(card) !== 'effect' && !rows.length) return [];
+    const choices = (rows.length ? rows : ROWS).map((row) => {
+      const remaining = { ...slots, [row]: Math.max(0, slots[row] - Number(cardType(card) !== 'effect')) };
+      return [...deployCoinRates(deploy, remaining[row]),
+        ...(fee ? feeRates(context, { card, row }, turns, remaining, new Set(transformed), future) : [])];
+    });
+    return choices.sort((a, b) => coinRateSum(b) - coinRateSum(a))[0];
+  }).sort((a, b) => coinRateSum(b) - coinRateSum(a));
+  rates.push(...handRates.slice(0, canPlay).flat());
+  return rates.sort((a, b) => b - a).slice(0, COIN_LIMIT);
 }
 
-export function coinValue(context, coins = context.player.coins ?? 0, capacity) {
+// Coins left after this round can fund only half as much next round.
+function futureCoinValue(context, coins) {
+  if (context.match.round >= 3 || coins < 2) return 0;
+  const kept = carriedCoins(context.match, coins);
+  const rates = context.futureCoinRates ??= coinRates(context, true);
+  return coinRateSum(rates.slice(0, kept)) + Math.max(0, kept - rates.length) * W.surplusCoin;
+}
+
+export function coinValue(context, coins = context.player.coins ?? 0) {
   if (coins <= 0) return 0;
-  const spendable = Math.min(coins, capacity ?? (context.coinCapacity ??= coinCapacity(context)));
-  return spendable * W.usefulCoin + (coins - spendable) * W.surplusCoin;
+  if (context.player.passed) return futureCoinValue(context, coins);
+  const rates = context.coinRates ??= coinRates(context);
+  const spendable = Math.min(coins, rates.length);
+  if (context.match.round >= 3) return coinRateSum(rates.slice(0, spendable)) + (coins - spendable) * W.surplusCoin;
+  let value = 0;
+  let spentValue = 0;
+  for (let spent = 0; spent <= spendable; spent += 1) {
+    if (spent) spentValue += rates[spent - 1];
+    value = Math.max(value, spentValue + futureCoinValue(context, coins - spent));
+  }
+  return value;
 }
 
 export function leaderUses(context, future = false) {
   const { match, player, side } = context;
   const leader = player.leader;
   if (!leader?.ability || (leader.order && !leader.order.usesCharges)) return 0;
-  const turns = future ? player.hand.length + 3 * (3 - match.round) : context.resourceTurns;
+  const turns = future ? handCount(player) + 3 * (3 - match.round) : context.resourceTurns;
   if (!turns || (!future && turns === 1 && !canStart(match, { side, ability: leader.ability }))) return 0;
   const cooldown = leader.order ? leaderCooldown(player)
-    : Number(match.turn === side && match.playedCard && player.hand.length > 0);
+    : Number(match.turn === side && match.playedCard && handCount(player) > 0);
   const opportunities = Math.max(0, turns - (future ? 0 : cooldown));
   const recharge = leader.order && !context.own.some(({ card }) =>
     !isLocked(card) && card.definition.id === leader.order.quickenedBy) ? leader.order.cooldown + 1 : 1;
   return Math.min(leader.charges, Math.ceil(opportunities / recharge));
+}
+
+export function leaderChargeValue({ player }) {
+  const leader = player.leader;
+  if (!leader?.ability) return 0;
+  const printed = leader.ability.steps.reduce((points, step) => {
+    if (step.action === 'spawn') return points + (step.card.power ?? 0) * (step.amount ?? 1);
+    if (['boost', 'damage'].includes(step.action) && typeof step.amount === 'number') return points + step.amount;
+    return points;
+  }, 0);
+  return Math.min(W.leaderChargeCap, leader.aiHints?.leaderChargeValue ?? printed);
 }
 
 function directHit(ability) {
@@ -147,7 +207,7 @@ function incomingHit(context) {
     options.push(directHit(enemy.leader.ability));
   }
   options.push(...enemy.hand.map((card) => directHit(cardAbilities(card).deploy)));
-  if (enemy.knownDeck && (enemy.publicHandSize > 0 || match.round < 3)) {
+  if (enemy.knownDeck && (handCount(enemy) > 0 || match.round < 3)) {
     options.push(...enemy.knownDeck.map((card) => Math.max(directHit(card.deploy), directHit(card.order)) * W.knownHitChance));
   }
   return Math.max(0, ...options);
@@ -285,17 +345,13 @@ export function wantsToHoldInheritance(context, card, alternatives) {
 }
 
 export function carryoverValue(context, passed) {
-  const { match, own, player } = context;
+  const { own, player } = context;
   const resilience = own.reduce((total, { card }) => {
     if (!card.resilient || isLocked(card)) return total;
     return total + (card.power ?? 0) * W.carriedUnit + protectionValue(context, card) * W.carriedUnit;
   }, 0);
   const currentUses = passed ? 0 : leaderUses(context);
   const carryLeader = Math.min(Math.max(0, (player.leader?.charges ?? 0) - currentUses), leaderUses(context, true));
-  const coins = player.coins ?? 0;
-  if (!coins || !match.rules.coinsPersistBetweenRounds) return resilience + carryLeader * W.leaderCharge;
-  const currentCapacity = passed ? 0 : (context.coinCapacity ??= coinCapacity(context));
-  const carryCoins = coinValue(context, coins, currentCapacity + coinCapacity(context, true))
-    - (passed ? 0 : coinValue(context));
-  return resilience + carryLeader * W.leaderCharge + carryCoins;
+  const carryCoins = passed ? futureCoinValue(context, player.coins ?? 0) : 0;
+  return resilience + carryLeader * leaderChargeValue(context) + carryCoins;
 }

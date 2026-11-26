@@ -1,3 +1,4 @@
+import { handCount } from './bot-hand.js';
 import { activeOrder, neighbors, opponent, ROW_LIMIT, statusCount } from './board.js';
 import { canUseLeader } from './effects.js';
 import { targets } from './effect-queries.js';
@@ -54,7 +55,7 @@ export function preferredLeaderUse(match, side) {
   if (hints.leaderReadyOrder || hints.leaderShield) {
     const [choice] = leader.ability.select;
     const candidates = targets(match, { side }, choice.targets, true);
-    return player.hand.length <= 2 || candidates.some((unit) =>
+    return handCount(player) <= 2 || candidates.some((unit) =>
       hints.leaderReadyOrder ? orderCanBeReadied(unit, player.turns) : !statusCount(unit.card, 'shield'));
   }
 

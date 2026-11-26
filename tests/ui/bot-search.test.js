@@ -83,7 +83,9 @@ test('successive turns reuse one worker until the match is reset', async () => {
   const { human } = seen[1].players;
   assert.equal(human.knownDeck.length, match.players.human.startingDeck.length);
   assert.deepEqual(human.deck, []);
-  assert.deepEqual(human.hand.map(({ id }) => id), ['unknown-play']);
+  assert.equal(human.hand.length, match.players.human.hand.length);
+  assert.equal(new Set(human.hand.map(({ id }) => id)).size, human.hand.length);
+  assert.ok(human.hand.every(({ definition }) => definition.id === 'unknown-play'));
   assert.deepEqual(seen[1].log, []);
   search.cancel();
   assert.deepEqual(await search.choose(match, 6), { action });

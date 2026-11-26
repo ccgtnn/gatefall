@@ -1,3 +1,5 @@
+import { EVAL_WEIGHTS as W } from './bot-evaluation.js';
+import { handCount } from './bot-hand.js';
 import { availableRows, cleansableStatuses, infectionDamage, isUnit, neighbors, opponent, restoreCard, ROW_LIMIT, statusCount, units } from './board.js';
 import { availableFees, orderAbility } from './effects.js';
 import { ROWS } from './card-metadata.js';
@@ -23,44 +25,49 @@ export function pendingUnitPriority(match, { kind, side, job }) {
   }
 }
 
+export function feePayoff(context, { card }, free, later = false) {
+  const { match, side, player } = context;
+  const { fee, order } = cardAbilities(card);
+  if (fee.needsSourceSpace && free <= 0) return 0;
+  const job = { side, sourceId: card.id, ability: fee };
+  return fee.steps.reduce((value, step) => {
+    if (step.action === 'spawn') return value + Math.min(step.amount, free) * step.card.power;
+    if (step.action === 'transform') {
+      const select = fee.select?.find(({ ref }) => ref === step.target.ref);
+      return value + (select ? Math.max(0, ...targets(match, job, select.targets, true)
+        .map(({ card }) => step.card.power - card.power + .2 * ((step.card.armor ?? 0) - (card.armor ?? 0)))) : 0);
+    }
+    if (step.action !== 'ready-order' || (!later && card.orderUsedTurn === player.turns)) return value;
+    const ability = orderAbility(order);
+    const orderJob = { ...job, ability };
+    if (!canStart(match, orderJob)) return value;
+    const sacrifice = ability.select?.find(({ kind }) => kind === 'destroy');
+    const cost = sacrifice ? Math.min(...targets(match, orderJob, sacrifice.targets, true)
+      .map((unit) => unit.card.power - consumeBonus(context, unit))) : 0;
+    const damage = ability.steps.find(({ action, target }) => action === 'damage' && target.rowRef);
+    const enemy = match.players[opponent(side)];
+    const payoff = damage ? Math.max(...ROWS.map((row) => rowDamage(enemy, row, damage.amount))) : 0;
+    return value + payoff - cost;
+  }, 0);
+}
+
 function bestFee(match, side, { coins = match.players[side].coins, tributeRow, spawned = 0, allCoinsSurplus = false } = {}) {
   const fees = availableFees(match, side);
   if (!fees.length) return;
   const player = match.players[side];
-  const enemy = match.players[opponent(side)];
   const context = futureContext(match, side);
   let best;
-  let bestValue = 0;
   for (const unit of fees) {
     const { card, row } = unit;
-    const { fee, order } = cardAbilities(card);
+    const { fee } = cardAbilities(card);
     const free = ROW_LIMIT - player.board[row].length - (row === tributeRow ? spawned : 0);
-    if (fee.coins > coins || (fee.needsSourceSpace && free <= 0)) continue;
-    const job = { side, sourceId: card.id, ability: fee };
-    const capacity = allCoinsSurplus ? 0 : undefined;
-    let value = coinValue(context, coins - fee.coins, capacity) - coinValue(context, coins, capacity);
-    for (const step of fee.steps) {
-      if (step.action === 'spawn') {
-        value += Math.min(step.amount, free) * step.card.power;
-      } else if (step.action === 'transform') {
-        const select = fee.select?.find(({ ref }) => ref === step.target.ref);
-        if (select) value += Math.max(0, ...targets(match, job, select.targets, true)
-          .map(({ card }) => step.card.power - card.power + .2 * ((step.card.armor ?? 0) - (card.armor ?? 0))));
-      } else if (step.action === 'ready-order' && card.orderUsedTurn !== player.turns) {
-        const ability = orderAbility(order);
-        const orderJob = { ...job, ability };
-        if (!canStart(match, orderJob)) continue;
-        const sacrifice = ability.select?.find(({ kind }) => kind === 'destroy');
-        const cost = sacrifice ? Math.min(...targets(match, orderJob, sacrifice.targets, true)
-          .map((unit) => unit.card.power - consumeBonus(context, unit))) : 0;
-        const damage = ability.steps.find(({ action, target }) => action === 'damage' && target.rowRef);
-        const payoff = damage ? Math.max(...ROWS.map((row) => rowDamage(enemy, row, damage.amount))) : 0;
-        value += payoff - cost;
-      }
-    }
-    if (value > bestValue) {
-      best = { cardId: card.id, value };
-      bestValue = value;
+    if (fee.coins > coins) continue;
+    const gain = feePayoff(context, unit, free);
+    if (gain <= 0) continue;
+    const value = gain + (allCoinsSurplus ? -fee.coins * W.surplusCoin
+      : coinValue(context, coins - fee.coins) - coinValue(context, coins));
+    if (value >= -1e-9 && (!best || value > best.value)) {
+      best = { cardId: card.id, value: Math.max(0, value) };
     }
   }
   return best;
@@ -144,7 +151,7 @@ export function rowEffectValue(player, row, turns = 3, incremental = true) {
   const candidates = player.board[row].filter(isUnit);
   if (!candidates.length) return 0;
   const previous = incremental ? player.rowEffects?.[row]?.remaining ?? 0 : 0;
-  const horizon = Math.max(0, Math.min(turns, player.hand.length + 1) - previous);
+  const horizon = Math.max(0, Math.min(turns, handCount(player) + 1) - previous);
   return horizon * candidates.reduce((sum, card) => sum +
     (statusCount(card, 'infection') ? Math.min(card.power, Math.max(0, 2 - (card.armor ?? 0))) : Math.min(card.power, 2) * .75), 0)
     / candidates.length;
@@ -264,7 +271,7 @@ function infectionSwing({ match, job, applyInfection }, step) {
   const gains = candidates.map((target) => {
     const defender = match.players[target.side];
     return defender.passed ? 0 : (target.side === job.side ? -1 : 1) *
-      infectionGain(target.card, valueOf(match, job, step.amount, target), Math.max(1, defender.hand.length));
+      infectionGain(target.card, valueOf(match, job, step.amount, target), Math.max(1, handCount(defender)));
   });
   return (selection ? Math.max(0, ...gains) : gains.reduce((sum, gain) => sum + gain, 0)) * .75;
 }
