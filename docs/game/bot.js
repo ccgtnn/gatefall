@@ -2,7 +2,7 @@ import { ROWS } from './card-metadata.js';
 import { cardType, findUnit, isUnit, neighbors, placementSide, restoreCard, statusCount, units } from './board.js';
 import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
-import { armorTargetPriority, cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, rowDamage, rowEffectValue, rowScatterValue } from './bot-effect-value.js';
+import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, pendingUnitPriority, rowDamage, rowEffectValue, rowScatterValue } from './bot-effect-value.js';
 import { armorBreakEmergence, consumeBonus, delayedCardValue, futureContext, inheritancePayoff, wantsToHoldInheritance } from './bot-future-value.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, availableRows, canEndTurn, canPass, playableCards, totalScore } from './match.js';
 
@@ -197,7 +197,9 @@ export function pickBotTarget(match) {
   }
   const optionsWithUnits = options.map((id) => findUnit(match, id));
   const highest = Math.max(0, ...Object.values(amounts ?? {}));
-  const candidates = preferHigherAmount ? optionsWithUnits.filter(({ card }) => amounts[card.id] === highest) : optionsWithUnits;
+  const allies = kind === 'transform' ? optionsWithUnits.filter(({ side }) => side === match.pending.side) : [];
+  const candidates = allies.length ? allies
+    : preferHigherAmount ? optionsWithUnits.filter(({ card }) => amounts[card.id] === highest) : optionsWithUnits;
   const lethal = kind === 'damage' ? candidates.filter(({ card, side }) =>
     side !== match.pending.side && lethalDamage(card, amounts?.[card.id] ?? amount) && card.power > armorBreakEmergence(card)) : [];
   const forecast = kind === 'consume' && futureContext(match, match.pending.side);
@@ -229,7 +231,7 @@ export function pickBotTarget(match) {
     'target-mark': ({ card }) => Math.min(3, card.power) - (card.armor ?? 0) * .3 - statusCount(card, 'shield') * 2,
     marshal: (unit) => neighbors(match, unit).length * 100 + unit.card.power,
   };
-  const target = bestTarget(lethal.length ? lethal : candidates, priorities[kind] ?? leaderTargetPriority(match, match.pending.side, kind) ?? (({ card }) => card.power));
+  const target = bestTarget(lethal.length ? lethal : candidates, priorities[kind] ?? pendingUnitPriority(match, match.pending) ?? leaderTargetPriority(match, match.pending.side, kind) ?? (({ card }) => card.power));
   return { type: 'target', cardId: target.card.id };
 }
 
@@ -257,7 +259,7 @@ function chooseEasyTurn(match) {
   const view = createBotView(match);
   const enemies = units(match, 'human').filter(({ card }) => isUnit(card));
   const allies = units(match, 'bot');
-  const [order] = availableOrders(match, 'bot');
+  const order = availableOrders(match, 'bot').find(({ card }) => !card.definition.aiHints?.useOrderWhenReady);
   const alreadyWon = view.opponentPassed && view.score > view.opponentScore;
   if (!alreadyWon) {
     if (order) {
@@ -266,6 +268,8 @@ function chooseEasyTurn(match) {
         return { type: 'order', cardId: order.card.id };
       }
     }
+    const fee = beneficialFee(match, 'bot');
+    if (fee) return fee;
     if (beneficialLeader(match, view, allies) || (!view.cards.length && !match.playedCard && canUseLeader(match, 'bot') && !view.opponentPassed)) return { type: 'leader' };
   }
   if (match.playedCard) return { type: 'end-turn' };
@@ -283,10 +287,7 @@ export function chooseBotTurn(match, difficulty = 'easy', options = {}) {
   let action;
   const repeatableOrder = !match.pending && match.phase === 'playing' && match.turn === 'bot' &&
     availableOrders(match, 'bot').find(({ card }) => card.definition.aiHints?.useOrderWhenReady);
-  if (repeatableOrder) {
-    action = { type: 'order', cardId: repeatableOrder.card.id };
-    decision = { reason: 'Использую готовый Приказ на порождение.' };
-  } else if (['sacrifice', 'tribute', 'hand-bottom'].includes(match.pending?.kind)) {
+  if (['sacrifice', 'tribute', 'hand-bottom'].includes(match.pending?.kind)) {
     action = pickBotTarget(match);
   } else if (match.pending && (difficulty !== 'easy' || match.pending.kind === 'deck-placement')) {
     action = chooseStrategicTarget(match, pickBotTarget, difficulty, strategy);
@@ -311,6 +312,10 @@ export function chooseBotTurn(match, difficulty = 'easy', options = {}) {
       }
       decision = { reason: 'В решающем раунде продолжаю играть, пока есть допустимый розыгрыш.' };
     }
+  }
+  if (repeatableOrder && action.type !== 'pass') {
+    action = { type: 'order', cardId: repeatableOrder.card.id };
+    decision = { reason: 'Использую готовый Приказ на порождение.' };
   }
   options.onDecision?.({ reason: 'Ход по правилам лёгкого бота.', candidates: [], ...decision, action });
   return action;

@@ -7,45 +7,56 @@ export function createBotSearch({
   let worker;
   let pending;
 
-  function finish(result) {
+  function finish(result, error) {
     if (!pending) return;
-    const { resolve, timer } = pending;
+    const { resolve, reject, timer } = pending;
     pending = undefined;
     clearTimeout(timer);
-    resolve(result);
+    if (error) reject(error);
+    else resolve(result);
+  }
+
+  function stopWorker() {
+    const current = worker;
+    worker = undefined;
+    current?.terminate();
   }
 
   function cancel() {
-    worker?.terminate();
-    worker = undefined;
-    finish();
+    stopWorker();
+    finish(null);
+  }
+
+  function fail(current, error) {
+    if (worker !== current) return;
+    stopWorker();
+    finish(null, error);
+  }
+
+  function startWorker() {
+    const current = createWorker();
+    worker = current;
+    current.addEventListener('message', ({ data }) => {
+      if (worker !== current) return;
+      if (data.error) fail(current, new Error(data.error));
+      else finish(data);
+    });
+    current.addEventListener('error', (event) => fail(current, event.error ?? new Error(event.message)));
+    current.addEventListener('messageerror', () => fail(current, new Error('Cannot read bot worker response')));
+    return current;
   }
 
   function request(match, difficulty, withTrace) {
-    cancel();
+    if (pending) cancel();
     return new Promise((resolve, reject) => {
       try {
-        worker = createWorker();
-        pending = { resolve, timer: setTimeout(() => fail(new Error('Bot worker timed out')), timeoutMs) };
-        const current = worker;
-        function fail(error) {
-          if (worker !== current) return;
-          reject(error);
-          cancel();
-        }
-        worker.addEventListener('message', ({ data }) => {
-          if (worker !== current) return;
-          if (data.error) return fail(new Error(data.error));
-          finish(data);
-          worker.terminate();
-          worker = undefined;
-        });
-        worker.addEventListener('error', (event) => fail(event.error ?? new Error(event.message)));
-        worker.addEventListener('messageerror', () => fail(new Error('Cannot read bot worker response')));
-        worker.postMessage({ match, difficulty, withTrace });
+        const current = worker ?? startWorker();
+        pending = { resolve, reject, timer: setTimeout(() => fail(current, new Error('Bot worker timed out')), timeoutMs) };
+        current.postMessage({ match, difficulty, withTrace });
       } catch (error) {
-        reject(error);
-        cancel();
+        stopWorker();
+        if (pending) finish(null, error);
+        else reject(error);
       }
     });
   }

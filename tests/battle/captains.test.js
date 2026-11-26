@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
 import test from 'node:test';
-import { applyStatus, createCard, findUnit, removeUnit, spawnCards, statusCount, transformUnit } from '../../docs/game/board.js';
+import { applyStatus, cleanse, consume, createCard, findUnit, removeUnit, spawnCards, statusCount, transformUnit } from '../../docs/game/board.js';
 import { CAPTAIN_CARDS, HOUND, HOUND_CATEGORY, REINFORCED_HOUND } from '../../docs/game/captains.js';
 import { KEYWORDS, NEUTRAL_CARDS } from '../../docs/game/cards.js';
 import { PRESETS } from '../../docs/game/decks.js';
@@ -410,4 +410,30 @@ test('a turret with no allied target still breaks and one removed early cannot f
   removeUnit(deployed, findUnit(deployed, 'hand-1'), 'destroy');
   const removed = playBotSpare(deployed, () => 0);
   assert.ok(!removed.log.some(({ type }) => type === 'art-state'));
+});
+
+test('a cleansed pilot gains the existing ship bonus and loses only that bonus when the ship is destroyed', () => {
+  const match = setup({ orbit: [pilot] });
+  const unit = findUnit(match, 'orbit-1');
+  applyStatus(match, unit, 'lock', 1);
+  spawnCards(match, 'human', 'orbit', 1, 1, lightShip);
+  assert.equal(unit.card.power, 3);
+  cleanse(match, unit);
+  assert.deepEqual([unit.card.power, unit.card.shipRowBonus], [6, 3]);
+  const ship = human(match).board.orbit[1];
+  removeUnit(match, findUnit(match, ship.id), 'destroy');
+  assert.equal(findUnit(match, unit.card.id).card.power, 3);
+  assert.equal(unit.card.shipRowBonus, undefined);
+});
+
+test('consuming the only ship cannot boost a pilot killed by the loss of its aura', () => {
+  const match = setup({ orbit: [pilot] });
+  const pilotUnit = findUnit(match, 'orbit-1');
+  spawnCards(match, 'human', 'orbit', 1, 1, lightShip);
+  pilotUnit.card.power = 2;
+  const ship = human(match).board.orbit[1];
+  consume(match, findUnit(match, ship.id), pilotUnit);
+  assert.equal(findUnit(match, pilotUnit.card.id), undefined);
+  assert.equal(pilotUnit.card.power, 0);
+  assert.ok(!match.log.some(({ type, cardId }) => type === 'boost' && cardId === pilotUnit.card.id));
 });

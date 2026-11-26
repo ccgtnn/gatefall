@@ -25,7 +25,7 @@ const fixed = () => .5;
 function setup(side = 'human') {
   const match = createMatch({ decks: { human: [], bot: [] }, random: fixed });
   Object.assign(match, { phase: 'playing', turn: side });
-  for (const player of Object.values(match.players)) player.hand.push(createUnit(player.side + '-spare'));
+  for (const [side, player] of Object.entries(match.players)) player.hand.push(createUnit(side + '-spare'));
   match.players[side].hand.unshift(createCard('suppressor', suppressor));
   return match;
 }

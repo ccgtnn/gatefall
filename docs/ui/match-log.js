@@ -87,6 +87,7 @@ export function describeBotAction(match, action) {
     case 'end-turn': return 'Конец хода';
     case 'leader': return 'Лидер · ' + bot.leader?.name;
     case 'order': return 'Приказ · ' + name;
+    case 'fee': return 'Плата · ' + name;
     case 'target': return 'Цель · ' + name;
     case 'play':
     case 'place': return [name, ROW_LABELS[row], position === undefined ? '' : 'позиция ' + (position + 1)]

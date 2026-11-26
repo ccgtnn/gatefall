@@ -264,6 +264,7 @@ export interface CardInstance {
   inheritedDeathwishes?: CardDefinition[];
   artState?: string;
   shipRowBonus?: number;
+  lockedAuraPower?: Counts;
 }
 
 export interface BoardUnit extends Placement {
@@ -313,6 +314,7 @@ export interface PlayerState {
   board: Record<Row, CardInstance[]>;
   rowEffects: Partial<Record<Row, RowEffect>>;
   startingCategories: Counts;
+  publicHandSize?: number;
   categoryPlays?: Counts;
   effectCategoryPlays?: Counts;
   playedLegendary?: boolean;

@@ -50,9 +50,9 @@ function presetCards(pool, faction) {
   ]);
 }
 
-function faction(id, { name, strategy, entries, leaders, extras }) {
+function faction(id, cardBack, { name, strategy, entries, leaders, extras }) {
   const pool = factionCards(entries, id);
-  return { name, strategy, pool: Object.freeze([...pool, ...factionCards(extras, id)]),
+  return { name, strategy, cardBack, pool: Object.freeze([...pool, ...factionCards(extras, id)]),
     deck: presetCards(pool, id), leader: leaders[0], leaders };
 }
 
@@ -75,12 +75,12 @@ const captainDeck = Object.freeze([
 ].map((id) => captainCardsById.get(id)));
 
 export const FACTIONS = Object.freeze({
-  protectorate: faction('protectorate', PROTECTORATE),
-  growth: faction('growth', GROWTH),
-  choir: { name: 'Безмолвный хор', strategy: 'Псионика', description: 'Псионики-аскеты, черпающие силу в космосе',
+  protectorate: faction('protectorate', 'back-protectorate.webp', PROTECTORATE),
+  growth: faction('growth', 'back-growth.webp', GROWTH),
+  choir: { name: 'Безмолвный хор', cardBack: undefined, strategy: 'Псионика', description: 'Псионики-аскеты, черпающие силу в космосе',
     pool: choirPool, deck: choirDeck,
     leader: HIGH_PRIEST, leaders: Object.freeze([HIGH_PRIEST]) },
-  captains: { name: 'Вольные капитаны', strategy: 'Чёрные гончие', description: 'Независимые капитаны, корабли и боевые монеты.',
+  captains: { name: 'Вольные капитаны', cardBack: undefined, strategy: 'Чёрные гончие', description: 'Независимые капитаны, корабли и боевые монеты.',
     pool: CAPTAIN_CARDS, deck: captainDeck,
     leader: SKARA_REINHOLD, leaders: Object.freeze([SKARA_REINHOLD]) },
 });

@@ -1,8 +1,67 @@
 import { availableRows, cleansableStatuses, infectionDamage, isUnit, neighbors, opponent, restoreCard, ROW_LIMIT, statusCount, units } from './board.js';
+import { availableFees, orderAbility } from './effects.js';
 import { ROWS } from './card-metadata.js';
 import { canStart, eligiblePileCards, pileCandidates, playPiles, playTiming, rowArmor, rowSide, targets, valueOf } from './effect-queries.js';
-import { armorBreakEmergence, delayedCardValue, futureContext } from './bot-future-value.js';
+import { armorBreakEmergence, consumeBonus, delayedCardValue, futureContext } from './bot-future-value.js';
 import { cardAbilities, deathwishDefinitions, isLocked } from './events.js';
+
+export function pendingUnitPriority(match, { kind, side, job }) {
+  if (kind === 'destroy') {
+    const context = futureContext(match, side);
+    return (unit) => unit.side === side ? consumeBonus(context, unit) - unit.card.power
+      : unit.card.power - deathwishDefinitions(unit.card).length;
+  }
+  if (kind === 'transform') {
+    const steps = job?.ability?.steps ?? [];
+    const transform = steps.find(({ action }) => action === 'transform');
+    return ({ card, side: targetSide }) => {
+      const finalPower = transform?.preservePower ? card.power : transform?.card.power ?? card.power;
+      const gain = finalPower - card.power;
+      // Prefer friendly targets, then actual strength gained and the weaker original unit.
+      return (targetSide === side ? 1 : -1) * gain - card.power * .01;
+    };
+  }
+}
+
+export function beneficialFee(match, side) {
+  const fees = availableFees(match, side);
+  if (!fees.length) return;
+  const player = match.players[side];
+  const enemy = match.players[opponent(side)];
+  const context = futureContext(match, side);
+  let best;
+  let bestValue = 0;
+  for (const unit of fees) {
+    const { card, row } = unit;
+    const { fee, order } = cardAbilities(card);
+    const job = { side, sourceId: card.id, ability: fee };
+    let value = -fee.coins * context.coinWeight;
+    for (const step of fee.steps) {
+      if (step.action === 'spawn') {
+        value += Math.min(step.amount, ROW_LIMIT - player.board[row].length) * step.card.power;
+      } else if (step.action === 'transform') {
+        const select = fee.select?.find(({ ref }) => ref === step.target.ref);
+        if (select) value += Math.max(0, ...targets(match, job, select.targets, true)
+          .map(({ card }) => step.card.power - card.power + .2 * ((step.card.armor ?? 0) - (card.armor ?? 0))));
+      } else if (step.action === 'ready-order' && card.orderUsedTurn !== player.turns) {
+        const ability = orderAbility(order);
+        const orderJob = { ...job, ability };
+        if (!canStart(match, orderJob)) continue;
+        const sacrifice = ability.select?.find(({ kind }) => kind === 'destroy');
+        const cost = sacrifice ? Math.min(...targets(match, orderJob, sacrifice.targets, true)
+          .map((unit) => unit.card.power - consumeBonus(context, unit))) : 0;
+        const damage = ability.steps.find(({ action, target }) => action === 'damage' && target.rowRef);
+        const payoff = damage ? Math.max(...ROWS.map((row) => rowDamage(enemy, row, damage.amount))) : 0;
+        value += payoff - cost;
+      }
+    }
+    if (value > bestValue) {
+      best = { type: 'fee', cardId: card.id };
+      bestValue = value;
+    }
+  }
+  return best;
+}
 
 export function shouldProtectArmor(card, player) {
   return card?.definition.aiHints?.armorBreakCostsPower &&
@@ -128,11 +187,9 @@ function deckPlaySwing(context, step) {
 }
 
 function discardPlaySwing(context, step) {
-  const choice = step.chooseAll ? playChoiceSwing(context, step) : 0;
-  if (!step.filter.anyType) return choice;
   const { match, job } = context;
   const candidates = eligiblePileCards(match, job.side, 'discard', step);
-  return choice + Math.max(0, ...candidates.map((card) => deckCardValue(match, job.side, restoreCard(card))));
+  return Math.max(0, ...candidates.map((card) => deckCardValue(match, job.side, restoreCard(card))));
 }
 
 function summonSwing({ player }, step) {

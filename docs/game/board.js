@@ -273,8 +273,8 @@ export function cleanse(match, unit) {
   if (inherited) delete card.inheritedDeathwishes;
   match.log.push({ type: 'cleanse', side, cardId: card.id, name: card.definition.name, statuses, removed, inherited });
   if (removed.includes('lock')) {
-    if (card.definition.sidePowerAura) refreshSidePower(match, side, card.id);
-    if (card.definition.rowPower) refreshRowPower(match, side, row, card.id);
+    if (card.definition.sidePower || card.definition.sidePowerAura) refreshSidePower(match, side);
+    if (card.definition.rowPower) refreshRowPower(match, side, row);
   }
 }
 
@@ -363,6 +363,29 @@ function suppliesRowPower(card, rule) {
   return rule && isUnit(card) && rule.requires.values.includes(card.definition[rule.requires.field]);
 }
 
+function updateAuraPower(match, side, card, key, bonus, preservePower) {
+  const delta = bonus - (card[key] ?? 0);
+  const frozen = card.lockedAuraPower?.[key] ?? 0;
+  const thaw = isLocked(card) ? 0 : frozen;
+  if (!delta && !thaw) return false;
+  if (bonus) card[key] = bonus;
+  else delete card[key];
+
+  // Lock preserves current strength. Keep the removed bonus separately until Cleanse.
+  if (preservePower) {
+    card.lockedAuraPower ??= {};
+    card.lockedAuraPower[key] = frozen - delta;
+  } else {
+    card.power = Math.max(0, card.power + delta - thaw);
+    if (thaw) {
+      delete card.lockedAuraPower[key];
+      if (!Object.keys(card.lockedAuraPower).length) delete card.lockedAuraPower;
+    }
+  }
+  match.log.push({ type: 'aura-power', side, cardId: card.id, power: card.power, [key]: bonus });
+  return true;
+}
+
 export function refreshRowPower(match, side, row, preservePowerId) {
   const line = match.players[side].board[row];
   const fallen = [];
@@ -371,13 +394,7 @@ export function refreshRowPower(match, side, row, preservePowerId) {
     if (!rule) continue;
     const { key, amount } = rule;
     const bonus = !isLocked(card) && line.some((candidate) => suppliesRowPower(candidate, rule)) ? amount : 0;
-    const delta = bonus - (card[key] ?? 0);
-    if (!delta) continue;
-    if (bonus) card[key] = bonus;
-    else delete card[key];
-    if (card.id !== preservePowerId) card.power = Math.max(0, card.power + delta);
-    match.log.push({ type: 'aura-power', side, cardId: card.id, power: card.power, [key]: bonus });
-    if (card.power === 0) fallen.push(card.id);
+    if (updateAuraPower(match, side, card, key, bonus, card.id === preservePowerId) && card.power === 0) fallen.push(card.id);
   }
   for (const id of fallen) {
     const unit = findUnit(match, id);
@@ -398,14 +415,7 @@ export function refreshSidePower(match, side, preservePowerId) {
     if (!isUnit(card) || !card.definition.sidePower) continue;
     const { group, key } = card.definition.sidePower;
     const bonus = byGroup.get(group) ?? 0;
-    const delta = bonus - (card[key] ?? 0);
-    if (!delta) continue;
-    if (bonus) card[key] = bonus;
-    else delete card[key];
-    // Lock removes the aura from other cards while preserving the target's current power.
-    if (card.id !== preservePowerId) card.power += delta;
-    match.log.push({ type: 'aura-power', side, cardId: card.id, power: card.power, [key]: bonus });
-    if (card.power <= 0) fallen.push(card.id);
+    if (updateAuraPower(match, side, card, key, bonus, card.id === preservePowerId) && card.power === 0) fallen.push(card.id);
   }
   for (const id of fallen) {
     const unit = findUnit(match, id);
@@ -472,7 +482,10 @@ export function consume(match, victim, consumer, { multiplier = 1, extra = 0, gr
   }, { neighbors: nearby });
   removeUnit(match, victim, 'consume', consumer?.card.id, undefined, victim.position + Number(Boolean(replacement)));
   if (replacement) spawnCards(match, victim.side, victim.row, victim.position, 1, replacement, strength);
-  else boost(match, consumer, strength * multiplier + extra);
+  else {
+    const survivingConsumer = findUnit(match, consumer.card.id);
+    if (survivingConsumer) boost(match, survivingConsumer, strength * multiplier + extra);
+  }
   match.effects.unshift(...reactions);
   return strength;
 }

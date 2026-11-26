@@ -106,7 +106,7 @@ test('both strategic bots value an Initiative sweep and avoid destroying their o
     match.turn = 'bot';
     match.players.bot.hand = [spell(), unit('ordinary', 5)];
     match.players.bot.board.orbit = [unit('own', 4)];
-    match.players.human.board.surface = [unit('enemy-one', 4), unit('enemy-two', 4), unit('enemy-three', 4)];
+    match.players.human.board.surface = Array.from({ length: 4 }, (_, i) => unit('enemy-' + i, 4));
     assert.deepEqual(chooseBotTurn(match, difficulty), cast, difficulty);
     match.players.bot.roundActed = true;
     assert.equal(chooseBotTurn(match, difficulty).cardId, 'ordinary', difficulty);
