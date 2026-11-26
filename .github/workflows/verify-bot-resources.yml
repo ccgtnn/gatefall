@@ -1,0 +1,62 @@
+name: Verify Gatefall resources
+on: pull_request
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    outputs:
+      tests: ${{ steps.tests.outputs.counts }}
+      timing: ${{ steps.timing.outputs.timing }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - id: tests
+        run: |
+          set -o pipefail
+          npm test | tee "$RUNNER_TEMP/gatefall-tests"
+          awk '/^# (tests|pass|fail|todo) / { printf "%s %s ", $2, $3 } END { print "" }' "$RUNNER_TEMP/gatefall-tests" | sed 's/^/counts=/' >> "$GITHUB_OUTPUT"
+      - run: npm run check:types
+      - id: timing
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import { appendFileSync } from 'node:fs';
+          import { chooseBotTurn, BOT_LEVELS } from './docs/game/bot.js';
+          import { applyAction, confirmMulligan, createMatch } from './docs/game/match.js';
+          let seed = 33710;
+          const random = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32);
+          const match = confirmMulligan(createMatch({ humanFaction: 'protectorate', botFaction: 'captains', random }));
+          match.turn = 'bot';
+          match.log = [];
+          for (const player of Object.values(match.players)) {
+            const units = player.hand.filter(({ definition }) => definition.type === 'unit').slice(0, 3);
+            player.hand = player.hand.filter((card) => !units.includes(card));
+            player.board.orbit.push(...units);
+            player.turns = 3;
+          }
+          match.players.bot.coins = 5;
+          const results = [];
+          for (const level of [6, 7]) {
+            const times = [];
+            for (let run = 0; run < 4; run++) {
+              const start = performance.now();
+              const action = chooseBotTurn(match, level);
+              const elapsed = performance.now() - start;
+              assert.notStrictEqual(applyAction(match, 'bot', action), match);
+              if (run) times.push(elapsed);
+            }
+            const mean = times.reduce((a, b) => a + b, 0) / times.length;
+            results.push('L' + level + ' ' + mean.toFixed(0) + ' ms');
+            assert.ok(mean <= BOT_LEVELS[level].budgetMs, results.join(', '));
+          }
+          appendFileSync(process.env.GITHUB_OUTPUT, 'timing=' + results.join(', ') + '\n');
+          JS
+  summary:
+    needs: verify
+    runs-on: ubuntu-latest
+    name: ${{ needs.verify.outputs.tests }} / ${{ needs.verify.outputs.timing }}
+    steps:
+      - run: 'true'
