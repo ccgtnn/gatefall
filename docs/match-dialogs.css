@@ -1,3 +1,28 @@
+.settings-dialog { width: min(26rem, 95vw); color: inherit; }
+.settings-dialog::backdrop { background: #070e16af; }
+.settings-dialog .motion-setting { margin-bottom: .8rem; }
+#fullscreen-status:not(:empty) { margin-top: .6rem; font-size: .85rem; }
+.motion-setting {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .45rem .85rem;
+  color: var(--subtle);
+  font-size: .875rem;
+}
+@media (max-width: 37rem) {
+  .motion-setting { gap: .38rem; }
+}
+.motion-setting select {
+  min-height: 2rem;
+  padding: .2rem .45rem;
+  border: 1px solid #777d89;
+  border-radius: 4px;
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+}
+
 .mulligan.mulligan-overlay {
   position: absolute;
   inset: 0;
@@ -66,9 +91,7 @@ body:has(#app[data-animation-speed="fast"]) .field-drawer[open] { animation-dura
   from { transform: translateX(100%); opacity: .3; }
   to { transform: translateX(0); opacity: 1; }
 }
-@media (prefers-reduced-motion: reduce) {
-  body:has(#app[data-animation-speed="system"]) .field-drawer[open] { animation: none; }
-}
+body:has(#app[data-reduced-motion="true"]) .field-drawer[open] { animation: none; }
 .drawer-header { display: flex; align-items: center; justify-content: space-between; gap: 1em; margin-bottom: .8rem; }
 .field-drawer .log-list { max-height: none; }
 .pile-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }

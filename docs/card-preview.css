@@ -1,7 +1,16 @@
 dialog.card-preview {
   --preview-line: #677d9b66;
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  margin: auto;
   width: min(calc(100% - 1.5rem), 78rem);
+  max-width: none;
   max-height: calc(100dvh - 1.5rem);
+  padding: 0;
+  color: inherit;
+  pointer-events: auto;
+  overscroll-behavior: contain;
   background: transparent;
   border: 0;
   box-shadow: none;
@@ -23,6 +32,7 @@ dialog.card-preview::backdrop {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas: "art" "body" "glossary";
+  align-items: start;
   gap: clamp(.75rem, 2vw, 1.5rem);
   padding: .25rem clamp(.8rem, 2.3vw, 1.8rem) clamp(.8rem, 2.3vw, 1.8rem);
   overflow-wrap: anywhere;
@@ -33,7 +43,14 @@ dialog.card-preview::backdrop {
   max-width: none;
   justify-self: center;
 }
+.card-preview .preview-art {
+  display: block;
+  height: auto;
+  border-radius: 4px;
+  border: 1px solid var(--edge);
+}
 .card-preview .preview-body {
+  display: grid;
   grid-area: body;
   min-width: 0;
   gap: .65rem;
@@ -45,7 +62,8 @@ dialog.card-preview::backdrop {
 .card-preview :is(h2, h3, p, dl, ul) { margin: 0; }
 .card-preview h2 { font-size: clamp(1.3rem, 2.6vw, 2rem); }
 .card-preview .preview-details { color: #a9c2d9; }
-.card-preview .preview-stats { color: #e5c680; }
+.card-preview .preview-stats { color: #e5c680; font-weight: 700; }
+.card-preview .preview-body .button { justify-self: end; }
 .card-preview .preview-effect {
   padding-top: .7rem;
   border-top: 1px solid var(--preview-line);
@@ -53,7 +71,7 @@ dialog.card-preview::backdrop {
   white-space: pre-line;
 }
 .card-preview .card-trade { margin: .15rem 0 0; }
-.card-preview .preview-back { justify-self: start; }
+.card-preview .preview-body .preview-back { justify-self: start; }
 .card-preview .preview-related-options > summary { cursor: pointer; color: #a9c2d9; }
 .card-preview .preview-related {
   display: grid;
@@ -70,14 +88,15 @@ dialog.card-preview::backdrop {
 .card-preview .preview-related-entry .hand-card { width: 100%; aspect-ratio: 2 / 3; }
 .card-preview .preview-glossary { grid-area: glossary; min-width: 0; }
 .card-preview .preview-glossary h3 { margin-bottom: .6rem; font-size: 1rem; color: #a9c2d9; }
-.card-preview .preview-keywords { gap: .55rem; }
+.card-preview .preview-keywords { display: grid; gap: .55rem; }
 .card-preview .preview-keyword {
   padding: .65rem .8rem;
   border-inline-start: 2px solid #78b3d3;
   border-radius: .15rem .4rem .4rem .15rem;
   background: #182638d9;
 }
-.card-preview .preview-keyword dd { margin: .2rem 0 0; line-height: 1.4; }
+.card-preview .preview-keyword dt { color: #9ed4ff; font-weight: 700; }
+.card-preview .preview-keyword dd { margin: .2rem 0 0; color: var(--subtle); line-height: 1.4; }
 
 .card-preview .preview-layout:not(:has(:is(.preview-card-face, .preview-art))) {
   grid-template-areas: "body" "glossary";

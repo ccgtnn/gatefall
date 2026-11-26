@@ -53,12 +53,13 @@
   font-weight: 550;
   line-height: 1;
   pointer-events: none;
+  color: color-mix(in srgb, var(--rarity-border-color, #e7edf5) 76%, white);
 }
 [data-card-face] > .card-kind {
   width: var(--top-badge-width);
   padding: 0;
 }
-.stat-badge-power:not(.power-boosted, .power-damaged) > strong, .card-kind:not(.is-complete) {
+.stat-badge-power:not(.power-boosted, .power-damaged) > strong {
   color: color-mix(in srgb, var(--rarity-border-color, #e7edf5) 76%, white);
 }
 .stat-badge.stat-badge-armor {

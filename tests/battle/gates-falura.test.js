@@ -6,10 +6,11 @@ import { NEUTRAL_CARDS, SHADOW } from '../../docs/game/cards.js';
 import { canUseLeader, leaderCooldown } from '../../docs/game/effects.js';
 import { applyAction, canPlayCard, confirmMulligan, createMatch } from '../../docs/game/match.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
+import { unit as makeUnit } from '../helpers/battle-helpers.js';
 
 const random = () => 0;
 const card = (id) => createCard(id, NEUTRAL_CARDS.find((entry) => entry.id === id));
-const unit = (id, power = 12, armor = 0) => createCard(id, { id, name: id, power, armor });
+const unit = (id, power = 12, armor = 0) => makeUnit(id, power, { armor });
 const move = (state, type, cardId, row = 'orbit', position = 0) =>
   applyAction(state, state.pending?.side ?? state.turn, { type, cardId, row, position }, { random });
 

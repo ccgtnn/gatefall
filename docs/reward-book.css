@@ -179,9 +179,7 @@
   pointer-events: none;
 }
 .reward-notice { animation: reward-notice-in .2s ease-out; }
-@media (prefers-reduced-motion: reduce) {
-  body:not(:has(#app:is([data-animation-speed="normal"], [data-animation-speed="fast"]))) .reward-notice { animation: none; }
-}
+body:has(#app[data-reduced-motion="true"]) .reward-notice { animation: none; }
 @keyframes reward-notice-in {
   from { opacity: 0; translate: 0 .35rem; }
 }

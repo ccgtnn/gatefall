@@ -26,7 +26,7 @@ const preferences = {
 
 function boot(storage) {
   const decks = createDeckStorage(storage).list();
-  const rewards = createRewardProgress(storage, undefined, { legacyDecks: decks });
+  const rewards = createRewardProgress(storage);
   return {
     decks,
     progress: rewards.get(),
@@ -53,7 +53,7 @@ test('reset restores the first-launch inventory, rewards, decks, stats, and pref
   storage.setItem(REWARD_STORAGE_KEY, JSON.stringify({
     startingKeys: 30, startingGold: 500, base: { materials: { steel: 300, energyCells: 150 } },
   }));
-  const rewards = createRewardProgress(storage, undefined, { legacyDecks: [deck], random: () => 0 });
+  const rewards = createRewardProgress(storage, undefined, { random: () => 0 });
   assert.equal(await rewards.dismantle('mystic-golem'), 'done');
   for (const stop of ['signal', 'supply', 'junction', 'upper-cache']) {
     assert.equal(await rewards.unlock('neutral:' + stop), 'opened');

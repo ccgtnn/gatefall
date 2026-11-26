@@ -4,8 +4,8 @@ import { createCard } from '../../docs/game/board.js';
 import { chooseBotTurn } from '../../docs/game/bot.js';
 import { ANNIHILATION, FACTIONS, FIRST_SIGNAL, NEUTRAL } from '../../docs/game/cards.js';
 import { applyAction, confirmMulligan, createMatch } from '../../docs/game/match.js';
+import { unit } from '../helpers/battle-helpers.js';
 
-const unit = (id, power, extra = {}) => createCard(id, { id, name: id, power, ...extra });
 const spell = () => createCard('spell', ANNIHILATION);
 const cast = { type: 'play', cardId: 'spell' };
 

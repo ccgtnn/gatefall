@@ -1,3 +1,4 @@
+// The steps use action names registered in effect-operations.js.
 // Each shape lists scalar keys and the shapes of its nested values.
 // Arrays use the same shape for every element. Map keys marked "*" are data.
 function shape(keys, children = {}) {

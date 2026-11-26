@@ -8,7 +8,6 @@ export const LORE_FACTIONS = Object.freeze({
   captains: 'Вольные капитаны',
   choir: 'Безмолвный хор',
   flawless: 'Безупречные',
-  core: 'Ядро',
   void: 'Пустота',
 });
 

@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyStatus, createCard, findUnit, removeUnit, statusCount } from '../../docs/game/board.js';
+import { applyStatus, findUnit, removeUnit, statusCount } from '../../docs/game/board.js';
 import { infectionGain } from '../../docs/game/bot-effect-value.js';
 import { applyAction, confirmMulligan, createMatch } from '../../docs/game/match.js';
+import { unit as makeUnit } from '../helpers/battle-helpers.js';
 
-const unit = (id, power = 4) => createCard(id, { id, name: id, type: 'unit', power, armor: 3 });
+const unit = (id, power = 4) => makeUnit(id, power, { type: 'unit', armor: 3 });
 
 function fixture() {
   const match = confirmMulligan(createMatch({ random: () => 0 }), []);

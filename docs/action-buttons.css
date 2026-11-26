@@ -4,9 +4,7 @@
 }
 body:has(#app[data-animation-speed="fast"]) { --action-duration: 82ms; }
 
-@media (prefers-reduced-motion: reduce) {
-  body:not(:has(#app:is([data-animation-speed="normal"], [data-animation-speed="fast"]))) { --action-duration: 0ms; --action-press: 0px; }
-}
+body:has(#app[data-reduced-motion="true"]) { --action-duration: 0ms; --action-press: 0px; }
 
 .button:not(:where(.deck-choice, .leader-choice, .field-action)) {
   --rim: linear-gradient(155deg, #e1c28d, #80633c 32%, #cfab6b 57%, #695134 83%, #c3a271);

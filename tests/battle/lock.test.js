@@ -6,25 +6,23 @@ import {
 import { chooseBotTurn } from '../../docs/game/bot.js';
 import { CAPTAIN_CARDS } from '../../docs/game/captains.js';
 import { KEYWORDS, NEUTRAL_CARDS } from '../../docs/game/cards.js';
-import {
-  availableFees, availableOrders, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn, runEffect,
-} from '../../docs/game/effects.js';
+import { availableFees, availableOrders, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn } from '../../docs/game/effects.js';
 import { emit } from '../../docs/game/events.js';
-import { applyAction, createMatch } from '../../docs/game/match.js';
+import { applyAction } from '../../docs/game/match.js';
 import { createRewardProgress } from '../../docs/game/rewards.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
+import { drain, emptyPlayingMatch, play as playCard, unit } from '../helpers/battle-helpers.js';
 
 const suppressor = NEUTRAL_CARDS.find(({ id }) => id === 'suppressor');
 
 const recruiter = CAPTAIN_CARDS.find(({ id }) => id === 'hound-recruiter');
-const createUnit = (id, traits) => createCard(id, { id, name: id, power: 5, ...traits });
+const createUnit = (id, traits) => unit(id, 5, traits);
 const self = { scope: 'source' };
 const selfBoost = { steps: [{ action: 'boost', target: self, amount: 3 }] };
 const fixed = () => .5;
 
 function setup(side = 'human') {
-  const match = createMatch({ decks: { human: [], bot: [] }, random: fixed });
-  Object.assign(match, { phase: 'playing', turn: side });
+  const match = emptyPlayingMatch({ side, random: fixed });
   for (const [side, player] of Object.entries(match.players)) player.hand.push(createUnit(side + '-spare'));
   match.players[side].hand.unshift(createCard('suppressor', suppressor));
   return match;
@@ -32,7 +30,7 @@ function setup(side = 'human') {
 
 function play(match, cardId) {
   const { turn: side } = match;
-  return applyAction(match, side, { type: 'play', cardId, row: 'surface', position: match.players[side].board.surface.length });
+  return playCard(match, cardId, { side, position: match.players[side].board.surface.length });
 }
 
 function lock(match, id) {
@@ -40,7 +38,7 @@ function lock(match, id) {
 }
 
 function resolve(match) {
-  while (match.effects.length && !match.pending) runEffect(match, match.effects.shift(), fixed);
+  drain(match, fixed);
 }
 
 const statusEvents = (match) => match.log.filter(({ status }) => status === 'lock');

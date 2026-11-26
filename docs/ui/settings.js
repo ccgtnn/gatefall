@@ -66,13 +66,22 @@ export function createSettings(app, onLeave, onReset) {
     const saved = localStorage.getItem(speedKey);
     if (saved === 'normal' || saved === 'fast') speedSetting.value = saved;
   } catch {}
-  app.dataset.animationSpeed = speedSetting.value;
-  speedSetting.addEventListener('change', () => {
+  function syncAnimationSpeed() {
     app.dataset.animationSpeed = speedSetting.value;
+    app.dataset.reducedMotion = String(motionDuration(speedSetting.value, reducedMotion.matches) === 0);
+    systemSpeed.textContent = reducedMotion.matches ? 'По системе (выключены)' : 'По системе (обычная)';
+  }
+
+  syncAnimationSpeed();
+  speedSetting.addEventListener('change', () => {
+    syncAnimationSpeed();
     try { localStorage.setItem(speedKey, speedSetting.value); } catch {}
     refreshPremiumArt(document);
   });
-  reducedMotion.addEventListener('change', () => refreshPremiumArt(document));
+  reducedMotion.addEventListener('change', () => {
+    syncAnimationSpeed();
+    refreshPremiumArt(document);
+  });
 
   const soundSetting = document.querySelector('#sound-enabled');
   const volumeSetting = document.querySelector('#sound-volume');
@@ -109,13 +118,6 @@ export function createSettings(app, onLeave, onReset) {
   for (const type of ['pointerdown', 'pointerup', 'keydown']) {
     document.addEventListener(type, sounds.unlock, { capture: true, passive: true });
   }
-
-  function updateSystemSpeed() {
-    systemSpeed.textContent = reducedMotion.matches ? 'По системе (выключены)' : 'По системе (обычная)';
-  }
-
-  reducedMotion.addEventListener('change', updateSystemSpeed);
-  updateSystemSpeed();
 
   function syncFullscreen() {
     const installedFullscreen = fullscreenMode.matches && !document.fullscreenElement;

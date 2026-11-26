@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyStatus, basePower, changeBasePower, createCard, damage, findUnit, heal, setRowEffect, statusCount } from '../../docs/game/board.js';
+import { applyStatus, basePower, changeBasePower, damage, findUnit, heal, setRowEffect, statusCount } from '../../docs/game/board.js';
 import { FACTIONS, LARVA, NEUTRAL_CARDS, SHADOW } from '../../docs/game/cards.js';
 import { applyAction, canPlayCard, createMatch, totalScore } from '../../docs/game/match.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
+import { unit as makeUnit } from '../helpers/battle-helpers.js';
 
 const rng = () => 0;
-const unit = (id, rules = {}) => createCard(id, { id, name: id, power: 5, ...rules });
+const unit = (id, rules) => makeUnit(id, 5, rules);
 const source = { scope: 'source' };
 const boost = (amount) => ({ steps: [{ action: 'boost', target: source, amount }] });
 const rot = { type: 'rot', remaining: 3 };

@@ -306,7 +306,7 @@ test('dismantling pays per copy, persists starter losses and supports crafting t
   assert.equal(await wallet.dismantle(gold), 'done');
   assert.equal(await wallet.dismantle(gold), 'empty');
   assert.equal(await wallet.dismantle(bronze), 'done');
-  const reloaded = createRewardProgress(storage, undefined, { legacyDecks: [{ cardIds: [gold, bronze, bronze] }] });
+  const reloaded = createRewardProgress(storage);
   assert.deepEqual([reloaded.inventory().owned[gold], reloaded.inventory().owned[bronze], reloaded.inventory().essence],
     [0, 1, base.essence + 220]);
   assert.equal(await reloaded.craft(gold), 'done');
@@ -322,7 +322,6 @@ test('extra copies pay on reveal and close exactly once across reloads', async (
   const gold = NEUTRAL_CARDS.find(({ rarity }) => rarity === 'gold');
   const odds = [0, 0, 0.8, 0, 0.99, 0, 0, 0, 0, 0];
   const wallet = createRewardProgress(storage, undefined, {
-    legacyDecks: [{ cardIds: [common.id, common.id, epic.id, gold.id] }],
     random: () => odds.shift(),
   });
   await wallet.unlock('neutral:signal');

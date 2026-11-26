@@ -54,52 +54,17 @@
   box-shadow: 0 0 0 1px #99e9ff;
 }
 .target-prompt { color: #b3efff; }
-.card-preview {
-  position: fixed;
-  inset: auto .75rem .75rem auto;
-  z-index: 8;
-  max-width: min(22rem, calc(100% - 1.5rem));
-  padding: .65rem .8rem;
-  background: #252b32;
-  border-color: var(--rarity-border-color, #8897a9);
-  pointer-events: none;
-  box-shadow: 0 4px 16px #0008;
-}
-.card-preview p { margin-top: .2rem; }
-.faction-label { color: #e9e9e9; }
-
 .row-line.is-selectable { background: #263c40; box-shadow: inset 0 0 0 1px #7ec7d0; cursor: pointer; }
 .hand .hand-card.is-unavailable, .mulligan .hand-card.is-unavailable { opacity: .64; cursor: default; }
 .timer-mark { color: #e3dcfb; }
-.unit-face .card-marks { font-size: .65rem; }
-dialog.card-preview {
-  position: fixed;
-  inset: 0;
-  margin: auto;
-  width: min(100% - 1.5rem, 32rem);
-  max-width: none;
-  max-height: min(86vh, 42rem);
-  padding: 0;
-  color: inherit;
-  pointer-events: auto;
-  overscroll-behavior: contain;
-  border-color: var(--rarity-border-color, #8897a9);
-}
-dialog.card-preview::backdrop { background: #0d1119cc; }
-.preview-heading { display: flex; align-items: start; justify-content: space-between; gap: .6rem; }
-.preview-body { display: grid; gap: .7rem; padding: 1rem; }
-.preview-body h2 { font-size: 1.45rem; }
-.preview-stats { font-weight: 700; }
-.preview-keywords { display: grid; gap: .15rem; margin: 0; }
-.preview-keywords dt { color: #9ed4ff; font-weight: 700; }
-.preview-keywords dd { margin: 0 0 .4rem; color: var(--subtle); }
-.preview-body .button { justify-self: end; }
-
-.match-meta, .motion-setting {
+.match-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: .45rem .85rem;
+}
+@media (max-width: 37rem) {
+  .match-meta { gap: .38rem; }
 }
 .icon-button {
   display: inline-grid;
@@ -114,21 +79,6 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 }
 .icon-button:hover { background: #316a75; }
 .field-settings { font-size: 1rem; line-height: 1; }
-.settings-dialog { width: min(26rem, 95vw); color: inherit; }
-.settings-dialog::backdrop { background: #070e16af; }
-.settings-dialog .motion-setting { margin-bottom: .8rem; }
-#fullscreen-status:not(:empty) { margin-top: .6rem; font-size: .85rem; }
-.motion-setting { color: var(--subtle); font-size: .875rem; }
-.motion-setting select {
-  min-height: 2rem;
-  padding: .2rem .45rem;
-  border: 1px solid #777d89;
-  border-radius: 4px;
-  background: var(--panel);
-  color: inherit;
-  font: inherit;
-}
-
 [data-faction="neutral"] {
   --faction-edge: #c4a77c;
   --faction-face: #373026;
@@ -172,12 +122,9 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   --stat-font: .74rem;
 }
 .hand-card:not(.drag-ghost), .unit-face { position: relative; }
-.card-stats { display: flex; flex-wrap: wrap; align-items: center; gap: .08rem .25rem; }
-.unit-face .card-stats { justify-content: center; }
 .hand-card[data-type="unit"] { padding-block-start: 1.48rem; }
 .unit-face[data-type="unit"] { align-content: end; padding-block: 1.35rem .17rem; }
-[data-type="unit"] > .card-stats { position: absolute; inset: 0; pointer-events: none; }
-.unit-power, .armor-stat, .provision-mark {
+.unit-power, .armor-stat {
   position: absolute;
   pointer-events: auto;
   display: grid;
@@ -204,24 +151,6 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
   background: #a5d3ed;
   color: #102131;
   text-shadow: none;
-}
-.provision-mark {
-  right: var(--stat-inset);
-  bottom: var(--stat-inset);
-  border-radius: 50%;
-  background: #cd9466;
-  color: #26170c;
-}
-.provision-mark.gold { background: #f4d575; color: #342608; }
-.hand-card:has(> .provision-mark) .card-marks,
-.unit-face:has(> .provision-mark) .card-marks {
-  justify-self: stretch;
-  justify-content: flex-start;
-  padding-inline-end: calc(min(var(--stat-size), 50%) + var(--stat-inset));
-}
-.hand-card:has(> .provision-mark) .card-marks {
-  display: flex;
-  min-height: .8rem;
 }
 .type-shape { color: var(--faction-light, #e6efff); font-size: 1.12rem; line-height: 1; }
 .card-type-label { color: var(--subtle); font-size: .75rem; line-height: 1.1; }
@@ -259,19 +188,4 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 .unit-face.has-art:not([data-type="unit"]) { align-content: space-between; padding-block: .17rem; }
 .unit-face.has-art.effect-target::after {
   box-shadow: inset 0 0 0 1px #99e9ff, inset 0 0 12px #99e9ff;
-}
-.preview-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
-  align-items: start;
-  gap: .9rem;
-  padding: 1rem;
-}
-.preview-layout .preview-body { padding: 0; }
-.preview-art {
-  display: block;
-  width: 100%;
-  height: auto;
-  border-radius: 4px;
-  border: 1px solid var(--edge);
 }

@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCard, findUnit, removeUnit } from '../../docs/game/board.js';
 import { NEUTRAL_CARDS } from '../../docs/game/cards.js';
-import { applyAction, createMatch } from '../../docs/game/match.js';
+import { createMatch } from '../../docs/game/match.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
+import { unit as makeUnit, play as playCard } from '../helpers/battle-helpers.js';
 
 const random = () => 0;
-const unit = (id, power = 20) => createCard(id, { id, name: id, power });
+const unit = (id, power = 20) => makeUnit(id, power);
 const lightning = (event) => event.type === 'damage' && event.visual === 'lightning';
 
 function setup() {
@@ -22,7 +23,7 @@ function setup() {
 }
 
 function play(match, cardId, row = 'surface') {
-  return applyAction(match, match.turn, { type: 'play', cardId, row, position: 0 }, { random });
+  return playCard(match, cardId, { row, random });
 }
 
 test('Storm Eye hits three times on each new owner turn, retargets deaths and breaks before the final bolt', () => {

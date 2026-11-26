@@ -7,8 +7,9 @@ import { findCardDefinition } from '../../docs/game/card-registry.js';
 import { FACTIONS } from '../../docs/game/cards.js';
 import { availableOrders, canUseLeader } from '../../docs/game/effects.js';
 import { applyAction, confirmMulligan, createMatch } from '../../docs/game/match.js';
+import { unit as makeUnit } from '../helpers/battle-helpers.js';
 
-const unit = (id, power = 7) => createCard(id, { id, name: id, type: 'unit', power });
+const unit = (id, power = 7) => makeUnit(id, power, { type: 'unit' });
 const member = (id, key) => createCard(id, FACTIONS.protectorate.pool.find((def) => def.id === key));
 const act = (state, action, side = 'human') => applyAction(state, side, action, { random: () => 0 });
 const pick = (state, cardId) => act(state, { type: 'target', cardId });
