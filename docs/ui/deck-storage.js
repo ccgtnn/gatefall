@@ -2,8 +2,8 @@ import { FACTIONS } from '../game/cards.js';
 import { findCardDefinition } from '../game/card-registry.js';
 import { inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js';
 
-const STORAGE_KEY = 'gatefall.decks';
-const RECENT_KEY = 'gatefall.recent-decks';
+export const DECK_STORAGE_KEY = 'gatefall.decks';
+export const RECENT_DECKS_KEY = 'gatefall.recent-decks';
 
 const FORMAT = 'gatefall-deck';
 const VERSION = 1;
@@ -71,7 +71,7 @@ function recentPlayableDecks(decks, played, owned) {
 export function createDeckStorage(storage) {
   let decks = [];
   try {
-    const saved = JSON.parse(storage.getItem(STORAGE_KEY));
+    const saved = JSON.parse(storage.getItem(DECK_STORAGE_KEY));
     if (Array.isArray(saved)) {
       decks = saved.filter((deck) => typeof deck?.id === 'string' && !deck.id.startsWith('preset-') &&
         typeof deck.name === 'string' && typeof deck.factionId === 'string' && typeof deck.leaderId === 'string' &&
@@ -81,7 +81,7 @@ export function createDeckStorage(storage) {
 
   let played = [];
   try {
-    const stored = JSON.parse(storage.getItem(RECENT_KEY));
+    const stored = JSON.parse(storage.getItem(RECENT_DECKS_KEY));
     if (Array.isArray(stored)) {
       played = stored.filter((entry) => typeof entry?.id === 'string' && Number.isFinite(entry.at));
     }
@@ -93,7 +93,7 @@ export function createDeckStorage(storage) {
     if (index < 0) decks.push(structuredClone(deck));
     else decks[index] = structuredClone(deck);
     try {
-      storage.setItem(STORAGE_KEY, JSON.stringify(decks));
+      storage.setItem(DECK_STORAGE_KEY, JSON.stringify(decks));
       return true;
     } catch {
       return false;
@@ -104,7 +104,7 @@ export function createDeckStorage(storage) {
     recent(owned) { return recentPlayableDecks(decks, [...played].sort((a, b) => b.at - a.at), owned); },
     recordPlay(id, at = Date.now()) {
       played = [{ id, at }, ...played.filter((entry) => entry.id !== id)];
-      try { storage?.setItem(RECENT_KEY, JSON.stringify(played)); } catch {}
+      try { storage?.setItem(RECENT_DECKS_KEY, JSON.stringify(played)); } catch {}
     },
     list() { return structuredClone(decks); },
     save,

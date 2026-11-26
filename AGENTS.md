@@ -12,7 +12,7 @@
 | `npm run test:battle` | Матч, карты, фракции, лидеры, статусы, эффекты и воспроизведение боя |
 | `npm run test:economy` | Награды, ресурсы, база, таверна, Лига и ранги |
 | `npm run test:bot` | Бот, его стратегия и сбор статистики для арены |
-| `npm run test:ui` | Интерфейс, каталог, колоды, звук, сборка Pages и проверка тематических наборов |
+| `npm run test:ui` | Интерфейс, каталог, колоды, звук, сборка Pages |
 | `npm run --silent ctx -- --help` | Список пакетов контекста для передачи кода |
 
 ## Где искать
@@ -22,23 +22,24 @@
 | Сборка фракций и стартовые колоды | `docs/game/cards.js`, `docs/game/decks.js` |
 | Карты и лидеры фракций | `docs/game/protectorate.js`, `growth.js`, `captains.js`, `choir.js` |
 | Словарь способностей | `docs/game/card-keywords.js` |
-| Нейтральные карты | `docs/game/neutral-cards.js`, `tests/neutral-cards.test.js` |
-| Реестр и общие свойства карт | `docs/game/card-registry.js`, `card-metadata.js`, `tests/catalog.test.js` |
+| Нейтральные карты | `docs/game/neutral-cards.js`, `tests/battle/neutral-cards.test.js` |
+| Реестр и общие свойства карт | `docs/game/card-registry.js`, `card-metadata.js`, `tests/ui/catalog.test.js` |
 | Матч, поле и способности | `docs/game/match.js`, `board.js`, `effects.js`, `events.js` в той же папке |
-| Пассивные бонусы силы | `docs/game/board.js` и определения с `sidePower` или `rowPower`, `tests/captains.test.js` |
+| Пассивные бонусы силы | `docs/game/board.js` и определения с `sidePower` или `rowPower`, `tests/battle/captains.test.js` |
 | Бот и симуляции | `docs/game/bot.js`, `bot-strategy.js`, `bot-rollouts.js` |
 | Подсказки стратегии | `aiHints` в определениях карт, [CONTRACTS.md](CONTRACTS.md) |
 | Оценка эффектов ботом | `stepValues` в `docs/game/bot-effect-value.js`, `npm run test:bot` |
-| Реестр эффектов | `docs/game/effect-operations.js`, действия с колодой и рукой в `effect-piles.js`, проверка в `tests/effect-registry.test.js` |
+| Реестр эффектов | `docs/game/effect-operations.js`, действия с колодой и рукой в `effect-piles.js`, проверка в `tests/battle/effect-registry.test.js` |
 | Выбор целей и фильтры колоды | `docs/game/effect-queries.js`, `npm run test:battle` |
 | Экономика и прогресс | `docs/game/rewards.js`, `base.js`, `tavern.js`, `ranks.js`, `league.js` |
-| Коллекция, крафт и бустеры | `docs/game/collection-economy.js`, `tests/rewards.test.js` |
-| Главы и маршруты Книги наград | `docs/game/reward-book.js`, `tests/rewards.test.js` |
-| Экран «Все карты» | `docs/ui/catalog-screen.js`, `tests/catalog.test.js` |
-| Отложенная загрузка экранов | `docs/ui/resources.js`, `tests/lazy-sections.test.js` |
-| Ход, бот, выбор целей и анимации матча | `docs/ui/match-turn.js`, `tests/match-turn.test.js` |
+| Персонажи и реплики Лиги | `docs/game/data/` |
+| Коллекция, крафт и бустеры | `docs/game/collection-economy.js`, `tests/economy/rewards.test.js` |
+| Главы и маршруты Книги наград | `docs/game/reward-book.js`, `tests/economy/rewards.test.js` |
+| Экран «Все карты» | `docs/ui/catalog-screen.js`, `tests/ui/catalog.test.js` |
+| Отложенная загрузка экранов | `docs/ui/resources.js`, `tests/ui/lazy-sections.test.js` |
+| Ход, бот, выбор целей и анимации матча | `docs/ui/match-turn.js`, `tests/ui/match-turn.test.js` |
 | Старт, выход и результаты матча | `docs/ui/match-session.js`, `docs/ui/match-result.js` |
-| Фоновое обновление Таверны, рангов и Лиги | `docs/ui/app-timers.js`, `tests/app-timers.test.js` |
+| Фоновое обновление Таверны, рангов и Лиги | `docs/ui/app-timers.js`, `tests/economy/app-timers.test.js` |
 | Экраны и навигация | `docs/app.js`, `docs/ui/` |
 | Размещение карт и анимации | `docs/ui/card-placement.js`, `turn-playback.js`, `card-motion.js` |
 | Разметка и порядок стилей | `docs/index.html`, общие правила в `docs/style.css` |
@@ -51,7 +52,7 @@
 
 ## Порядок работы
 
-- Для мелких правок во время работы запускайте только тематические тесты. Перед каждым коммитом запускайте полный `npm test`. Каждый новый файл `tests/*.test.js` добавляйте хотя бы в один тематический набор в `package.json`. Проверка входит в `test:ui` и полный прогон.
+- Для мелких правок во время работы запускайте только тематические тесты. Перед каждым коммитом запускайте полный `npm test`. Новые тесты размещайте в `tests/battle/`, `tests/bot/`, `tests/economy/` или `tests/ui/`. Общие хелперы и тестовые данные храните в `tests/helpers/`. `npm test` обнаруживает тесты автоматически.
 - Браузер не открывать. Визуальные изменения пользователь проверяет сам после деплоя. Браузер — только если пользователь прямо попросил в задаче.
 - Одна задача — одна ветка. Вливайте её в `main` в день работы.
 - Изменения геймдизайна согласуйте с владельцем.

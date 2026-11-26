@@ -7,7 +7,7 @@
 - `CardInstance.id` уникален в матче. `card.definition.id` одинаков для всех копий одной карты. По `card.id` выбирается цель или карта в руке. По `definition.id` ищутся печатные данные и учитывается коллекция.
 - У отряда есть текущие `power` и `armor`, а также `basePower`. У экземпляра могут появляться `statuses`, `timer`, `counter` и другие поля способности. Сторона размещения определяется отдельно от владельца, например для шпионов.
 
-Код и примеры находятся в `docs/game/match.js`, `docs/game/board.js` и `tests/match.test.js`.
+Код и примеры находятся в `docs/game/match.js`, `docs/game/board.js` и `tests/battle/match.test.js`.
 
 ## Действия и очередь эффектов
 

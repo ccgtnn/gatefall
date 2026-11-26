@@ -1,4 +1,4 @@
-import { LEAGUE_CHARACTERS } from './league-characters.js';
+import { LEAGUE_CHARACTERS } from './data/league-characters.js';
 import { leagueDeckFor } from './league-decks.js';
 
 export const LEAGUE_RULES = Object.freeze({
