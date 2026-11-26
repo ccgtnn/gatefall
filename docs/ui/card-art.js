@@ -14,6 +14,16 @@ const clips = new Map([
   ['genome-keeper', { small: 'genome-keeper-card.mp4', large: 'genome-keeper-preview.mp4' }],
   ['xylaris-bloom', { small: 'xylaris-bloom-card.mp4', large: 'xylaris-bloom-preview.mp4' }],
   ['hound-good-deal', { small: 'hound-good-deal-card.mp4', large: 'hound-good-deal-preview.mp4' }],
+  ['whisper-interpreter', { small: 'whisper-interpreter-card.mp4', large: 'whisper-interpreter-preview.mp4' }],
+  ['forbidden-scroll-keeper', { small: 'forbidden-scroll-keeper-card.mp4', large: 'forbidden-scroll-keeper-preview.mp4' }],
+  ['ulmarin-large-tentacle', { small: 'ulmarin-large-tentacle-card.mp4', large: 'ulmarin-large-tentacle-preview.mp4' }],
+  ['altar-guardian', { small: 'altar-guardian-card.mp4', large: 'altar-guardian-preview.mp4' }],
+  ['ulmarin-sleeper', { small: 'ulmarin-sleeper-card.mp4', large: 'ulmarin-sleeper-preview.mp4' }],
+  ['call-of-the-deep', { small: 'call-of-the-deep-card.mp4', large: 'call-of-the-deep-preview.mp4' }],
+  ['ulmarin-tentacle', { small: 'ulmarin-tentacle-card.mp4', large: 'ulmarin-tentacle-preview.mp4' }],
+  ['ulmarin-fanatic', { small: 'ulmarin-fanatic-card.mp4', large: 'ulmarin-fanatic-preview.mp4' }],
+  ['cult-dreamer', { small: 'cult-dreamer-card.mp4', large: 'cult-dreamer-preview.mp4' }],
+  ['mind-strike', { small: 'mind-strike-card.mp4', large: 'mind-strike-preview.mp4' }],
 ]);
 let premiumEnabled = false;
 const premiumOverrides = new Map();
