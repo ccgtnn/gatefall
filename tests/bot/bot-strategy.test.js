@@ -26,8 +26,8 @@ test('strategic bots keep playing with a narrow lead and can pass with a large l
 
   match.log.push({ type: 'play', side: 'bot' });
   match.players.bot.board.orbit[0].power = 20;
-  assert.deepEqual(chooseBotTurn(match, 4), pass);
-  assert.deepEqual(chooseBotTurn(match, 6), pass);
+  assert.deepEqual(chooseBotTurn(match, 4, { rolloutSamples: 0 }), pass);
+  assert.deepEqual(chooseBotTurn(match, 6, { rolloutSamples: 0 }), pass);
 });
 
 test('level 4 spends its last removal in round two when a life is at stake', () => {

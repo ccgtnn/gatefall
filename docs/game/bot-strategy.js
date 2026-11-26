@@ -1,11 +1,11 @@
 import { leaderTargetPriority, offeringPriority, preferredLeaderUse } from './bot-leaders.js';
 import { cardPotential, evaluatePosition, EVAL_WEIGHTS as W } from './bot-evaluation.js';
-import { compareRollouts } from './bot-rollouts.js';
+import { compareRollouts, visibleSupply } from './bot-rollouts.js';
 import { ROWS } from './card-metadata.js';
 import { cardType, createCard, findUnit, placementSide } from './board.js';
 import { availableFees, availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
-import { armorTargetPriority, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, lockPriority, pendingUnitPriority, shouldProtectArmor, tributeOptions, tributeTarget } from './bot-effect-value.js';
+import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, lockPriority, pendingUnitPriority, shouldProtectArmor, tributeOptions, tributeTarget } from './bot-effect-value.js';
 import { cardAbilities } from './events.js';
 import { ROW_LIMIT, applyAction, availableRows, canEndTurn, canPass, playableCards, totalScore } from './match.js';
 
@@ -18,17 +18,29 @@ const UNKNOWN_PLAY = createCard('unknown-play', {
   id: 'unknown-play', name: 'Неизвестная карта', type: 'unit', power: W.defaultPower,
 });
 
-export function publicMatch(match) {
+export function botSearchState(match, knowsDeckList = false) {
   const { bot, human } = match.players;
+  if (human.publicHandSize !== undefined) return match;
+  const knownDeck = knowsDeckList && human.startingDeck
+    ? visibleSupply(match, true, true).map(({ card }) => card) : undefined;
   return {
     ...match,
-    log: [],
+    // Draw and hand-bottom journal entries include private cards for playback.
+    // The search only needs public plays for faction-based sampling.
+    log: match.log.filter(({ type }) => type === 'play'),
     players: {
-      bot: { ...bot, deck: [...bot.deck].sort((a, b) => a.id.localeCompare(b.id)), exile: [] },
-      human: { ...human, deck: [], exile: [], publicHandSize: human.hand.length, publicDeckSize: human.deck.length,
+      bot: { ...bot, startingDeck: undefined, deck: bot.deck.toSorted((a, b) => a.id.localeCompare(b.id)) },
+      human: { ...human, startingDeck: undefined, knownDeck, deck: [],
+        publicHandSize: human.hand.length, publicDeckSize: human.deck.length,
         hand: human.hand.length ? [UNKNOWN_PLAY] : [] },
     },
   };
+}
+
+export function publicMatch(match, knowsDeckList = false) {
+  const state = botSearchState(match, knowsDeckList);
+  const { bot, human } = state.players;
+  return { ...state, log: [], players: { bot: { ...bot, exile: [] }, human: { ...human, exile: [] } } };
 }
 
 function usesNeighbors(ability) {
@@ -183,7 +195,7 @@ function evaluateAction(state, side, action, search) {
 
     let actions;
     if (next.pending) actions = choices(next);
-    else if (next.playedCard) actions = [END, ...abilities(next, side)];
+    else if (canEndTurn(next, side)) actions = [END, ...abilities(next, side)];
     else {
       actions = plays(next, side).map(({ action }) => action);
       if (move.type === 'fee') {
@@ -233,7 +245,7 @@ function deadline(time) {
 function searchLimit(random) {
   // Keep the time limits for normal play. A supplied generator uses fixed work limits
   // so the same seed is reproducible even when the host is under different load.
-  if (!random) return deadline;
+  if (!random) return (budget) => deadline(budget * .98);
   return (budget) => {
     let checks = budget * 4;
     return { expired: () => checks-- <= 0 };
@@ -258,10 +270,16 @@ function rankPlays(state, search, limit, level) {
 
 function rankAbilities(state, search, level) {
   const ranked = [];
+  const { bot, human } = state.players;
+  const finishFee = state.round === 3 && !bot.hand.length && human.passed
+    ? beneficialFee(state, 'bot', { allCoinsSurplus: true }) : undefined;
   for (const action of abilities(state, 'bot').slice(0, level.candidates)) {
     if (search.expired()) break;
     const candidate = evaluateAction(state, 'bot', action, search);
-    if (candidate) ranked.push({ ...candidate, action });
+    if (candidate) {
+      const tie = action.type === 'fee' && action.cardId === finishFee?.cardId ? W.finalFeeTie : 0;
+      ranked.push({ ...candidate, rating: candidate.rating + tie, action });
+    }
   }
   return ranked.sort((a, b) => b.rating - a.rating);
 }
@@ -334,7 +352,7 @@ function forecast(match, ranked, level, search, options) {
   const pass = ranked.find(({ action }) => action.type === 'pass');
   if (pass && !shortlist.includes(pass)) shortlist[shortlist.length - 1] = pass;
   const simulated = shortlist.length > 1 && compareRollouts(match, shortlist, {
-    ...options, expired: search.expired, horizon: level.horizon, memory: level.memory,
+    ...options, expired: search.expired, horizon: level.horizon, memory: level.memory, knowsDeckList: level.knowsDeckList,
     rolloutSamples: options.rolloutSamples ?? level.samples,
   });
   if (simulated?.length) return simulated;
@@ -344,7 +362,7 @@ function forecast(match, ranked, level, search, options) {
 }
 
 export function chooseStrategicTarget(match, level, options) {
-  const state = publicMatch(match);
+  const state = publicMatch(match, level.knowsDeckList);
   const limit = searchLimit(options.random);
   const search = limit(level.budgetMs);
   const local = limit(level.budgetMs * .4);
@@ -368,7 +386,7 @@ export function chooseStrategicTarget(match, level, options) {
 export function chooseStrategicTurn(match, level, options) {
   const limit = searchLimit(options.random);
   const search = limit(level.budgetMs);
-  const state = publicMatch(match);
+  const state = publicMatch(match, level.knowsDeckList);
   const { bot, human } = state.players;
   const lead = totalScore(bot) - totalScore(human);
   const legal = playableCards(state, 'bot');

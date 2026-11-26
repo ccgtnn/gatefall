@@ -224,6 +224,7 @@ test('Левый Клык hits each unit in exactly one enemy row and can restor
 
 test('Глаза гончей transform a chosen basic token into a 3-power, 1-armor token', () => {
   const eyes = byId.get('hound-eyes');
+  assert.match(eyes.text, /Плата 1:/);
   const before = setup({ surface: [eyes, HOUND, ordinary], coins: 4 });
   const pending = fee(before, 'surface-1');
   assert.deepEqual(pending.pending.options, ['surface-2']);
@@ -231,7 +232,7 @@ test('Глаза гончей transform a chosen basic token into a 3-power, 1-a
   const match = target(pending, 'surface-2');
   const transformed = findUnit(match, 'surface-2').card;
   assert.deepEqual([transformed.definition.id, transformed.power, transformed.armor], [REINFORCED_HOUND.id, 3, 1]);
-  assert.equal(human(match).coins, 2);
+  assert.equal(human(match).coins, 3);
   assert.equal(availableFees(match, 'human').length, 0);
 });
 

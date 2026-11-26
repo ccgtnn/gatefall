@@ -94,10 +94,10 @@ const houndCards = [
   {
     id: 'hound-eyes', name: 'Глаза гончей', power: 6, provision: 10, rarity: 'gold',
     art: 'hound-eyes.webp', artCrop: 'hound-eyes-crop.webp',
-    shipClass: 'Лёгкий корабль', text: 'Прибыль 4. Плата 2: превратить выбранную свою Гончую в Усиленную гончую.',
+    shipClass: 'Лёгкий корабль', text: 'Прибыль 4. Плата 1: превратить выбранную свою Гончую в Усиленную гончую.',
     keywords: ['Прибыль', 'Плата'],
     deploy: profit(4),
-    fee: fee(2, [{ action: 'transform', target: victim, card: REINFORCED_HOUND }], { select: [{
+    fee: fee(1, [{ action: 'transform', target: victim, card: REINFORCED_HOUND }], { select: [{
       ref: 'hound', targets: { scope: 'ally', definitionId: HOUND.id }, kind: 'transform',
       prompt: 'Выбери Гончую для превращения в Усиленную гончую.',
     }] }),

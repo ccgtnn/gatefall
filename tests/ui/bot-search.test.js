@@ -50,7 +50,7 @@ test('reset can terminate a pending worker without applying its response', async
   const search = createBotSearch({ createWorker: () => ({
     terminate: () => { stopped = true; }, postMessage() {}, addEventListener() {},
   }) });
-  const choice = search.choose({}, 6);
+  const choice = search.choose(createMatch(), 6);
   search.cancel();
   assert.equal(await choice, null);
   assert.equal(stopped, true);
@@ -59,6 +59,7 @@ test('reset can terminate a pending worker without applying its response', async
 test('successive turns reuse one worker until the match is reset', async () => {
   let created = 0;
   let stopped = 0;
+  const seen = [];
   const action = { type: 'pass' };
   const search = createBotSearch({ createWorker() {
     created += 1;
@@ -70,14 +71,22 @@ test('successive turns reuse one worker until the match is reset', async () => {
         respond = listener;
         queueMicrotask(() => listener({ data: { ready: true } }));
       },
-      postMessage() { respond({ data: { action } }); },
+      postMessage({ match }) { seen.push(match); respond({ data: { action } }); },
     };
   } });
-  assert.deepEqual(await search.choose({}, 4), { action });
-  assert.deepEqual(await search.choose({}, 6), { action });
+  const match = createMatch();
+  match.log.push({ type: 'draw', side: 'human', cards: match.players.human.hand });
+  assert.deepEqual(await search.choose(match, 4), { action });
+  assert.deepEqual(await search.choose(match, 6), { action });
   assert.deepEqual([created, stopped], [1, 0]);
+  assert.equal(seen[0].players.human.knownDeck, undefined);
+  const { human } = seen[1].players;
+  assert.equal(human.knownDeck.length, match.players.human.startingDeck.length);
+  assert.deepEqual(human.deck, []);
+  assert.deepEqual(human.hand.map(({ id }) => id), ['unknown-play']);
+  assert.deepEqual(seen[1].log, []);
   search.cancel();
-  assert.deepEqual(await search.choose({}, 6), { action });
+  assert.deepEqual(await search.choose(match, 6), { action });
   search.cancel();
   assert.deepEqual([created, stopped], [2, 2]);
 });
@@ -132,7 +141,7 @@ test('prewarm starts the worker early and the search clock waits for readiness',
   try {
     search.warm();
     assert.equal(created, 1);
-    const result = search.choose({}, 4);
+    const result = search.choose(createMatch(), 4);
     await new Promise((resolve) => setTimeout(resolve, 25));
     assert.equal(requests, 0);
     respond({ data: { ready: true } });
@@ -157,7 +166,7 @@ test('every level uses the worker and its timeout allows the search budget plus 
   search.warm();
   respond({ data: { ready: true } });
   try {
-    for (let level = 1; level <= 7; level += 1) await search.choose({}, level);
+    for (let level = 1; level <= 7; level += 1) await search.choose(createMatch(), level);
     assert.deepEqual(requests, [1, 2, 3, 4, 5, 6, 7]);
   } finally {
     search.cancel();

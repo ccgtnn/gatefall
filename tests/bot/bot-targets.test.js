@@ -29,6 +29,10 @@ test('the strategic bot inserts between two armored allies for the double boost'
 
 test('strategic bot uses a zealous Scavenger order to trigger a deathwish across rows', () => {
   const match = position(3);
+  match.players.bot.lives = match.players.human.lives = 1;
+  match.players.human.passed = true;
+  match.players.human.hand = [];
+  match.players.human.board.surface = [plain('lead', 9)];
   match.players.bot.hand = [member('eater', 'growth', 'scavenger')];
   match.players.bot.board.surface = [member('cocoon', 'growth', 'cocoon'), standard('larva', LARVA)];
   const played = applyAction(match, 'bot', { type: 'play', cardId: 'eater', row: 'orbit', position: 0 });

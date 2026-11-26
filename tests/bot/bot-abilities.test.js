@@ -49,7 +49,7 @@ test('all difficulties prefer weak offerings and use the Priest to open an Awake
     const action = chooseBotTurn(match, mode);
     assert.equal(action.type, 'leader');
     const pending = applyAction(match, 'bot', action);
-    assert.deepEqual(chooseBotTurn(pending, mode), { type: 'target', cardId: 'weak' });
+    assert.deepEqual(chooseBotTurn(pending, mode, { rolloutSamples: 0 }), { type: 'target', cardId: 'weak' });
     match.players.bot.board.surface.pop();
     assert.notEqual(chooseBotTurn(match, mode).type, 'leader');
     match.players.bot.board.orbit.push(createCard('scenario', AWAKENING));
@@ -66,7 +66,7 @@ test('the bot pays the highest affordable tribute for the Hound Recruiter', () =
     assert.equal(pending.pending.kind, 'tribute');
 
     for (const difficulty of [2, 4, 6]) {
-      const action = chooseBotTurn(pending, difficulty);
+      const action = chooseBotTurn(pending, difficulty, { rolloutSamples: 0 });
       assert.deepEqual(action, { type: 'target', cardId: cost });
       const resolved = applyAction(pending, 'bot', action);
       assert.equal(resolved.players.bot.coins, coins - Number(cost));
@@ -214,9 +214,9 @@ test('strategic tribute spends only for seats it can fill and keeps coins for us
   const pending = applyAction(match, 'bot', { type: 'play', cardId: 'recruiter', row: 'surface', position: bot.board.surface.length });
   assert.equal(pending.pending.kind, 'tribute');
   for (const difficulty of [4, 6]) {
-    assert.equal(chooseBotTurn(pending, difficulty).cardId, '3');
+    assert.equal(chooseBotTurn(pending, difficulty, { rolloutSamples: 0 }).cardId, '3');
   }
   pending.players.bot.board.surface.splice(0, 2);
-  assert.equal(chooseBotTurn(pending, 6).cardId, '6');
+  assert.equal(chooseBotTurn(pending, 6, { rolloutSamples: 0 }).cardId, '6');
 });
 

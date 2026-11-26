@@ -53,6 +53,8 @@ function createPlayer(side, definitions, random, factionId, leader, charges) {
   }
   return {
     startingCategories,
+    startingDeck: cards.map(({ id, definition }) => ({ id, definition }))
+      .toSorted((a, b) => a.definition.id.localeCompare(b.definition.id) || a.id.localeCompare(b.id)),
     lives: STARTING_LIVES,
     hand: deck.splice(0, HAND_LIMIT),
     deck,

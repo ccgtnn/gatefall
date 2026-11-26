@@ -1,7 +1,7 @@
 import { ROWS } from './card-metadata.js';
 import { activeOrder, infectionDamage, opponent, statusCount, units } from './board.js';
 import { rowEffectValue } from './bot-effect-value.js';
-import { carryoverValue, delayedCardValue, futureContext } from './bot-future-value.js';
+import { carryoverValue, coinValue, delayedCardValue, futureContext, leaderUses } from './bot-future-value.js';
 import { availableOrders } from './effects.js';
 import { cardAbilities } from './events.js';
 import { HAND_LIMIT, ROUND_DRAW, totalScore } from './match.js';
@@ -12,7 +12,8 @@ export const EVAL_WEIGHTS = Object.freeze({
   eliminationStake: 44,
   roundInfluence: Object.freeze([.50, .72, 1]),
   handReserve: Object.freeze([1.20, 1, .16]),
-  cardBase: 3,
+  // A playable card stores five strength plus its power and ability adjustment.
+  cardBase: 5,
   cardPower: .65,
   defaultPower: 5.5,
   effectProvision: .7,
@@ -28,10 +29,15 @@ export const EVAL_WEIGHTS = Object.freeze({
   cheapConversion: .98,
   cheapCatchupCards: 2,
   carriedUnit: .64,
-  carriedLeader: 1.6,
-  carriedArmor: .12,
-  carriedShield: .4,
-  carriedCoins: .35,
+  // Resource ceilings are expressed in strength; unrealizable coins have only salvage value.
+  usefulCoin: 1.25,
+  surplusCoin: .10,
+  armorPerPoint: .50,
+  armorWithoutThreat: .05,
+  shieldMaxHit: 6,
+  knownHitChance: .65,
+  shieldWithoutThreat: .15,
+  leaderCharge: 6,
   readyOrder: 1.15,
   coolingOrder: .35,
   markReaction: 1.25,
@@ -41,12 +47,12 @@ export const EVAL_WEIGHTS = Object.freeze({
   scenarioChapter: 2.5,
   deathReaction: 1.25,
   infection: .72,
-  leaderThisRound: .9,
   markedTarget: .65,
   removalReserve: 1.5,
   inheritedWish: .4,
   visibleReply: .88,
   endTurnTie: .08,
+  finalFeeTie: .10, // Prefer a useful Fee if the final result is already secured.
   targetPriority: .65,
   targetPenaltyCap: 8,
   handChoice: .5,
@@ -91,8 +97,7 @@ function boardValue(state, side, context) {
       + (abilities.fieldEvents?.death && ROWS.some((row) =>
         enemy.board[row].some((entry) => entry.statuses?.infection)) ? W.deathReaction : 0)
       - W.infection * infectionDamage(card, Math.min(context.turns, statusCount(card, 'infection')));
-  }, Math.min(player.leader?.charges ?? 0, context.turns) * W.leaderThisRound +
-    (context.turns ? (player.coins ?? 0) * context.coinWeight : 0) + rot + (plans ? exposed * W.markedTarget : 0));
+  }, leaderUses(context) * W.leaderCharge + coinValue(context) + rot + (plans ? exposed * W.markedTarget : 0));
 }
 
 function handCards(player, play, roundChanged, growthTurns) {
@@ -107,10 +112,11 @@ function handCards(player, play, roundChanged, growthTurns) {
 }
 
 function reserve(player, cards, round) {
-  const worth = cards.reduce((sum, points) => sum + W.cardBase + W.cardPower * points, 0);
+  const cardWorth = (points) => W.cardBase + W.cardPower * (points - W.defaultPower);
+  const worth = cards.reduce((sum, points) => sum + cardWorth(points), 0);
   const deckCount = player.publicDeckSize ?? player.deck.length;
   const overflow = round < 3 ? Math.max(0, cards.length + Math.min(ROUND_DRAW, deckCount) - HAND_LIMIT) : 0;
-  return (worth - overflow * (W.cardBase + W.cardPower * W.defaultPower)) * W.handReserve[round - 1];
+  return (worth - overflow * W.cardBase) * W.handReserve[round - 1];
 }
 
 function roundStake(winner, loser) {
@@ -165,8 +171,8 @@ export function evaluatePosition(state, side, projection) {
     return {
       passed, cards, turns: context.turns, raw,
       score: raw + (passed ? 0 : W.futureBoard * boardValue(state, key, context)),
-      reserve: reserve(player, cards, round),
-      carry: round < 3 ? carryoverValue(context, W) : 0,
+      reserve: round === 3 && (passed || !context.turns) ? 0 : reserve(player, cards, round),
+      carry: round < 3 ? carryoverValue(context, passed) : 0,
     };
   };
   const left = info(side, own);
