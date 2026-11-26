@@ -244,6 +244,15 @@ const plague = [
     keywords: ['Броня', 'Конец хода', 'Усиление', 'Уязвимость', 'Порождение'],
   },
   {
+    id: 'infected-carcass', name: 'Заражённая туша', faction: 'growth', type: 'unit',
+    rarity: 'bronze', provision: 5, power: 5,
+    art: 'infected-carcass.webp', artCrop: 'infected-carcass-crop.webp',
+    text: 'Завещание: наложи Заражение 2 на 2 случайных вражеских отряда.',
+    keywords: ['Завещание', 'Заражение'],
+    aiHints: { sacrificeBonus: 1.5 },
+    deathwish: ability([{ ...infect(enemies, 2), mode: 'random', count: 2 }]),
+  },
+  {
     id: 'rot', name: 'Гниение', provision: 4,
     type: 'effect', rarity: 'bronze', faction: 'growth',
     text: 'Наложить Гниение на выбранный вражеский ряд на 3 хода.',

@@ -303,14 +303,13 @@ body:has(.is-deck-home, #screen > :is(.league-panel, .rank-panel, .decorations-p
   min-width: 0;
   gap: .75rem;
 }
-.all-decks-toolbar, .home-decks-toolbar { justify-content: space-between; }
+.all-decks-toolbar { justify-content: space-between; }
 .all-decks :is(.deck-list-item, .deck-list)[hidden] { display: none; }
 .home-tiles {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: .65rem;
 }
-.home-tiles-collection { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .is-deck-home .home-tile {
   min-height: 3.5rem;
   padding: .6rem clamp(.3rem, 1.5vw, 1rem);
@@ -321,16 +320,50 @@ body:has(.is-deck-home, #screen > :is(.league-panel, .rank-panel, .decorations-p
 .home-tile-league { --section-art: url('./art/home-league-panel.webp'); }
 .home-tile-ranks { --section-art: url('./art/home-ranks-panel.webp'); }
 .is-deck-home .home-tiles-sections > .home-tile {
-  --face: linear-gradient(90deg, #10182660, transparent 56%), var(--section-art) center / cover no-repeat #101826;
+  --face: linear-gradient(90deg, #101826e0, #10182695 64%, #10182648), var(--section-art) center / cover no-repeat #101826;
   display: flex;
   align-items: center;
+  gap: .55rem;
+  min-width: 0;
+  min-height: 5.5rem;
   aspect-ratio: 3 / 1;
   padding-inline: clamp(.75rem, 2vw, 1.35rem);
   text-align: left;
   text-shadow: 0 1px 3px #05080f;
 }
-@media (max-width: 37rem) and (orientation: portrait) {
-  .home-tiles-sections { grid-template-columns: 1fr; }
+.home-tile-copy { display: grid; min-width: 0; gap: .15rem; line-height: 1.25; }
+.home-tile-title, .home-tile-detail, .home-tile-quote { min-width: 0; overflow-wrap: anywhere; }
+.home-tile-detail, .home-tile-quote { color: #d4e1ef; font-size: .8rem; font-weight: 500; }
+.home-tile-quote { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-tile-amount { display: inline-flex; align-items: center; gap: .15em; white-space: nowrap; }
+.home-tile-amount svg { width: 1em; height: 1em; }
+.home-tile-league .league-avatar { flex: none; width: 2.45rem; height: 2.45rem; }
+
+.quick-match {
+  padding: clamp(.8rem, 2vw, 1.4rem);
+  border: 1px solid #637f9b78;
+  border-radius: .75rem;
+  background: linear-gradient(135deg, #18283bf2, #101a29e8);
+}
+.quick-match-controls { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem 1.4rem; }
+.quick-match-bot { display: grid; gap: .65rem; min-width: 0; }
+.quick-match .deck-field { min-width: 0; }
+.quick-match .deck-field select { width: 100%; min-width: 0; }
+.quick-match .quick-match-play { width: min(100%, 18rem); min-height: 2.9rem; font-size: 1.1rem; }
+
+@media (max-width: 37rem) {
+  .home-tiles-sections, .quick-match-controls { grid-template-columns: 1fr; }
+  .is-deck-home .home-tiles-sections > .home-tile { aspect-ratio: auto; min-height: 3.5rem; }
+  .home-tile-copy {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  .home-tile-title, .home-tile-detail, .home-tile-quote { display: inline; }
+  .home-tile-detail::before, .home-tile-quote::before { content: ' · '; }
+  .home-tile-quote { white-space: normal; }
+  .quick-match .quick-match-play { width: 100%; }
 }
 .campaign-slots {
   position: relative;
