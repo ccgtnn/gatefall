@@ -1,3 +1,8 @@
+// @ts-check
+
+/** @typedef {import('../../types/contracts').EffectJob} EffectJob */
+/** @typedef {import('../../types/contracts').MatchState} MatchState */
+
 import { cardAbilities, emit, isLocked } from './events.js';
 import { activeOrder, applyStatus, changeBasePower, damage, findUnit, isUnit, opponent, ROW_LIMIT,
   setRowEffect, statusCount, statusEndTurn, units } from './board.js';
@@ -160,6 +165,11 @@ function playChapter(match, job) {
     sourceDefinitionId: card.definition.id, ability: chapters[chapter - 1] });
 }
 
+/**
+ * @param {MatchState} match
+ * @param {EffectJob} job
+ * @param {() => number} random
+ */
 export function runEffect(match, job, random) {
   if (job.rowTick) return tickRow(match, job, random);
   if (job.scenarioChapter) return playChapter(match, job);

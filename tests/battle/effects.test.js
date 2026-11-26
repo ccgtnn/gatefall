@@ -3,6 +3,7 @@ import test from 'node:test';
 import { chooseBotTurn } from '../../docs/game/bot.js';
 import { capture, createCard, damage, findUnit, removeUnit, restoreCard } from '../../docs/game/board.js';
 import { FACTIONS, FIRST_SIGNAL, NEUTRAL, NEUTRAL_CARDS, LARVA } from '../../docs/game/cards.js';
+import { pendingEffectSource } from '../../docs/game/effect-queries.js';
 import { availableOrders, runEffect } from '../../docs/game/effects.js';
 import { applyAction, availableRows, canEndTurn, confirmMulligan, createMatch, playableCards, ROW_LIMIT } from '../../docs/game/match.js';
 
@@ -730,4 +731,15 @@ test('Spitter infects on deployment and its reusable Order bypasses armor when i
     match = play(match, 'plain-' + i, i + 1);
   }
   assert.ok(applyAction(match, 'human', order).pending);
+});
+
+test('pending effect source prefers the queued discard and falls back to the previous hand', () => {
+  const queued = createCard('spell', { id: 'queued', name: 'Queued' });
+  const held = createCard('spell', { id: 'held', name: 'Held' });
+  const match = { pending: { side: 'human', job: { sourceId: 'spell' } }, effects: [{ discard: queued }] };
+  const before = { players: { human: { hand: [held], discard: [], deck: [] } } };
+  assert.deepEqual(pendingEffectSource(match, { before, cardId: 'other' }), { sourceId: 'spell', card: queued });
+  const waiting = { ...match, pending: { side: 'human', job: {} }, effects: [] };
+  assert.deepEqual(pendingEffectSource(waiting, { before, cardId: 'spell' }), { sourceId: 'spell', card: held });
+  assert.equal(pendingEffectSource({ ...match, pending: null }), undefined);
 });

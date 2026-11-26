@@ -71,7 +71,14 @@ export function deathwishJobs(card, context) {
   }));
 }
 
+/** @typedef {import('../../types/contracts').EmitOptions} EmitOptions */
+
 // The journal is also the ordered event stream consumed by playback.
+/**
+ * @param {import('../../types/contracts').MatchState} match
+ * @param {import('../../types/contracts').MatchEvent} event
+ * @param {EmitOptions} [options]
+ */
 export function emit(match, event, { source, neighbors = [], death, journal = true, side = event.side, played, firstLegendary } = {}) {
   if (journal) match.log.push(event);
   const jobs = [];

@@ -152,20 +152,18 @@ export function createSettings(app, onLeave, onReset) {
   fullscreenMode.addEventListener('change', syncFullscreen);
   document.querySelector('#start-settings').addEventListener('click', showSettings);
 
-  for (const [id, title, label] of [
-    ['new-game', 'Начать новую партию?', 'Новая партия'],
-    ['surrender', 'Сдаться?', 'Сдаться'],
-  ]) {
-    document.getElementById(id).addEventListener('click', () => {
-      leaveDialog.querySelector('#leave-title').textContent = title;
-      const confirm = leaveDialog.querySelector('#leave-confirm');
-      confirm.textContent = label;
-      confirm.value = id === 'surrender' ? 'surrender' : 'leave';
-      confirm.classList.toggle('destructive', id === 'surrender');
-      leaveDialog.returnValue = '';
-      leaveDialog.showModal();
-    });
+  function confirmLeave(surrender = false) {
+    leaveDialog.querySelector('#leave-title').textContent = surrender ? 'Сдаться?' : 'Начать новую партию?';
+    const confirm = leaveDialog.querySelector('#leave-confirm');
+    confirm.textContent = surrender ? 'Сдаться' : 'Новая партия';
+    confirm.value = surrender ? 'surrender' : 'leave';
+    confirm.classList.toggle('destructive', surrender);
+    leaveDialog.returnValue = '';
+    leaveDialog.showModal();
   }
+
+  document.getElementById('new-game').addEventListener('click', () => confirmLeave());
+  document.getElementById('surrender').addEventListener('click', () => confirmLeave(true));
   leaveDialog.addEventListener('close', () => {
     if (leaveDialog.returnValue === 'leave' || leaveDialog.returnValue === 'surrender') {
       onLeave(leaveDialog.returnValue === 'surrender');
@@ -173,7 +171,7 @@ export function createSettings(app, onLeave, onReset) {
   });
 
   return {
-    showSettings,
+    showSettings, confirmLeave,
     close: () => settings.close(),
     motion: () => motionDuration(speedSetting.value, reducedMotion.matches),
     playSound: sounds.play,

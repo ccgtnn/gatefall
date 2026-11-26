@@ -1,13 +1,15 @@
+import { emit } from './ui/app-events.js';
+import { createAppHistory } from './ui/app-history.js';
 import { createAppTimers } from './ui/app-timers.js';
 import { keepCardVideos, resumeCardVideos } from './ui/card-art.js';
 import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js';
 import { createDeckStorage, DECK_STORAGE_KEY, newDeckId, RECENT_DECKS_KEY } from './ui/deck-storage.js';
 import { bindCardPlacement } from './ui/card-placement.js';
-import { findInPiles, placementSide } from './game/board.js';
+import { placementSide } from './game/board.js';
 import { FACTIONS } from './game/cards.js';
 import { inspectDeck, PRESETS } from './game/decks.js';
 import { iconButton } from './ui/dom.js';
-import { cardArt, preview, showCard } from './ui/cards.js';
+import { preview, showCard } from './ui/cards.js';
 import { createBattlefield } from './ui/field.js';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js';
 import { createMatchSession } from './ui/match-session.js';
@@ -20,8 +22,8 @@ import { createFactionStats, FACTION_STATS_KEY } from './ui/stats.js';
 import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js';
 import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js';
 import { createResourceBar, prepareLazySection, sectionDialog, showEssenceGain } from './ui/resources.js';
-import { aimAnchor, aimTone, bindTargeting } from './ui/targeting.js';
-import { questComplete } from './game/tavern.js';
+import { bindTargeting, updatePendingAim } from './ui/targeting.js';
+import { tavernRewardCount } from './game/tavern.js';
 import { rankStanding } from './game/ranks.js';
 import { BATTLEFIELD_STORAGE_KEY, createBattlefieldPreferences, createFramePreferences, decorationsScreen, FRAME_STORAGE_KEY } from './ui/decorations.js';
 import { rankScreen } from './ui/rank-screen.js';
@@ -32,9 +34,7 @@ import { createRewardReveal, enqueueReward } from './ui/reward-reveal.js';
 const app = document.querySelector('#app');
 const screen = document.querySelector('#screen');
 const leagueOverview = window.matchMedia(LEAGUE_OVERVIEW_QUERY);
-leagueOverview.addEventListener('change', () => {
-  screen.querySelector('.league-panel')?.dispatchEvent(new Event('league-layout-change'));
-});
+leagueOverview.addEventListener('change', () => emit('league-layout-change'));
 const phaseLabel = document.querySelector('#phase');
 const turnNotice = document.querySelector('#match-notice');
 const coinNotice = document.querySelector('#coin-notice');
@@ -44,6 +44,8 @@ const announcement = document.querySelector('#announcement');
 let menuView = 'decks';
 let selectedFaction;
 let editedDeck;
+let editNotice;
+let screenEvents;
 let selectedCardId;
 let reloadOnMatchExit = false;
 const aim = bindTargeting(screen, () => turns.cancelTargeting());
@@ -76,11 +78,30 @@ const session = createMatchSession({
   onStart() {
     selectedFaction = undefined;
     editedDeck = undefined;
+    editNotice = undefined;
     menuView = 'decks';
+    navigation.navigate('match');
   },
   onLeave(view) {
     menuView = view;
+    navigation.replace(view);
     if (reloadOnMatchExit) window.location.reload();
+  },
+});
+const navigation = createAppHistory({
+  window, document,
+  inMatch: () => turns.match?.phase === 'playing' || turns.match?.phase === 'mulligan',
+  confirmLeave: settings.confirmLeave,
+  showMenu({ screen: view, data }) {
+    if (turns.match?.phase === 'finished') {
+      navigation.navigate('match');
+      void session.leave();
+      return;
+    }
+    selectedFaction = data?.faction;
+    editedDeck = data?.deck;
+    editNotice = data?.notice;
+    showMenuScreen(view);
   },
 });
 const rewardReveal = createRewardReveal({
@@ -124,7 +145,7 @@ const openResources = createResourceBar(app.querySelector('.masthead'), document
   essence: { ...catalog, prepare: prepareCatalog },
   packCount: createBoosterOpening(progress, () => openResources('gold')),
 });
-progress.subscribe(() => screen.querySelector('.deck-editor, .deck-home, .all-decks, .finish, .league-panel, .rank-panel')?.dispatchEvent(new Event('collection-change')));
+progress.subscribe(() => emit('collection-change'));
 const reloadKeys = new Set([REWARD_STORAGE_KEY, DECK_STORAGE_KEY, RECENT_DECKS_KEY, FACTION_STATS_KEY]);
 window.addEventListener('storage', (event) => {
   if (event.storageArea !== storage) return;
@@ -132,7 +153,7 @@ window.addEventListener('storage', (event) => {
   if (decorationKeys.includes(event.key) || event.key === null) {
     if (event.key !== BATTLEFIELD_STORAGE_KEY) framePreferences.refresh();
     if (event.key !== FRAME_STORAGE_KEY) battlefieldPreferences.refresh();
-    screen.querySelector('.decorations-panel')?.dispatchEvent(new Event('decorations-change'));
+    emit('decorations-change');
   }
   if (decorationKeys.includes(event.key)) return;
   if (reloadKeys.has(event.key) && event.newValue === null) {
@@ -142,9 +163,7 @@ window.addEventListener('storage', (event) => {
     progress.refresh();
   }
 });
-const timers = createAppTimers(progress, () => {
-  screen.querySelector('.league-panel')?.dispatchEvent(new Event('league-tick'));
-});
+const timers = createAppTimers(progress, () => emit('league-tick'));
 window.addEventListener('pagehide', timers.stop);
 window.addEventListener('pageshow', timers.start);
 timers.start();
@@ -209,6 +228,13 @@ function showNotice(notice, text, duration) {
 }
 
 function goTo(view) {
+  const data = view === 'leader' ? { faction: selectedFaction }
+    : view === 'edit' ? { deck: editedDeck, notice: editNotice } : undefined;
+  navigation.navigate(view, data);
+  showMenuScreen(view);
+}
+
+function showMenuScreen(view) {
   menuView = view;
   render();
   window.scrollTo(0, 0);
@@ -217,8 +243,8 @@ function goTo(view) {
 
 function editDeck(deck, notice = '') {
   editedDeck = structuredClone(deck);
+  editNotice = notice;
   goTo('edit');
-  if (notice) screen.querySelector('.deck-save-status').textContent = notice;
 }
 
 function makeDeck(factionId, leaderId, source) {
@@ -246,6 +272,9 @@ function placeSelected(row, side) {
 }
 
 function render() {
+  screenEvents?.abort();
+  screenEvents = new AbortController();
+  const { signal } = screenEvents;
   const { match, replaying, targetAction } = turns;
   const leagueMatch = session.leagueOpponent;
   cancelPlacement();
@@ -262,7 +291,7 @@ function render() {
   else if (match?.phase === 'finished') {
     const settlement = session.describeResult(match);
     content = finishedScreen(match, phaseLabel, session.replay, session.leave,
-      settings.showBotThoughts(), session.canReplay, Boolean(leagueMatch), settlement);
+      settings.showBotThoughts(), session.canReplay, Boolean(leagueMatch), settlement, signal);
   } else {
     const back = () => goTo('all-decks');
     switch (menuView) {
@@ -272,7 +301,7 @@ function render() {
       }, back); break;
       case 'leader': content = leaderScreen(phaseLabel, selectedFaction, makeDeck, () => goTo('faction')); break;
       case 'edit': content = deckEditor(phaseLabel, editedDeck, {
-        back, inventory: progress.inventory, save: (deck) => deckStore.save(deck), play: (deck) => {
+        back, notice: editNotice, signal, inventory: progress.inventory, save: (deck) => deckStore.save(deck), play: (deck) => {
           deckStore.save(deck);
           session.start(deck);
         },
@@ -286,9 +315,9 @@ function render() {
           const details = missing.map(({ name, count }) => name + ' ×' + count);
           editDeck(deck, details.length ? status + ' Не хватает карт: ' + details.join(', ') + '.' : status);
         },
-      }, progress.inventory); break;
-      case 'decorations': content = decorationsScreen(phaseLabel, framePreferences, battlefieldPreferences, () => goTo('decks')); break;
-      case 'ranks': content = rankScreen(phaseLabel, progress, () => goTo('decks')); break;
+      }, progress.inventory, signal); break;
+      case 'decorations': content = decorationsScreen(phaseLabel, framePreferences, battlefieldPreferences, () => goTo('decks'), signal); break;
+      case 'ranks': content = rankScreen(phaseLabel, progress, () => goTo('decks'), signal); break;
       case 'league': content = leagueScreen(phaseLabel, {
         back: () => goTo('decks'),
         overview: () => leagueOverview.matches,
@@ -301,17 +330,14 @@ function render() {
         gold: () => progress.inventory().gold,
         play: session.startLeague,
         concede: (id) => progress.settleLeagueMatch(id, 'loss', -2),
-      }); break;
+      }, signal); break;
       default: content = deckHomeScreen(phaseLabel, stats, {
         base: openBase,
-        tavernRewards: () => {
-          const tavern = progress.tavern();
-          return tavern ? tavern.pending.length + tavern.slots.filter((quest) => !quest.claimed && questComplete(quest)).length : 0;
-        },
+        tavernRewards: () => tavernRewardCount(progress.tavern()),
         league: () => goTo('league'), ranks: () => goTo('ranks'),
         currentRank: () => rankStanding(progress.ranks().rounds).rank,
         catalog: () => openResources('essence'), decorations: () => goTo('decorations'), all: back, play: session.start,
-      }, () => deckStore.recent(progress.inventory().owned));
+      }, () => deckStore.recent(progress.inventory().owned), signal);
     }
   }
   app.classList.toggle('is-deck-home', content.classList.contains('deck-home'));
@@ -320,24 +346,7 @@ function render() {
   if (app.classList.contains('in-match')) resumeCardVideos(content);
   rewardReveal.refresh();
   menu.refresh(match, replaying);
-  const pending = !replaying && match?.pending?.side === 'human' ? match.pending : null;
-  const sourceId = pending?.job?.sourceId ?? targetAction?.cardId;
-  let source;
-  if (pending) {
-    source = sourceId
-      ? screen.querySelector(`[data-board-card="${CSS.escape(sourceId)}"] .unit-face`)
-      : screen.querySelector('[data-aim-leader="human"]');
-    if (!source) {
-      const card = match.effects.find(({ discard }) => discard?.id === sourceId)?.discard ??
-        findInPiles(targetAction?.before ?? match, pending.side, sourceId, ['hand', 'discard', 'deck'])?.card;
-      const prompt = screen.querySelector('.target-prompt, #deck-choice-title');
-      if (card?.definition.art && prompt) {
-        source = cardArt(card.definition, 'aim-source-art');
-        prompt.prepend(source);
-      }
-    }
-  }
-  aim.update(pending ? aimAnchor(source) ?? targetAction?.origin : undefined, aimTone(pending?.kind, pending?.selectionSide));
+  updatePendingAim(screen, aim, replaying ? null : match, targetAction);
 }
 
 render();

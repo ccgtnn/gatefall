@@ -1,3 +1,4 @@
+import { on } from './app-events.js';
 import { MONTHLY_RANKS, rankStanding } from '../game/ranks.js';
 import { element } from './dom.js';
 import { sectionBack } from './resources.js';
@@ -7,7 +8,7 @@ const rewards = [
   ['keys', 'Ключи'], ['steel', 'Сталь'], ['energyCells', 'Энергоячейки'], ['gateShards', 'Осколки врат'],
 ];
 
-export function rankScreen(phase, progress, back) {
+export function rankScreen(phase, progress, back, signal) {
   phase.textContent = '';
   const panel = element('section', 'rank-panel');
   const header = element('header', 'rank-header');
@@ -69,7 +70,7 @@ export function rankScreen(phase, progress, back) {
     }
   }
 
-  panel.addEventListener('collection-change', update);
+  on('collection-change', update, { signal });
   update();
   return panel;
 }

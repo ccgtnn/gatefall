@@ -1,3 +1,9 @@
+// @ts-check
+
+/** @typedef {import('../../types/contracts').Counts} Counts */
+/** @typedef {import('../../types/contracts').Deck} Deck */
+/** @typedef {import('../../types/contracts').DeckInspection} DeckInspection */
+
 import { FACTIONS } from './cards.js';
 import { NEUTRAL } from './card-metadata.js';
 import { cardsForFaction } from './card-registry.js';
@@ -63,6 +69,11 @@ export const PRESETS = Object.freeze([
   factionPreset('captains'),
 ]);
 
+/**
+ * @param {Partial<Deck> | null} [deck]
+ * @param {Counts} [owned]
+ * @returns {DeckInspection}
+ */
 export function inspectDeck(deck, owned) {
   const faction = groups.get(deck?.factionId);
   const leader = faction?.leaders.find(({ id, legacyId }) => id === deck.leaderId || (legacyId && legacyId === deck.leaderId));

@@ -1,3 +1,11 @@
+// @ts-check
+
+/** @typedef {import('../../types/contracts').Action} Action */
+/** @typedef {import('../../types/contracts').ActionOptions} ActionOptions */
+/** @typedef {import('../../types/contracts').MatchOptions} MatchOptions */
+/** @typedef {import('../../types/contracts').MatchState} MatchState */
+/** @typedef {import('../../types/contracts').Side} Side */
+
 import { inspectDeck, ORBITAL_STRIKE_PRESET, REBIRTH_PRESET } from './decks.js';
 import { FACTIONS, FIRST_SIGNAL } from './cards.js';
 import { ROWS } from './card-metadata.js';
@@ -20,7 +28,7 @@ export const MATCH_RULES = Object.freeze({
 });
 
 function emptyBoard() {
-  return Object.fromEntries(ROWS.map((row) => [row, []]));
+  return { orbit: [], surface: [] };
 }
 
 function shuffle(cards, random) {
@@ -65,6 +73,10 @@ function createPlayer(side, definitions, random, factionId, leader, charges) {
   };
 }
 
+/**
+ * @param {MatchOptions} [options]
+ * @returns {MatchState}
+ */
 export function createMatch({ decks, humanFaction = decks ? undefined : 'protectorate', humanLeader, botLeader, botFaction: selectedBotFaction, random = Math.random, rules = MATCH_RULES } = {}) {
   const settings = { ...MATCH_RULES, ...rules };
   const human = FACTIONS[humanFaction];
@@ -149,11 +161,19 @@ export function playableCards(match, side) {
   return match.players[side].hand.filter((card) => canPlayCard(match, side, card));
 }
 
+/**
+ * @param {MatchState} match
+ * @param {Side} side
+ */
 export function canPass(match, side) {
   return match.phase === 'playing' && match.turn === side && !match.pending &&
     !match.playedCard && !match.players[side].passed && !match.players[side].usedAbility;
 }
 
+/**
+ * @param {MatchState} match
+ * @param {Side} side
+ */
 export function canEndTurn(match, side) {
   return match.phase === 'playing' && match.turn === side && !match.pending &&
     (match.playedCard || (match.players[side].usedAbility && !playableCards(match, side).length));
@@ -372,6 +392,13 @@ function resumeEffect(match, side, action, random, copy) {
   return next;
 }
 
+/**
+ * @param {MatchState} match
+ * @param {Side} side
+ * @param {Action} action
+ * @param {ActionOptions} [options]
+ * @returns {MatchState}
+ */
 export function applyAction(match, side, action, { random = Math.random, copy = structuredClone } = {}) {
   if (match.phase !== 'playing') return match;
   if (match.pending) return resumeEffect(match, side, action, random, copy);

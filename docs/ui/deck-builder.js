@@ -1,3 +1,4 @@
+import { on } from './app-events.js';
 import { FACTIONS } from '../game/cards.js';
 import { NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/card-metadata.js';
 import { FACTION_CATALOG, UPCOMING_FACTIONS } from '../game/faction-catalog.js';
@@ -73,7 +74,7 @@ function deckListItem(deck, stats, actions) {
 
 const campaigns = [];
 
-export function deckHomeScreen(phaseLabel, stats, actions, recentDecks) {
+export function deckHomeScreen(phaseLabel, stats, actions, recentDecks, signal) {
   phaseLabel.textContent = '';
   const screen = element('section', 'deck-home');
   const sections = element('section', 'home-block');
@@ -105,12 +106,12 @@ export function deckHomeScreen(phaseLabel, stats, actions, recentDecks) {
       PRESETS.includes(deck) ? stats : undefined, { play: actions.play }).item);
     list.replaceChildren(...(cards.length ? cards : [element('p', 'muted', 'Нет доступных колод.')]));
   }
-  screen.addEventListener('collection-change', update);
+  on('collection-change', update, { signal });
   update();
   return screen;
 }
 
-export function deckListScreen(phaseLabel, decks, stats, actions, inventory) {
+export function deckListScreen(phaseLabel, decks, stats, actions, inventory, signal) {
   phaseLabel.textContent = '';
   const screen = element('section', 'all-decks');
   screen.setAttribute('aria-label', 'Все колоды');
@@ -163,7 +164,7 @@ export function deckListScreen(phaseLabel, decks, stats, actions, inventory) {
         : !preset && !items.length ? 'Пока нет сохранённых колод.' : 'Нет доступных колод.';
     }
   }
-  screen.addEventListener('collection-change', update);
+  on('collection-change', update, { signal });
   update();
   return screen;
 }
@@ -199,7 +200,7 @@ export function factionPicker(phaseLabel, select, back) {
   return screen;
 }
 
-export function deckEditor(phaseLabel, deck, { save, play, back, inventory }) {
+export function deckEditor(phaseLabel, deck, { save, play, back, inventory, notice, signal }) {
   phaseLabel.textContent = '';
   const screen = element('section', 'deck-editor');
   screen.setAttribute('aria-label', 'Редактор колоды');
@@ -222,7 +223,7 @@ export function deckEditor(phaseLabel, deck, { save, play, back, inventory }) {
   totals.setAttribute('aria-live', 'polite');
   const errors = element('ul', 'deck-invalid');
   const owned = element('ul', 'deck-owned-list');
-  const status = element('p', 'deck-save-status');
+  const status = element('p', 'deck-save-status', notice);
   status.setAttribute('role', 'status');
   const playButton = button('Играть', () => {
     if (inspectDeck(deck, inventory().owned).valid) play(deck);
@@ -352,7 +353,7 @@ export function deckEditor(phaseLabel, deck, { save, play, back, inventory }) {
     updateDeck(owned);
   }
 
-  screen.addEventListener('collection-change', updateCollection);
+  on('collection-change', updateCollection, { signal });
   name.addEventListener('input', () => { deck.name = name.value; changed(); });
   leader.input.addEventListener('change', () => { deck.leaderId = leader.input.value; changed(); });
   search.addEventListener('input', updateCollection);

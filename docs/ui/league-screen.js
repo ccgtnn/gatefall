@@ -1,3 +1,4 @@
+import { on } from './app-events.js';
 import { DIAMOND, LEAGUE_BOTS, LEAGUES, LEAGUE_RULES, leagueDivision, leagueOpponent, leagueStake, leagueTable, leagueTicket } from '../game/league.js';
 import { leagueAvatar, LORE_FACTIONS, setLeagueSpeech } from './league-character.js';
 import { leagueProfile, leagueRecord, leagueRoundRecord, LEAGUE_DIFFICULTY_LABELS } from './league-profile.js';
@@ -16,7 +17,7 @@ const actionErrors = {
   'invalid-deck': 'Эта колода больше недоступна.',
 };
 
-export function leagueScreen(phase, actions) {
+export function leagueScreen(phase, actions, signal) {
   phase.textContent = '';
   const panel = element('section', 'league-panel');
   const content = element('div', 'league-content');
@@ -238,9 +239,9 @@ export function leagueScreen(phase, actions) {
     updateClock();
   }
 
-  panel.addEventListener('league-tick', updateClock);
-  panel.addEventListener('league-layout-change', update);
-  panel.addEventListener('collection-change', () => { if (!busy) update(); });
+  on('league-tick', updateClock, { signal });
+  on('league-layout-change', update, { signal });
+  on('collection-change', () => { if (!busy) update(); }, { signal });
   update();
   if (league) {
     updateClock();

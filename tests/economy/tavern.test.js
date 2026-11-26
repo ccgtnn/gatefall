@@ -7,7 +7,7 @@ import { announcePlay, applyStatus, createCard, damage, spawnCards, tickInfectio
 import { createMatch } from '../../docs/game/match.js';
 import { leagueTicket } from '../../docs/game/league.js';
 import { PRESETS } from '../../docs/game/decks.js';
-import { TAVERN_QUESTS, tavernEventAmounts } from '../../docs/game/tavern.js';
+import { TAVERN_QUESTS, tavernEventAmounts, tavernRewardCount } from '../../docs/game/tavern.js';
 
 const midnight = new Date(2026, 10, 24).getTime();
 const previousDay = midnight - 2 * 3_600_000;
@@ -171,4 +171,14 @@ test('only actual collections and finished league matches advance their quests',
   await wallet.beginLeagueMatch(leagueTicket(wallet.league()), 'played', PRESETS[0]);
   await wallet.settleLeagueMatch('played', 'draw', 0, 'protectorate');
   assert.equal(wallet.tavern().slots[0].progress, 1);
+});
+
+test('the tavern badge counts saved rewards and completed unclaimed current quests', () => {
+  const tavern = { pending: [{ id: 'booster' }], slots: [
+    { id: 'wins', progress: 2, claimed: false },
+    { id: 'matches', progress: 3, claimed: true },
+    { id: 'collect', progress: 0, claimed: false },
+  ] };
+  assert.equal(tavernRewardCount(tavern), 2);
+  assert.equal(tavernRewardCount(null), 0);
 });

@@ -1,3 +1,6 @@
+import { pendingEffectSource } from '../game/effect-queries.js';
+import { cardArt } from './card-art.js';
+
 const TARGET = '[data-aim-target]';
 const COLORS = {
   damage: '#ff6649',
@@ -141,4 +144,23 @@ export function bindTargeting(screen, cancel) {
 
 export function aimAnchor(node) {
   return node && (() => center(node));
+}
+
+export function updatePendingAim(screen, aim, match, targetAction) {
+  const pending = match?.pending?.side === 'human' ? match.pending : null;
+  let source;
+  if (pending) {
+    const { sourceId, card } = pendingEffectSource(match, targetAction);
+    source = sourceId
+      ? screen.querySelector(`[data-board-card="${CSS.escape(sourceId)}"] .unit-face`)
+      : screen.querySelector('[data-aim-leader="human"]');
+    if (!source) {
+      const prompt = screen.querySelector('.target-prompt, #deck-choice-title');
+      if (card?.definition.art && prompt) {
+        source = cardArt(card.definition, 'aim-source-art');
+        prompt.prepend(source);
+      }
+    }
+  }
+  aim.update(pending ? aimAnchor(source) ?? targetAction?.origin : undefined, aimTone(pending?.kind, pending?.selectionSide));
 }

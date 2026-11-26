@@ -16,6 +16,15 @@ export function pauseForChoice(match, job, kind, key, options, prompt, extra) {
   return PAUSED;
 }
 
+export function pendingEffectSource(match, { cardId, before } = {}) {
+  const pending = match.pending;
+  if (!pending) return;
+  const sourceId = pending.job?.sourceId ?? cardId;
+  const card = match.effects.find(({ discard }) => discard?.id === sourceId)?.discard ??
+    findInPiles(before ?? match, pending.side, sourceId, ['hand', 'discard', 'deck'])?.card;
+  return { sourceId, card };
+}
+
 export function reference(match, job, key = 'source') {
   if (key === 'source' && job.piles) return findInPiles(match, job.side, job.sourceId, job.piles);
   return findUnit(match, key === 'source' ? job.sourceId : job.refs?.[key]);
