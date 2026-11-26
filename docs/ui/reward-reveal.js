@@ -71,7 +71,9 @@ export function createRewardReveal({ motion, canShow, showEssence = () => {} }) 
   const actions = element('footer', 'reward-reveal-actions');
   const collect = button('Получить', () => advance(false), 'button primary');
   collect.autofocus = true;
+  collect.dataset.action = 'collect';
   const all = button('Забрать всё', () => advance(true));
+  all.dataset.action = 'collect-all';
   actions.append(collect, all);
   dialog.append(header, items, actions);
   document.body.append(dialog);
