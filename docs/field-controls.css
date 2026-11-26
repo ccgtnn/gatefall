@@ -1,4 +1,4 @@
-.field-rail {
+field-rail {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
   gap: var(--field-gap);
@@ -129,7 +129,6 @@
   .field-hand-numbers {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
     gap: .1rem .45em;
     font-size: clamp(.6rem, .85vw, .8rem);
     font-variant-numeric: tabular-nums;
@@ -218,7 +217,7 @@
   transform: translateX(-50%);
   border-radius: 50%;
 }
-.card-state.unit-order { z-index: 1; }
+.card-state.unit-order { z-index: 4; }
 button.unit-order:not(:disabled)::before {
   content: '';
   position: absolute;
