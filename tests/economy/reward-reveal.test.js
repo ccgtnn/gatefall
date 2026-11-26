@@ -120,10 +120,6 @@ test('the reward dialog waits for the results gate and lets the player collect a
       const key = attribute[1].replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
       return node.dataset[key] !== undefined && (attribute[2] === undefined || node.dataset[key] === attribute[2]);
     }
-    const negated = selector.match(/^([a-z]+):not\(\.([a-z-]+)\)$/);
-    if (negated) {
-      return node.tagName === negated[1].toUpperCase() && !node.className?.split(' ').includes(negated[2]);
-    }
     return node.tagName === selector.toUpperCase();
   };
   const descendants = (node) => node.children.flatMap((child) => [child, ...descendants(child)]);
@@ -168,8 +164,8 @@ test('the reward dialog waits for the results gate and lets the player collect a
   const title = dialog.querySelector('#reward-reveal-title');
   const counter = dialog.querySelector('.reward-reveal-count');
   const items = dialog.querySelector('.reward-reveal-items');
-  const receive = dialog.querySelector('.reward-reveal-actions .primary');
-  const all = dialog.querySelector('.reward-reveal-actions button:not(.primary)');
+  const receive = dialog.querySelector('[data-action="collect"]');
+  const all = dialog.querySelector('[data-action="collect-all"]');
   const nextTick = () => new Promise((resolve) => setTimeout(resolve, 0));
   enqueueReward(entry('Победа', { gold: 20 }));
   enqueueReward(entry('Ранги', { keys: 2 }));
