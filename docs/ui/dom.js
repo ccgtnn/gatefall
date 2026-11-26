@@ -37,3 +37,22 @@ export function selectField(label, options, className = 'deck-field') {
   field.append(element('span', null, label), input);
   return { field, input };
 }
+
+export function createBusyGuard() {
+  let active = false;
+  return {
+    get active() { return active; },
+    async run(task) {
+      if (active) return;
+      active = true;
+      try {
+        return await task();
+      } catch (error) {
+        console.error('UI action failed', error);
+        return 'unavailable';
+      } finally {
+        active = false;
+      }
+    },
+  };
+}

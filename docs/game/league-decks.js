@@ -18,6 +18,8 @@ function leagueDeck(id, presetId, replacements) {
 const decks = {
   protectorate: presets['preset-protectorate'],
   growth: presets['preset-growth'],
+  captains: presets['preset-captains'],
+  choir: presets['preset-choir'],
   plague: presets['preset-growth-plague'],
   rebirth: presets['preset-growth-rebirth'],
   formation: leagueDeck('formation', 'protectorate', [

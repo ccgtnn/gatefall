@@ -59,6 +59,7 @@ export function createMatchSession({
     turns.reset(next);
     matchRewardId = league?.id ?? matchId();
     leagueOpponent = league?.bot;
+    turns.warmBot(leagueOpponent?.difficulty ?? settings.difficulty());
     leagueDialogue = leagueOpponent && createLeagueDialogue(leagueOpponent);
     const greeting = leagueDialogue?.start(progress.league());
     if (greeting) next.log.push(greeting);

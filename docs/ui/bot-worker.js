@@ -10,3 +10,5 @@ globalThis.addEventListener('message', ({ data: { match, difficulty, withTrace }
     globalThis.postMessage({ error: String(error.message ?? error) });
   }
 });
+
+globalThis.postMessage({ ready: true });

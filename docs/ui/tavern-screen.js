@@ -1,5 +1,5 @@
 import { questComplete, TAVERN_QUEST_BY_ID } from '../game/tavern.js';
-import { button, element } from './dom.js';
+import { button, createBusyGuard, element } from './dom.js';
 import { sectionDialog } from './resources.js';
 import { resourceIcon } from './resource-icon.js';
 
@@ -15,7 +15,7 @@ export function createTavernScreen(progress) {
   status.setAttribute('role', 'status');
   shell.append(heading, clock, replacement, list, status);
   let state;
-  let busy = false;
+  const busy = createBusyGuard();
   let timer;
 
   function tick() {
@@ -62,11 +62,11 @@ export function createTavernScreen(progress) {
       actions.append(element('span', 'muted', 'Получено'));
     } else if (questComplete(quest)) {
       const accept = button('Забрать', () => run(() => progress.claimTavernQuest(quest.key), 'Награда получена.', quest.key), 'button primary');
-      accept.disabled = busy;
+      accept.disabled = busy.active;
       actions.append(accept);
     } else {
       const replace = button('Сменить', () => run(() => progress.changeTavernQuest(quest.key), 'Задание заменено.', quest.key));
-      replace.disabled = busy || Boolean(state.replaced);
+      replace.disabled = busy.active || Boolean(state.replaced);
       actions.append(replace);
     }
     item.dataset.quest = quest.key;
@@ -75,20 +75,21 @@ export function createTavernScreen(progress) {
   }
 
   async function run(action, success, key) {
-    if (busy) return;
-    busy = true;
+    if (busy.active) return;
     const index = [...list.children].findIndex((item) => item.dataset.quest === key);
-    update();
-    const result = await action();
-    if (result === 'stale') await progress.checkpointTavern();
-    busy = false;
+    const result = await busy.run(async () => {
+      update();
+      const outcome = await action();
+      if (outcome === 'stale') await progress.checkpointTavern();
+      return outcome;
+    });
     update();
     status.textContent = result === 'done' ? success
       : result === 'stale' ? 'Задание обновилось.' : 'Не удалось сохранить изменение.';
     if (dialog.open) (list.children[index]?.querySelector('button:enabled') ?? dialog.querySelector('.section-back')).focus();
   }
 
-  progress.subscribe(() => { if (dialog.open && !busy) update(); });
+  progress.subscribe(() => { if (dialog.open && !busy.active) update(); });
   dialog.addEventListener('close', () => {
     if (!dialog.open) clearInterval(timer);
   });

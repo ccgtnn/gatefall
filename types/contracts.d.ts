@@ -287,6 +287,7 @@ export interface LeaderDefinition {
   artFocus?: string;
   artZoom?: number;
   legacyId?: string;
+  keywords?: readonly string[];
   provisionBonus?: number;
   charges?: number;
   order?: LeaderOrder;

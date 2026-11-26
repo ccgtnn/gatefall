@@ -2,7 +2,7 @@ import { ROWS } from './card-metadata.js';
 import { cardType, findUnit, isUnit, neighbors, placementSide, restoreCard, statusCount, units } from './board.js';
 import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
-import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, pendingUnitPriority, rowDamage, rowEffectValue, rowScatterValue } from './bot-effect-value.js';
+import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, pendingUnitPriority, rowDamage, rowEffectValue, rowScatterValue, tributeTarget } from './bot-effect-value.js';
 import { armorBreakEmergence, consumeBonus, delayedCardValue, futureContext, inheritancePayoff, wantsToHoldInheritance } from './bot-future-value.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, availableRows, canEndTurn, canPass, playableCards, totalScore } from './match.js';
 
@@ -287,7 +287,9 @@ export function chooseBotTurn(match, difficulty = 'easy', options = {}) {
   let action;
   const repeatableOrder = !match.pending && match.phase === 'playing' && match.turn === 'bot' &&
     availableOrders(match, 'bot').find(({ card }) => card.definition.aiHints?.useOrderWhenReady);
-  if (['sacrifice', 'tribute', 'hand-bottom'].includes(match.pending?.kind)) {
+  if (match.pending?.kind === 'tribute' && difficulty !== 'easy') {
+    action = tributeTarget(match);
+  } else if (['sacrifice', 'tribute', 'hand-bottom'].includes(match.pending?.kind)) {
     action = pickBotTarget(match);
   } else if (match.pending && (difficulty !== 'easy' || match.pending.kind === 'deck-placement')) {
     action = chooseStrategicTarget(match, pickBotTarget, difficulty, strategy);

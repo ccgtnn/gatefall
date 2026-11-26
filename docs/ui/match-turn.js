@@ -223,6 +223,6 @@ export function createMatchTurn({
     get replaying() { return replaying; },
     get targetAction() { return targetAction; },
     setMatch: (next) => { match = next; },
-    reset, humanCanAct, playHuman, updateMatch, cancelTargeting,
+    reset, warmBot: botSearch.warm, humanCanAct, playHuman, updateMatch, cancelTargeting,
   };
 }

@@ -316,6 +316,17 @@ test('Both tentacles only hit the immediate unit to their right and grow on surv
   }
 });
 
+test('armor only triggers a damage reaction when a hit also removes power', () => {
+  for (const [amount, power, boosted] of [[2, 2, false], [3, 3, true]]) {
+    const match = setup({ orbit: [{ ...TENTACLE, armor: 2 }] });
+    hit(match, 'orbit-0', amount);
+    assert.equal(get(match, 'orbit-0').power, power);
+    assert.equal(get(match, 'orbit-0').armor, 0);
+    assert.equal(match.log.find(({ type }) => type === 'damage').lost, amount - 2);
+    assert.equal(match.log.some(({ type }) => type === 'boost'), boosted);
+  }
+});
+
 test('Scenario prologue surrounds the artifact and Fanatic transformation triggers chapter one', () => {
   const match = play(setup({ hand: [AWAKENING], orbit: [unit(9)], deck: [FANATIC, unit(4)] }), 'orbit', 0);
   const row = human(match).board.orbit;
@@ -403,6 +414,13 @@ test('Sleeper hits both adjacent units, gains actual damage and readies an order
   hit(ordered, sleeper.id, 20);
   assert.ok(human(ordered).exile.some(({ id }) => id === sleeper.id));
   assert.ok(!human(ordered).discard.some(({ id }) => id === sleeper.id));
+
+  const armored = setup({ orbit: [SLEEPER, { ...unit(2), armor: 1 }] });
+  get(armored, 'orbit-0').readyAt = 2;
+  enqueueEndTurn(armored, 'human');
+  drain(armored);
+  assert.equal(get(armored, 'orbit-0').power, 8);
+  assert.equal(get(armored, 'orbit-0').readyAt, 2);
 
   const shielded = setup({ orbit: [SLEEPER, { ...unit(2), shield: true }] });
   get(shielded, 'orbit-0').readyAt = 2;

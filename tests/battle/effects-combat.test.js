@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { chooseBotTurn } from '../../docs/game/bot.js';
-import { createCard, damage, findUnit, restoreCard } from '../../docs/game/board.js';
+import { createCard, damage, findUnit, restoreCard, transformUnit } from '../../docs/game/board.js';
 import { LARVA } from '../../docs/game/cards.js';
 import { availableOrders, runEffect } from '../../docs/game/effects.js';
 import { applyAction, ROW_LIMIT } from '../../docs/game/match.js';
@@ -231,4 +231,68 @@ test('Spitter infects on deployment and its reusable Order bypasses armor when i
     match = play(match, 'plain-' + i, i + 1);
   }
   assert.ok(applyAction(match, 'human', order).pending);
+});
+
+test('a transformed unit gets normal order delay unless it has Zeal', () => {
+  for (const zeal of [false, true]) {
+    const match = fixture();
+    const player = match.players.human;
+    player.turns = 4;
+    board(match, 'human', 'surface', unit('changed', 'frigate'));
+    const order = { steps: [{ action: 'boost', target: { scope: 'source' }, amount: 1 }] };
+    transformUnit(match, findUnit(match, 'changed'), { ...basic, zeal, order });
+    assert.equal(findUnit(match, 'changed').card.readyAt, zeal ? 4 : 5);
+    assert.equal(availableOrders(match, 'human').length, Number(zeal));
+    player.turns += 1;
+    assert.equal(availableOrders(match, 'human').length, 1);
+  }
+});
+
+test('measured damage counts lost power and runs Slay only on a lethal hit', () => {
+  for (const [amount, lost, kills] of [[2, 0, false], [3, 1, false], [6, 4, true]]) {
+    const match = fixture();
+    board(match, 'human', 'surface', unit('striker', 'frigate'));
+    board(match, 'bot', 'surface', unit('defender', 'frigate', { armor: 2 }));
+    match.effects.push({ side: 'human', sourceId: 'striker', ability: { steps: [
+      { action: 'damage', target: { scope: 'enemy' }, amount, measureDamage: true, save: 'wounds',
+        slay: { steps: [{ action: 'boost', target: { scope: 'source' }, amount: 9 }] } },
+      { action: 'boost', target: { scope: 'source' }, amount: { result: 'wounds' } },
+    ] } });
+    drain(match, () => 0);
+    assert.equal(findUnit(match, 'defender') === undefined, kills);
+    assert.equal(findUnit(match, 'striker').card.power, 4 + lost + (kills ? 9 : 0));
+  }
+});
+
+test('grouped consumption without a live receiver leaves its victims untouched', () => {
+  const match = fixture();
+  board(match, 'human', 'surface', unit('survivor', 'frigate'));
+  match.effects.push({ side: 'human', sourceId: 'dead-consumer', ability: { steps: [
+    { action: 'consume', target: { scope: 'ally' }, receiver: { scope: 'source' }, grouped: true },
+  ] } });
+  drain(match, () => 0);
+  assert.ok(findUnit(match, 'survivor'));
+  assert.deepEqual(events(match, 'consume-group'), []);
+});
+
+test('countdown effects identify their source card in the journal', () => {
+  const match = fixture();
+  board(match, 'human', 'surface', unit('countdown', 'frigate', {
+    counter: { amount: 1, effect: { steps: [{ action: 'boost', target: { scope: 'source' }, amount: 1 }] } },
+  }));
+  match.effects.push({ side: 'human', sourceId: 'countdown', ability: { steps: [
+    { action: 'counter', target: { scope: 'source' } },
+  ] } });
+  drain(match, () => 0);
+  assert.equal(events(match, 'boost')[0].sourceDefinitionId, 'frigate');
+});
+
+test('spawning with all rows and overflow fills orbit and then surface', () => {
+  const match = fixture();
+  board(match, 'human', 'orbit', ...Array.from({ length: ROW_LIMIT - 1 }, (_, i) => unit('filler-' + i, 'frigate')));
+  match.effects.push({ side: 'human', ability: { steps: [
+    { action: 'spawn', card: LARVA, row: 'all', overflow: true, amount: 2 },
+  ] } });
+  drain(match, () => 0);
+  assert.deepEqual(events(match, 'spawn').map(({ row, count }) => [row, count]), [['orbit', 1], ['surface', 1]]);
 });

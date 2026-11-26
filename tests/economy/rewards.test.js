@@ -279,7 +279,8 @@ test('all cards unlock at their copy limits and can be crafted again after disma
 test('concurrent pack opening charges once, and a failed craft leaves essence untouched', async () => {
   const storage = localStorage();
   storage.setItem(REWARD_STORAGE_KEY, JSON.stringify({ unlocked: ['growth:signal', 'growth:supply'] }));
-  const locks = { request: async (_name, commit) => commit() };
+  let queue = Promise.resolve();
+  const locks = { request: (_name, commit) => (queue = queue.then(commit)) };
   const first = createRewardProgress(storage, locks);
   const second = createRewardProgress(storage, locks);
   assert.deepEqual(await Promise.all([first.openPack('growth'), second.openPack('growth')]), ['done', 'pending']);
@@ -416,4 +417,12 @@ test('all three rarities have their own names, essence prices and copy limits', 
     ['Эпическая', 400, 100, 1],
     ['Легендарная', 800, 200, 1],
   ]);
+});
+
+test('a corrupt booster ledger reports zero and cannot grant free packs', async () => {
+  const wallet = createRewardProgress(localStorage({ startingGold: 100, purchased: { choir: 1 }, opened: { choir: 3 } }));
+  assert.equal(wallet.inventory().boosters.choir, 0);
+  assert.equal(await wallet.openPack('choir'), 'empty');
+  assert.equal(wallet.inventory().pendingPack, null);
+  assert.equal(wallet.inventory().packCount, 0);
 });

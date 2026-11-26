@@ -1,11 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { CARD_DEFINITIONS } from '../../docs/game/card-registry.js';
-import { FACTIONS, FIRST_SIGNAL, LARVA, SHADOW } from '../../docs/game/cards.js';
-import { HOUND, REINFORCED_HOUND } from '../../docs/game/captains.js';
-import { CHOIR_CARDS } from '../../docs/game/choir.js';
-import { DEVOURER_SPAWN } from '../../docs/game/growth.js';
+import { FACTIONS } from '../../docs/game/cards.js';
 import { EFFECT_SCHEMA } from '../../docs/game/effect-schema.js';
+import { visitDefinitions } from '../helpers/effect-definitions.js';
 
 function checkKeys(value, kind, path) {
   if (Array.isArray(value)) {
@@ -23,9 +21,12 @@ function checkKeys(value, kind, path) {
 }
 
 test('all cards, tokens, leaders and scenario chapters use known DSL keys', () => {
-  const cards = new Set([
-    ...CARD_DEFINITIONS, ...CHOIR_CARDS, FIRST_SIGNAL, LARVA, SHADOW, HOUND, REINFORCED_HOUND, DEVOURER_SPAWN,
-  ]);
+  const cards = new Set(CARD_DEFINITIONS);
+  visitDefinitions((value) => {
+    if (typeof value.id === 'string' && typeof value.name === 'string' && (value.token || value.stratagem)) {
+      cards.add(value);
+    }
+  });
   for (const card of cards) checkKeys(card, 'card', `${card.name} (${card.id})`);
   for (const { leaders } of Object.values(FACTIONS)) {
     for (const leader of leaders) checkKeys(leader, 'leader', `${leader.name} (${leader.id})`);

@@ -1,5 +1,5 @@
 import { refreshPremiumArt, resumeCardVideos } from './card-art.js';
-import { button, element, selectField } from './dom.js';
+import { button, createBusyGuard, element, selectField } from './dom.js';
 import { createCard } from '../game/board.js';
 import { CARD_TYPES, NEUTRAL, RARITY_LABELS } from '../game/card-metadata.js';
 import { CATALOG_CARDS } from '../game/card-registry.js';
@@ -45,7 +45,7 @@ export function catalogScreen(progress, isOpen) {
   count.setAttribute('role', 'status');
   const grid = element('div', 'catalog-grid');
   const empty = element('p', 'catalog-empty muted', 'Карты не найдены.');
-  let busy = false;
+  const busy = createBusyGuard();
   let visible = [];
   let tradeView;
   const items = new Map(CATALOG_CARDS.map((definition) => [definition.id, createEntry(definition)]));
@@ -120,20 +120,20 @@ export function catalogScreen(progress, isOpen) {
         const copies = owned[definition.id];
         quantity.textContent = `В коллекции · ${copies}`;
         balance.textContent = `Эссенция · ${essence}`;
-        craft.disabled = busy || copies >= copyLimit(definition) || essence < price;
+        craft.disabled = busy.active || copies >= copyLimit(definition) || essence < price;
         craft.title = copies >= copyLimit(definition) ? 'Для колоды уже хватает копий'
           : essence < price ? 'Нужно больше эссенции' : craft.getAttribute('aria-label');
-        dismantle.disabled = confirm.disabled = busy || !copies;
+        dismantle.disabled = confirm.disabled = busy.active || !copies;
       },
     };
     tradeView.update(progress.inventory());
 
     async function trade(action) {
-      if (busy) return;
-      busy = true;
-      update();
-      const result = await progress[action](definition.id);
-      busy = false;
+      if (busy.active) return;
+      const result = await busy.run(() => {
+        update();
+        return progress[action](definition.id);
+      });
       update();
       const success = action === 'craft' ? `Создана карта «${definition.name}».`
         : `Распылена карта «${definition.name}».`;

@@ -330,7 +330,7 @@ test('all divisions exchange exactly their top and bottom pairs and reset simult
   assert.ok(visitors.length);
   for (const visitor of visitors) {
     assert.equal(visitor.difficulty, visitor.strength <= 4 ? 'easy' : 'normal');
-    assert.equal(visitor.deck.factionId, visitor.loreFaction === 'growth' ? 'growth' : 'protectorate');
+    assert.equal(visitor.deck.factionId, ['growth', 'captains', 'choir'].includes(visitor.loreFaction) ? visitor.loreFaction : 'protectorate');
   }
   assert.equal(LEAGUE_BOTS.get('frontier-rookie-3').difficulty, 'hard');
 });

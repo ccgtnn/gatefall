@@ -145,7 +145,7 @@ export function bindCardPlacement(screen, play, inspect) {
 
   screen.addEventListener('pointercancel', cancelPointer);
   screen.addEventListener('lostpointercapture', cancelPointer);
-  screen.addEventListener('keydown', (event) => {
+  doc.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') cancel();
   });
   return cancel;

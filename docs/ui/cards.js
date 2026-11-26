@@ -102,7 +102,7 @@ export function showCard(card, options = {}) {
   if (deathwishDefinitions(card).length) glossaryWords.add('Завещание');
   if (marked) glossaryWords.add('Цель');
   if (locked) glossaryWords.add('Блокировка');
-  if (infection || definition.id === 'carrier') glossaryWords.add('Заражение');
+  if (infection) glossaryWords.add('Заражение');
   if (hasShield || card.statuses?.shield === 0) glossaryWords.add('Силовой щит');
   if (definition.endTurn) glossaryWords.add('Конец хода');
   if (definition.order) glossaryWords.add('Приказ');
@@ -227,17 +227,7 @@ function keywordsFor(card) {
   return [...words].filter((word) => keywordIcons[word]);
 }
 
-function bottomStatus(card) {
-  if (deathwishDefinitions(card).length) return 'Завещание';
-  if (card.resilient) return 'Стойкость';
-  if (statusCount(card, 'immune')) return 'Неуязвимость';
-  if (statusCount(card, 'doomed')) return 'Обречённая';
-  if (card.definition.endTurn) return 'Конец хода';
-}
-
-function passiveBadge(card) {
-  const status = bottomStatus(card);
-  if (!status) return;
+function passiveBadge(status) {
   const badge = element('span', 'card-state', keywordIcons[status] ?? '○');
   badge.title = status;
   badge.setAttribute('role', 'img');
@@ -321,18 +311,29 @@ function liveBadges(node, card, { orderOnField, showProvision, orderReady, order
     node.append(statBadge('lock', 'Блокировка'));
     return;
   }
-  if (orderOnField) return;
-  if (growthValue(card) !== undefined) {
-    node.append(statBadge('hourglass', card.definition.growth.label + ': ' + growthValue(card), growthValue(card)));
-  } else if (counter > 0 || timer !== undefined) {
-    node.append(statBadge('hourglass', (timer === undefined ? 'Счётчик ' : 'Таймер ') + (timer ?? counter), timer ?? counter));
-  } else if (definition.order) {
+  const badges = [];
+  const growth = growthValue(card);
+  if (growth !== undefined) badges.push(statBadge('hourglass', definition.growth.label + ': ' + growth, growth));
+  if (counter > 0) badges.push(statBadge('hourglass', 'Счётчик ' + counter, counter));
+  if (timer !== undefined) badges.push(statBadge('hourglass', 'Таймер ' + timer, timer));
+  if (definition.order && !orderOnField) {
     const label = orderReady ? 'Приказ готов' : orderCooldown ? 'Перезарядка Приказа: ' + orderCooldown : 'Приказ';
-    node.append(orderBadge(orderReady, orderCooldown, card.orderCharges === undefined
+    badges.push(orderBadge(orderReady, orderCooldown, card.orderCharges === undefined
       ? label : label + ' · Осталось зарядов: ' + card.orderCharges, card.orderCharges));
+  }
+  if (deathwishDefinitions(card).length) badges.push(passiveBadge('Завещание'));
+  if (card.resilient) badges.push(passiveBadge('Стойкость'));
+  if (statusCount(card, 'immune')) badges.push(passiveBadge('Неуязвимость'));
+  if (statusCount(card, 'doomed')) badges.push(passiveBadge('Обречённая'));
+  if (definition.endTurn) badges.push(passiveBadge('Конец хода'));
+  if (!badges.length) return;
+  if (badges.length === 1 && !orderOnField) {
+    node.append(badges[0]);
   } else {
-    const badge = passiveBadge(card);
-    if (badge) node.append(badge);
+    const badgesRow = element('span', 'card-timing-badges');
+    badgesRow.classList.toggle('is-above-order', orderOnField);
+    badgesRow.append(...badges);
+    node.append(badgesRow);
   }
 }
 

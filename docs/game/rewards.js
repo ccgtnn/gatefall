@@ -91,17 +91,16 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
 
   function balances(state) {
     const { progress, dismantlingEssence, essenceSpent, goldSpent, startingGold, startingEssence,
-      producedGold, rewardGold, pendingPack } = state;
-    const inventory = collectionInventory(state);
-    const { gold, essence, boosters } = addRewardBookBalances(progress.unlocked, {
+      producedGold, rewardGold, pendingPack, purchased } = state;
+    const { gold, essence, boosters: granted } = addRewardBookBalances(progress.unlocked, {
       gold: startingGold + producedGold + rewardGold,
       essence: startingEssence + dismantlingEssence,
-      boosters: inventory.boosters,
+      boosters: purchased,
     });
-    for (const id of Object.keys(boosters)) boosters[id] = Math.max(0, boosters[id]);
+    const { boosters, owned } = collectionInventory({ ...state, purchased: granted });
     return {
       keys: progress.keys, gold: Math.max(0, gold - goldSpent), essence: Math.max(0, essence - essenceSpent),
-      boosters, packCount: Object.values(boosters).reduce((sum, value) => sum + value, 0), owned: inventory.owned, pendingPack,
+      boosters, packCount: Object.values(boosters).reduce((sum, value) => sum + value, 0), owned, pendingPack,
     };
   }
 

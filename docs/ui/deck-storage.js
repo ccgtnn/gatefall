@@ -28,8 +28,16 @@ export function parseDeckJson(text, owned) {
   } catch {
     return { errors: ['Некорректный JSON.'] };
   }
+  if (!Array.isArray(data)) return parseDeckDocument(data, owned);
+  if (!data.length) return { errors: ['В файле нет колод.'] };
+  const decks = data.map((item) => parseDeckDocument(item, owned));
+  const errors = decks.flatMap((item, index) => (item.errors ?? []).map((error) => `Колода ${index + 1}: ${error}`));
+  return errors.length ? { errors } : { decks };
+}
+
+function parseDeckDocument(data, owned) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
-    return { errors: ['Ожидается JSON-объект одной колоды.'] };
+    return { errors: ['Ожидается JSON-объект колоды.'] };
   }
   if (('format' in data || 'version' in data) && (data.format !== FORMAT || data.version !== VERSION)) {
     return { errors: ['Формат или версия колоды не поддерживается.'] };
@@ -102,6 +110,10 @@ export function createDeckStorage(storage) {
     const index = decks.findIndex(({ id }) => id === deck.id);
     if (index < 0) decks.push(structuredClone(deck));
     else decks[index] = structuredClone(deck);
+    return persist();
+  }
+
+  function persist() {
     try {
       const text = JSON.stringify(decks);
       storage.setItem(DECK_STORAGE_KEY, text);
@@ -128,10 +140,17 @@ export function createDeckStorage(storage) {
     importJson(text, owned) {
       const result = parseDeckJson(text, owned);
       if (result.errors) return result;
-      let id = newDeckId();
-      while (decks.some((deck) => deck.id === id)) id = newDeckId();
-      const deck = { id, ...result.deck };
-      return { deck, missing: result.missing, saved: save(deck) };
+      refresh();
+      const ids = new Set([...decks.map(({ id }) => id), ...drafts.keys()]);
+      const imported = (result.decks ?? [result]).map(({ deck, missing }) => {
+        let id = newDeckId();
+        while (ids.has(id)) id = newDeckId();
+        ids.add(id);
+        return { deck: { id, ...deck }, missing };
+      });
+      decks.push(...imported.map(({ deck }) => structuredClone(deck)));
+      const saved = persist();
+      return result.decks ? { decks: imported, saved } : { ...imported[0], saved };
     },
   };
 }

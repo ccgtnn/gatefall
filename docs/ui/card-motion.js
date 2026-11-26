@@ -530,7 +530,7 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
       motions.push(...swallow(screen, entry ? [entry] : [], current.get(event.eaterId), duration));
       break;
     case 'consume-group':
-      motions.push(...swallow(screen, event.cardIds.map((id) => previous.get(id)).filter(Boolean),
+      motions.push(...swallow(screen, event.cardIds.map((id) => current.get(id)).filter(Boolean),
         current.get(event.eaterId), duration));
       break;
     case 'boost':

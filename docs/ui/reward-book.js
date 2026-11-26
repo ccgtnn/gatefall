@@ -1,5 +1,5 @@
 import { assetUrl } from './asset-url.js';
-import { button, element } from './dom.js';
+import { button, createBusyGuard, element } from './dom.js';
 import { REWARD_SECTIONS, rewardState } from '../game/reward-book.js';
 import { resourceIcon } from './resource-icon.js';
 import { dialogClose } from './resources.js';
@@ -50,7 +50,7 @@ export function mountRewardBook(progress, { dialog: book, shell }) {
   const selectedChapters = new Map(REWARD_SECTIONS.map((section) => [section.id, section.chapters[0]]));
   let activeChapter = selectedChapters.get(activeSection.id);
   let selected;
-  let busy = false;
+  const busy = createBusyGuard();
   let nodeViews = [];
   let chapterViews = [];
   const panel = element('dialog', 'reward-details');
@@ -204,7 +204,7 @@ export function mountRewardBook(progress, { dialog: book, shell }) {
     status.textContent = availability === 'locked' ? `Сначала открой ${names}.`
       : availability === 'unaffordable' ? `Нужно ключей: ${selected.cost}. У тебя ${state.keys}.`
         : availability === 'unlocked' ? 'Награда открыта.' : '';
-    action.disabled = busy || availability !== 'available';
+    action.disabled = busy.active || availability !== 'available';
     actionPrice.textContent = availability === 'unlocked' ? 'Открыто' : `Открыть за ${selected.cost}`;
   }
 
@@ -223,13 +223,13 @@ export function mountRewardBook(progress, { dialog: book, shell }) {
   }
 
   async function openNode() {
-    if (busy || !selected) return;
+    if (busy.active || !selected) return;
     const node = selected;
     const control = nodeViews.find((view) => view.node === node)?.control;
-    busy = true;
-    action.disabled = true;
-    const outcome = await progress.unlock(node.id);
-    busy = false;
+    const outcome = await busy.run(() => {
+      action.disabled = true;
+      return progress.unlock(node.id);
+    });
     if (outcome === 'opened') {
       if (node === selected && panel.open) panel.close();
       showNotice(node, control);

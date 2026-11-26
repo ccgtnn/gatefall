@@ -4,7 +4,7 @@ import { createCard } from '../game/board.js';
 import { findCardDefinition } from '../game/card-registry.js';
 import { BOOSTER_FACTIONS, BOOSTER_PRICE } from '../game/collection-economy.js';
 import { cardButton, showCard } from './cards.js';
-import { button, element } from './dom.js';
+import { button, createBusyGuard, element } from './dom.js';
 import { resourceIcon } from './resource-icon.js';
 import { sectionDialog } from './resources.js';
 
@@ -44,15 +44,15 @@ export function createBoosterShop(progress, openPacks) {
   const description = element('p', 'economy-description', 'В каждом бустере пять карт выбранной фракции.');
   const options = element('div', 'booster-options');
   const status = liveStatus();
-  let busy = false;
+  const busy = createBusyGuard();
   const choices = packOptions('booster-shop-option').map(({ page, item }) => {
     const balance = element('p', 'booster-quantity');
     const buy = button(undefined, async () => {
-      if (busy) return;
-      busy = true;
-      update();
-      const outcome = await progress.buyPack(page.id);
-      busy = false;
+      if (busy.active) return;
+      const outcome = await busy.run(() => {
+        update();
+        return progress.buyPack(page.id);
+      });
       update();
       status.textContent = outcome === 'done' ? `Куплен бустер «${page.name}».`
         : outcome === 'unaffordable' ? 'Нужно 100 золота.' : 'Не удалось сохранить покупку.';
@@ -72,7 +72,7 @@ export function createBoosterShop(progress, openPacks) {
     const { gold, boosters } = progress.inventory();
     for (const { page, balance, buy } of choices) {
       balance.textContent = `В наличии · ${boosters[page.id]}`;
-      buy.disabled = busy || gold < BOOSTER_PRICE;
+      buy.disabled = busy.active || gold < BOOSTER_PRICE;
     }
   }
 
@@ -93,19 +93,19 @@ export function createBoosterOpening(progress, openShop) {
   footer.append(status, button('В магазин бустеров', openShop));
   view.body.append(inventory, empty, stage, footer);
 
-  let busy = false;
+  const busy = createBusyGuard();
   let shownPack;
   let showRevealed;
   let animateNext = false;
   const choices = packOptions('booster-inventory-option').map(({ page, item }) => {
     const quantity = element('p', 'booster-quantity');
     const open = button('Открыть бустер', async () => {
-      if (busy) return;
-      busy = true;
-      animateNext = true;
-      update();
-      const outcome = await progress.openPack(page.id);
-      busy = false;
+      if (busy.active) return;
+      const outcome = await busy.run(() => {
+        animateNext = true;
+        update();
+        return progress.openPack(page.id);
+      });
       animateNext = false;
       if (outcome === 'done' && !view.dialog.open) await finish(progress.inventory().pendingPack?.id);
       if (outcome !== 'done') {
@@ -121,9 +121,10 @@ export function createBoosterOpening(progress, openShop) {
     return { page, item, quantity, open };
   });
 
+  const finishing = createBusyGuard();
   async function finish(id) {
-    if (id === undefined) return;
-    const outcome = await progress.finishPack(id);
+    if (id === undefined || finishing.active) return;
+    const outcome = await finishing.run(() => progress.finishPack(id));
     if (outcome === 'unavailable') status.textContent = 'Не удалось завершить открытие.';
     return outcome;
   }
@@ -148,12 +149,10 @@ export function createBoosterOpening(progress, openShop) {
     line.setAttribute('aria-label', 'Карты из бустера');
     const actions = element('div', 'booster-reveal-actions');
     const revealed = new Set();
-    let flipping = false;
+    const flipping = createBusyGuard();
     async function reveal(id, focus) {
-      if (flipping) return;
-      flipping = true;
-      const outcome = await progress.revealPack(pack.id, id);
-      flipping = false;
+      if (flipping.active) return;
+      const outcome = await flipping.run(() => progress.revealPack(pack.id, id));
       update();
       if (outcome === 'unavailable') status.textContent = 'Не удалось сохранить переворот карты.';
       if ((outcome === 'done' || outcome === 'revealed') && view.dialog.open) focus();
@@ -233,7 +232,7 @@ export function createBoosterOpening(progress, openShop) {
     for (const { page, item, quantity, open } of choices) {
       item.hidden = !boosters[page.id];
       quantity.textContent = `В наличии · ${boosters[page.id]}`;
-      open.disabled = busy;
+      open.disabled = busy.active;
     }
     if (shownPack !== pendingPack?.id) renderPack(pendingPack);
     if (pendingPack) showRevealed?.(pendingPack.revealed);

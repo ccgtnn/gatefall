@@ -27,7 +27,7 @@ export const EFFECT_SCHEMA = Object.freeze({
     scenario: 'scenario', events: 'events', neighborEvents: 'events',
     fieldEvents: 'fieldEvents', pileEvents: 'pileEvents',
   }),
-  leader: shape('id legacyId name text art artFocus artZoom provisionBonus charges', {
+  leader: shape('id legacyId name text art artFocus artZoom provisionBonus charges keywords', {
     ability: 'ability', order: 'leaderOrder', aiHints: 'aiHints',
   }),
   leaderOrder: shape('cooldown usesCharges quickenedBy'),
