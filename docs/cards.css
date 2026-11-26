@@ -1,4 +1,4 @@
-.row-line { --slot-width: min(2.6rem, calc((100% - 1.65rem) / 9)); gap: .2rem; }
+.row-line { --slot-width: min(3.7rem, calc((100% - 1.65rem) / 9)); gap: .2rem; }
 .slot.filled {
   position: relative;
   place-items: stretch;
@@ -12,9 +12,9 @@
   display: grid;
   place-items: center;
   align-content: center;
-  gap: .08rem;
+  gap: .22rem;
   width: 100%;
-  min-height: 2.55rem;
+  min-height: 3.4rem;
   padding: .08rem;
   color: inherit;
   text-align: center;
@@ -70,7 +70,6 @@
 
 .row-line.is-selectable { background: #263c40; box-shadow: inset 0 0 0 1px #7ec7d0; cursor: pointer; }
 .hand .hand-card.is-unavailable, .mulligan .hand-card.is-unavailable { opacity: .64; cursor: default; }
-.unit-face.is-artifact { background: #30373c; }
 .timer-mark { color: #e3dcfb; }
 .unit-face .card-marks { font-size: .65rem; }
 dialog.card-preview {
@@ -167,11 +166,6 @@ dialog.card-preview::backdrop { background: #0d1119cc; }
 .hand-card[data-type="effect"] { border-block-start-style: dashed; }
 .faction-label { color: var(--faction-light, #e9e9e9); }
 
-.row-line { --slot-width: min(3.7rem, calc((100% - 1.65rem) / 9)); }
-.unit-face {
-  min-height: 3.4rem;
-  gap: .22rem;
-}
 .hand-card, .unit-face {
   --stat-size: 1.125rem;
   --stat-inset: .13rem;

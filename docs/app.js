@@ -1,7 +1,7 @@
 import { createAppTimers } from './ui/app-timers.js';
 import { keepCardVideos, resumeCardVideos } from './ui/card-art.js';
 import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js';
-import { createDeckStorage, newDeckId } from './ui/deck-storage.js';
+import { createDeckStorage, DECK_STORAGE_KEY, newDeckId, RECENT_DECKS_KEY } from './ui/deck-storage.js';
 import { bindCardPlacement } from './ui/card-placement.js';
 import { findInPiles, placementSide } from './game/board.js';
 import { FACTIONS } from './game/cards.js';
@@ -16,7 +16,7 @@ import { createMatchMenu } from './ui/menu.js';
 import { finishedScreen, leaderScreen } from './ui/screens.js';
 import { createSettings } from './ui/settings.js';
 
-import { createFactionStats } from './ui/stats.js';
+import { createFactionStats, FACTION_STATS_KEY } from './ui/stats.js';
 import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js';
 import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js';
 import { createResourceBar, prepareLazySection, sectionDialog, showEssenceGain } from './ui/resources.js';
@@ -45,6 +45,7 @@ let menuView = 'decks';
 let selectedFaction;
 let editedDeck;
 let selectedCardId;
+let reloadOnMatchExit = false;
 const aim = bindTargeting(screen, () => turns.cancelTargeting());
 let storage;
 try { storage = window.localStorage; } catch {}
@@ -77,7 +78,10 @@ const session = createMatchSession({
     editedDeck = undefined;
     menuView = 'decks';
   },
-  onLeave(view) { menuView = view; },
+  onLeave(view) {
+    menuView = view;
+    if (reloadOnMatchExit) window.location.reload();
+  },
 });
 const rewardReveal = createRewardReveal({
   motion: settings.motion,
@@ -121,7 +125,9 @@ const openResources = createResourceBar(app.querySelector('.masthead'), document
   packCount: createBoosterOpening(progress, () => openResources('gold')),
 });
 progress.subscribe(() => screen.querySelector('.deck-editor, .deck-home, .all-decks, .finish, .league-panel, .rank-panel')?.dispatchEvent(new Event('collection-change')));
+const reloadKeys = new Set([REWARD_STORAGE_KEY, DECK_STORAGE_KEY, RECENT_DECKS_KEY, FACTION_STATS_KEY]);
 window.addEventListener('storage', (event) => {
+  if (event.storageArea !== storage) return;
   const decorationKeys = [FRAME_STORAGE_KEY, BATTLEFIELD_STORAGE_KEY];
   if (decorationKeys.includes(event.key) || event.key === null) {
     if (event.key !== BATTLEFIELD_STORAGE_KEY) framePreferences.refresh();
@@ -129,8 +135,12 @@ window.addEventListener('storage', (event) => {
     screen.querySelector('.decorations-panel')?.dispatchEvent(new Event('decorations-change'));
   }
   if (decorationKeys.includes(event.key)) return;
-  if (event.key?.startsWith('gatefall.') && event.newValue === null) window.location.reload();
-  else if (event.key === REWARD_STORAGE_KEY || event.key === null) progress.refresh();
+  if (reloadKeys.has(event.key) && event.newValue === null) {
+    if (turns.match) reloadOnMatchExit = true;
+    else window.location.reload();
+  } else if (event.key === REWARD_STORAGE_KEY || event.key === null) {
+    progress.refresh();
+  }
 });
 const timers = createAppTimers(progress, () => {
   screen.querySelector('.league-panel')?.dispatchEvent(new Event('league-tick'));
@@ -214,11 +224,12 @@ function editDeck(deck, notice = '') {
 function makeDeck(factionId, leaderId, source) {
   const id = newDeckId();
   const { owned } = progress.inventory();
-  const cardIds = (source?.cardIds ?? []).filter((cardId) => {
-    if (!owned[cardId]) return false;
+  const cardIds = [];
+  for (const cardId of source?.cardIds ?? []) {
+    if (!owned[cardId]) continue;
     owned[cardId] -= 1;
-    return true;
-  });
+    cardIds.push(cardId);
+  }
   const skipped = source ? source.cardIds.length - cardIds.length : 0;
   editDeck({
     id, name: source ? source.name + ' (копия)' : FACTIONS[factionId].name,

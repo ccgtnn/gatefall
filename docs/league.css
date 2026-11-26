@@ -233,8 +233,9 @@ body:has(.in-league-match) #new-game { display: none; }
   border-color: #be9ae0;
   color: #f2e4ff;
 }
-@media (prefers-reduced-motion: no-preference) {
-  .league-battle .league-speech:not([hidden]) { animation: league-speech-in .85s ease-out both; }
+.league-battle .league-speech:not([hidden]) { animation: league-speech-in .85s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  body:not(:has(#app:is([data-animation-speed="normal"], [data-animation-speed="fast"]))) .league-battle .league-speech:not([hidden]) { animation: none; }
 }
 @keyframes league-speech-in {
   from { opacity: 0; transform: translateX(-.4rem); }

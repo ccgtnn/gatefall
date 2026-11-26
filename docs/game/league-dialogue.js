@@ -1,4 +1,4 @@
-import { LEAGUE_CONTEXT_LINES } from './league-context-lines.js';
+import { LEAGUE_CONTEXT_LINES } from './data/league-context-lines.js';
 import { leagueSchedule } from './league.js';
 import { totalScore } from './match.js';
 

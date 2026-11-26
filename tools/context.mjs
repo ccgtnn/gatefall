@@ -5,35 +5,35 @@ import { fileURLToPath } from 'node:url';
 const profiles = {
   engine: ['Движок матча', [
     'docs/game/match.js', 'docs/game/board.js', 'docs/game/effects.js',
-    'docs/game/effect-operations.js', 'docs/game/effect-piles.js', 'docs/game/effect-queries.js', 'docs/game/events.js', 'docs/game/card-metadata.js', 'tests/round-rules.test.js',
+    'docs/game/effect-operations.js', 'docs/game/effect-piles.js', 'docs/game/effect-queries.js', 'docs/game/effect-schema.js', 'docs/game/events.js', 'docs/game/card-metadata.js', 'tests/battle/round-rules.test.js',
   ]],
   bot: ['Стратегия и симуляции бота', [
     'docs/game/bot.js', 'docs/game/bot-strategy.js', 'docs/game/bot-rollouts.js',
-    'docs/game/bot-effect-value.js', 'docs/game/bot-leaders.js', 'tests/bot-strategy.test.js',
+    'docs/game/bot-effect-value.js', 'docs/game/bot-leaders.js', 'tests/bot/bot-strategy.test.js',
   ]],
   economy: ['Сохранения, награды и экономика', [
     'docs/game/rewards.js', 'docs/game/collection-economy.js', 'docs/game/base.js',
-    'docs/game/base-production.js', 'docs/game/tavern.js', 'docs/game/ranks.js', 'docs/game/league.js', 'tests/rewards.test.js',
+    'docs/game/base-production.js', 'docs/game/tavern.js', 'docs/game/ranks.js', 'docs/game/league.js', 'tests/economy/rewards.test.js',
   ]],
   ui: ['Оболочка игры и управление экранами', [
     'docs/app.js', 'docs/ui/dom.js', 'docs/ui/resources.js', 'docs/ui/settings.js',
-    'docs/ui/match-turn.js', 'docs/ui/match-session.js', 'docs/ui/app-timers.js', 'tests/match-turn.test.js',
+    'docs/ui/match-turn.js', 'docs/ui/match-session.js', 'docs/ui/app-timers.js', 'tests/ui/match-turn.test.js',
   ]],
   'ui:battle': ['Поле и действия игрока', [
     'docs/ui/match-turn.js', 'docs/ui/field.js', 'docs/ui/hand.js', 'docs/ui/targeting.js',
-    'docs/ui/card-placement.js', 'docs/ui/turn-playback.js', 'tests/card-placement.test.js',
+    'docs/ui/card-placement.js', 'docs/ui/turn-playback.js', 'tests/ui/card-placement.test.js',
   ]],
   'ui:catalog': ['Каталог и просмотр карт', [
     'docs/ui/catalog-screen.js', 'docs/ui/catalog-cards.js', 'docs/ui/cards.js',
-    'docs/ui/card-art.js', 'docs/game/card-registry.js', 'tests/catalog.test.js',
+    'docs/ui/card-art.js', 'docs/game/card-registry.js', 'tests/ui/catalog.test.js',
   ]],
   'ui:base': ['Экран Базы и Таверны', [
     'docs/ui/base-screen.js', 'docs/ui/base-grid.js', 'docs/ui/base-layout.js',
-    'docs/ui/tavern-screen.js', 'tests/base-layout.test.js',
+    'docs/ui/tavern-screen.js', 'tests/ui/base-layout.test.js',
   ]],
   'ui:rewards': ['Книга наград и панель ресурсов', [
     'docs/ui/reward-book.js', 'docs/ui/reward-reveal.js', 'docs/ui/resources.js',
-    'docs/game/reward-book.js', 'tests/reward-reveal.test.js',
+    'docs/game/reward-book.js', 'tests/economy/reward-reveal.test.js',
   ]],
 };
 
@@ -50,15 +50,20 @@ function usage() {
   ].join('\n');
 }
 
+const excludedFiles = new Set(['ART_STYLE.md', 'README.md', 'CHANGELOG.md']);
+const excludedDirectories = ['tools/analysis/', 'docs/game/data/'];
+
 async function loadSource(root, requested) {
   const file = await realpath(resolve(root, requested));
   const name = relative(root, file);
   if (!name || isAbsolute(name) || name === '..' || name.startsWith('..' + sep)) {
     throw new Error(`Файл должен быть внутри проекта (${requested}).`);
   }
+  const path = name.split(sep).join('/');
+  if (excludedFiles.has(path) || excludedDirectories.some((directory) => path.startsWith(directory))) return;
   const language = languages.get(extname(file));
   if (!language) throw new Error(`Выбери текстовый файл проекта (${requested}).`);
-  return { name: name.split(sep).join('/'), language, source: await readFile(file, 'utf8') };
+  return { name: path, language, source: await readFile(file, 'utf8') };
 }
 
 function renderSource({ name, language, source }) {
@@ -78,7 +83,7 @@ async function main([id, ...extra]) {
   const root = await realpath(fileURLToPath(new URL('../', import.meta.url)));
   const sources = await Promise.all([...new Set(['AGENTS.md', 'CONTRACTS.md', ...paths, ...extra])]
     .map((name) => loadSource(root, name)));
-  const files = [...new Map(sources.map((file) => [file.name, file])).values()];
+  const files = [...new Map(sources.filter(Boolean).map((file) => [file.name, file])).values()];
   const header = `# Gatefall · ${title}\n\nПакет ${id}. В нём ${files.length} файлов. Некоторые импорты ведут в другие части проекта.`;
   process.stdout.write([header, ...files.map(renderSource)].join('\n\n') + '\n');
 }
