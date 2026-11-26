@@ -68,7 +68,6 @@
 .motion-boost { color: #9ff6a2; }
 
 @media (max-width: 37rem) {
-  .match-meta, .motion-setting { gap: .38rem; }
   .hand-card, .unit-face {
     --stat-size: 1rem;
     --stat-font: clamp(.54rem, 2.5vw, .65rem);
@@ -80,11 +79,6 @@
   .unit-face .card-marks { font-size: .66rem; gap: .09rem .1rem; }
   .unit-face .keyword-mark { font-size: .70rem; }
 }
-@media (max-width: 30rem) {
-  .preview-layout { grid-template-columns: minmax(0, 1fr); }
-  .preview-art { max-width: min(100%, 32vh); justify-self: center; }
-}
-
 .motion-projectile {
   width: .52rem;
   height: .52rem;
@@ -93,31 +87,6 @@
   box-shadow: 0 0 .7rem .2rem #69d6ff;
 }
 
-.leader-choices {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
-  gap: .55rem;
-}
-.leader-choice {
-  position: relative;
-  overflow: hidden;
-  display: grid;
-  align-content: end;
-  gap: .42rem;
-  min-height: min(9rem, 40dvh);
-  padding: .7rem;
-  text-align: left;
-  background: var(--faction-face, #22313d);
-  border-color: var(--faction-edge, #a9bbc9);
-}
-.leader-choice.has-art::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(0deg, #101724f5, #10172494 65%, transparent);
-}
-.leader-choice > :is(strong, span) { position: relative; z-index: 1; }
-.leader-description { font-size: .85rem; color: #e2eff7; }
 .motion-infection { background: radial-gradient(ellipse, #abff555c, #4cd32b60); border: 1px solid #a5ff6a; }
 .motion-poison { color: #bcff72; }
 

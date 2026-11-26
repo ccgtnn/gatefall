@@ -4,13 +4,14 @@ import { createCard, findUnit } from '../../docs/game/board.js';
 import { chooseBotTurn } from '../../docs/game/bot.js';
 import { FACTIONS, NEUTRAL_CARDS } from '../../docs/game/cards.js';
 import { applyAction, confirmMulligan, createMatch } from '../../docs/game/match.js';
+import { unit, pick as pickTarget, play as playCard } from '../helpers/battle-helpers.js';
 
 const cards = [...FACTIONS.growth.pool, ...NEUTRAL_CARDS];
 const card = (definitionId, id = definitionId) => createCard(id, cards.find(({ id }) => id === definitionId));
-const unit = (id, power) => createCard(id, { id, name: id, power });
 const random = () => 0;
-const play = (match, cardId) => applyAction(match, 'human', { type: 'play', cardId, row: 'orbit', position: match.players.human.board.orbit.length }, { random });
-const pick = (match, cardId) => applyAction(match, 'human', { type: 'target', cardId }, { random });
+const play = (match, cardId) =>
+  playCard(match, cardId, { side: 'human', row: 'orbit', position: match.players.human.board.orbit.length, random });
+const pick = (match, cardId) => pickTarget(match, cardId, { side: 'human', random });
 
 function fixture(cardId) {
   const match = confirmMulligan(createMatch({ random, rules: { leaderCharges: 0 } }));

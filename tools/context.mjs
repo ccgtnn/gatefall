@@ -28,8 +28,8 @@ const profiles = {
     'docs/ui/card-art.js', 'docs/game/card-registry.js', 'tests/ui/catalog.test.js',
   ]],
   'ui:base': ['Экран Базы и Таверны', [
-    'docs/ui/base-screen.js', 'docs/ui/base-grid.js', 'docs/ui/base-layout.js',
-    'docs/ui/tavern-screen.js', 'tests/ui/base-layout.test.js',
+    'docs/ui/base-screen.js', 'docs/ui/base-grid.js',
+    'docs/ui/tavern-screen.js', 'tests/economy/base.test.js',
   ]],
   'ui:rewards': ['Книга наград и панель ресурсов', [
     'docs/ui/reward-book.js', 'docs/ui/reward-reveal.js', 'docs/ui/resources.js',

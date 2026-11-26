@@ -6,11 +6,12 @@ import { chooseBotTurn, pickBotTarget } from '../../docs/game/bot.js';
 import { FACTIONS, KEYWORDS } from '../../docs/game/cards.js';
 import { AWAKENING, CHOIR_CARDS, CULTIST, FANATIC, LARGE_TENTACLE, PSIONICS, SLEEPER, TENTACLE } from '../../docs/game/choir.js';
 import { collection, copyLimit, inspectDeck, PRESETS } from '../../docs/game/decks.js';
-import { availableOrders, canUseLeader, enqueueEndTurn, runEffect } from '../../docs/game/effects.js';
+import { availableOrders, canUseLeader, enqueueEndTurn } from '../../docs/game/effects.js';
 import { applyAction, createDeckMatch, createMatch } from '../../docs/game/match.js';
 import { createRewardProgress } from '../../docs/game/rewards.js';
 import { filterCatalog } from '../../docs/ui/catalog-cards.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
+import { drain as drainEffects, pick as pickTarget, play as playCard } from '../helpers/battle-helpers.js';
 
 const cards = new Map(CHOIR_CARDS.map((definition) => [definition.id, definition]));
 const unit = (power) => ({ id: `unit-${power}`, name: `Отряд ${power}`, type: 'unit', power });
@@ -36,16 +37,9 @@ const human = (match) => match.players.human;
 const get = (match, id) => findUnit(match, id)?.card;
 const action = (match, type, parameters) => applyAction(match, 'human', { type, ...parameters }, { random: fixed });
 const play = (match, row = 'orbit', position = human(match).board[row].length) =>
-  action(match, 'play', { cardId: 'hand-0', row, position });
-const pick = (match, cardId) => action(match, 'target', { cardId });
-function drain(match) {
-  while (!match.pending && match.effects.length) {
-    const job = match.effects.shift();
-    if (job.discard) match.players[job.side].discard.push(job.discard);
-    else runEffect(match, job, fixed);
-  }
-  return match;
-}
+  playCard(match, 'hand-0', { side: 'human', row, position, random: fixed });
+const pick = (match, cardId) => pickTarget(match, cardId, { side: 'human', random: fixed });
+const drain = (match) => drainEffects(match, fixed);
 function hit(match, id, amount) {
   damage(match, findUnit(match, id), amount);
   return drain(match);

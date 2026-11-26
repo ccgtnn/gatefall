@@ -5,9 +5,10 @@ import { chooseBotTurn } from '../../docs/game/bot.js';
 import { FACTIONS, FIRST_SIGNAL, NEUTRAL_CARDS } from '../../docs/game/cards.js';
 import { availableOrders } from '../../docs/game/effects.js';
 import { applyAction, confirmMulligan, createMatch } from '../../docs/game/match.js';
+import { unit as makeUnit } from '../helpers/battle-helpers.js';
 
 const card = (id) => createCard(id, NEUTRAL_CARDS.find((definition) => definition.id === id));
-const unit = (id, power = 3, extra) => createCard(id, { id, name: id, power, ...extra });
+const unit = (id, power = 3, extra) => makeUnit(id, power, extra);
 const count = (match, type) => match.log.filter((event) => event.type === type).length;
 const play = (match, cardId, row = 'orbit', position = match.players[match.turn].board[row].length) =>
   applyAction(match, match.turn, { type: 'play', cardId, row, position });

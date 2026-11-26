@@ -179,7 +179,6 @@ body:has(.in-league-match) #new-game { display: none; }
 .league-avatar[data-lore-faction="growth"] { --avatar-ink: #d2f49f; --avatar-from: #375128; --avatar-to: #4a285d; }
 .league-avatar[data-lore-faction="choir"] { --avatar-ink: #f1d9ff; --avatar-from: #582984; --avatar-to: #291439; }
 .league-avatar[data-lore-faction="flawless"] { --avatar-ink: #fff1b2; --avatar-from: #736022; --avatar-to: #3d3216; }
-.league-avatar[data-lore-faction="core"] { --avatar-ink: #ecfbff; --avatar-from: #466d8c; --avatar-to: #29445f; }
 .league-avatar[data-lore-faction="void"] { --avatar-ink: #ffe0d2; --avatar-from: #4f2f78; --avatar-to: #8a492e; }
 
 .league-speech {
@@ -234,9 +233,7 @@ body:has(.in-league-match) #new-game { display: none; }
   color: #f2e4ff;
 }
 .league-battle .league-speech:not([hidden]) { animation: league-speech-in .85s ease-out both; }
-@media (prefers-reduced-motion: reduce) {
-  body:not(:has(#app:is([data-animation-speed="normal"], [data-animation-speed="fast"]))) .league-battle .league-speech:not([hidden]) { animation: none; }
-}
+body:has(#app[data-reduced-motion="true"]) .league-battle .league-speech:not([hidden]) { animation: none; }
 @keyframes league-speech-in {
   from { opacity: 0; transform: translateX(-.4rem); }
   28% { opacity: 1; transform: translateX(0); box-shadow: 0 0 1.2rem #e1b36d99; }

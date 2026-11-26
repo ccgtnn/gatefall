@@ -9,7 +9,6 @@
 
 .preview-body[data-accent="gate"] h2 { color: #8cc9ff; }
 
-.card-kind.is-complete { color: #f5d17f; border-color: #f5d17f; }
 .card-category {
   position: absolute;
   inset: auto 0 17%;
@@ -66,9 +65,7 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  body:not(:has(#app:is([data-animation-speed="normal"], [data-animation-speed="fast"]))) :is(.hand-card, .unit-face)[data-rarity]:not(:disabled, [inert], .is-dragged):hover {
-    translate: none;
-    scale: none;
-  }
+body:has(#app[data-reduced-motion="true"]) :is(.hand-card, .unit-face)[data-rarity]:not(:disabled, [inert], .is-dragged):hover {
+  translate: none;
+  scale: none;
 }

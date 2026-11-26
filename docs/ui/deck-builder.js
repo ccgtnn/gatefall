@@ -16,12 +16,6 @@ import { sectionBack } from './resources.js';
 
 const byProvision = (a, b) => b.provision - a.provision || a.name.localeCompare(b.name, 'ru');
 
-function viewHeading(title) {
-  const heading = element('h2', null, title);
-  heading.tabIndex = -1;
-  return heading;
-}
-
 function violations(result) {
   const messages = {
     name: 'Укажи название колоды.',

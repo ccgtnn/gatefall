@@ -8,30 +8,30 @@ import { chooseBotTurn } from '../../docs/game/bot.js';
 import { KEYWORDS, NEUTRAL_CARDS } from '../../docs/game/cards.js';
 import { availableOrders } from '../../docs/game/effects.js';
 import { deathwishDefinitions } from '../../docs/game/events.js';
-import { applyAction, createMatch } from '../../docs/game/match.js';
+import { applyAction } from '../../docs/game/match.js';
 import { createRewardProgress } from '../../docs/game/rewards.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
+import { unit as makeUnit, emptyPlayingMatch, pick, play as playCard } from '../helpers/battle-helpers.js';
 
 const monk = NEUTRAL_CARDS.find(({ id }) => id === 'fugitive-monk');
 const suppressor = NEUTRAL_CARDS.find(({ id }) => id === 'suppressor');
-const unit = (id, traits) => createCard(id, { id, name: id, power: 4, ...traits });
+const unit = (id, traits) => makeUnit(id, 4, traits);
 const selfBoost = { steps: [{ action: 'boost', target: { scope: 'source' }, amount: 2 }] };
 const random = () => .5;
 
 function setup(side = 'human') {
-  const match = createMatch({ decks: { human: [], bot: [] }, random });
-  Object.assign(match, { phase: 'playing', turn: side });
+  const match = emptyPlayingMatch({ side, random });
   for (const [name, player] of Object.entries(match.players)) player.hand.push(unit(name + '-spare'));
   match.players[side].hand.unshift(createCard(monk.id, monk));
   return match;
 }
 
 function play(match, cardId) {
-  return applyAction(match, match.turn, { type: 'play', cardId, row: 'orbit', position: 0 }, { random });
+  return playCard(match, cardId, { row: 'orbit', random });
 }
 
 function target(match, cardId) {
-  return applyAction(match, match.pending.side, { type: 'target', cardId }, { random });
+  return pick(match, cardId, { random });
 }
 
 test('the neutral bronze Monk appears in boosters and both cards have WebP art', async () => {

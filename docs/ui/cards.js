@@ -24,7 +24,7 @@ preview.addEventListener('close', () => {
   if (!preview.open) preview.querySelector('.card-art-video')?.pause();
 });
 export function showCard(card, options = {}) {
-  const { leader = false, legacy = false, orderReady = false, orderCooldown = 0, actions, frame, back } = options;
+  const { leader = false, orderReady = false, orderCooldown = 0, actions, frame, back } = options;
   const { definition, power, armor, timer, counter } = card;
   setCardRarity(preview, definition.rarity);
   const faction = definition.faction === NEUTRAL ? 'Нейтральная' : FACTION_CATALOG[definition.faction]?.name;
@@ -113,7 +113,7 @@ export function showCard(card, options = {}) {
   if (actions) body.append(actions);
 
   const layout = element('div', 'preview-layout');
-  if (!leader && !legacy) {
+  if (!leader) {
     const face = element('div', 'preview-card-face');
     decorateCard(face, card, { factionId: definition.faction }, { showProvision: !definition.token, showFaction: true, fullArt: true, orderReady, orderCooldown, frame });
     layout.append(face);
@@ -160,12 +160,10 @@ export function cardInspection(node, card, placement = false, show = () => showC
   if (card.definition.text?.includes('\n')) node.title = card.definition.text;
   let holdTimer;
   let activated;
-  let pendingClick;
   let firstX, firstY;
   function inspect(event) {
     event.preventDefault();
     clearTimeout(holdTimer);
-    clearTimeout(pendingClick);
     if (node.isConnected) show();
   }
   node.addEventListener('dblclick', inspect);
@@ -202,13 +200,7 @@ export function cardInspection(node, card, placement = false, show = () => showC
       return;
     }
     if (event.detail > 1) {
-      clearTimeout(pendingClick);
       event.stopImmediatePropagation();
-    } else if (event.detail === 1 && !node.hasAttribute('data-aim-target') && node.classList.contains('effect-target') && event.pointerType !== 'touch') {
-      event.stopImmediatePropagation();
-      pendingClick = setTimeout(() => {
-        if (node.isConnected) node.click();
-      }, 520);
     }
   }, { capture: true });
 }
@@ -253,23 +245,6 @@ function passiveBadge(card) {
   return badge;
 }
 
-function cardStats(card) {
-  const stats = element('span', 'card-stats');
-  if (isUnit(card)) {
-    const power = element('strong', 'unit-power', card.power);
-    power.title = `Сила ${card.power} · база ${basePower(card)}`;
-    power.classList.toggle('power-boosted', card.power > basePower(card));
-    power.classList.toggle('power-damaged', card.power < basePower(card));
-    stats.append(power);
-  }
-  if (card.armor) {
-    const armor = element('strong', 'armor-stat', card.armor);
-    armor.title = 'Броня ' + card.armor;
-    stats.append(armor);
-  }
-  return stats;
-}
-
 function factionMark(faction) {
   const badge = element('span', 'card-faction-mark');
   badge.title = faction === NEUTRAL ? 'Нейтральная' : FACTION_CATALOG[faction].name;
@@ -279,7 +254,7 @@ function factionMark(faction) {
   return badge;
 }
 
-export function decorateCard(node, card, player, { orderOnField = false, legacy = false,
+export function decorateCard(node, card, player, { orderOnField = false,
   showProvision = false, showFaction = false, fullArt = false, lazyArt = false, orderReady = false, orderCooldown = 0, frame } = {}) {
   const { definition } = card;
   const type = cardType(card);
@@ -293,13 +268,10 @@ export function decorateCard(node, card, player, { orderOnField = false, legacy 
     node.dataset.factionMark = '';
     node.append(factionMark(faction));
   }
-  node.setAttribute('aria-label', cardLabel(card, legacy || showProvision));
-  if (legacy) legacyBadges(node, card, orderOnField);
-  else {
-    node.dataset.cardFace = '';
-    if (frame) node.dataset.cardFrame = frame;
-    liveBadges(node, card, { orderOnField, showProvision, orderReady, orderCooldown });
-  }
+  node.setAttribute('aria-label', cardLabel(card, showProvision));
+  node.dataset.cardFace = '';
+  if (frame) node.dataset.cardFrame = frame;
+  liveBadges(node, card, { orderOnField, showProvision, orderReady, orderCooldown });
   if (statusCount(card, 'target')) node.append(statBadge('target', 'Отмечен Целью'));
   if (definition.categories?.length) node.append(element('span', 'card-category', definition.categories.join(' · ')));
   const alternateArt = definition.artStates?.[card.artState];
@@ -361,41 +333,6 @@ function liveBadges(node, card, { orderOnField, showProvision, orderReady, order
   } else {
     const badge = passiveBadge(card);
     if (badge) node.append(badge);
-  }
-}
-
-function legacyBadges(node, card, orderOnField) {
-  const { definition, timer, counter } = card;
-  const type = cardType(card);
-  node.append(cardStats(card));
-  if (type !== 'unit') {
-    const scenario = definition.scenario;
-    const mark = element('span', 'card-kind', scenario
-      ? `${card.chapter ?? 0}/${scenario.chapters.length}` : type === 'artifact' ? '◇' : '✦');
-    const complete = scenario && card.chapter === scenario.chapters.length;
-    mark.classList.toggle('is-complete', Boolean(complete));
-    mark.title = complete ? 'Все главы сыграны' : scenario ? 'Главы сценария' : CARD_TYPES[type];
-    node.append(mark);
-  }
-  if (statusCount(card, 'lock')) node.append(statBadge('lock', 'Блокировка'));
-  else if (!orderOnField) {
-    if (growthValue(card) !== undefined) {
-      node.append(statBadge('hourglass', card.definition.growth.label + ': ' + growthValue(card), growthValue(card)));
-    } else if (counter > 0 || timer !== undefined) {
-      node.append(statBadge('hourglass', (timer === undefined ? 'Счётчик ' : 'Таймер ') + (timer ?? counter), timer ?? counter));
-    } else if (definition.order) {
-      node.append(orderBadge(false, 0, card.orderCharges === undefined
-        ? 'Приказ' : 'Приказ · Осталось зарядов: ' + card.orderCharges, card.orderCharges));
-    } else {
-      const badge = passiveBadge(card);
-      if (badge) node.append(badge);
-    }
-  }
-  const infection = statusCount(card, 'infection');
-  if (infection) {
-    const badge = element('span', 'infection-badge', infection);
-    badge.title = 'Заражение ' + infection;
-    node.append(badge);
   }
 }
 

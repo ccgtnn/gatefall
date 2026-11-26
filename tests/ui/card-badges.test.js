@@ -332,17 +332,15 @@ test('lock has its own icon alongside statuses and replaces disabled ability bad
   const card = makeCard('commander');
   card.statuses = { lock: 1, target: 1, infection: 2 };
   card.timer = 3;
-  for (const legacy of [false, true]) {
-    const face = new TestElement('button');
-    decorateCard(face, card, {}, { legacy, orderOnField: true });
-    const lock = byClass(face, 'stat-badge-lock');
-    assert.equal(lock.attributes['aria-label'], 'Блокировка');
-    assert.match(lock.children[0].children[0].attributes.href, /#lock$/);
-    assert.ok(byClass(face, 'stat-badge-target'));
-    assert.ok(byClass(face, legacy ? 'infection-badge' : 'stat-badge-infection'));
-    assert.equal(byClass(face, 'stat-badge-order'), undefined);
-    assert.equal(byClass(face, 'stat-badge-hourglass'), undefined);
-  }
+  const face = new TestElement('button');
+  decorateCard(face, card, {}, { orderOnField: true });
+  const lock = byClass(face, 'stat-badge-lock');
+  assert.equal(lock.attributes['aria-label'], 'Блокировка');
+  assert.match(lock.children[0].children[0].attributes.href, /#lock$/);
+  assert.ok(byClass(face, 'stat-badge-target'));
+  assert.ok(byClass(face, 'stat-badge-infection'));
+  assert.equal(byClass(face, 'stat-badge-order'), undefined);
+  assert.equal(byClass(face, 'stat-badge-hourglass'), undefined);
 });
 
 test('all rarities use numeric power plates and the shared provision hexagon', () => {
@@ -368,7 +366,6 @@ test('live cards follow the selected frame while explicit preview frames keep ra
   assert.equal(bastion.dataset.cardFrame, undefined);
   assert.equal(bastion.dataset.rarity, 'gold');
   assert.equal(drawable('imperial-golem').dataset.cardFace, '');
-  assert.equal(drawable('bastion', { legacy: true }).dataset.cardFace, undefined);
 
   showCard(makeCard('bastion'), { frame: 'protectorate-rampart' });
   const face = byClass(preview, 'preview-card-face');

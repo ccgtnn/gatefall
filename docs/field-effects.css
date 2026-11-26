@@ -23,9 +23,7 @@
 
 .match-board .unit-order.order-ready:not(:disabled) { animation: order-pulse 1.55s ease-in-out infinite; }
 [data-animation-speed="fast"] .match-board .unit-order.order-ready:not(:disabled) { animation-duration: .95s; }
-@media (prefers-reduced-motion: reduce) {
-  [data-animation-speed="system"] .match-board .unit-order.order-ready:not(:disabled) { animation: none; }
-}
+[data-reduced-motion="true"] .match-board .unit-order.order-ready:not(:disabled) { animation: none; }
 @keyframes order-pulse {
   0%, 100% { transform: translateX(-50%) scale(1); opacity: .83; }
   50% { transform: translateX(-50%) scale(1.1); opacity: 1; }
@@ -141,22 +139,6 @@
   line-height: 1.1;
 }
 
-.infection-badge {
-  position: absolute;
-  z-index: 1;
-  left: 2px;
-  bottom: 2px;
-  min-width: clamp(12px, 3.5dvh, 21px);
-  padding: .1em .25em;
-  border: 1px solid #aafa68;
-  border-radius: 50% 50% 50% 15%;
-  background: #163811;
-  color: #d6ff9a;
-  font-size: clamp(.53rem, 2.8dvh, .85rem);
-  font-weight: 800;
-  line-height: 1.1;
-  text-align: center;
-}
 .leader-placeholder { color: var(--faction-edge, #a9bbc9); font-size: 1.14rem; }
 
 .pile-offer {

@@ -1,19 +1,3 @@
-.base-screen {
-  background: #121d2b;
-}
-#base-screen .reward-shell {
-  position: relative;
-  width: 100%;
-  height: 100dvh;
-  margin: 0;
-  padding: 0;
-  overflow: clip;
-}
-.base-stage {
-  position: absolute;
-  isolation: isolate;
-  background: url('./art/base-landscape.webp') center / 100% 100% no-repeat;
-}
 .base-materials {
   position: absolute;
   inset-block-start: var(--resource-top);
@@ -55,64 +39,6 @@
 .base-resource[data-material="steel"] svg { color: #aec9df; }
 .base-resource[data-material="energyCells"] svg { color: #82ecd2; }
 .base-resource[data-material="gateShards"] svg { color: #d3adff; }
-.base-lot { position: absolute; inset: 0; isolation: isolate; pointer-events: none; }
-.base-plot {
-  position: absolute;
-  top: var(--plot-y);
-  left: var(--plot-x);
-  width: var(--plot-size);
-  height: var(--plot-height);
-  padding: 0;
-  border: 0;
-  background: none;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-.base-pad {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  border: 1px solid #e6eff0a0;
-  border-radius: 50%;
-  background: #192c3b11;
-  color: #f4f3da;
-  transition: background-color .16s, box-shadow .16s;
-}
-.base-pad::after {
-  content: '+';
-  font-size: clamp(.76rem, 1.9vw, 1.5rem);
-  text-shadow: 0 1px 4px #0d1824;
-}
-.base-lot[data-hover] .base-pad, .base-plot:focus-visible .base-pad {
-  background: #a1dcff60;
-  box-shadow: 0 0 14px #92defd;
-}
-.base-plot.is-built .base-pad { visibility: hidden; }
-.base-plot.is-built:focus-visible { outline: none; }
-.base-plot.is-reserved .base-pad::after { content: none; }
-.base-overlay { position: absolute; }
-.base-overlay > img { position: absolute; inset: 0; width: 100%; height: 100%; }
-.base-overlay-silhouette {
-  opacity: 0;
-  filter: drop-shadow(0 0 2px #d1efff) drop-shadow(0 0 6px #79d1ff);
-}
-.base-lot:is([data-hover], :has(.base-plot:focus-visible)) .base-overlay-silhouette { opacity: .26; }
-.base-stage:has([data-hover]) { cursor: pointer; }
-.base-tooltip {
-  position: absolute;
-  z-index: 1;
-  transform: translate(-50%, -50%);
-  padding: .3rem .5rem;
-  border: 1px solid #83a4be;
-  border-radius: .35rem;
-  background: #101d2ceb;
-  color: #eaf4fc;
-  white-space: nowrap;
-  pointer-events: none;
-  font-size: .78rem;
-}
-.base-lot[data-hover]:has(.base-plot.is-built) ~ .base-tooltip { translate: 0 1.3rem; }
 .base-details {
   width: min(25rem, calc(100% - 1.5rem));
   max-height: calc(100dvh - 1.5rem);
@@ -124,10 +50,7 @@
 }
 .base-details::backdrop { background: #0c142760; }
 .base-details-content { display: grid; gap: .5rem; }
-.base-build-option { display: grid; gap: .5rem; }
-.base-build-option .button { justify-self: start; }
-.base-shortage, .base-status { color: #ffd49b; font-size: .84rem; }
-.base-status:not(:empty) { margin-top: .65rem; }
+.base-shortage { color: #ffd49b; font-size: .84rem; }
 
 @media (max-width: 550px) {
   .base-materials { max-width: calc(100% - 4.5rem); gap: .14rem; }
@@ -148,12 +71,13 @@
   scroll-padding-block-start: var(--base-grid-top);
 }
 #base-screen.base-screen-grid .reward-shell {
+  position: relative;
   width: min(100%, 90rem);
   height: auto;
   min-height: 100%;
   padding: var(--base-grid-top) max(.75rem, env(safe-area-inset-right))
     max(1.5rem, env(safe-area-inset-bottom)) max(.75rem, env(safe-area-inset-left));
-  margin-inline: auto;
+  margin: 0 auto;
   overflow: visible;
 }
 .base-screen-grid .base-materials { position: fixed; z-index: 6; }

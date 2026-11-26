@@ -8,9 +8,9 @@ import { canUseLeader } from '../../docs/game/effects.js';
 import { applyAction, createDeckMatch, createMatch } from '../../docs/game/match.js';
 import { createRewardProgress, drawBoosterCards } from '../../docs/game/rewards.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
+import { unit } from '../helpers/battle-helpers.js';
 
 const random = () => 0;
-const unit = (id, power) => createCard(id, { id, name: id, power });
 const activate = (match) => act(match, { type: 'leader' });
 const target = (match, cardId) => act(match, { type: 'target', cardId });
 function act(match, action) {

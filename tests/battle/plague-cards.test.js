@@ -3,15 +3,15 @@ import test from 'node:test';
 import { applyStatus, basePower, createCard, damage, findUnit, statusCount } from '../../docs/game/board.js';
 import { chooseBotTurn, pickBotTarget } from '../../docs/game/bot.js';
 import { FACTIONS, NEUTRAL_CARDS } from '../../docs/game/cards.js';
-import { runEffect } from '../../docs/game/effects.js';
 import { inspectDeck, PRESETS } from '../../docs/game/decks.js';
-import { applyAction, confirmMulligan, createDeckMatch, createMatch } from '../../docs/game/match.js';
+import { applyAction, createDeckMatch, createMatch } from '../../docs/game/match.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
+import { unit as makeUnit, drain } from '../helpers/battle-helpers.js';
 
 const random = () => 0;
 const definitions = new Map(FACTIONS.growth.pool.map((def) => [def.id, def]));
 const card = (id) => createCard(id, definitions.get(id));
-const unit = (id, power = 5, armor = 0) => createCard(id, { id, name: id, power, armor });
+const unit = (id, power = 5, armor = 0) => makeUnit(id, power, { armor });
 const action = (type, cardId, position = 0) => ({ type, cardId, row: 'orbit', position });
 const act = (match, type, cardId, position, side = 'human') =>
   applyAction(match, side, action(type, cardId, position), { random });
@@ -189,7 +189,7 @@ test('Boil splits into three larvae in place even if the damage that removes its
     const match = fixture();
     match.players.human.board.orbit = [unit('left'), card('boil'), unit('right')];
     damage(match, findUnit(match, 'boil'), amount);
-    while (match.effects.length) runEffect(match, match.effects.shift(), random);
+    drain(match, random);
     assert.deepEqual(match.players.human.board.orbit.map(({ definition }) => definition.id),
       ['left', 'larva', 'larva', 'larva', 'right']);
     assert.equal(match.log.filter(({ type, cardId }) => type === 'death' && cardId === 'boil').length, 1);
