@@ -244,7 +244,7 @@
   font-size: clamp(.55rem, 1.7dvh, .78rem);
   font-variant-numeric: tabular-nums;
 }
-.unit-fee { position: absolute; z-index: 2; inset: auto .12rem .12rem auto; }
+.unit-fee { position: absolute; z-index: 4; inset: auto .12rem .12rem auto; }
 .unit-fee:disabled { opacity: .65; }
 .tribute-choices { display: flex; flex-wrap: wrap; gap: .35rem; }
 .motion-number.motion-coin-spend { color: #ffbd99; }
