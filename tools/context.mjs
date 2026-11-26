@@ -4,7 +4,9 @@ import { fileURLToPath } from 'node:url';
 
 const profiles = {
   engine: ['Движок матча', [
-    'docs/game/match.js', 'docs/game/board.js', 'docs/game/effects.js',
+    'docs/game/match.js', 'docs/game/match-setup.js', 'docs/game/match-rounds.js', 'docs/game/match-actions.js',
+    'docs/game/board.js', 'docs/game/board-placement.js', 'docs/game/board-power.js', 'docs/game/board-status.js',
+    'docs/game/effects.js',
     'docs/game/effect-operations.js', 'docs/game/effect-piles.js', 'docs/game/effect-queries.js', 'docs/game/effect-schema.js', 'docs/game/events.js', 'docs/game/card-metadata.js', 'tests/battle/round-rules.test.js',
   ]],
   bot: ['Стратегия и симуляции бота', [

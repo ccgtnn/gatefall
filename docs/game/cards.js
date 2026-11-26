@@ -31,14 +31,6 @@ const singleBronzes = {
   growth: ['spore-sac', 'incubator', 'gulper', 'swarm-call'],
 };
 
-function factionCards(entries, faction) {
-  return Object.freeze(entries.map(([id, name, provision, power, text, rules], index) => {
-    const rarity = index < 11 ? 'bronze' : 'gold';
-    const stats = power === null ? {} : { power };
-    return Object.freeze({ id, name, provision, type: 'unit', text, rarity, faction, ...stats, ...rules });
-  }));
-}
-
 function presetCards(pool, faction) {
   return Object.freeze([
     ...pool.filter(({ id }) => faction !== 'protectorate' || id !== 'orbital-shield')
@@ -51,8 +43,8 @@ function presetCards(pool, faction) {
 }
 
 function faction(id, cardBack, { name, strategy, entries, leaders, extras }) {
-  const pool = factionCards(entries, id);
-  return { name, strategy, cardBack, pool: Object.freeze([...pool, ...factionCards(extras, id)]),
+  const pool = entries.map((card) => Object.freeze(card));
+  return { name, strategy, cardBack, pool: Object.freeze([...pool, ...extras.map((card) => Object.freeze(card))]),
     deck: presetCards(pool, id), leader: leaders[0], leaders };
 }
 
