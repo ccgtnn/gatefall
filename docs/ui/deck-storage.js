@@ -70,15 +70,23 @@ function recentPlayableDecks(decks, played, owned) {
 
 export function createDeckStorage(storage) {
   let decks = [];
-  try {
-    const saved = JSON.parse(storage.getItem(DECK_STORAGE_KEY));
-    if (Array.isArray(saved)) {
-      decks = saved.filter((deck) => typeof deck?.id === 'string' && !deck.id.startsWith('preset-') &&
-        typeof deck.name === 'string' && typeof deck.factionId === 'string' && typeof deck.leaderId === 'string' &&
-        Array.isArray(deck.cardIds) && deck.cardIds.every((id) => typeof id === 'string'));
-    }
-  } catch {}
+  let lastRead;
+  const drafts = new Map();
 
+  function refresh() {
+    try {
+      const text = storage.getItem(DECK_STORAGE_KEY);
+      if (text === lastRead) return;
+      const saved = JSON.parse(text);
+      lastRead = text;
+      decks = Array.isArray(saved) ? saved.filter((deck) =>
+        typeof deck?.id === 'string' && !deck.id.startsWith('preset-') &&
+        typeof deck.name === 'string' && typeof deck.factionId === 'string' && typeof deck.leaderId === 'string' &&
+        Array.isArray(deck.cardIds) && deck.cardIds.every((id) => typeof id === 'string')) : [];
+    } catch {}
+  }
+
+  refresh();
   let played = [];
   try {
     const stored = JSON.parse(storage.getItem(RECENT_DECKS_KEY));
@@ -89,11 +97,15 @@ export function createDeckStorage(storage) {
 
   function save(deck) {
     if (deck.id.startsWith('preset-')) return false;
+    refresh();
+    drafts.delete(deck.id);
     const index = decks.findIndex(({ id }) => id === deck.id);
     if (index < 0) decks.push(structuredClone(deck));
     else decks[index] = structuredClone(deck);
     try {
-      storage.setItem(DECK_STORAGE_KEY, JSON.stringify(decks));
+      const text = JSON.stringify(decks);
+      storage.setItem(DECK_STORAGE_KEY, text);
+      lastRead = text;
       return true;
     } catch {
       return false;
@@ -107,6 +119,11 @@ export function createDeckStorage(storage) {
       try { storage?.setItem(RECENT_DECKS_KEY, JSON.stringify(played)); } catch {}
     },
     list() { return structuredClone(decks); },
+    get(id) { return structuredClone(decks.find((deck) => deck.id === id) ?? drafts.get(id)); },
+    stageDraft(deck) {
+      if (!decks.some(({ id }) => id === deck.id)) drafts.set(deck.id, structuredClone(deck));
+    },
+    refresh,
     save,
     importJson(text, owned) {
       const result = parseDeckJson(text, owned);
@@ -115,6 +132,22 @@ export function createDeckStorage(storage) {
       while (decks.some((deck) => deck.id === id)) id = newDeckId();
       const deck = { id, ...result.deck };
       return { deck, missing: result.missing, saved: save(deck) };
+    },
+  };
+}
+
+export function deckAutosave(deck, save) {
+  let dirty = false;
+  return {
+    changed() { dirty = true; },
+    save() {
+      dirty = false;
+      return save(deck);
+    },
+    flush() {
+      if (!dirty) return;
+      dirty = false;
+      return save(deck);
     },
   };
 }

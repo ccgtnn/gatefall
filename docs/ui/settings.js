@@ -1,4 +1,4 @@
-import { premiumArtEnabled, setPremiumArtEnabled } from './card-art.js';
+import { refreshPremiumArt, premiumArtEnabled, setPremiumArtEnabled } from './card-art.js';
 import { dialogClose } from './resources.js';
 import { bindRulesMenu } from './rules.js';
 import { createSoundEffects, DEFAULT_VOLUME } from './sound.js';
@@ -70,7 +70,9 @@ export function createSettings(app, onLeave, onReset) {
   speedSetting.addEventListener('change', () => {
     app.dataset.animationSpeed = speedSetting.value;
     try { localStorage.setItem(speedKey, speedSetting.value); } catch {}
+    refreshPremiumArt(document);
   });
+  reducedMotion.addEventListener('change', () => refreshPremiumArt(document));
 
   const soundSetting = document.querySelector('#sound-enabled');
   const volumeSetting = document.querySelector('#sound-volume');

@@ -70,6 +70,7 @@
 .field-hand-count { font-size: clamp(.62rem, 2.1dvh, .92rem); font-variant-numeric: tabular-nums; }
 .field-pile { display: flex; align-items: center; gap: .25em; background: var(--faction-face, #1b2e3a); }
 .pile-icon { color: var(--faction-light, #cee0ee); }
+.pile-card-back { inline-size: .8rem; block-size: 1.2rem; object-fit: contain; }
 
 .bot-hand-count {
   display: inline-flex;

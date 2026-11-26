@@ -151,6 +151,12 @@ test('premium selection updates existing copies and persists independently for b
     assert.ok(restored.usesPremiumArt(id) && restored.usesPremiumArt(devourer));
     globalThis.matchMedia = () => ({ matches: true });
     assert.equal(byClass(drawable(id), 'card-art-crop').tag, 'img');
+    const app = { dataset: { animationSpeed: 'normal' } };
+    document.getElementById = () => app;
+    assert.ok(byClass(drawable(id), 'card-art-video'));
+    app.dataset.animationSpeed = 'fast';
+    assert.ok(byClass(drawable(id), 'card-art-video'));
+    delete document.getElementById;
     delete globalThis.matchMedia;
     regular.listeners.click();
     assert.equal(regular.attributes['aria-pressed'], 'true');
@@ -163,6 +169,7 @@ test('premium selection updates existing copies and persists independently for b
     selectPremiumArt(devourer, false);
     document.body.replaceChildren(preview);
     delete globalThis.localStorage;
+    delete document.getElementById;
     delete globalThis.matchMedia;
   }
 });

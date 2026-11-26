@@ -8,8 +8,9 @@ import { addCardCrop, cardButton } from './cards.js';
 import { button, element, selectField } from './dom.js';
 import { factionFilters } from './faction-filters.js';
 import { resourceIcon } from './resource-icon.js';
-import { availabilityOptions, matchesAvailability } from './catalog-cards.js';
+import { availabilityOptions, matchesAvailability, normalizeCardSearch } from './catalog-cards.js';
 import { campaignShelf } from './campaigns.js';
+import { deckAutosave } from './deck-storage.js';
 import { deckImportDialog, exportDeckJson, exportOwnDecks } from './deck-transfer.js';
 import { sectionBack } from './resources.js';
 
@@ -226,17 +227,16 @@ export function deckEditor(phaseLabel, deck, { save, play, back, inventory, noti
   const status = element('p', 'deck-save-status', notice);
   status.setAttribute('role', 'status');
   const playButton = button('Играть', () => {
-    if (inspectDeck(deck, inventory().owned).valid) play(deck);
+    if (!inspectDeck(deck, inventory().owned).valid) return;
+    autosave.save();
+    play(deck);
   }, 'button primary');
+  const autosave = deckAutosave(deck, save);
+  signal.addEventListener('abort', autosave.flush, { once: true });
   const saveButton = button('Сохранить', () => {
-    dirty = false;
-    status.textContent = save(deck) ? 'Колода сохранена.' : 'Колода доступна до закрытия страницы. Браузер не сохранил данные.';
+    status.textContent = autosave.save() ? 'Колода сохранена.' : 'Колода доступна до закрытия страницы. Браузер не сохранил данные.';
   });
-  let dirty = false;
-  const backButton = sectionBack(() => {
-    if (dirty) save(deck);
-    back();
-  });
+  const backButton = sectionBack(back);
   actions.append(saveButton, playButton, button('Экспорт JSON', () => exportDeckJson(deck, status)));
   left.append(nameField, leader.field, actions, status, totals, errors, owned);
   columns.append(left, right);
@@ -312,19 +312,19 @@ export function deckEditor(phaseLabel, deck, { save, play, back, inventory, noti
   }
 
   function changed() {
-    dirty = true;
+    const scroll = left.scrollTop;
+    autosave.changed();
     status.textContent = 'Есть несохранённые изменения.';
-    const scroll = owned.scrollTop;
     updateDeck();
-    owned.scrollTop = scroll;
+    left.scrollTop = scroll;
   }
 
   function updateCollection() {
     cards.clear();
     const { owned } = inventory();
-    const query = search.value.trim().toLocaleLowerCase('ru');
+    const query = normalizeCardSearch(search.value).trim();
     const shown = pool.filter((card) =>
-      card.name.toLocaleLowerCase('ru').includes(query) &&
+      normalizeCardSearch(card.name).includes(query) &&
       matchesAvailability(availability.input.value, owned[card.id]) &&
       (!types.input.value || types.input.value === card.type) &&
       (!rarity.input.value || rarity.input.value === card.rarity) &&
