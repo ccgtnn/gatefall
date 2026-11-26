@@ -9,8 +9,10 @@ import { leagueTicket } from '../../docs/game/league.js';
 import { PRESETS } from '../../docs/game/decks.js';
 import { TAVERN_QUESTS, tavernEventAmounts, tavernRewardCount } from '../../docs/game/tavern.js';
 
-const midnight = new Date(2026, 10, 24).getTime();
-const previousDay = midnight - 2 * 3_600_000;
+const nextDay = Date.UTC(2026, 10, 24, 12);
+const previousDay = Date.UTC(2026, 10, 23, 12);
+const nextReset = new Date(nextDay);
+nextReset.setHours(0, 0, 0, 0);
 
 function setup(quest = 'wins', snapshot = {
   startingGold: 3000, base: { materials: { steel: 2000, energyCells: 800, gateShards: 7 } },
@@ -19,7 +21,7 @@ function setup(quest = 'wins', snapshot = {
   let time = previousDay;
   let roll = (TAVERN_QUESTS.findIndex(({ id }) => id === quest) + .1) / TAVERN_QUESTS.length;
   const storage = {
-    get length() { return saved ? 1 : 0; },
+    get length() { return saved ? 0 : 1; },
     key: () => REWARD_STORAGE_KEY,
     getItem: () => saved,
     setItem: (_key, value) => { saved = value; },
@@ -36,7 +38,7 @@ test('Tavern construction and each upgrade fill one new slot while retaining exi
   assert.equal(await wallet.build('5', 'tavern'), 'done');
   const first = wallet.tavern().slots[0];
   assert.equal(first.id, 'wins');
-  assert.equal(wallet.tavern().resetAt, midnight);
+  assert.equal(wallet.tavern().resetAt, nextReset.getTime());
   for (let level = 1; level <= 5; level += 1) {
     const { slots } = reopen().tavern();
     assert.equal(slots.length, level);
@@ -110,9 +112,9 @@ test('refresh expires incomplete quests at midnight but carries over completed u
   await wallet.buyPack('neutral');
   await wallet.openPack('neutral');
   assert.equal(wallet.tavern().slots[0].progress, 1);
-  setTime(midnight - 1);
+  setTime(nextReset.getTime() - 1);
   assert.equal(await reopen().checkpointTavern(), 'current');
-  setTime(midnight);
+  setTime(nextDay);
   setRoll(0);
   assert.equal(await reopen().checkpointTavern(), 'done');
   const next = wallet.tavern();
@@ -136,7 +138,7 @@ test('replacement is available once per local day and a clock rollback cannot re
   const replacement = wallet.tavern().slots[0];
   assert.ok(!original.some(({ id }) => id === replacement.id));
   assert.equal(await reopen().changeTavernQuest(original[1].key), 'stale');
-  setTime(midnight);
+  setTime(nextDay);
   await wallet.checkpointTavern();
   const today = wallet.tavern().slots;
   assert.equal(await wallet.changeTavernQuest(today[0].key), 'done');
@@ -144,7 +146,7 @@ test('replacement is available once per local day and a clock rollback cannot re
   setTime(previousDay);
   assert.equal(await reopen().checkpointTavern(), 'current');
   assert.equal(await reopen().changeTavernQuest(today[1].key), 'stale');
-  setTime(midnight);
+  setTime(nextDay);
   assert.equal(await reopen().checkpointTavern(), 'current');
   assert.deepEqual(reopen().tavern(), stable);
   await resetProgress(storage);
