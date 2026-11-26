@@ -125,6 +125,7 @@ test('World Gates offers playable units, artifacts and effects and resolves a ch
 
 test('World Gates can play and deploy an artifact chosen by the hard bot', () => {
   let match = setup('world-gates', 'bot');
+  match.players.human.board.orbit[0].power = 5;
   match.players.bot.deck = [card('falura')];
   match = move(match, 'play', 'world-gates');
   const choice = chooseBotTurn(match, 6, { random, rolloutSamples: 1 });

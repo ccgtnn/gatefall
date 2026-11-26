@@ -1,11 +1,11 @@
 export const BOT_LEVELS = Object.freeze({
-  1: Object.freeze({ errorRate: .40, horizon: 'turn', candidates: 12, samples: 0, memory: false, budgetMs: 200 }),
-  2: Object.freeze({ errorRate: .30, horizon: 'turn', candidates: 18, samples: 0, memory: false, budgetMs: 350 }),
-  3: Object.freeze({ errorRate: .20, horizon: 'reply', candidates: 24, samples: 3, memory: false, budgetMs: 750 }),
-  4: Object.freeze({ errorRate: .10, horizon: 'round', candidates: 32, samples: 6, memory: false, budgetMs: 1400 }),
-  5: Object.freeze({ errorRate: .05, horizon: 'round', candidates: 44, samples: 12, memory: true, budgetMs: 2600 }),
-  6: Object.freeze({ errorRate: .02, horizon: 'match', candidates: 60, samples: 20, memory: true, budgetMs: 5000 }),
-  7: Object.freeze({ errorRate: 0, horizon: 'match', candidates: 80, samples: 36, memory: true, budgetMs: 8000 }),
+  1: Object.freeze({ errorRate: .40, errorPool: 5, passMistakeRate: .20, horizon: 'turn', candidates: 12, samples: 0, memory: false, budgetMs: 200 }),
+  2: Object.freeze({ errorRate: .30, errorPool: 5, passMistakeRate: .12, horizon: 'turn', candidates: 18, samples: 0, memory: false, budgetMs: 350 }),
+  3: Object.freeze({ errorRate: .20, errorPool: 3, passMistakeRate: 0, horizon: 'reply', candidates: 24, samples: 3, memory: false, budgetMs: 750 }),
+  4: Object.freeze({ errorRate: .10, errorPool: 3, passMistakeRate: 0, horizon: 'round', candidates: 32, samples: 6, memory: false, budgetMs: 1400 }),
+  5: Object.freeze({ errorRate: .05, errorPool: 2, passMistakeRate: 0, horizon: 'round', candidates: 44, samples: 12, memory: true, budgetMs: 2600 }),
+  6: Object.freeze({ errorRate: .02, errorPool: 2, passMistakeRate: 0, horizon: 'match', candidates: 60, samples: 20, memory: true, budgetMs: 5000 }),
+  7: Object.freeze({ errorRate: 0, errorPool: 1, passMistakeRate: 0, horizon: 'match', candidates: 80, samples: 36, memory: true, budgetMs: 8000 }),
 });
 
 export const DEFAULT_BOT_LEVEL = 4;

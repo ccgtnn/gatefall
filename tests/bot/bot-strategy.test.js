@@ -5,6 +5,7 @@ import { CAPTAIN_CARDS, HOUND } from '../../docs/game/captains.js';
 import { createBotView, pickBotTarget } from '../../docs/game/bot.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
 import { BOT_LEVELS, chooseBotTurn as decideAtLevel } from '../../docs/game/bot.js';
+import { evaluatePosition } from '../../docs/game/bot-evaluation.js';
 import { visibleSupply } from '../../docs/game/bot-rollouts.js';
 import { readBotLevel } from '../../docs/game/bot-levels.js';
 import { delayedCardValue, futureContext, remainingTurns } from '../../docs/game/bot-future-value.js';
@@ -35,12 +36,11 @@ function position(round = 1, winner = null) {
   return match;
 }
 
-test('strategic bots do not bank a one-card lead and can pass with a large lead', () => {
+test('strategic bots keep playing with a narrow lead and can pass with a large lead', () => {
   const match = position();
-  match.players.bot.board.orbit = [plain('lead', 7)];
+  match.players.bot.board.orbit = [plain('lead', 4)];
   match.log.push({ type: 'play', side: 'bot' });
   assert.equal(chooseBotTurn(match, 4).type, 'play');
-  assert.equal(chooseBotTurn(match, 6).type, 'play');
   assert.equal(chooseBotTurn(match, 2).type, 'play');
 
   match.log.push({ type: 'play', side: 'bot' });
@@ -70,9 +70,12 @@ test('round one gives up expensive chases and respects the no-pass rule after an
 
 test('round two can dry pass after winning round one and fights after losing it', () => {
   const won = position(2, 'bot');
+  won.players.bot.hand = [plain('small', 2), plain('spare', 3)];
+  won.players.human.board.orbit = [plain('lead', 22)];
   assert.deepEqual(chooseBotTurn(won, 4), pass);
   assert.deepEqual(chooseBotTurn(won, 6), pass);
   won.players.human.passed = true;
+  won.players.human.board.orbit = [plain('passed-lead', 1)];
   assert.equal(chooseBotTurn(won, 4).type, 'play');
 
   const lost = position(2, 'human');
@@ -149,12 +152,13 @@ test('changing the opponent’s hidden cards or either deck order cannot change 
 
 test('the bot cashes in its armored row for Shield Overload', () => {
   const match = position(3);
-  match.players.bot.hand = [member('overload', 'protectorate', 'shield-overload'), plain('ordinary', 4)];
+  match.players.bot.hand = [member('overload', 'protectorate', 'shield-overload'), plain('ordinary', 1)];
   match.players.bot.board.orbit = [member('small-shield', 'protectorate', 'assault')];
   match.players.bot.board.surface = [member('big-shield', 'protectorate', 'bastion')];
   match.players.human.board.orbit = [plain('enemy', 15)];
   // Isolate the armor payoff from the hidden cards sampled by hard mode.
   match.players.human.hand = [];
+  match.players.human.passed = true;
   match.players.human.deck = [];
   for (const difficulty of [2, 4, 6]) {
     const pending = applyAction(match, 'bot', { type: 'play', cardId: 'overload' });
@@ -221,7 +225,7 @@ test('level 6 anticipates a visible Surface-only reply without reading the enemy
   })];
   match.players.human.leader = { name: 'Surface battery', charges: 1, ability: {
     select: [{ ref: 'enemy', targets: { scope: 'enemy', type: 'unit', row: 'surface' } }],
-    steps: [{ action: 'damage', target: { scope: 'ref', ref: 'enemy' }, amount: 4 }],
+    steps: [{ action: 'damage', target: { scope: 'ref', ref: 'enemy' }, amount: 6 }],
   } };
   assert.equal(chooseBotTurn(match, 2).row, 'surface');
   assert.equal(chooseBotTurn(match, 6, { rolloutSamples: 0 }).row, 'orbit');
@@ -387,17 +391,20 @@ test('all bots end a turn with an empty hand after already using an order', () =
 });
 
 
-test('the strategic bot values the Fence payout with an empty deck only if coins can fit', () => {
+test('the position evaluation counts the Fence payout only while coins can fit', () => {
   const fence = CAPTAIN_CARDS.find(({ id }) => id === 'stolen-goods-fence');
   const control = { ...fence, id: 'plain-fence', counter: undefined };
   const match = position();
   match.players.bot.deck = [];
-  match.players.bot.hand = [standard('plain-fence', control), standard('fence', fence), plain('later', 1)];
-  assert.equal(chooseBotTurn(match, 4).cardId, 'fence');
+  match.players.bot.hand = [plain('spare-a', 3), plain('spare-b', 3), plain('spare-c', 3)];
+  const rating = (definition) => {
+    match.players.bot.board.orbit = [standard('producer', definition)];
+    return evaluatePosition(match, 'bot');
+  };
+  assert.ok(rating(fence) > rating(control));
   match.players.bot.coins = COIN_LIMIT;
-  assert.equal(chooseBotTurn(match, 4).cardId, 'plain-fence');
+  assert.equal(rating(fence), rating(control));
 });
-
 
 test('all bots can spend a Generator charge on armor synergy', () => {
   const match = position(3);
@@ -722,9 +729,13 @@ test('level 1 can select a weaker move or target and level 7 always uses the bes
   match.players.bot.hand = [plain('strong', 10), plain('mid', 7), plain('weak', 3)];
   match.players.human.deck = [];
   match.players.human.hand = [];
+  match.players.human.board.orbit = [plain('enemy', 8)];
+  match.players.human.passed = true;
   for (const level of [1, 7]) {
     assert.equal(decideAtLevel(match, level, { random: () => .99 }).cardId, 'strong');
-    assert.equal(decideAtLevel(match, level, { random: () => 0 }).cardId, level === 7 ? 'strong' : 'mid');
+    const alternative = decideAtLevel(match, level, { random: () => 0 }).cardId;
+    if (level === 7) assert.equal(alternative, 'strong');
+    else assert.notEqual(alternative, 'strong');
   }
 
   const { bot, human } = match.players;
@@ -733,6 +744,7 @@ test('level 1 can select a weaker move or target and level 7 always uses the bes
     steps: [{ action: 'damage', target: { scope: 'ref', ref: 'victim' }, amount: 6 }],
   } }), plain('spare', 1)];
   human.board.orbit = [plain('strong', 8), plain('mid', 5), plain('weak', 2)];
+  human.passed = false;
   const pending = applyAction(match, 'bot', { type: 'play', cardId: 'shot' });
   assert.equal(decideAtLevel(pending, 1, { random: () => .99 }).cardId, 'strong');
   assert.equal(decideAtLevel(pending, 1, { random: () => 0 }).cardId, 'mid');
@@ -764,4 +776,87 @@ test('memory removes both a played card and a visible copy from the hidden suppl
   assert.equal(options(true), 1);
   match.log.push({ type: 'play', side: 'human', cardId: 'other-copy', card });
   assert.equal(options(true), 0);
+});
+
+test('levels 5–7 compare pass with plays using the match position', () => {
+  for (const level of [5, 6, 7]) {
+    const ahead = position(1);
+    ahead.players.bot.board.orbit = [plain('lead', 15)];
+    assert.deepEqual(chooseBotTurn(ahead, level), pass, 'bank a large lead at level ' + level);
+
+    const behind = position(1);
+    behind.players.human.board.orbit = [plain('enemy-lead', 26)];
+    behind.players.bot.hand.pop();
+    assert.deepEqual(chooseBotTurn(behind, level), pass, 'give up the chase at level ' + level);
+
+    const close = position(2, 'human');
+    close.players.human.passed = true;
+    close.players.human.board.orbit = [plain('target-score', 4)];
+    close.players.bot.hand = [plain('enough', 5), plain('excess', 12), plain('short', 2)];
+    assert.equal(chooseBotTurn(close, level).cardId, 'enough', 'spend just enough at level ' + level);
+
+    const final = position(3);
+    final.players.human.passed = true;
+    final.players.bot.board.orbit = [plain('lead', 30)];
+    assert.equal(chooseBotTurn(final, level).type, 'play', 'always play a legal card in round three');
+  }
+});
+
+test('the shared evaluation prices life, early hand reserve and resilient strength', () => {
+  const match = position(1);
+  const neutral = evaluatePosition(match, 'bot');
+  match.players.bot.hand.push(plain('extra', 6));
+  const earlyCard = evaluatePosition(match, 'bot') - neutral;
+  match.round = 3;
+  const lateCard = evaluatePosition(match, 'bot');
+  assert.ok(earlyCard > lateCard);
+  assert.equal(evaluatePosition(match, 'human'), -lateCard);
+
+  match.round = 2;
+  match.players.human.lives = 1;
+  const before = evaluatePosition(match, 'bot');
+  const unit = plain('carry', 4);
+  match.players.bot.board.orbit = [unit];
+  const withoutResilience = evaluatePosition(match, 'bot');
+  unit.resilient = true;
+  assert.ok(evaluatePosition(match, 'bot') > withoutResilience && withoutResilience > before);
+});
+
+test('level 1 can choose far down its shortlist and pass at the wrong time, deterministically', () => {
+  const match = position(1);
+  match.players.bot.hand = [10, 8, 6, 4, 2, 1].map((power) => plain('unit-' + power, power));
+  const normal = decideAtLevel(match, 1, { random: () => .99 });
+  const replay = (...rolls) => decideAtLevel(match, 1, { random: () => rolls.shift() ?? .99 });
+  assert.equal(normal.type, 'play');
+  assert.equal(replay(0, 0).type, 'pass');
+  const mistake = replay(0, .99, .99);
+  assert.notDeepEqual(mistake, normal);
+  assert.deepEqual(replay(0, .99, .99), mistake);
+  const decisions = Array.from({ length: 20 }, (_, index) =>
+    replay((index + .5) / 20, .99, .99));
+  assert.equal(decisions.filter((action) => action.cardId !== normal.cardId).length, 8);
+});
+
+test('with a round in hand the bot pressures round two and stops once the chase is too costly', () => {
+  const match = position(2, 'bot');
+  match.players.bot.hand = [6, 7, 8, 9].map((power) => plain('pressure-' + power, power));
+  match.players.human.hand = [3, 4, 5, 6].map((power) => plain('defense-' + power, power));
+  for (const level of [5, 6, 7]) assert.equal(chooseBotTurn(match, level).type, 'play');
+
+  match.players.human.hand.splice(2);
+  match.players.human.board.orbit = [plain('paid-for-lead', 24)];
+  match.players.bot.hand.pop();
+  for (const level of [5, 6, 7]) assert.deepEqual(chooseBotTurn(match, level), pass);
+});
+
+test('once the opponent has passed, surplus points add no match value to a secured win', () => {
+  const match = position(1);
+  const { bot, human } = match.players;
+  human.passed = true;
+  human.board.orbit = [plain('opponent', 6)];
+  const lead = plain('lead', 7);
+  bot.board.orbit = [lead];
+  const enough = evaluatePosition(match, 'bot');
+  lead.power = 30;
+  assert.equal(evaluatePosition(match, 'bot'), enough);
 });

@@ -143,3 +143,15 @@ export function wantsToHoldInheritance(context, card, alternatives) {
     alternatives.some((other) => other !== card && !inheritsDeathwishes(other) &&
       (other.power ?? other.definition.provision ?? 0) >= 3);
 }
+
+export function carryoverValue({ match, own, player }, weights) {
+  const resilience = own.reduce((total, { card }) => {
+    if (!card.resilient || isLocked(card)) return total;
+    return total + (card.power ?? 0) * weights.carriedUnit + (card.armor ?? 0) * weights.carriedArmor
+      + statusCount(card, 'shield') * weights.carriedShield;
+  }, 0);
+  const leader = player.leader;
+  const uses = leader?.order && !leader.order.usesCharges ? 1 : leader?.charges ?? 0;
+  return resilience + uses * weights.carriedLeader
+    + (match.rules.coinsPersistBetweenRounds ? (player.coins ?? 0) * weights.carriedCoins : 0);
+}

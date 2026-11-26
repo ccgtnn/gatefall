@@ -8,7 +8,7 @@ const profiles = {
     'docs/game/effect-operations.js', 'docs/game/effect-piles.js', 'docs/game/effect-queries.js', 'docs/game/effect-schema.js', 'docs/game/events.js', 'docs/game/card-metadata.js', 'tests/battle/round-rules.test.js',
   ]],
   bot: ['Стратегия и симуляции бота', [
-    'docs/game/bot.js', 'docs/game/bot-strategy.js', 'docs/game/bot-levels.js', 'docs/game/bot-rollouts.js',
+    'docs/game/bot.js', 'docs/game/bot-strategy.js', 'docs/game/bot-evaluation.js', 'docs/game/bot-levels.js', 'docs/game/bot-rollouts.js',
     'docs/game/bot-effect-value.js', 'docs/game/bot-future-value.js', 'docs/game/bot-leaders.js', 'tests/bot/bot-strategy.test.js',
   ]],
   economy: ['Сохранения, награды и экономика', [

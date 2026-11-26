@@ -1,3 +1,4 @@
+import { evaluatePosition, EVAL_WEIGHTS as W } from './bot-evaluation.js';
 import { FACTIONS } from './cards.js';
 import { ROWS } from './card-metadata.js';
 import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js';
@@ -178,27 +179,22 @@ function quickAction(match, side, pickTarget) {
     return order ? { type: 'order', cardId: order.card.id } : beneficialFee(match, side) ?? END;
   }
   const legalPass = canPass(match, side);
-  if (legalPass && match.round < 3 && lead > 0 && (enemy.passed || !enemy.hand.length)) return PASS;
-
   const plays = fastPlays(match, side);
   if (!plays.length) {
-    if (legalPass && enemy.passed && lead > 0) return PASS;
     if (canUseLeader(match, side)) return { type: 'leader' };
     const [order] = availableOrders(match, side);
     return order ? { type: 'order', cardId: order.card.id }
       : beneficialFee(match, side) ?? (canEndTurn(match, side) ? END : PASS);
   }
-  if (legalPass && match.round === 1 && !enemy.passed && player.turns >= 4 && lead > 9) return PASS;
-  if (legalPass && match.round === 1 && !enemy.passed && lead > 13 && player.turns > 1) return PASS;
-  if (legalPass && match.round === 2 && enemy.lives < player.lives && !enemy.passed &&
-      (player.hand.length + 1 < enemy.hand.length || player.hand.length <= 5 ||
-        (player.turns >= 3 && lead < 8))) return PASS;
-  if (enemy.passed) {
-    const winning = plays.filter(({ points }) => points + lead >= 1).sort((a, b) => a.cost - b.cost);
-    if (winning.length) return winning[0].action;
-    if (legalPass && match.round < 3 && player.lives > 1 &&
-        (match.round === 2 || plays.toSorted((a, b) => b.points - a.points).slice(0, 2)
-          .reduce((sum, play) => sum + play.points, lead) < 1)) return PASS;
+  const rank = ({ points, reserve }) => points - Math.max(0, reserve - points) * W.removalReserve;
+  let best = plays.reduce((best, play) => rank(play) > rank(best) ? play : best);
+  if (legalPass && match.round < 3) {
+    const rating = (play) => evaluatePosition(match, side, { ...play.action, gain: play.points });
+    if (enemy.passed) {
+      const cheapest = plays.filter(({ points }) => points + lead > 0).sort((a, b) => a.cost - b.cost)[0];
+      if (cheapest && rating(cheapest) >= rating(best)) best = cheapest;
+    }
+    if (evaluatePosition(match, side, PASS) >= rating(best)) return PASS;
   }
   if (!enemy.passed && (match.round === 3 || (match.round === 2 && player.lives === 1)) && leaderPreference === undefined && canUseLeader(match, side) &&
       (player.leader.ability.select?.[0]?.kind !== 'marshal' || ROWS.some((row) => player.board[row].length > 1))) {
@@ -206,31 +202,11 @@ function quickAction(match, side, pickTarget) {
   }
   const fee = beneficialFee(match, side);
   if (fee && !(enemy.passed && lead > 0)) return fee;
-  const weight = match.round === 3 ? .12 : .45;
-  function rank(play) {
-    return play.points - weight * play.cost - Math.max(0, play.reserve - play.points) * 1.5;
-  }
-  return plays.reduce((best, play) => rank(play) > rank(best) ? play : best).action;
+  return best.action;
 }
 
-function assessment(match, round) {
-  const { bot, human } = match.players;
-  const last = match.log.findLast((event) => event.type === 'round-end' && event.round === round);
-  if (match.result || round === 3) {
-    if (!last) return 0;
-    const lead = last.scores.bot - last.scores.human;
-    const outcome = match.result === 'loss' ? 1 : match.result === 'win' ? -1
-      : match.result === 'draw' ? 0 : Math.sign(lead);
-    return .90 * outcome + .10 * Math.tanh(lead / 20);
-  }
-  if (!last) return Math.tanh((totalScore(bot) - totalScore(human)) / 18) * .5;
-  const worth = (player) => player.hand.reduce((sum, card) => sum + 3.5 + printedValue(card) * .6, 0)
-    + (player.leader?.order && !player.leader.order.usesCharges ? 4.5 : (player.leader?.charges ?? 0) * 4.5);
-  const cards = worth(bot) - worth(human);
-  // A life lead means the opponent needs both remaining rounds. Extra cards carry over.
-  const lives = (bot.lives - human.lives) * (round === 1 ? 12 : 4);
-  const opening = match.starter === 'bot' ? -.6 : .6;
-  return Math.tanh((cards + lives + opening) / (round === 1 ? 14 : 11));
+function assessment(match) {
+  return Math.tanh(evaluatePosition(match, 'bot') / W.rolloutScale);
 }
 
 function rollout(sample, action, pickTarget, random, expired, horizon) {
@@ -239,7 +215,6 @@ function rollout(sample, action, pickTarget, random, expired, horizon) {
   const round = match.round;
   const options = { random, copy: (state) => ({ ...state }) };
   let move = action;
-  let firstRoundValue;
   let answered = false;
   for (let step = 0; step < 300; step++) {
     if (expired()) return;
@@ -251,20 +226,18 @@ function rollout(sample, action, pickTarget, random, expired, horizon) {
     if (horizon === 'reply') {
       answered ||= active === 'human' && !match.pending && match.turn !== 'human';
       if (answered || match.phase !== 'playing' || (!match.pending && match.players.human.passed)) {
-        return assessment(match, round);
+        return assessment(match);
       }
     }
     if (match.phase === 'finished') {
-      const outcome = assessment(match, match.round);
-      return firstRoundValue === undefined ? outcome : .75 * outcome + .25 * firstRoundValue;
+      return assessment(match);
     }
     if (match.phase === 'mulligan') {
-      if (horizon === 'round' || round === 3) return assessment(match, round);
-      firstRoundValue ??= assessment(match, round);
+      if (horizon === 'round' || round === 3) return assessment(match);
       const swaps = match.players.human.hand.toSorted((a, b) => printedValue(a) - printedValue(b))
         .slice(0, mulliganLimit(match, 'human')).map(({ id }) => id);
       match = confirmMulligan(match, swaps, options);
-      if (match.phase !== 'playing') return firstRoundValue;
+      if (match.phase !== 'playing') return assessment(match);
     }
     move = quickAction(match, match.pending?.side ?? match.turn, pickTarget);
   }
@@ -295,7 +268,7 @@ export function compareRollouts(match, candidates, {
   const bestRating = Math.max(...candidates.map(({ rating }) => rating));
   return candidates.map((candidate, index) => ({
     ...candidate, samples,
-    average: .85 * totals[index] / samples + .15 * Math.tanh((candidate.rating - bestRating) / 6),
+    average: W.rolloutShare * totals[index] / samples + (1 - W.rolloutShare) * Math.tanh((candidate.rating - bestRating) / W.rolloutScale),
   }))
     .sort((a, b) => b.average - a.average || b.rating - a.rating);
 }

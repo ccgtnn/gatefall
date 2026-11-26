@@ -103,7 +103,12 @@ test('orbital salvo hits either row, ignores artifacts, and goes directly to the
 test('the bot prefers a Surface target for Orbital Salvo and casts Effects without a board position', () => {
   let match = fixture({ faction: 'growth' });
   match.turn = 'bot';
+  match.round = 3;
+  match.players.bot.lives = match.players.human.lives = 1;
   match.players.bot.hand = [unit('salvo', 'orbital-salvo')];
+  match.players.bot.leader = null;
+  match.players.human.passed = true;
+  board(match, 'bot', 'orbit', createCard('lead', { ...basic, power: 5 }));
   board(match, 'human', 'orbit', unit('weak', 'spore-sac'));
   board(match, 'human', 'surface', unit('strong', 'colossus', { power: 7 }));
   assert.deepEqual(chooseBotTurn(match), { type: 'play', cardId: 'salvo' });
