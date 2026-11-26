@@ -16,6 +16,7 @@ import { createMatchSession } from './ui/match-session.js';
 import { createMatchTurn } from './ui/match-turn.js';
 import { createMatchMenu } from './ui/menu.js';
 import { finishedScreen, leaderScreen } from './ui/screens.js';
+import { BOT_DIFFICULTY_KEY, createBotDifficulty } from './ui/bot-difficulty.js';
 import { createSettings } from './ui/settings.js';
 
 import { createFactionStats, FACTION_STATS_KEY } from './ui/stats.js';
@@ -23,8 +24,6 @@ import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js';
 import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js';
 import { createResourceBar, prepareLazySection, sectionDialog, showEssenceGain } from './ui/resources.js';
 import { bindTargeting, updatePendingAim } from './ui/targeting.js';
-import { tavernRewardCount } from './game/tavern.js';
-import { rankStanding } from './game/ranks.js';
 import { BATTLEFIELD_STORAGE_KEY, createBattlefieldPreferences, createFramePreferences, decorationsScreen, FRAME_STORAGE_KEY } from './ui/decorations.js';
 import { rankScreen } from './ui/rank-screen.js';
 import { leagueScreen, LEAGUE_OVERVIEW_QUERY } from './ui/league-screen.js';
@@ -55,10 +54,11 @@ const deckStore = createDeckStorage(storage);
 const framePreferences = createFramePreferences(storage, document.documentElement);
 const battlefieldPreferences = createBattlefieldPreferences(storage, document.documentElement);
 const stats = createFactionStats(Object.keys(FACTIONS), storage);
+const botDifficulty = createBotDifficulty(storage);
 const settings = createSettings(app, (surrender) => session.leave(surrender), async () => {
   await resetProgress(storage, navigator.locks);
   window.location.reload();
-});
+}, botDifficulty);
 const turns = createMatchTurn({
   app, screen, settings, aim, notices: { turnNotice, coinNotice, roundNotice }, announcement,
   showNotice, hideNotice, render,
@@ -150,6 +150,7 @@ progress.subscribe(() => emit('collection-change'));
 const reloadKeys = new Set([REWARD_STORAGE_KEY, DECK_STORAGE_KEY, RECENT_DECKS_KEY, FACTION_STATS_KEY]);
 window.addEventListener('storage', (event) => {
   if (event.storageArea !== storage) return;
+  if (event.key === BOT_DIFFICULTY_KEY) botDifficulty.refresh();
   const decorationKeys = [FRAME_STORAGE_KEY, BATTLEFIELD_STORAGE_KEY];
   if (decorationKeys.includes(event.key) || event.key === null) {
     if (event.key !== BATTLEFIELD_STORAGE_KEY) framePreferences.refresh();
@@ -356,13 +357,10 @@ function render({ deckListNotice } = {}) {
         play: session.startLeague,
         concede: (id) => progress.settleLeagueMatch(id, 'loss', -2),
       }, signal); break;
-      default: content = deckHomeScreen(phaseLabel, stats, {
-        base: openBase,
-        tavernRewards: () => tavernRewardCount(progress.tavern()),
-        league: () => goTo('league'), ranks: () => goTo('ranks'),
-        currentRank: () => rankStanding(progress.ranks().rounds).rank,
-        catalog: () => openResources('essence'), decorations: () => goTo('decorations'), all: () => goTo('all-decks'), play: session.start,
-      }, () => deckStore.recent(progress.inventory().owned), signal);
+      default: content = deckHomeScreen(phaseLabel, {
+        base: openBase, league: () => goTo('league'), ranks: () => goTo('ranks'),
+        catalog: () => openResources('essence'), decorations: () => goTo('decorations'), all: () => goTo('all-decks'),
+      }, progress, { deckStore, inventory: progress.inventory, storage, difficulty: botDifficulty, play: session.start }, signal);
     }
   }
   app.classList.toggle('is-deck-home', content.classList.contains('deck-home'));

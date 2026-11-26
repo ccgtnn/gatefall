@@ -33,7 +33,8 @@ test('categories cover the existing Growth pool and identify the Void neutrals',
     ['broodlord','cocoon','colossus','feast','gulper','incubator','larva','nest','ravager','scavenger','swarm-call']);
   assert.deepEqual(categories['Росток'].map(({ id }) => id).sort(), ['acid-capsule', 'bioreactor', 'predator', 'spore-sac', 'synaptic-parasite', 'thorn-screecher', 'vine', 'xylaris-bloom']);
   assert.deepEqual(categories['Гниль'].slice(0, 2).map(({ id }) => id), ['acid-gland','spitter']);
-  assert.equal(categories.undefined?.some((card) => !card.scenario && card.id !== 'genome-keeper') ?? false, false);
+  assert.deepEqual(categories.undefined.filter((card) => !card.scenario).map(({ id }) => id).sort(),
+    ['genome-keeper', 'infected-carcass']);
   assert.deepEqual(FACTIONS.protectorate.pool.filter((card) => card.categories).map(({ id, categories }) => [id, categories]),
     [['imperial-golem', ['Голем']], ['aggressor', ['Тяжёлый корабль']],
       ['aurelian', ['Тяжёлый корабль']], ['tiberius', ['Тяжёлый корабль']]]);

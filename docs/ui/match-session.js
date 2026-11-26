@@ -17,6 +17,7 @@ export function createMatchSession({
 }) {
   const { turnNotice, coinNotice, roundNotice } = notices;
   let matchDeck;
+  let matchBotDeck;
   let matchRewardId;
   let leagueOpponent;
   let leagueDialogue;
@@ -46,19 +47,23 @@ export function createMatchSession({
     if (!next) return 'invalid-deck';
     const id = matchId();
     const outcome = await progress.beginLeagueMatch(ticket, id, deck);
-    if (outcome === 'done') start(deck, { next, bot, id });
+    if (outcome === 'done') begin(deck, next, { bot, id });
     return outcome;
   }
 
-  function start(deck, league) {
-    if (!league && !canPlayDeck(deck)) return;
-    const next = league?.next ?? createDeckMatch(deck);
-    if (!next) return;
+  function start(deck, { botDeck } = {}) {
+    if (!canPlayDeck(deck)) return;
+    const next = createDeckMatch(deck, { botDeck });
+    if (next) begin(deck, next, { botDeck });
+  }
+
+  function begin(deck, next, { bot, botDeck, id }) {
     deckStore.recordPlay(deck.id);
     matchDeck = structuredClone(deck);
+    matchBotDeck = botDeck && structuredClone(botDeck);
     turns.reset(next);
-    matchRewardId = league?.id ?? matchId();
-    leagueOpponent = league?.bot;
+    matchRewardId = id ?? matchId();
+    leagueOpponent = bot;
     turns.warmBot();
     leagueDialogue = leagueOpponent && createLeagueDialogue(leagueOpponent);
     const greeting = leagueDialogue?.start(progress.league());
@@ -128,6 +133,7 @@ export function createMatchSession({
     hideNotice(turnNotice);
     hideNotice(roundNotice);
     matchDeck = undefined;
+    matchBotDeck = undefined;
     matchRewardId = undefined;
     leagueOpponent = undefined;
     leagueDialogue = undefined;
@@ -147,7 +153,7 @@ export function createMatchSession({
   async function replay() {
     const finished = turns.match;
     await waitForRewards();
-    if (turns.match === finished && finished?.phase === 'finished') start(matchDeck);
+    if (turns.match === finished && finished?.phase === 'finished') start(matchDeck, { botDeck: matchBotDeck });
   }
 
   function setMulliganField(visible) {

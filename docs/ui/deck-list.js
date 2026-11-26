@@ -4,6 +4,8 @@ import { FACTION_CATALOG } from '../game/faction-catalog.js';
 import { inspectDeck, PRESETS } from '../game/decks.js';
 import { button, element } from './dom.js';
 import { factionFilters } from './faction-filters.js';
+import { homeTiles } from './home-tiles.js';
+import { quickMatchPanel } from './quick-match-panel.js';
 import { campaignShelf } from './campaigns.js';
 import { deckImportDialog, exportDeckJson, exportOwnDecks } from './deck-transfer.js';
 import { sectionBack } from './resources.js';
@@ -48,40 +50,16 @@ function deckListItem(deck, stats, actions) {
 
 const campaigns = [];
 
-export function deckHomeScreen(phaseLabel, stats, actions, recentDecks, signal) {
+export function deckHomeScreen(phaseLabel, actions, progress, quickMatch, signal) {
   phaseLabel.textContent = '';
   const screen = element('section', 'deck-home');
   const sections = element('section', 'home-block');
-  const tiles = element('div', 'home-tiles home-tiles-sections');
-  const base = button('База', actions.base, 'button home-tile home-tile-base');
-  const badge = element('span', 'tavern-badge');
-  badge.setAttribute('aria-hidden', 'true');
-  base.append(badge);
-  const ranks = button('', actions.ranks, 'button home-tile home-tile-ranks');
-  tiles.append(base, button('Лига', actions.league, 'button home-tile home-tile-league'), ranks);
   const collectionTiles = element('div', 'home-tiles home-tiles-collection');
   collectionTiles.append(button('Все карты', actions.catalog, 'button home-tile'),
-    button('Украшения', actions.decorations, 'button home-tile'));
-  sections.append(element('h2', null, 'Разделы'), tiles, collectionTiles);
-  const decks = element('section', 'home-block');
-  const heading = element('div', 'deck-toolbar home-decks-toolbar');
-  heading.append(element('h2', null, 'Колоды'), button('Все колоды', actions.all));
-  const list = element('div', 'deck-list');
-  decks.append(heading, list);
-  screen.append(campaignShelf(campaigns), sections, decks);
-
-  function update() {
-    ranks.textContent = `Ранги · ${actions.currentRank()}`;
-    const ready = actions.tavernRewards();
-    badge.hidden = !ready;
-    badge.textContent = ready;
-    base.setAttribute('aria-label', ready ? `База · награды Таверны: ${ready}` : 'База');
-    const cards = recentDecks().map((deck) => deckListItem(deck,
-      PRESETS.includes(deck) ? stats : undefined, { play: actions.play }).item);
-    list.replaceChildren(...(cards.length ? cards : [element('p', 'muted', 'Нет доступных колод.')]));
-  }
-  on('collection-change', update, { signal });
-  update();
+    button('Украшения', actions.decorations, 'button home-tile'),
+    button('Все колоды', actions.all, 'button home-tile'));
+  sections.append(element('h2', null, 'Разделы'), homeTiles(progress, actions, signal), collectionTiles);
+  screen.append(campaignShelf(campaigns), sections, quickMatchPanel(quickMatch, signal));
   return screen;
 }
 
