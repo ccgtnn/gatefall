@@ -2,7 +2,7 @@ import { on } from './app-events.js';
 import { DIAMOND, LEAGUE_BOTS, LEAGUES, LEAGUE_RULES, leagueDivision, leagueOpponent, leagueStake, leagueTable, leagueTicket } from '../game/league.js';
 import { leagueAvatar, LORE_FACTIONS, setLeagueSpeech } from './league-character.js';
 import { leagueProfile, leagueRecord, leagueRoundRecord, LEAGUE_DIFFICULTY_LABELS } from './league-profile.js';
-import { button, element, selectField } from './dom.js';
+import { button, createBusyGuard, element, selectField } from './dom.js';
 import { sectionBack } from './resources.js';
 
 const leagueTabs = [
@@ -72,17 +72,17 @@ export function leagueScreen(phase, actions, signal) {
   countdown.append(clockIcon, clockLabel, clockProgress);
   let selectedDeck;
   let league;
-  let busy = false;
-  let resetting = false;
+  const busy = createBusyGuard();
+  const resetting = createBusyGuard();
   let retryAt = 0;
   let currentPlay;
   const back = sectionBack(actions.back);
   header.append(back, title);
   panel.append(header, nav, content, countdown, message);
 
-  function updateClock() {
+  function updateClock(checkpoint = true) {
     if (!league) {
-      if (!resetting && panel.isConnected && Date.now() >= retryAt) void sync();
+      if (checkpoint && !resetting.active && panel.isConnected && Date.now() >= retryAt) void sync();
       return;
     }
     const now = Date.now();
@@ -96,11 +96,11 @@ export function leagueScreen(phase, actions, signal) {
     clockProgress.value = Math.max(0, 1 - remaining / (league.resetAt - start.getTime()));
     countdown.classList.toggle('is-urgent', remaining < 86400000);
     countdown.hidden = false;
-    if (now >= Math.max(league.resetAt, retryAt) && !resetting && !busy) void sync();
+    if (checkpoint && now >= Math.max(league.resetAt, retryAt) && !resetting.active && !busy.active) void sync();
   }
   async function sync() {
-    resetting = true;
-    const outcome = await actions.checkpoint();
+    if (resetting.active) return;
+    const outcome = await resetting.run(actions.checkpoint);
     if (outcome === 'unavailable') {
       retryAt = Date.now() + 15000;
       message.textContent = 'Не удалось обновить лигу.';
@@ -108,18 +108,17 @@ export function leagueScreen(phase, actions, signal) {
       retryAt = 0;
       message.textContent = '';
     }
-    if (panel.isConnected) update();
-    resetting = false;
+    if (panel.isConnected) update(false);
   }
 
   async function submit(action) {
-    if (busy) return;
-    busy = true;
-    back.disabled = true;
-    message.textContent = '';
-    update();
-    const result = await action();
-    busy = false;
+    if (busy.active) return;
+    const result = await busy.run(() => {
+      back.disabled = true;
+      message.textContent = '';
+      update();
+      return action();
+    });
     back.disabled = false;
     if (!panel.isConnected) return;
     if (result === 'stale') await sync();
@@ -127,7 +126,7 @@ export function leagueScreen(phase, actions, signal) {
     update();
   }
 
-  function update() {
+  function update(checkpoint = true) {
     const previousTier = league?.season.tier;
     league = actions.read();
     if (!league) {
@@ -183,7 +182,7 @@ export function leagueScreen(phase, actions, signal) {
       opponent.append(element('h3', null, label), details, controls);
       if (active) {
         const concede = button('Засчитать поражение', () => submit(() => actions.concede(active.id)));
-        concede.disabled = busy;
+        concede.disabled = busy.active;
         controls.append(concede);
       } else {
         const decks = actions.decks();
@@ -195,12 +194,12 @@ export function leagueScreen(phase, actions, signal) {
         const short = actions.gold() < stake;
         currentPlay = {
           label: stake ? `Играть против него · ${stake} золота` : 'Играть против него',
-          disabled: busy || short || !decks.length,
+          disabled: busy.active || short || !decks.length,
           start: () => submit(() => actions.play(ticket, bot, decks.find(({ id }) => id === picker.input.value))),
         };
         const start = button(stake ? `Играть матч · ${stake} золота` : 'Играть матч', currentPlay.start, 'button primary');
         start.disabled = currentPlay.disabled;
-        picker.input.disabled = busy || !decks.length;
+        picker.input.disabled = busy.active || !decks.length;
         controls.append(picker.field, start);
         if (short) controls.append(element('p', 'muted', 'Не хватает золота на ставку.'));
       }
@@ -236,12 +235,12 @@ export function leagueScreen(phase, actions, signal) {
     content.replaceChildren(...details, tables, ...(opponent ? [opponent] : []));
     if (openDialog && (openDialog.dataset.ticket !== ticket ||
         (openDialog.querySelector('.button.primary') && !currentPlay))) openDialog.close();
-    updateClock();
+    updateClock(checkpoint);
   }
 
-  on('league-tick', updateClock, { signal });
-  on('league-layout-change', update, { signal });
-  on('collection-change', () => { if (!busy) update(); }, { signal });
+  on('league-tick', () => updateClock(), { signal });
+  on('league-layout-change', () => update(), { signal });
+  on('collection-change', () => { if (!busy.active) update(); }, { signal });
   update();
   if (league) {
     updateClock();

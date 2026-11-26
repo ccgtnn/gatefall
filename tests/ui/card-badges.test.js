@@ -13,6 +13,7 @@ class TestElement {
     this.listeners = {};
     this.children = [];
     this.dataset = {};
+    this.style = {};
     this.className = '';
     this.classList = {
       add: (name) => { this.className += ' ' + name; },
@@ -453,4 +454,39 @@ test('creation previews list matching possibilities only after expansion', () =>
   const choices = tree(byClass(options, 'preview-related')).filter(({ dataset }) => dataset.cardId);
   assert.ok(choices.some(({ dataset }) => dataset.cardId === 'annihilation'));
   assert.ok(choices.every(({ dataset }) => dataset.cardId !== effect.id && dataset.type === 'effect' && dataset.rarity === 'gold'));
+});
+
+test('a field Order leaves room for the card counter, timer and Deathwish', () => {
+  const template = FACTIONS.choir.pool.find(({ order, type }) => order && type === 'unit');
+  const card = createCard('marked', { ...template, counter: { amount: 3 }, timer: 2,
+    deathwish: { steps: [] } });
+  const face = new TestElement('button');
+  decorateCard(face, card, {}, { orderOnField: true });
+  const badges = byClass(face, 'card-timing-badges');
+  assert.match(badges.className, /is-above-order/);
+  assert.deepEqual(badges.children.map((node) => node.attributes['aria-label']), ['Счётчик 3', 'Таймер 2', 'Завещание']);
+  assert.equal(byClass(face, 'stat-badge-order'), undefined);
+});
+
+test('premium art toggles and media fallback preserve the small-card crop', async () => {
+  const { cardArt, selectPremiumArt } = await import('../../docs/ui/card-art.js');
+  const wrap = new TestElement('div');
+  const definition = { ...makeCard('world-gates').definition, artFocus: '25% 35%', artZoom: 1.4 };
+  document.body.append(wrap);
+  try {
+    selectPremiumArt(definition.id, false);
+    wrap.append(cardArt(definition, 'card-art-crop'));
+    selectPremiumArt(definition.id, true);
+    const video = wrap.children[0];
+    assert.equal(video.tag, 'video');
+    assert.deepEqual(video.style, { objectPosition: '25% 35%', transformOrigin: '25% 35%', scale: '1.4' });
+    video.listeners.error();
+    assert.equal(wrap.children[0].tag, 'img');
+    assert.deepEqual(wrap.children[0].style, video.style);
+    selectPremiumArt(definition.id, false);
+    assert.deepEqual(wrap.children[0].style, video.style);
+  } finally {
+    selectPremiumArt(definition.id, false);
+    document.body.children.splice(document.body.children.indexOf(wrap), 1);
+  }
 });

@@ -13,8 +13,8 @@ function spawn(match, job, step) {
   const fallback = step.fallbackPosition && job.refs[step.fallbackPosition];
   const { position, row } = step;
   const sourceRow = origin?.row ?? fallback?.row;
-  const rows = row === 'all' ? ROWS : [step.rowRef ? job.refs[step.rowRef] : row === 'source' ? sourceRow : row === 'death' ? job.row : row];
-  if (step.overflow && rows[0]) rows.push(...ROWS.filter((row) => row !== rows[0]));
+  const rows = row === 'all' ? [...ROWS] : [step.rowRef ? job.refs[step.rowRef] : row === 'source' ? sourceRow : row === 'death' ? job.row : row];
+  if (step.overflow && row !== 'all' && rows[0]) rows.push(...ROWS.filter((row) => row !== rows[0]));
   let remaining = step.amount;
   for (const row of rows.filter(Boolean)) {
     if (remaining <= 0) break;
@@ -58,7 +58,7 @@ function eachTarget(handler) {
       if (step.saveTargets) job.refs[step.saveTargets] = [...job.remaining];
       if (step.grouped && job.remaining.length) {
         const [receiver] = targets(match, job, step.receiver);
-        emit(match, { type: 'consume-group', side: job.side, cardIds: [...job.remaining], eaterId: receiver.card.id });
+        if (receiver) emit(match, { type: 'consume-group', side: job.side, cardIds: [...job.remaining], eaterId: receiver.card.id });
       }
     }
     const next = job.remaining.shift();
@@ -199,17 +199,15 @@ function status(match, job, step, random) {
 function damageTarget(match, job, step, target) {
   const amount = valueOf(match, job, step.amount, target);
   const overflow = step.slay ? damageOverflow(target.card, amount) : 0;
-  const measured = step.measureDamage && isUnit(target.card) && !statusCount(target.card, 'shield')
-    ? Math.min(amount, target.card.power + (target.card.armor ?? 0)) : 0;
+  const powerBefore = target.card.power ?? 0;
   const killed = damage(match, target, amount, job.sourceDefinitionId, { attacker: job.side });
-  const result = step.measureDamage ? measured : killed;
-  if (result && step.slay) {
+  if (killed && step.slay) {
     match.effects.splice(match.effects.indexOf(job), 0, {
       ability: step.slay, side: job.side, sourceId: job.sourceId, sourceDefinitionId: job.sourceDefinitionId,
       cardAbility: job.cardAbility, refs: { slain: target.card.id }, results: { overflow },
     });
   }
-  return result;
+  return step.measureDamage ? powerBefore - (target.card.power ?? 0) : killed;
 }
 
 export const effectOperations = Object.freeze({
@@ -255,7 +253,7 @@ export const effectOperations = Object.freeze({
     card.counter -= 1;
     match.log.push({ type: 'counter', side, cardId: card.id, name: card.definition.name, remaining: card.counter });
     if (card.counter === 0) match.effects.unshift({ ability: card.definition.counter.effect,
-      side, sourceId: card.id, requiredSource: true, cardAbility: true });
+      side, sourceId: card.id, sourceDefinitionId: card.definition.id, requiredSource: true, cardAbility: true });
   }),
   armor: applyAmount((match, target, amount, sourceDefinitionId) => applyStatus(match, target, 'armor', amount, { sourceDefinitionId })),
   'infection-tick': applyAmount(tickInfection),

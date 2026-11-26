@@ -6,7 +6,7 @@ import { chooseBotTurn, createBotView, pickBotTarget } from '../../docs/game/bot
 import { delayedCardValue, futureContext, remainingTurns } from '../../docs/game/bot-future-value.js';
 import { publicMatch } from '../../docs/game/bot-strategy.js';
 import { deckCardValue, effectSwing } from '../../docs/game/bot-effect-value.js';
-import { AWAKENING } from '../../docs/game/choir.js';
+import { AWAKENING, CHOIR_CARDS, TENTACLE } from '../../docs/game/choir.js';
 import { FACTIONS, LARVA } from '../../docs/game/cards.js';
 import { applyAction, canEndTurn, canPass, confirmMulligan, createMatch } from '../../docs/game/match.js';
 
@@ -20,6 +20,7 @@ function position(round = 1, winner = null) {
   const match = confirmMulligan(createMatch({ random: () => .99 }));
   match.turn = 'bot';
   match.round = round;
+  if (round === 2 && winner) match.players[winner === 'bot' ? 'human' : 'bot'].lives = 1;
   match.log = round === 1 ? [] : [{ type: 'round-end', round: 1, winner }];
   match.log.push({ type: 'round-start', round, side: 'bot' });
   for (const player of Object.values(match.players)) {
@@ -71,7 +72,6 @@ test('round two can dry pass after winning round one and fights after losing it'
   assert.equal(chooseBotTurn(won, 'normal').type, 'play');
 
   const lost = position(2, 'human');
-  lost.players.bot.lives = 1;
   lost.players.human.board.orbit = [plain('ahead', 18)];
   assert.equal(chooseBotTurn(lost, 'normal').type, 'play');
   assert.equal(chooseBotTurn(lost, 'hard').type, 'play');
@@ -638,4 +638,52 @@ test('discard plays value the best restored legal card once, with or without any
     deploy: { steps: [{ ...medicine, chooseAll: true, filter: { ...medicine.filter, anyType: true } }] },
   });
   assert.equal(effectSwing(match, 'bot', versatile), expected);
+});
+
+test('Great Sacrifice scores each tentacle once even when it can overflow', () => {
+  const match = position();
+  const definition = CHOIR_CARDS.find(({ id }) => id === 'great-sacrifice');
+  match.players.bot.board.orbit = Array.from({ length: 3 }, (_, i) =>
+    standard('armored-' + i, { id: 'armored', name: 'Armored', power: 5, armor: 2 }));
+  assert.equal(effectSwing(match, 'bot', standard('sacrifice', definition)), 3 * TENTACLE.power);
+});
+
+test('deck-play estimates stay finite when the eligible card has no printed power', () => {
+  const match = position();
+  const effect = standard('effect', { id: 'effect', name: 'Effect', type: 'effect' });
+  match.players.bot.deck = [effect];
+  const tutor = standard('tutor', { id: 'tutor', name: 'Tutor', type: 'effect',
+    deploy: { steps: [{ action: 'play-from-deck', filter: { anyType: true } }] } });
+  assert.equal(effectSwing(match, 'bot', tutor), 0);
+});
+
+test('strategic placement respects a mandatory row even when the preferred row differs', () => {
+  const match = position(3);
+  const resident = standard('resident', { id: 'resident', name: 'Resident', power: 9,
+    requiredRow: 'surface', preferredRow: 'orbit' });
+  match.players.bot.hand = [plain('spare', 1), resident];
+  match.players.human.passed = true;
+  match.players.human.board.surface = [plain('lead', 6)];
+  for (const difficulty of ['normal', 'hard']) {
+    assert.deepEqual(chooseBotTurn(match, difficulty, { random: () => 0 }),
+      { type: 'play', cardId: 'resident', row: 'surface', position: 0 });
+  }
+});
+
+test('strategic tribute spends only for seats it can fill and keeps coins for useful Fees', () => {
+  const match = position(3);
+  const bot = match.players.bot;
+  const recruiter = CAPTAIN_CARDS.find(({ id }) => id === 'hound-recruiter');
+  const foreman = CAPTAIN_CARDS.find(({ id }) => id === 'hound-foreman');
+  bot.coins = 6;
+  bot.hand.unshift(standard('recruiter', recruiter));
+  bot.board.orbit = [standard('fee', foreman)];
+  bot.board.surface = Array.from({ length: ROW_LIMIT - 4 }, (_, i) => plain('filler-' + i, 3));
+  const pending = applyAction(match, 'bot', { type: 'play', cardId: 'recruiter', row: 'surface', position: bot.board.surface.length });
+  assert.equal(pending.pending.kind, 'tribute');
+  for (const difficulty of ['normal', 'hard']) {
+    assert.equal(chooseBotTurn(pending, difficulty).cardId, '3');
+  }
+  pending.players.bot.board.surface.splice(0, 2);
+  assert.equal(chooseBotTurn(pending, 'hard').cardId, '6');
 });

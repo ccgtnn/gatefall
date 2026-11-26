@@ -116,7 +116,7 @@ export function deckListScreen(phaseLabel, decks, stats, actions, inventory, sig
     faction = id;
     update();
   });
-  const status = element('p', 'deck-save-status');
+  const status = element('p', 'deck-save-status', actions.notice);
   status.setAttribute('role', 'status');
   const dialog = deckImportDialog((text) => actions.importJson(text, inventory().owned), actions.onImported);
   const exportAll = button('Экспорт всех своих колод', () => exportOwnDecks(decks));
@@ -227,6 +227,7 @@ export function deckEditor(phaseLabel, deck, { save, play, back, inventory, noti
   }, 'button primary');
   const autosave = deckAutosave(deck, save);
   signal.addEventListener('abort', autosave.flush, { once: true });
+  window.addEventListener('pagehide', autosave.flush, { signal });
   const saveButton = button('Сохранить', () => {
     status.textContent = autosave.save() ? 'Колода сохранена.' : 'Колода доступна до закрытия страницы. Браузер не сохранил данные.';
   });
@@ -326,10 +327,10 @@ export function deckEditor(phaseLabel, deck, { save, play, back, inventory, noti
       (!faction || faction === card.faction));
     available.replaceChildren(...shown.map((card) => {
       const item = element('div', 'deck-collection-entry');
-      const limit = Math.min(copyLimit(card), owned[card.id]);
+      const limit = Math.min(copyLimit(card), owned[card.id] ?? 0);
       item.classList.toggle('card-unavailable', !limit);
       const face = cardButton(createCard(card.id, card), () => {
-        const currentLimit = Math.min(copyLimit(card), inventory().owned[card.id]);
+        const currentLimit = Math.min(copyLimit(card), inventory().owned[card.id] ?? 0);
         if ((inspectDeck(deck).counts.get(card.id) ?? 0) >= currentLimit) return;
         deck.cardIds.push(card.id);
         changed();

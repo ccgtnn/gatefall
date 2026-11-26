@@ -19,6 +19,7 @@ test('a populated row offers positions at both edges and between neighboring car
 function placementFixture(pointerType, { isEffect = false, full = false, enemy = false, side = 'human', effectRows } = {}) {
   const played = [];
   const listeners = new Map();
+  const keyboard = new Map();
   const ghost = {
     classList: { add() {} }, setAttribute() {}, style: {}, remove() { this.removed = true; },
   };
@@ -53,6 +54,7 @@ function placementFixture(pointerType, { isEffect = false, full = false, enemy =
   const screen = {
     classList: { add() {}, remove() {} },
     ownerDocument: {
+      addEventListener: (name, listener) => keyboard.set(name, listener),
       defaultView: { requestAnimationFrame: () => 1, cancelAnimationFrame() {} },
       elementFromPoint: (_x, y) => y === 40 ? row : y === 90 ? card : null,
       createElement: () => marker,
@@ -70,7 +72,7 @@ function placementFixture(pointerType, { isEffect = false, full = false, enemy =
     });
   }
 
-  return { send, marker, played, classes };
+  return { send, marker, played, classes, keyboard };
 }
 
 for (const pointer of ['mouse', 'touch']) {
@@ -159,4 +161,14 @@ test('a card can still be dropped in a row without its ability', () => {
   assert.ok(!classes.has('is-drag-effect-row'));
   send('pointerup', 106, 40);
   assert.equal(played[0].row, 'orbit');
+});
+
+test('Escape cancels a drag even when the keyboard event is outside the game screen', () => {
+  const { send, marker, played, keyboard } = placementFixture('mouse');
+  send('pointerdown', 105, 90);
+  send('pointermove', 106, 40);
+  keyboard.get('keydown')({ key: 'Escape' });
+  assert.equal(marker.removed, true);
+  send('pointerup', 106, 40);
+  assert.deepEqual(played, []);
 });

@@ -45,7 +45,7 @@ export function deckImportDialog(importJson, onImported) {
   const text = element('textarea');
   text.rows = 8;
   text.autofocus = true;
-  textLabel.append(element('span', null, 'Вставь JSON колоды'), text);
+  textLabel.append(element('span', null, 'Вставь JSON с колодами'), text);
   const fileLabel = element('label', 'deck-field');
   const file = element('input');
   file.type = 'file';

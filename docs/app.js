@@ -208,8 +208,8 @@ const cancelPlacement = bindCardPlacement(screen, (cardId, row, position) => {
   if (card && !turns.replaying) showCard(card);
 });
 
-screen.addEventListener('keydown', (event) => {
-  if (event.key !== 'Escape' || !selectedCardId || !humanCanAct()) return;
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape' || !selectedCardId || !humanCanAct() || document.querySelector('dialog[open]')) return;
   selectedCardId = undefined;
   updatePlacementSelection(screen, turns.match);
 });
@@ -285,7 +285,7 @@ function placeSelected(row, side) {
   playHuman({ type: 'play', cardId: selectedCardId, row, position: match.players[side].board[row].length });
 }
 
-function render() {
+function render({ deckListNotice } = {}) {
   screenEvents?.abort();
   screenEvents = new AbortController();
   const { signal } = screenEvents;
@@ -314,14 +314,28 @@ function render() {
         goTo('leader');
       }, back); break;
       case 'leader': content = leaderScreen(phaseLabel, selectedFaction, makeDeck, () => navigation.backTo('faction')); break;
-      case 'edit': content = deckEditor(phaseLabel, editedDeck, {
-        back, notice: editNotices.get(editedDeck.id), signal, inventory: progress.inventory, save: deckStore.save, play: session.start,
-      }); break;
+      case 'edit': {
+        const notice = editNotices.get(editedDeck.id);
+        editNotices.delete(editedDeck.id);
+        content = deckEditor(phaseLabel, editedDeck, {
+          back, notice, signal, inventory: progress.inventory, save: deckStore.save, play: session.start,
+        });
+        break;
+      }
       case 'all-decks': content = deckListScreen(phaseLabel, deckStore.list(), stats, {
         back: () => navigation.backTo('decks'), create: () => goTo('faction'), play: session.start, edit: editDeck,
         copy: (deck) => makeDeck(deck.factionId, deck.leaderId, deck),
         importJson: deckStore.importJson,
-        onImported({ deck, missing, saved }) {
+        notice: deckListNotice,
+        onImported({ deck, decks, missing, saved }) {
+          if (decks) {
+            const incomplete = decks.filter((entry) => entry.missing.length > 0).length;
+            const notice = `Импортировано колод: ${decks.length}.` +
+              (incomplete ? ` Не хватает карт в колодах: ${incomplete}.` : '') +
+              (saved ? '' : ' Браузер не сохранил данные после закрытия страницы.');
+            render({ deckListNotice: notice });
+            return;
+          }
           const status = saved ? 'Колода импортирована.' : 'Колода импортирована до закрытия страницы. Браузер не сохранил данные.';
           const details = missing.map(({ name, count }) => name + ' ×' + count);
           editDeck(deck, details.length ? status + ' Не хватает карт: ' + details.join(', ') + '.' : status);

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { chooseBotTurn } from '../../docs/game/bot.js';
-import { capture, createCard, damage, findUnit, removeUnit } from '../../docs/game/board.js';
+import { capture, createCard, damage, findUnit, removeUnit, cardType, placementSide } from '../../docs/game/board.js';
 import { FACTIONS, NEUTRAL, NEUTRAL_CARDS, LARVA } from '../../docs/game/cards.js';
 import { applyAction, availableRows, canEndTurn, confirmMulligan, createMatch, playableCards, ROW_LIMIT } from '../../docs/game/match.js';
 import { drain } from '../helpers/battle-helpers.js';
@@ -79,13 +79,22 @@ test('an effect with no legal targets completes the move without a prompt', () =
 });
 
 test('live faction matches resolve all choices, keep card identities unique, and finish within three rounds', () => {
+  const factions = Object.keys(FACTIONS);
+  const pairings = factions.flatMap((humanFaction) =>
+    factions.filter((faction) => faction !== humanFaction).map((botFaction) => ({ humanFaction, botFaction })));
+  const allCards = (state) => [
+    ...Object.values(state.players).flatMap(({ hand, deck, discard, exile, board }) =>
+      [...hand, ...deck, ...discard, ...exile, ...Object.values(board).flat()]),
+    ...state.effects.flatMap(({ discard }) => discard ? [discard] : []),
+  ];
   for (let seed = 1; seed <= 48; seed += 1) {
     let value = seed;
     const random = () => {
       value = (Math.imul(1664525, value) + 1013904223) >>> 0;
       return value / 2 ** 32;
     };
-    let match = confirmMulligan(createMatch({ humanFaction: seed % 2 ? 'growth' : 'protectorate', random }), []);
+    let match = confirmMulligan(createMatch({ ...pairings[(seed - 1) % pairings.length], random }), []);
+    const originalIds = allCards(match).filter(({ definition }) => !definition.token).map(({ id }) => id);
     for (let step = 0; step < 250 && match.phase !== 'finished'; step += 1) {
       if (match.phase === 'mulligan') {
         match = confirmMulligan(match, [], { random });
@@ -102,22 +111,23 @@ test('live faction matches resolve all choices, keep card identities unique, and
       } else if (match.pending) action = { type: 'target', cardId: match.pending.options[0] };
       else if (canEndTurn(match, side)) action = { type: 'end-turn' };
       else if (!card || random() < 0.12) action = { type: 'pass' };
+      else if (cardType(card) === 'effect') action = { type: 'play', cardId: card.id };
       else {
-        const row = availableRows(player)[0];
-        action = { type: 'play', cardId: card.id, row, position: row ? player.board[row].length : 0 };
+        const recipient = match.players[placementSide(side, card)];
+        const [row] = availableRows(recipient, card);
+        action = { type: 'play', cardId: card.id, row, position: recipient.board[row].length };
       }
       const next = applyAction(match, side, action, { random });
       assert.notStrictEqual(next, match, `seed ${seed}, step ${step}, ${JSON.stringify(action)}`);
       match = next;
       for (const field of Object.values(match.players)) {
         for (const row of Object.values(field.board)) assert.ok(row.length <= ROW_LIMIT);
-        const resolving = match.effects.filter(({ discard }) => discard && match.players[match.turn] === field)
-          .map(({ discard }) => discard);
-        const cards = [...field.hand, ...field.deck, ...field.discard, ...field.exile, ...Object.values(field.board).flat(), ...resolving];
-        assert.equal(cards.filter(({ definition }) => !definition.token).length, FACTIONS[field.factionId].deck.length);
-        assert.equal(new Set(cards.map(({ id }) => id)).size, cards.length);
         assert.ok(field.discard.every(({ definition }) => !definition.doomed));
       }
+      const cards = allCards(match);
+      const ids = new Set(cards.map(({ id }) => id));
+      assert.equal(ids.size, cards.length);
+      assert.ok(originalIds.every((id) => ids.has(id)));
     }
     assert.equal(match.phase, 'finished');
     assert.ok(match.round <= 3);

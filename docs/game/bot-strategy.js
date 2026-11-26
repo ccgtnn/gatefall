@@ -4,7 +4,7 @@ import { ROWS } from './card-metadata.js';
 import { activeOrder, cardType, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js';
 import { availableFees, availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
-import { armorTargetPriority, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, lockPriority, pendingUnitPriority, rowEffectValue, shouldProtectArmor } from './bot-effect-value.js';
+import { armorTargetPriority, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, lockPriority, pendingUnitPriority, rowEffectValue, shouldProtectArmor, tributeTarget } from './bot-effect-value.js';
 import { cardAbilities, isLocked } from './events.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, canEndTurn, playableCards, totalScore } from './match.js';
 
@@ -103,7 +103,9 @@ function positions(player, row, card) {
 function placements(state, side, card, rows = ROWS) {
   const player = state.players[placementSide(side, card)];
   const preferred = card.definition.preferredRow;
-  if (rows.includes(preferred) && player.board[preferred].length < ROW_LIMIT) rows = [preferred];
+  const required = card.definition.requiredRow;
+  if (required) rows = rows.filter((row) => row === required);
+  else if (rows.includes(preferred) && player.board[preferred].length < ROW_LIMIT) rows = [preferred];
   return rows.flatMap((row) => player.board[row].length >= ROW_LIMIT ? [] : positions(player, row, card)
     .map((position) => ({ row, position })));
 }
@@ -133,6 +135,7 @@ function abilities(state, side) {
 
 function choices(state) {
   const { kind, options: legal, side, cardId, cards, pile = 'deck' } = state.pending;
+  if (kind === 'tribute') return [tributeTarget(state)];
   const allies = kind === 'transform' ? legal.filter((id) => findUnit(state, id)?.side === side) : [];
   const options = allies.length ? allies : legal;
   const leaderPriority = leaderTargetPriority(state, side, kind);
@@ -375,7 +378,7 @@ export function chooseStrategicTurn(match, difficulty, oldAction, options = {}) 
   const spent = match.log.slice(roundStart + 1).filter(({ type, side, from }) => type === 'play' && side === 'bot' && !from).length;
   const normalRoundOneBudget = 5;
   const afterDraw = (count) => Math.min(HAND_LIMIT, count + ROUND_DRAW);
-  if (canPass && dryPass && !human.passed && (bot.lives === human.lives ||
+  if (canPass && dryPass && !human.passed && (bot.lives > human.lives ||
       (!hard && (bot.hand.length + 1 < human.hand.length || bot.hand.length <= 5 ||
         (spent >= 2 && lead < 5))))) {
     return decide(PASS, 'После победы в первом раунде сохраняю карты.');

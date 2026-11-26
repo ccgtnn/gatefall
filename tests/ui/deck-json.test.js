@@ -20,7 +20,7 @@ test('JSON preserves the deck fields and card order but leaves out storage IDs',
 
 test('import reports malformed data, unsupported versions, and unknown faction or leader', () => {
   assert.match(parseDeckJson('{').errors.join(' '), /Некорректный JSON/);
-  assert.match(parseDeckJson('[]').errors.join(' '), /объект одной колоды/);
+  assert.match(parseDeckJson('[]').errors.join(' '), /нет колод/);
   const invalid = (changes) => parseDeckJson(JSON.stringify({ ...document, ...changes })).errors.join(' ');
   assert.match(invalid({ version: 2 }), /версия/);
   assert.match(invalid({ format: 'other' }), /Формат/);
@@ -59,4 +59,23 @@ test('an imported deck keeps unowned cards and receives a new ID every time', ()
   assert.deepEqual(createDeckStorage(storage).list(), [first.deck, second.deck]);
   assert.ok(store.importJson('invalid', owned).errors);
   assert.equal(store.list().length, 2);
+});
+
+test('the export of all decks imports as a batch with fresh IDs and one storage write', () => {
+  let saved;
+  let writes = 0;
+  const storage = { getItem: () => saved ?? null, setItem: (_key, value) => { saved = value; writes += 1; } };
+  const store = createDeckStorage(storage);
+  const exported = serializeDeckJson([preset, { ...preset, name: 'Вторая колода' }]);
+  const invalid = JSON.stringify([document, { ...document, version: 2 }]);
+  assert.match(store.importJson(invalid).errors.join(' '), /Колода 2:.*версия/);
+  assert.deepEqual(store.list(), []);
+  assert.equal(writes, 0);
+  const result = store.importJson(exported);
+  assert.equal(result.saved, true);
+  assert.equal(writes, 1);
+  const decks = result.decks.map((entry) => entry.deck);
+  assert.deepEqual(decks.map((entry) => entry.name), [preset.name, 'Вторая колода']);
+  assert.equal(new Set(decks.map((entry) => entry.id)).size, 2);
+  assert.deepEqual(createDeckStorage(storage).list(), decks);
 });

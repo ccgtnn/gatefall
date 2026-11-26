@@ -20,7 +20,7 @@ const psionic = (definition) => card({ type: 'effect', categories: [PSIONICS], .
 function tentacle(id, name, power, hit, stats = {}) {
   return card({
     id, name, power, token: true, categories: [TENTACLE_CATEGORY], ...stats,
-    text: `В конце твоего хода: ${hit} урона своему отряду справа. Получив урон и выжив, усиливается на 2.`,
+    text: `В конце твоего хода: ${hit} урона своему отряду справа. Если ранен и выжил, усиливается на 2.`,
     keywords: ['Конец хода', 'Соседи', 'Урон', 'Усиление'],
     endTurn: ability([damage({ ...nearby, direction: 'right' }, hit)]),
     events: { damage: ability([boost(2)]) },
@@ -47,7 +47,7 @@ const fanaticToken = card({ ...FANATIC, token: true });
 export const SLEEPER = card({
   id: 'ulmarin-sleeper', name: 'Спящий под Вратами', rarity: 'gold', power: 8, doomed: true, token: true,
   art: 'sleeper-under-gates.webp', artCrop: 'sleeper-under-gates-crop.webp',
-  text: 'Обречённость. В конце твоего хода: нанеси 1 урон каждому соседу. Если нанёс урон, усиль себя на суммарный урон и восстанови Приказ. Приказ: нанеси сильнейшему вражескому отряду урон, равный числу твоих культистов Спящего и Щупалец.',
+  text: 'Обречённость. В конце твоего хода: нанеси 1 урон каждому соседу. Если ранил хотя бы один отряд, усиль себя на суммарную потерю их силы и восстанови Приказ. Приказ: нанеси сильнейшему вражескому отряду урон, равный числу твоих культистов Спящего и Щупалец.',
   keywords: ['Обречённость', 'Конец хода', 'Соседи', 'Урон', 'Усиление', 'Приказ'],
   endTurn: ability([
     { ...damage(nearby, 1), save: 'dealt', measureDamage: true },

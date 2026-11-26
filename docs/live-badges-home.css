@@ -109,6 +109,24 @@
   left: 50%;
   transform: translateX(-50%);
 }
+.card-timing-badges {
+  position: absolute;
+  z-index: 1;
+  inset: auto 0 var(--decoration-status-inset, 1px);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+.slot:has(> .stat-order-control) .card-timing-badges.is-above-order {
+  bottom: calc(var(--decoration-status-inset, 2px) + clamp(14px, 3.3dvh, 24px));
+}
+.card-timing-badges > :is(.stat-badge, .card-state) {
+  position: relative;
+  inset: auto;
+  transform: none;
+}
 .stat-badge-target {
   top: 1px;
   left: 50%;

@@ -6,7 +6,7 @@ import { applyAction, canEndTurn, canPass, confirmMulligan, mulliganLimit, playa
 import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
 import { preferredLeaderUse } from './bot-leaders.js';
-import { beneficialFee, effectSwing, infectionGain, shouldProtectArmor } from './bot-effect-value.js';
+import { beneficialFee, effectSwing, infectionGain, shouldProtectArmor, tributeTarget } from './bot-effect-value.js';
 
 import { armorBreakEmergence, delayedCardValue, futureContext, wantsToHoldInheritance } from './bot-future-value.js';
 
@@ -122,7 +122,8 @@ function fastPlays(match, side) {
     const recipient = match.players[placementSide(side, card)];
     let choice;
     const preferred = def.preferredRow;
-    const rows = preferred && recipient.board[preferred].length < ROW_LIMIT ? [preferred] : ROWS;
+    const rows = def.requiredRow ? [def.requiredRow]
+      : preferred && recipient.board[preferred].length < ROW_LIMIT ? [preferred] : ROWS;
     for (const row of rows) {
       const line = recipient.board[row];
       if (line.length >= ROW_LIMIT) continue;
@@ -153,6 +154,7 @@ function unitsCanTakeLeaderDamage(player) {
 
 function quickAction(match, side, pickTarget) {
   if (match.pending) {
+    if (match.pending.kind === 'tribute') return tributeTarget(match);
     if (match.pending.kind === 'armor-row') {
       const player = match.players[side];
       const rows = match.pending.options.toSorted((a, b) => armorSpendValue(player, b) - armorSpendValue(player, a));

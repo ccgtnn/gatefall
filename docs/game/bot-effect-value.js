@@ -1,7 +1,7 @@
 import { availableRows, cleansableStatuses, infectionDamage, isUnit, neighbors, opponent, restoreCard, ROW_LIMIT, statusCount, units } from './board.js';
 import { availableFees, orderAbility } from './effects.js';
 import { ROWS } from './card-metadata.js';
-import { canStart, eligiblePileCards, pileCandidates, playPiles, playTiming, rowArmor, rowSide, targets, valueOf } from './effect-queries.js';
+import { canStart, eligiblePileCards, pileCandidates, playPiles, playTiming, reference, rowArmor, rowSide, targets, valueOf } from './effect-queries.js';
 import { armorBreakEmergence, consumeBonus, delayedCardValue, futureContext } from './bot-future-value.js';
 import { cardAbilities, deathwishDefinitions, isLocked } from './events.js';
 
@@ -23,7 +23,7 @@ export function pendingUnitPriority(match, { kind, side, job }) {
   }
 }
 
-export function beneficialFee(match, side) {
+function bestFee(match, side, { coins = match.players[side].coins, tributeRow, spawned = 0 } = {}) {
   const fees = availableFees(match, side);
   if (!fees.length) return;
   const player = match.players[side];
@@ -34,11 +34,13 @@ export function beneficialFee(match, side) {
   for (const unit of fees) {
     const { card, row } = unit;
     const { fee, order } = cardAbilities(card);
+    const free = ROW_LIMIT - player.board[row].length - (row === tributeRow ? spawned : 0);
+    if (fee.coins > coins || (fee.needsSourceSpace && free <= 0)) continue;
     const job = { side, sourceId: card.id, ability: fee };
     let value = -fee.coins * context.coinWeight;
     for (const step of fee.steps) {
       if (step.action === 'spawn') {
-        value += Math.min(step.amount, ROW_LIMIT - player.board[row].length) * step.card.power;
+        value += Math.min(step.amount, free) * step.card.power;
       } else if (step.action === 'transform') {
         const select = fee.select?.find(({ ref }) => ref === step.target.ref);
         if (select) value += Math.max(0, ...targets(match, job, select.targets, true)
@@ -56,11 +58,16 @@ export function beneficialFee(match, side) {
       }
     }
     if (value > bestValue) {
-      best = { type: 'fee', cardId: card.id };
+      best = { cardId: card.id, value };
       bestValue = value;
     }
   }
   return best;
+}
+
+export function beneficialFee(match, side) {
+  const best = bestFee(match, side);
+  if (best) return { type: 'fee', cardId: best.cardId };
 }
 
 export function shouldProtectArmor(card, player) {
@@ -182,7 +189,7 @@ function playChoiceSwing({ match, job }, step) {
 function deckPlaySwing(context, step) {
   if (step.fullDeck || step.chooseAll) return playChoiceSwing(context, step);
   const cards = pileCandidates(context.player.deck, step.filter);
-  return cards.reduce((sum, card) => sum + card.definition.power, 0) / Math.max(1, cards.length)
+  return cards.reduce((sum, card) => sum + (card.definition.power ?? 0), 0) / Math.max(1, cards.length)
     + Number(Boolean(step.after));
 }
 
@@ -198,17 +205,34 @@ function summonSwing({ player }, step) {
   return cards.reduce((sum, card) => sum + card.power, 0) / Math.max(1, cards.length);
 }
 
-function spawnSwing({ player }, step) {
-  let swing = 0;
+function spawnSwing({ player, card }, step) {
+  if (step.overflow) {
+    const free = ROWS.reduce((sum, row) => sum + ROW_LIMIT - player.board[row].length, 0)
+      - Number(card.definition.type !== 'effect');
+    return Math.min(step.amount, Math.max(0, free)) * (step.card.power ?? 0);
+  }
   if (step.rowRef) {
     const free = ROW_LIMIT - Math.min(...ROWS.map((row) => player.board[row].length));
-    swing += Math.min(step.amount, free) * step.card.power;
+    return Math.min(step.amount, free) * (step.card.power ?? 0);
   }
-  if (step.overflow) {
-    const free = ROWS.reduce((sum, row) => sum + ROW_LIMIT - player.board[row].length, 0) - 1;
-    swing += Math.min(step.amount, Math.max(0, free)) * step.card.power;
-  }
-  return swing;
+  return 0;
+}
+
+export function tributeTarget(match) {
+  const { side, options, job, tiers } = match.pending;
+  const origin = job && reference(match, job);
+  const spawn = job?.ability.steps[job.index]?.spawn;
+  if (!origin || !spawn) return { type: 'target', cardId: options[0] };
+  const { player, coinWeight } = futureContext(match, side);
+  const free = ROW_LIMIT - player.board[origin.row].length;
+  const score = (option) => {
+    const spawned = Math.min(free, tiers[option] ?? 0);
+    const remaining = player.coins - Number(option);
+    const fee = bestFee(match, side, { coins: remaining, tributeRow: origin.row, spawned });
+    return spawned * (spawn.card.power ?? 0) + remaining * coinWeight + (fee?.value ?? 0);
+  };
+  const cardId = options.reduce((best, option) => score(option) > score(best) ? option : best);
+  return { type: 'target', cardId };
 }
 
 function scatterSwing({ match, job, player }, step) {

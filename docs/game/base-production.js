@@ -31,7 +31,7 @@ export function advanceProduction(production, buildings, now) {
     const stock = production.stock[kind];
     if (!stock) continue;
     for (const [key, rate] of Object.entries(productionRates(kind, level))) {
-      stock[key] = Math.min(rate * hours * ticksPerResource(key), stock[key] + elapsed * rate * rateScale(key));
+      stock[key] = Math.floor(Math.min(rate * hours * ticksPerResource(key), stock[key] + elapsed * rate * rateScale(key)));
     }
   }
 }

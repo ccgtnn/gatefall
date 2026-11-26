@@ -83,14 +83,19 @@ test('the faction catalog starts with playable factions and covers the league ch
   }
 });
 
-test('future factions use temporary decks until their own deck is registered', () => {
+test('Captains and Choir use their faction presets, while future factions use temporary decks', () => {
   for (const loreFaction of ['captains', 'choir', 'flawless', 'void']) {
     const deck = { factionId: loreFaction };
     const bots = LEAGUE_CHARACTERS.filter((character) => character.loreFaction === loreFaction);
     assert.ok(bots.length);
     for (const character of bots) {
       const fallback = leagueDeckFor(character);
-      assert.equal(fallback.factionId, character.id === 'frontier-rookie-2' ? 'growth' : 'protectorate');
+      if (['captains', 'choir'].includes(loreFaction)) {
+        assert.equal(fallback.id, 'preset-' + loreFaction, character.name);
+        assert.equal(fallback.factionId, loreFaction);
+      } else {
+        assert.equal(fallback.factionId, character.id === 'frontier-rookie-2' ? 'growth' : 'protectorate');
+      }
       assert.equal(leagueDeckFor(character, { [loreFaction]: deck }), deck);
       if (character.id === 'bot-3-6') assert.ok(fallback.cardIds.includes('falura'));
     }

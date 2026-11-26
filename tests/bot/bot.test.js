@@ -6,8 +6,8 @@ import {
   ROW_LIMIT, applyAction, confirmMulligan, createMatch,
 } from '../../docs/game/match.js';
 
-function card(power, row = 'orbit', id = String(power)) {
-  return { id, power, definition: { name: id, row } };
+function card(power, id = String(power)) {
+  return { id, power, definition: { name: id } };
 }
 
 function choose(details, rules) {
@@ -70,8 +70,8 @@ test('at 15 to 5, a bot on one life plays 6 and 7 in consecutive legal turns', (
   match.round = 3;
   const { human, bot } = match.players;
   human.lives = bot.lives = 1;
-  human.board.orbit = [card(7, 'orbit', 'human-7'), card(8, 'orbit', 'human-8')];
-  bot.board.orbit = [card(5, 'orbit', 'bot-5')];
+  human.board.orbit = [card(7, 'human-7'), card(8, 'human-8')];
+  bot.board.orbit = [card(5, 'bot-5')];
   bot.board.surface = [];
   bot.hand = [card(6), card(7)];
   match.turn = 'human';
@@ -89,7 +89,7 @@ test('at 15 to 5, a bot on one life plays 6 and 7 in consecutive legal turns', (
 
 test('a multi-card win needs enough combined spaces across both rows', () => {
   const details = {
-    cards: [card(7), card(6), card(4, 'surface')],
+    cards: [card(7), card(6), card(4)],
     rowLengths: { orbit: ROW_LIMIT - 1, surface: ROW_LIMIT - 1 },
     score: 5, opponentScore: 15, opponentPassed: true, lives: 1,
   };
@@ -110,7 +110,7 @@ test('with two lives the bot spends according to the hand deficit it would carry
 
 test('the bot accounts for the next draw filling both hands', () => {
   assert.deepEqual(choose({
-    cards: [card(6), card(7), ...Array.from({ length: 8 }, (_, index) => card(1, 'orbit', `low-${index}`))],
+    cards: [card(6), card(7), ...Array.from({ length: 8 }, (_, index) => card(1, `low-${index}`))],
     score: 5, opponentScore: 15, opponentPassed: true, opponentHandSize: 10,
   }), play('6'));
 });

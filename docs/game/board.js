@@ -45,10 +45,12 @@ export function spendResilience(card) {
   return true;
 }
 
+function setOrderReadiness(player, card) {
+  card.readyAt = player.turns + Number(!card.definition.zeal);
+}
+
 export function placeCards(player, row, position, cards) {
-  for (const card of cards) {
-    if (cardAbilities(card).order) card.readyAt = player.turns + Number(!card.definition.zeal);
-  }
+  for (const card of cards) if (cardAbilities(card).order) setOrderReadiness(player, card);
   player.board[row].splice(position, 0, ...cards);
 }
 
@@ -434,7 +436,9 @@ export function transformUnit(match, unit, definition, preservePower = false) {
   if (preservePower) replacement.power = card.power;
   if (card.owner) replacement.owner = card.owner;
   if (isLocked(card)) replacement.statuses = { lock: 1 };
-  match.players[side].board[row][position] = replacement;
+  const player = match.players[side];
+  if (definition.order) setOrderReadiness(player, replacement);
+  player.board[row][position] = replacement;
   match.log.push({ type: 'transform', side, cardId: card.id, name: card.definition.name, card: { ...replacement } });
   refreshSidePower(match, side);
   refreshRowPower(match, side, row);
@@ -462,9 +466,11 @@ export function damage(match, unit, amount, sourceDefinitionId, extra) {
   unit.card.power -= lost;
   emit(match, { type: 'damage', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, power: unit.card.power, amount, absorbed, lost, sourceDefinitionId, ...extra });
   if (unit.card.power > 0) {
-    if (lost) onPowerLoss(match, unit);
-    if (lost || absorbed) match.effects.unshift(...emit(match, { type: 'damage', side: unit.side },
-      { source: unit.card, journal: false }));
+    if (lost > 0) {
+      onPowerLoss(match, unit);
+      match.effects.unshift(...emit(match, { type: 'damage', side: unit.side, lost, sourceDefinitionId },
+        { source: unit.card, journal: false }));
+    }
     return 0;
   }
   removeUnit(match, unit, 'damage', undefined, { sourceDefinitionId, ...extra });

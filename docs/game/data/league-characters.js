@@ -50,7 +50,7 @@ export const LEAGUE_CHARACTERS = [
     },
   },
   {
-    id: 'bot-0-3', name: "Болторез", tier: 0, loreFaction: 'captains', deckNow: 'protectorate',
+    id: 'bot-0-3', name: "Болторез", tier: 0, loreFaction: 'captains', deckNow: 'captains',
     strength: 6, initials: "Б", avatar: 'league/boltorez.webp',
     character: "Угрюмый механик фронтира, говорит о картах как о железе.",
     uniqueAbility: null,
@@ -98,7 +98,7 @@ export const LEAGUE_CHARACTERS = [
     },
   },
   {
-    id: 'bot-0-6', name: "Лис Вэйн", tier: 0, loreFaction: 'captains', deckNow: 'protectorate',
+    id: 'bot-0-6', name: "Лис Вэйн", tier: 0, loreFaction: 'captains', deckNow: 'captains',
     strength: 7, initials: "ЛВ", avatar: 'league/lis-vane.webp',
     character: "Самоуверенный контрабандист, «король Бронзы», сильнейший в лиге.",
     uniqueAbility: null,
@@ -130,7 +130,7 @@ export const LEAGUE_CHARACTERS = [
     },
   },
   {
-    id: 'bot-1-1', name: "Кайра Векс", tier: 1, loreFaction: 'captains', deckNow: 'protectorate',
+    id: 'bot-1-1', name: "Кайра Векс", tier: 1, loreFaction: 'captains', deckNow: 'captains',
     strength: 6, initials: "КВ", avatar: 'league/kaira-vex.webp',
     character: "Наёмница, у которой всё имеет цену. Холодный расчёт, лёгкая ирония.",
     uniqueAbility: null,
@@ -210,7 +210,7 @@ export const LEAGUE_CHARACTERS = [
     },
   },
   {
-    id: 'bot-1-6', name: "Капитан Скара Райнхольд", tier: 1, loreFaction: 'captains', deckNow: 'protectorate',
+    id: 'bot-1-6', name: "Капитан Скара Райнхольд", tier: 1, loreFaction: 'captains', deckNow: 'captains',
     strength: 8, initials: "СР", avatar: 'league/skara-rainhold.webp',
     character: "Капитан наёмного корабля «Чёрная гончая», сильнейшая в Серебре. Холодная, немногословная, опасная.",
     uniqueAbility: null,
@@ -242,7 +242,7 @@ export const LEAGUE_CHARACTERS = [
     },
   },
   {
-    id: 'bot-2-1', name: "Гаррет Шрайк", tier: 2, loreFaction: 'captains', deckNow: 'orbit-gold',
+    id: 'bot-2-1', name: "Гаррет Шрайк", tier: 2, loreFaction: 'captains', deckNow: 'captains',
     strength: 1, initials: "ГШ", avatar: 'league/garrett-shrike.webp',
     character: "Охотник за головами. Говорит мало, курит, ценит хорошую цель.",
     uniqueAbility: null,
@@ -274,7 +274,7 @@ export const LEAGUE_CHARACTERS = [
     },
   },
   {
-    id: 'bot-2-3', name: "Сестра Безмолвие", tier: 2, loreFaction: 'choir', deckNow: 'formation',
+    id: 'bot-2-3', name: "Сестра Безмолвие", tier: 2, loreFaction: 'choir', deckNow: 'choir',
     strength: 6, initials: "СБ", avatar: 'league/sister-silence.webp',
     telepathic: true,
     character: "Псионик-аскет. Не говорит вслух — её реплики звучат прямо в голове (в игре — курсивом).",
@@ -339,7 +339,7 @@ export const LEAGUE_CHARACTERS = [
     },
   },
   {
-    id: 'bot-3-0', name: "Корвин Безгербовый", tier: 3, loreFaction: 'captains', deckNow: 'orbit-diamond',
+    id: 'bot-3-0', name: "Корвин Безгербовый", tier: 3, loreFaction: 'captains', deckNow: 'captains',
     strength: 1, initials: "КБ", avatar: 'league/corvin.webp',
     character: "Легенда пиратов, адмирал без флага. Обаятельный, весёлый, опасный.",
     uniqueAbility: "начинает матч с 11 картами в руке.",
@@ -371,7 +371,7 @@ export const LEAGUE_CHARACTERS = [
     },
   },
   {
-    id: 'bot-3-2', name: "Первый Голос", tier: 3, loreFaction: 'choir', deckNow: 'formation-diamond',
+    id: 'bot-3-2', name: "Первый Голос", tier: 3, loreFaction: 'choir', deckNow: 'choir',
     strength: 3, initials: "ПГ", avatar: 'league/first-voice.webp',
     telepathic: true,
     character: "Глава Безмолвного хора, единственный, кто говорит вслух. Каждое слово — событие.",

@@ -2,7 +2,7 @@ import { assetUrl } from './asset-url.js';
 import { createTavernScreen } from './tavern-screen.js';
 import { weeklyBundle } from '../game/outpost.js';
 import { BUILDINGS, MAX_BUILDING_LEVEL, buildingEffect, buildingPrice, buildingSlot, constructionShortages } from '../game/base.js';
-import { button, element } from './dom.js';
+import { button, createBusyGuard, element } from './dom.js';
 import { dialogClose } from './resources.js';
 
 export function createBaseGrid(shell, progress, labels, materialIcon) {
@@ -26,7 +26,7 @@ export function createBaseGrid(shell, progress, labels, materialIcon) {
   details.append(header, body);
   document.body.append(details);
 
-  let busy = false;
+  const busy = createBusyGuard();
   const producers = [];
   let renderWeekly;
   const number = new Intl.NumberFormat('ru');
@@ -41,11 +41,11 @@ export function createBaseGrid(shell, progress, labels, materialIcon) {
   }
 
   async function claim(action, success, empty) {
-    if (busy) return;
-    busy = true;
-    updateProduction();
-    const result = await action();
-    busy = false;
+    if (busy.active) return;
+    const result = await busy.run(() => {
+      updateProduction();
+      return action();
+    });
     updateProduction();
     status.textContent = result === 'done' ? success
       : result === 'unavailable' ? 'Не удалось сохранить сбор.' : empty;
@@ -53,7 +53,7 @@ export function createBaseGrid(shell, progress, labels, materialIcon) {
 
   function updateProduction() {
     const production = progress.production();
-    collectAll.disabled = busy || !Object.values(production).some(canCollect);
+    collectAll.disabled = busy.active || !Object.values(production).some(canCollect);
     for (const [kind, show] of producers) show(production[kind]);
     renderWeekly?.(progress.weeklyOutpost());
   }
@@ -104,13 +104,13 @@ export function createBaseGrid(shell, progress, labels, materialIcon) {
     open.setAttribute('aria-label', 'Открыть: ' + definition.name);
     open.setAttribute('aria-haspopup', 'dialog');
     const purchase = button('', async () => {
-      if (busy) return;
+      if (busy.active) return;
       const levelBefore = level;
-      busy = true;
-      update();
-      const result = levelBefore ? await progress.upgrade(kind, levelBefore)
-        : await progress.build(buildingSlot(kind), kind);
-      busy = false;
+      const result = await busy.run(() => {
+        update();
+        return levelBefore ? progress.upgrade(kind, levelBefore)
+          : progress.build(buildingSlot(kind), kind);
+      });
       update();
       status.textContent = result === 'done'
         ? `${definition.name} · уровень ${level}`
@@ -141,7 +141,7 @@ export function createBaseGrid(shell, progress, labels, materialIcon) {
         bar.value = stock.fill;
         full.hidden = !stock.full;
         card.classList.toggle('is-full', stock.full);
-        collectButton.disabled = busy || !canCollect(stock);
+        collectButton.disabled = busy.active || !canCollect(stock);
       }]);
     }
     if (kind === 'outpost') {
@@ -158,7 +158,7 @@ export function createBaseGrid(shell, progress, labels, materialIcon) {
         panel.hidden = !weekly;
         if (!weekly) return;
         bundle.textContent = bundleText(weekly.bundle);
-        claimButton.disabled = busy || weekly.remaining > 0;
+        claimButton.disabled = busy.active || weekly.remaining > 0;
         const hours = Math.ceil(weekly.remaining / hour);
         cooldown.hidden = !hours;
         cooldown.textContent = `Следующий сбор через ${hours >= 24 ? Math.floor(hours / 24) + ' д ' : ''}${hours % 24} ч`;
@@ -184,7 +184,7 @@ export function createBaseGrid(shell, progress, labels, materialIcon) {
       purchase.hidden = !cost;
       purchase.textContent = level ? 'Улучшить' : 'Построить';
       purchase.setAttribute('aria-label', purchase.textContent + ': ' + definition.name);
-      purchase.disabled = busy || missing.length > 0;
+      purchase.disabled = busy.active || missing.length > 0;
       priceLabel.hidden = !level || !cost;
       priceLabel.textContent = `Цена уровня ${nextLevel}`;
       price.hidden = !cost;

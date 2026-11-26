@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCard } from '../../docs/game/board.js';
 import { availableFees, availableOrders, canUseLeader } from '../../docs/game/effects.js';
-import { ROWS } from '../../docs/game/cards.js';
 import { DECKS } from '../helpers/prototype-decks.js';
 import {
   HAND_LIMIT, ROW_LIMIT, applyAction, availableRows, canEndTurn, confirmMulligan, createMatch, mulliganLimit, playableCards, totalScore,
@@ -20,7 +19,7 @@ function orderedMatch({ human = DECKS.human, bot = DECKS.bot, starter = 'human',
 function playFirst(match) {
   const player = match.players[match.turn];
   const [card] = playableCards(match, match.turn);
-  const row = availableRows(player).includes(card.definition.row) ? card.definition.row : availableRows(player)[0];
+  const [row] = availableRows(player, card);
   return playAndEnd(match, { type: 'play', cardId: card.id, row, position: player.board[row].length });
 }
 
@@ -45,7 +44,7 @@ test('the original starter decks each have 25 valid cards with power from 1 to 1
     assert.equal(new Set(deck.map((card) => card.name)).size, 25);
     assert.deepEqual([...new Set(deck.map((card) => card.power))].sort((a, b) => a - b),
       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    assert.ok(deck.every((card) => ROWS.includes(card.row) && card.provision >= 4));
+    assert.ok(deck.every((card) => card.provision >= 4));
   }
 });
 
@@ -85,8 +84,9 @@ test('only the active side may move, and the card goes into the chosen row', () 
   assert.strictEqual(applyAction(match, 'bot', pass), match);
   assert.strictEqual(applyAction(match, 'human', { type: 'play', cardId: 'missing', position: 0 }), match);
   const [card] = match.players.human.hand;
-  const next = playFirst(match);
-  assert.deepEqual(next.players.human.board[card.definition.row], [card]);
+  const { surface } = match.players.human.board;
+  const next = playAndEnd(match, { type: 'play', cardId: card.id, row: 'surface', position: surface.length });
+  assert.deepEqual(next.players.human.board.surface, [...surface, card]);
   assert.equal(totalScore(next.players.human), card.power);
   assert.equal(next.turn, 'bot');
   assert.equal(match.players.human.hand.length, HAND_LIMIT);
@@ -284,7 +284,7 @@ test('128 reproducible matches terminate and keep each side’s cards in exactly
 });
 
 test('position inserts the first, leftmost, rightmost and middle cards in the expected order', () => {
-  const setup = orderedMatch({ human: DECKS.human.filter(({ row }) => row === 'orbit'), bot: [] });
+  const setup = orderedMatch({ human: DECKS.human, bot: [] });
   let match = confirmMulligan(setup, []);
   const cards = match.players.human.hand.slice(0, 4);
   const playAt = (card, position) => playAndEnd(match, {

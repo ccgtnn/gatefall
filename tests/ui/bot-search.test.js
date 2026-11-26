@@ -65,7 +65,11 @@ test('successive turns reuse one worker until the match is reset', async () => {
     let respond;
     return {
       terminate() { stopped += 1; },
-      addEventListener(type, listener) { if (type === 'message') respond = listener; },
+      addEventListener(type, listener) {
+        if (type !== 'message') return;
+        respond = listener;
+        queueMicrotask(() => listener({ data: { ready: true } }));
+      },
       postMessage() { respond({ data: { action } }); },
     };
   } });
@@ -88,7 +92,10 @@ test('a failed or timed-out worker is replaced on the next turn', async () => {
       const listeners = {};
       return {
         terminate() { stopped += 1; },
-        addEventListener(type, listener) { listeners[type] = listener; },
+        addEventListener(type, listener) {
+          listeners[type] = listener;
+          if (type === 'message') queueMicrotask(() => listener({ data: { ready: true } }));
+        },
         postMessage() {
           if (!first) listeners.message({ data: { action } });
           else if (outcome === 'error') listeners.error({ message: 'worker failed' });
@@ -103,5 +110,35 @@ test('a failed or timed-out worker is replaced on the next turn', async () => {
     assert.deepEqual(await search.choose(match, 'hard'), { action });
     search.cancel();
     assert.deepEqual([created, stopped], [2, 2]);
+  }
+});
+
+test('prewarm starts the worker early and the search clock waits for readiness', async () => {
+  const action = { type: 'pass' };
+  let respond;
+  let created = 0;
+  let requests = 0;
+  const search = createBotSearch({ timeoutMs: 10, createWorker() {
+    created += 1;
+    return {
+      terminate() {},
+      addEventListener(type, listener) { if (type === 'message') respond = listener; },
+      postMessage() {
+        requests += 1;
+        respond({ data: { action } });
+      },
+    };
+  } });
+  try {
+    search.warm('normal');
+    assert.equal(created, 1);
+    const result = search.choose({}, 'normal');
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    assert.equal(requests, 0);
+    respond({ data: { ready: true } });
+    assert.deepEqual(await result, { action });
+    assert.equal(requests, 1);
+  } finally {
+    search.cancel();
   }
 });

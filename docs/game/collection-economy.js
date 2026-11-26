@@ -90,7 +90,7 @@ export function readCollection(snapshot) {
 }
 
 export function collectionInventory({ purchased, opened, earnedCards, dismantledCards }) {
-  const boosters = Object.fromEntries(BOOSTER_FACTIONS.map(({ id }) => [id, purchased[id] - opened[id]]));
+  const boosters = Object.fromEntries(BOOSTER_FACTIONS.map(({ id }) => [id, Math.max(0, purchased[id] - opened[id])]));
   const owned = {};
   for (const card of CARD_DEFINITIONS) {
     const { id } = card;
@@ -117,7 +117,7 @@ export function createCollectionActions({ transact, balances, random, onPackOpen
       return transact((state, _previousAt, time) => {
         if (state.pendingPack) return 'pending';
         const { boosters, owned } = balances(state);
-        if (!boosters[id]) return 'empty';
+        if (!(boosters[id] > 0)) return 'empty';
         const cards = drawBoosterCards(pools.get(id), random);
         const essenceByCard = {};
         state.opened[id] += 1;

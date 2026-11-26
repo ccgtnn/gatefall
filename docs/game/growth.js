@@ -213,7 +213,7 @@ const growthLeaders = Object.freeze([
     ability: chooseLarvaRow(1, 'Выбери свой ряд для личинки Матки.'),
   },
   {
-    id: 'carrier', provisionBonus: 15, name: 'Носитель', art: 'carrier.webp', text: 'Наложить Заражение 3 на вражеский отряд и его соседей.',
+    id: 'carrier', provisionBonus: 15, name: 'Носитель', art: 'carrier.webp', keywords: ['Заражение'], text: 'Наложить Заражение 3 на вражеский отряд и его соседей.',
     ability: ability([
       { ...action('status', chosen('enemy'), 3), status: 'infection' },
       { ...action('status', { ...adjacent, of: 'enemy' }, 3), status: 'infection' },
