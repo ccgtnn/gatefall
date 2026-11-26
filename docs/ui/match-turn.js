@@ -73,8 +73,9 @@ export function createMatchTurn({
     const asyncSearch = level === 'hard' || level === 'normal';
     if (asyncSearch) showNotice(turnNotice, 'Противник думает…');
     const result = await botSearch.choose(before, level, settings.showBotThoughts());
-    if (session !== matchSession || match !== before || !result) return;
+    if (session !== matchSession || match !== before) return;
     if (asyncSearch) hideNotice(turnNotice);
+    if (result === null) return;
     const { action, trace } = result;
     const next = applyAction(before, 'bot', action);
     if (trace && next !== before) {

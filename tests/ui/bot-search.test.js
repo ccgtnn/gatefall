@@ -37,7 +37,7 @@ test('hard search returns control while the worker calculates a legal action and
     await new Promise((resolve) => setImmediate(resolve));
     assert.equal(settled, false);
     const { action, trace } = await result;
-    assert.ok(['play', 'leader', 'pass', 'order'].includes(action.type));
+    assert.ok(['play', 'leader', 'pass', 'order', 'fee'].includes(action.type));
     assert.deepEqual(trace.action, action);
     assert.deepEqual(response, { action, trace });
   } finally {
@@ -52,6 +52,56 @@ test('reset can terminate a pending worker without applying its response', async
   }) });
   const choice = search.choose({}, 'hard');
   search.cancel();
-  assert.equal(await choice, undefined);
+  assert.equal(await choice, null);
   assert.equal(stopped, true);
+});
+
+test('successive turns reuse one worker until the match is reset', async () => {
+  let created = 0;
+  let stopped = 0;
+  const action = { type: 'pass' };
+  const search = createBotSearch({ createWorker() {
+    created += 1;
+    let respond;
+    return {
+      terminate() { stopped += 1; },
+      addEventListener(type, listener) { if (type === 'message') respond = listener; },
+      postMessage() { respond({ data: { action } }); },
+    };
+  } });
+  assert.deepEqual(await search.choose({}, 'normal'), { action });
+  assert.deepEqual(await search.choose({}, 'hard'), { action });
+  assert.deepEqual([created, stopped], [1, 0]);
+  search.cancel();
+  assert.deepEqual(await search.choose({}, 'hard'), { action });
+  search.cancel();
+  assert.deepEqual([created, stopped], [2, 2]);
+});
+
+test('a failed or timed-out worker is replaced on the next turn', async () => {
+  for (const outcome of ['error', 'timeout']) {
+    let created = 0;
+    let stopped = 0;
+    const action = { type: 'pass' };
+    const search = createBotSearch({ timeoutMs: 10, createWorker() {
+      const first = ++created === 1;
+      const listeners = {};
+      return {
+        terminate() { stopped += 1; },
+        addEventListener(type, listener) { listeners[type] = listener; },
+        postMessage() {
+          if (!first) listeners.message({ data: { action } });
+          else if (outcome === 'error') listeners.error({ message: 'worker failed' });
+        },
+      };
+    } });
+    const match = createMatch({ random: () => 0 });
+    match.phase = 'playing';
+    match.turn = 'bot';
+    assert.ok((await search.choose(match, 'hard')).action);
+    assert.deepEqual([created, stopped], [1, 1]);
+    assert.deepEqual(await search.choose(match, 'hard'), { action });
+    search.cancel();
+    assert.deepEqual([created, stopped], [2, 2]);
+  }
 });

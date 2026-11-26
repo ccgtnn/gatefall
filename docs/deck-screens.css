@@ -12,7 +12,12 @@
 }
 [data-faction="core"] { --faction-edge: #87dbe2; }
 [data-faction="void"] { --faction-edge: #c0a2e8; }
-[data-faction="choir"] { --faction-edge: #a9bfff; }
+[data-faction="choir"] {
+  --faction-edge: #a9bfff;
+  --faction-light: #e2ddff;
+  --faction-face: #302b54;
+  --faction-second: #1b2141;
+}
 .faction-filter {
   display: inline-flex;
   align-items: center;

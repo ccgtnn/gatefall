@@ -3,6 +3,7 @@ import { leagueCharacter } from './league-character.js';
 import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js';
 import { insertionPoint, placementEffectRows } from './card-placement.js';
 import { button, element, iconButton, sideLabel } from './dom.js';
+import { FACTIONS } from '../game/cards.js';
 import { ROWS, ROW_LABELS } from '../game/card-metadata.js';
 import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js';
 import { playerHand } from './hand.js';
@@ -259,7 +260,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     }
     const backs = element('span', 'field-hand-backs');
     backs.setAttribute('aria-hidden', 'true');
-    const art = player.factionId === 'growth' ? 'back-growth.webp' : 'back-protectorate.webp';
+    const art = FACTIONS[player.factionId]?.cardBack ?? FACTIONS.protectorate.cardBack;
     for (let index = 0; index < player.hand.length; index += 1) {
       const back = element('img');
       back.src = assetUrl('./art/' + art);

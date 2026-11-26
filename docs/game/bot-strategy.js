@@ -2,11 +2,11 @@ import { leaderTargetPriority, offeringPriority, preferredLeaderUse } from './bo
 import { compareRollouts } from './bot-rollouts.js';
 import { ROWS } from './card-metadata.js';
 import { activeOrder, cardType, findUnit, infectionDamage, opponent, placementSide, statusCount, units } from './board.js';
-import { availableOrders, canUseLeader } from './effects.js';
+import { availableFees, availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
-import { armorTargetPriority, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, lockPriority, rowEffectValue, shouldProtectArmor } from './bot-effect-value.js';
+import { armorTargetPriority, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, lockPriority, pendingUnitPriority, rowEffectValue, shouldProtectArmor } from './bot-effect-value.js';
 import { cardAbilities, isLocked } from './events.js';
-import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, playableCards, totalScore } from './match.js';
+import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, applyAction, canEndTurn, playableCards, totalScore } from './match.js';
 
 import { armorBreakEmergence, consumeBonus, delayedCardValue, futureContext, inheritancePayoff, remainingTurns, wantsToHoldInheritance } from './bot-future-value.js';
 
@@ -16,14 +16,14 @@ const SIMULATION = { random: () => .5 };
 const UNKNOWN_PLAY = { id: 'unknown-play', definition: { type: 'effect', deploy: { steps: [] } } };
 export const BOT_BUDGET_MS = 300;
 
-function publicMatch(match) {
+export function publicMatch(match) {
   const { bot, human } = match.players;
   return {
     ...match,
     log: [],
     players: {
       bot: { ...bot, deck: [...bot.deck].sort((a, b) => a.id.localeCompare(b.id)), exile: [] },
-      human: { ...human, deck: [], exile: [],
+      human: { ...human, deck: [], exile: [], publicHandSize: human.hand.length,
         hand: human.hand.length ? [UNKNOWN_PLAY] : [] },
     },
   };
@@ -126,12 +126,15 @@ function plays(state, side) {
 
 function abilities(state, side) {
   const actions = availableOrders(state, side).map(({ card }) => ({ type: 'order', cardId: card.id }));
+  actions.push(...availableFees(state, side).map(({ card }) => ({ type: 'fee', cardId: card.id })));
   if (preferredLeaderUse(state, side) ?? canUseLeader(state, side)) actions.push({ type: 'leader' });
   return actions;
 }
 
 function choices(state) {
-  const { kind, options, side, cardId, cards, pile = 'deck' } = state.pending;
+  const { kind, options: legal, side, cardId, cards, pile = 'deck' } = state.pending;
+  const allies = kind === 'transform' ? legal.filter((id) => findUnit(state, id)?.side === side) : [];
+  const options = allies.length ? allies : legal;
   const leaderPriority = leaderTargetPriority(state, side, kind);
   const priorities = {
     lock: lockPriority,
@@ -141,7 +144,7 @@ function choices(state) {
     'infection-target': ({ card, side: targetSide }) =>
       infectionGain(card, state.pending.amount, remainingTurns(state, targetSide)),
   };
-  const priority = leaderPriority ?? priorities[kind];
+  const priority = leaderPriority ?? priorities[kind] ?? pendingUnitPriority(state, state.pending);
   if (priority) {
     const priorities = options.map((id) => priority(findUnit(state, id), side));
     const best = Math.max(...priorities);
@@ -195,7 +198,7 @@ function choicePreference(state, side, action) {
 
 function evaluateAction(state, side, action, search) {
   const choiceValue = choicePreference(state, side, action);
-  function finish(next, depth) {
+  function finish(next, depth, move) {
     const actor = next.pending?.side ?? next.turn;
     if (depth >= 36 || (!next.pending && (next.phase !== 'playing' || actor !== side ||
         next.players[side].turns !== state.players[side].turns))) {
@@ -205,7 +208,13 @@ function evaluateAction(state, side, action, search) {
     let actions;
     if (next.pending) actions = choices(next);
     else if (next.playedCard) actions = [END, ...abilities(next, side)];
-    else actions = plays(next, side).map(({ action }) => action);
+    else {
+      actions = plays(next, side).map(({ action }) => action);
+      if (move.type === 'fee') {
+        const ready = availableOrders(next, side).find(({ card }) => card.id === move.cardId);
+        if (ready) actions.unshift({ type: 'order', cardId: move.cardId });
+      }
+    }
 
     let best;
     for (const continuation of actions) {
@@ -224,7 +233,7 @@ function evaluateAction(state, side, action, search) {
     for (const roll of rolls) {
       if (rolls.length > 1 && search.expired()) return;
       const next = applyAction(before, actor, move, roll === .5 ? SIMULATION : { random: () => roll });
-      const result = next !== before && finish(next, depth);
+      const result = next !== before && finish(next, depth, move);
       if (!result) return;
       shortfall += removalShortfall(before, result.next, actor, card);
       total += result.rating;
@@ -355,7 +364,7 @@ export function chooseStrategicTurn(match, difficulty, oldAction, options = {}) 
   const hard = difficulty === 'hard';
   const lead = totalScore(bot) - totalScore(human);
   const canPass = !bot.usedAbility && !match.playedCard;
-  if (canPass && round < 3 && lead > 0 && human.passed) {
+  if (canPass && lead > 0 && human.passed && (round < 3 || !playableCards(match, 'bot').length)) {
     return decide(PASS, 'Очков для победы уже хватает.');
   }
 
@@ -384,7 +393,7 @@ export function chooseStrategicTurn(match, difficulty, oldAction, options = {}) 
     return decide({ type: 'leader' }, 'Использую подходящий момент для способности лидера.');
   }
   const state = publicMatch(match);
-  if (match.playedCard) {
+  if (canEndTurn(match, 'bot')) {
     if (human.passed && lead > 0) return decide(END, 'Очков уже достаточно. Сохраняю Приказы.');
     const baseline = evaluateAction(state, 'bot', END, search);
     const evaluate = (candidate) => hard ? replyRating(candidate, round, search) : candidate.rating;
@@ -393,7 +402,7 @@ export function chooseStrategicTurn(match, difficulty, oldAction, options = {}) 
       ranked.push({ action: candidate.action, rating: evaluate(candidate) });
     }
     ranked.sort((a, b) => b.rating - a.rating);
-    return decide(ranked[0].action, 'Сравниваю завершение хода и доступные Приказы.', ranked);
+    return decide(ranked[0].action, 'Сравниваю завершение хода и доступные способности.', ranked);
   }
 
   // Give ordinary plays and ability sequences separate shares of the same time budget.

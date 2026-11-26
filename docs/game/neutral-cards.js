@@ -167,7 +167,7 @@ export const NEUTRAL_CARDS = Object.freeze([
           { action: 'scatter', rowRef: 'targetRow', amount: golemDamage, visual: 'lightning' },
         ]),
     }],
-    ['carrion-devourer', 'Пожиратель падали', 'gold', 11, 1,
+    ['carrion-devourer', 'Пожиратель падали', 'gold', 12, 1,
       'В начале каждого твоего хода увеличивает базовую силу на 1 в колоде, руке, на поле или в сбросе. Сохраняет её между раундами и при воскрешении.', {
         art: 'carrion-devourer.webp', categories: ['Зверь'], startTurnGrowth: 1,
       }],

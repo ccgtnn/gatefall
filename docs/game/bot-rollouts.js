@@ -2,11 +2,11 @@ import { FACTIONS } from './cards.js';
 import { ROWS } from './card-metadata.js';
 import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from './board.js';
 import { collection, copyLimit } from './decks.js';
-import { applyAction, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js';
+import { applyAction, canEndTurn, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from './match.js';
 import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
 import { preferredLeaderUse } from './bot-leaders.js';
-import { effectSwing, infectionGain, shouldProtectArmor } from './bot-effect-value.js';
+import { beneficialFee, effectSwing, infectionGain, shouldProtectArmor } from './bot-effect-value.js';
 
 import { armorBreakEmergence, delayedCardValue, futureContext, wantsToHoldInheritance } from './bot-future-value.js';
 
@@ -170,16 +170,19 @@ function quickAction(match, side, pickTarget) {
   }
   if (match.playedCard) {
     const [order] = availableOrders(match, side);
-    return order && !(enemy.passed && lead > 0) ? { type: 'order', cardId: order.card.id } : END;
+    if (enemy.passed && lead > 0) return END;
+    return order ? { type: 'order', cardId: order.card.id } : beneficialFee(match, side) ?? END;
   }
   const legalPass = canPass(match, side);
   if (legalPass && match.round < 3 && lead > 0 && (enemy.passed || !enemy.hand.length)) return PASS;
 
   const plays = fastPlays(match, side);
   if (!plays.length) {
+    if (legalPass && enemy.passed && lead > 0) return PASS;
     if (canUseLeader(match, side)) return { type: 'leader' };
     const [order] = availableOrders(match, side);
-    return order ? { type: 'order', cardId: order.card.id } : PASS;
+    return order ? { type: 'order', cardId: order.card.id }
+      : beneficialFee(match, side) ?? (canEndTurn(match, side) ? END : PASS);
   }
   if (legalPass && match.round === 1 && !enemy.passed && player.turns >= 4 && lead > 9) return PASS;
   if (legalPass && match.round === 1 && !enemy.passed && lead > 13 && player.turns > 1) return PASS;
@@ -197,6 +200,8 @@ function quickAction(match, side, pickTarget) {
       (player.leader.ability.select?.[0]?.kind !== 'marshal' || ROWS.some((row) => player.board[row].length > 1))) {
     return { type: 'leader' };
   }
+  const fee = beneficialFee(match, side);
+  if (fee && !(enemy.passed && lead > 0)) return fee;
   const weight = match.round === 3 ? .12 : .45;
   function rank(play) {
     return play.points - weight * play.cost - Math.max(0, play.reserve - play.points) * 1.5;

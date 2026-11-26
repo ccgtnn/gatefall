@@ -169,3 +169,16 @@ test('the Monk is a three-strength play without a target prompt when all targets
   assert.equal(next.log.some(({ type }) => type === 'cleanse'), false);
   assert.equal(statusCount(findUnit(next, 'native').card, 'shield'), 1);
 });
+
+test('losing a side aura records zero rather than negative strength before death', () => {
+  const match = setup();
+  const sidePower = { group: 'test', key: 'testBonus' };
+  const aura = unit('aura', { power: 4, sidePower, sidePowerAura: 3 });
+  const ally = unit('ally', { power: 2, sidePower });
+  match.players.human.board.surface.push(aura, ally);
+  refreshSidePower(match, 'human');
+  ally.power = 1;
+  applyStatus(match, findUnit(match, aura.id), 'lock', 1);
+  assert.equal(findUnit(match, ally.id), undefined);
+  assert.equal(match.log.findLast(({ type, cardId }) => type === 'aura-power' && cardId === ally.id).power, 0);
+});

@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFile, access } from 'node:fs/promises';
+import { FACTIONS } from '../../docs/game/cards.js';
 import { CAPTAIN_CARDS, HOUND, REINFORCED_HOUND } from '../../docs/game/captains.js';
 import { CARD_DEFINITIONS, CATALOG_CARDS, cardsForFaction, findCardDefinition } from '../../docs/game/card-registry.js';
 import { collection } from '../../docs/game/decks.js';
@@ -53,7 +55,7 @@ test('all collectible gold cards are included and catalog filters combine across
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', category: 'Голем', provision: '10' }), ['mystic-golem']);
   assert.deepEqual(ids({ faction: 'protectorate', rarity: 'gold', category: 'Голем', provision: '10' }), ['imperial-golem']);
   assert.deepEqual(ids({ query: 'Статуя Императора' }), ['imperial-golem']);
-  assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', category: 'Зверь', provision: '11' }), ['carrion-devourer']);
+  assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', category: 'Зверь', provision: '12' }), ['carrion-devourer']);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'epic', type: 'unit', category: 'Робот', provision: '8' }), ['helper-robot']);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'bronze', type: 'effect', provision: '6', query: 'Расправа' }), ['armor-piercing-shot']);
 });
@@ -86,4 +88,20 @@ test('availability filters compose with other filters and distinguish one copy f
   assert.ok(unavailable.includes('resurrection'));
   assert.ok(!unavailable.includes('world-gates'));
   assert.ok(!unavailable.includes('falura'));
+});
+
+test('each playable faction defines all four palette tokens in CSS', async () => {
+  const palettes = await Promise.all(['cards.css', 'deck-screens.css']
+    .map((file) => readFile(new URL(`../../docs/${file}`, import.meta.url), 'utf8')));
+  for (const id of Object.keys(FACTIONS)) {
+    const selector = new RegExp(`\\[data-faction="${id}"\\]\\s*\\{([^}]+)\\}`, 'g');
+    const rules = [...palettes.join('\n').matchAll(selector)].map(([, declarations]) => declarations).join('\n');
+    for (const key of ['edge', 'light', 'face', 'second']) assert.match(rules, new RegExp(`--faction-${key}:`), id);
+  }
+});
+
+test('faction backs reference existing artwork and share the Protectorate fallback', async () => {
+  for (const { cardBack = FACTIONS.protectorate.cardBack } of Object.values(FACTIONS)) {
+    await access(new URL(`../../docs/art/${cardBack}`, import.meta.url));
+  }
 });

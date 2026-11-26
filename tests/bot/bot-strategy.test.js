@@ -3,7 +3,9 @@ import test from 'node:test';
 import { COIN_LIMIT, ROW_LIMIT, createCard } from '../../docs/game/board.js';
 import { CAPTAIN_CARDS, HOUND } from '../../docs/game/captains.js';
 import { chooseBotTurn, createBotView, pickBotTarget } from '../../docs/game/bot.js';
-import { delayedCardValue, futureContext } from '../../docs/game/bot-future-value.js';
+import { delayedCardValue, futureContext, remainingTurns } from '../../docs/game/bot-future-value.js';
+import { publicMatch } from '../../docs/game/bot-strategy.js';
+import { deckCardValue, effectSwing } from '../../docs/game/bot-effect-value.js';
 import { AWAKENING } from '../../docs/game/choir.js';
 import { FACTIONS, LARVA } from '../../docs/game/cards.js';
 import { applyAction, canEndTurn, canPass, confirmMulligan, createMatch } from '../../docs/game/match.js';
@@ -365,8 +367,10 @@ test('all bots end a turn with an empty hand after already using an order', () =
     standard('order', { id: 'order', name: 'Order', power: 4, zeal: true, order: {
       steps: [{ action: 'boost', target: { scope: 'source' }, amount: 1 }],
     } }),
-    member('foreman', 'captains', 'hound-foreman'),
+    member('eyes', 'captains', 'hound-eyes'),
+    standard('strong-hound', HOUND),
   ];
+  bot.board.orbit[2].power = 6;
   const first = chooseBotTurn(match, 'easy');
   assert.deepEqual(first, { type: 'order', cardId: 'order' });
   const next = applyAction(match, 'bot', first);
@@ -419,7 +423,7 @@ test('each bot uses Incubator each turn with space and targets the available row
     const { bot, human } = match.players;
     bot.board.orbit = [member('incubator', 'growth', 'incubator'),
       ...Array.from({ length: 8 }, (_, i) => plain('blocked-' + i, 1))];
-    bot.hand = [plain('keep', 2)];
+    bot.hand = [plain('keep', 2), plain('spare', 2)];
     human.board.orbit = [plain('enemy', 20)];
     const order = { type: 'order', cardId: 'incubator' };
     assert.deepEqual(chooseBotTurn(match, difficulty), order);
@@ -530,4 +534,108 @@ test('hard bot decisions including rollout scores repeat with the same seed', ()
   const first = decide();
   assert.ok(first.trace.candidates.some(({ samples }) => samples > 0));
   assert.deepEqual(decide(), first);
+});
+
+test('public bot analysis forecasts the real number of human turns without reading hidden cards', () => {
+  for (const count of [0, 1, 3, 6]) {
+    const match = position();
+    match.players.human.hand = Array.from({ length: count }, (_, i) => plain('hidden-' + i, 5));
+    const state = publicMatch(match);
+    assert.deepEqual(state.players.human.hand.map(({ id }) => id), count ? ['unknown-play'] : []);
+    assert.equal(state.players.human.publicHandSize, count);
+    assert.equal(remainingTurns(state, 'human'), Math.min(4, count));
+  }
+});
+
+test('all difficulties pay to restore Left Fang when it can hit a packed enemy row', () => {
+  const match = position(3);
+  const { bot, human } = match.players;
+  const fang = member('fang', 'captains', 'hound-left-fang');
+  fang.readyAt = bot.turns + 1;
+  bot.coins = 5;
+  bot.board.orbit = [fang, standard('token', HOUND)];
+  bot.board.orbit[1].power = 1;
+  human.board.surface = Array.from({ length: 8 }, (_, i) => plain('enemy-' + i, 1));
+  human.passed = true;
+  match.playedCard = true;
+  const fee = { type: 'fee', cardId: 'fang' };
+  for (const difficulty of ['easy', 'normal', 'hard']) {
+    const options = { random: () => .5, rolloutSamples: 0 };
+    assert.deepEqual(chooseBotTurn(match, difficulty, options), fee, difficulty);
+    const ready = applyAction(match, 'bot', fee);
+    assert.equal(ready.players.bot.coins, 0);
+    assert.deepEqual(chooseBotTurn(ready, difficulty, options), { type: 'order', cardId: 'fang' }, difficulty);
+  }
+  human.board.surface = [];
+  for (const difficulty of ['easy', 'normal', 'hard']) {
+    assert.deepEqual(chooseBotTurn(match, difficulty), { type: 'end-turn' }, difficulty);
+  }
+});
+
+test('Fang Orders destroy a weak Hound, accounting for a useful Deathwish', () => {
+  const match = position(3);
+  const { bot, human } = match.players;
+  const spores = member('spores', 'growth', 'spore-sac').definition;
+  bot.board.orbit = [
+    member('fang', 'captains', 'hound-left-fang'),
+    standard('weak-token', HOUND),
+    standard('useful-deathwish', { ...spores, categories: HOUND.categories, power: 3 }),
+    standard('strong-hound', { ...HOUND, power: 7 }),
+  ];
+  human.board.surface = [plain('enemy', 5)];
+  const pending = applyAction(match, 'bot', { type: 'order', cardId: 'fang' });
+  // A grown Larva can repay more than the extra strength spent on the victim.
+  pending.players.bot.board.orbit[2].growth = 3;
+  for (const difficulty of ['easy', 'normal', 'hard']) {
+    assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'useful-deathwish' }, difficulty);
+  }
+  pending.players.bot.board.orbit[2].growth = 0;
+  assert.deepEqual(pickBotTarget(pending), { type: 'target', cardId: 'weak-token' });
+});
+
+test('Call of the Deep prefers the weakest ally even with a stronger enemy on the field', () => {
+  const match = position(3);
+  const { bot, human } = match.players;
+  bot.hand.push(member('call', 'choir', 'call-of-the-deep'));
+  bot.board.orbit = [plain('strong-ally', 9), plain('weak-ally', 2)];
+  human.board.surface = [plain('enemy', 15)];
+  const pending = applyAction(match, 'bot', { type: 'play', cardId: 'call' });
+  for (const difficulty of ['easy', 'normal', 'hard']) {
+    assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'weak-ally' }, difficulty);
+  }
+});
+
+test('Hound Eyes transforms the Hound that gains the most power', () => {
+  const match = position(3);
+  const { bot } = match.players;
+  bot.coins = 2;
+  bot.board.orbit = [member('eyes', 'captains', 'hound-eyes'), standard('hound-a', HOUND), standard('hound-b', HOUND)];
+  bot.board.orbit[1].power = 1;
+  bot.board.orbit[2].power = 6;
+  const pending = applyAction(match, 'bot', { type: 'fee', cardId: 'eyes' });
+  assert.deepEqual(pickBotTarget(pending), { type: 'target', cardId: 'hound-a' });
+});
+
+test('a bot with a winning lead passes before using the Incubator', () => {
+  const match = position();
+  match.players.bot.board.surface = [member('incubator', 'growth', 'incubator'), plain('lead', 12)];
+  match.players.human.passed = true;
+  for (const difficulty of ['easy', 'normal', 'hard']) {
+    assert.deepEqual(chooseBotTurn(match, difficulty), pass, difficulty);
+  }
+});
+
+test('discard plays value the best restored legal card once, with or without anyType and chooseAll', () => {
+  const match = position(3);
+  const target = standard('target', { id: 'target', name: 'Target', rarity: 'bronze', power: 8 });
+  target.power = 1;
+  match.players.bot.discard = [target];
+  const medic = member('medic', 'captains', 'field-medic');
+  const expected = deckCardValue(match, 'bot', { ...target, power: target.basePower });
+  assert.equal(effectSwing(match, 'bot', medic), expected);
+  const medicine = medic.definition.deploy.steps[0];
+  const versatile = standard('versatile', { ...medic.definition,
+    deploy: { steps: [{ ...medicine, chooseAll: true, filter: { ...medicine.filter, anyType: true } }] },
+  });
+  assert.equal(effectSwing(match, 'bot', versatile), expected);
 });
