@@ -9,7 +9,7 @@ import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, availableRows, canEndTurn, canPass, 
 import { leaderTargetPriority, offeringPriority, preferredLeaderUse } from './bot-leaders.js';
 import { deathwishDefinitions } from './events.js';
 import { BOT_LEVELS, readBotLevel } from './bot-levels.js';
-import { chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js';
+import { botSearchState, chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js';
 
 export { BOT_LEVELS } from './bot-levels.js';
 
@@ -59,7 +59,7 @@ export function createBotView(match) {
     lives: bot.lives,
     opponentLives: human.lives,
     handSize: bot.hand.length,
-    opponentHandSize: human.hand.length,
+    opponentHandSize: human.publicHandSize ?? human.hand.length,
     mustPlay: bot.usedAbility,
   };
 }
@@ -294,5 +294,6 @@ export function chooseEasyTurn(match) {
 export function chooseBotTurn(match, mastery, options = {}) {
   const level = BOT_LEVELS[readBotLevel(mastery)];
   const strategy = { ...options, pickTarget: pickBotTarget };
-  return match.pending ? chooseStrategicTarget(match, level, strategy) : chooseStrategicTurn(match, level, strategy);
+  const state = botSearchState(match, level.knowsDeckList);
+  return state.pending ? chooseStrategicTarget(state, level, strategy) : chooseStrategicTurn(state, level, strategy);
 }

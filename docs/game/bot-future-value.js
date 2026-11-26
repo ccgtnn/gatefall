@@ -1,6 +1,8 @@
-import { activeOrder, COIN_LIMIT, infectionDamage, isUnit, opponent, ROW_LIMIT, statusCount, units } from './board.js';
+import { activeOrder, availableRows, cardType, COIN_LIMIT, infectionDamage, isUnit, opponent, placementSide, ROW_LIMIT, statusCount, units } from './board.js';
 import { ROWS } from './card-metadata.js';
-import { matchesPileFilter, targets, valueOf } from './effect-queries.js';
+import { EVAL_WEIGHTS as W } from './bot-evaluation.js';
+import { leaderCooldown } from './effects.js';
+import { canStart, matchesPileFilter, targets, valueOf } from './effect-queries.js';
 import { cardAbilities, deathwishDefinitions, inheritableDeathwishes, isLocked } from './events.js';
 
 export function remainingTurns(match, side) {
@@ -15,9 +17,143 @@ function consumes(ability) {
   return ability?.steps.some(({ action }) => action === 'consume');
 }
 
-function spendsCoins(card) {
-  const { fee, deploy } = cardAbilities(card);
-  return fee || deploy?.steps.some(({ action }) => action === 'choose-tribute');
+
+function liveTurns(match, side) {
+  const player = match.players[side];
+  if (match.phase !== 'playing' || player.passed) return 0;
+  const hidden = player.publicHandSize === undefined ? undefined : player.publicHandSize - Number(!player.hand.length);
+  const hand = hidden ?? player.hand.filter((card) => availableRows(match.players[placementSide(side, card)], card).length ||
+    cardType(card) === 'effect').length;
+  return Math.max(match.turn === side ? 1 : 0, hand +
+    Number(match.turn === side && match.playedCard));
+}
+
+function feeUses(context, fee, card, row, turns) {
+  const { match, side, own, player } = context;
+  if (fee.needsSourceSpace && freeSlots(context, row) <= 0) return 0;
+  const step = fee.steps.find(({ action }) => ['spawn', 'transform', 'ready-order'].includes(action));
+  if (!step) return 0;
+  if (step.action === 'spawn') {
+    if (!(step.card.power > 0)) return 0;
+    return Math.ceil(freeSlots(context, row) / step.amount);
+  }
+  if (step.action === 'transform') {
+    const pick = fee.select?.find(({ ref }) => ref === step.target.ref);
+    return pick ? targets(match, { side, sourceId: card.id, ability: fee }, pick.targets, true)
+      .filter(({ card: target }) => step.card.power > target.power).length : 0;
+  }
+  const order = cardAbilities(card).order;
+  if (!order || !units(match, opponent(side)).some(({ card }) => isUnit(card))) return 0;
+  const offering = order.select?.find(({ kind }) => kind === 'destroy');
+  const offerings = offering ? own.filter(({ card: ally }) => ally.id !== card.id &&
+    (!offering.targets.category || ally.definition.categories?.includes(offering.targets.category))).length : turns;
+  const unavailableNow = card.readyAt <= player.turns || card.orderUsedTurn === player.turns;
+  return Math.min(offerings, Math.max(0, turns - Number(unavailableNow)));
+}
+
+function coinSteps(context, ability, row) {
+  return (ability?.steps ?? []).reduce((total, step) => {
+    if (step.action === 'coins' && typeof step.amount === 'number' && step.amount < 0) return total - step.amount;
+    if (step.action !== 'choose-tribute' || !(step.spawn?.card?.power > 0)) return total;
+    const slots = Math.max(0, freeSlots(context, row) - Number(Boolean(row)));
+    const usable = Object.entries(step.tiers).sort(([a], [b]) => Number(a) - Number(b));
+    let output = 0;
+    let cost = 0;
+    for (const [price, count] of usable) {
+      const produced = Math.min(slots, count);
+      if (produced > output) { output = produced; cost = Number(price); }
+    }
+    return total + cost;
+  }, 0);
+}
+
+function coinCapacity(context, future = false) {
+  const { player, own, match, side, resourceTurns } = context;
+  const turns = future ? 3 + player.hand.length : resourceTurns;
+  if (!turns) return 0;
+  const field = future ? own.filter(({ card }) => card.resilient) : own;
+  let capacity = 0;
+  for (const { card, row } of field) {
+    const { fee } = cardAbilities(card);
+    if (fee && (!card.definition.requiredRow || card.definition.requiredRow === row)) {
+      capacity += fee.coins * feeUses(context, fee, card, row, turns);
+    }
+    if (capacity >= COIN_LIMIT) return COIN_LIMIT;
+  }
+  const canPlay = Math.max(0, turns - Number(!future && match.turn === side && match.playedCard));
+  const handCosts = player.hand.map((card) => {
+    const rows = availableRows(match.players[placementSide(side, card)], card);
+    if (!future && cardType(card) !== 'effect' && !rows.length) return 0;
+    const { deploy, fee } = cardAbilities(card);
+    return Math.max(0, ...((rows.length ? rows : ROWS).map((row) => coinSteps(context, deploy, row) +
+      (fee ? fee.coins * feeUses(context, fee, card, row, turns) : 0))));
+  }).sort((a, b) => b - a);
+  capacity += handCosts.slice(0, canPlay).reduce((sum, cost) => sum + cost, 0);
+  const leader = player.leader;
+  if (leaderUses(context, future) && canStart(match, { side, ability: leader.ability })) {
+    capacity += leaderUses(context, future) * coinSteps(context, leader.ability);
+  }
+  return Math.min(COIN_LIMIT, capacity);
+}
+
+export function coinValue(context, coins = context.player.coins ?? 0, capacity) {
+  if (coins <= 0) return 0;
+  const spendable = Math.min(coins, capacity ?? (context.coinCapacity ??= coinCapacity(context)));
+  return spendable * W.usefulCoin + (coins - spendable) * W.surplusCoin;
+}
+
+export function leaderUses(context, future = false) {
+  const { match, player, side } = context;
+  const leader = player.leader;
+  if (!leader?.ability || (leader.order && !leader.order.usesCharges)) return 0;
+  const turns = future ? player.hand.length + 3 * (3 - match.round) : context.resourceTurns;
+  if (!turns || (!future && turns === 1 && !canStart(match, { side, ability: leader.ability }))) return 0;
+  const cooldown = leader.order ? leaderCooldown(player)
+    : Number(match.turn === side && match.playedCard && player.hand.length > 0);
+  const opportunities = Math.max(0, turns - (future ? 0 : cooldown));
+  const recharge = leader.order && !context.own.some(({ card }) =>
+    !isLocked(card) && card.definition.id === leader.order.quickenedBy) ? leader.order.cooldown + 1 : 1;
+  return Math.min(leader.charges, Math.ceil(opportunities / recharge));
+}
+
+function directHit(ability) {
+  return (ability?.steps ?? []).reduce((max, step) => {
+    if (step.action !== 'damage' || ['source', 'ally', 'neighbors'].includes(step.target?.scope)) return max;
+    const amount = typeof step.amount === 'number' ? step.amount : 0;
+    return Math.max(max, amount);
+  }, 0);
+}
+
+function incomingHit(context) {
+  const { match, side } = context;
+  const other = opponent(side);
+  const enemy = match.players[other];
+  if (enemy.passed || match.phase !== 'playing') return 0;
+  const turns = liveTurns(match, other);
+  if (!turns) return 0;
+  const options = units(match, other).map((unit) => {
+    const { card } = unit;
+    const ability = cardAbilities(card);
+    return Math.max(card.readyAt < enemy.turns + turns ? directHit(activeOrder(unit)) : 0,
+      directHit(ability.startTurn), directHit(ability.endTurn), directHit(ability.timer));
+  });
+  if (enemy.leader?.charges > 0 || (enemy.leader?.order && !enemy.leader.order.usesCharges)) {
+    options.push(directHit(enemy.leader.ability));
+  }
+  options.push(...enemy.hand.map((card) => directHit(cardAbilities(card).deploy)));
+  if (enemy.knownDeck && (enemy.publicHandSize > 0 || match.round < 3)) {
+    options.push(...enemy.knownDeck.map((card) => Math.max(directHit(card.deploy), directHit(card.order)) * W.knownHitChance));
+  }
+  return Math.max(0, ...options);
+}
+
+function protectionValue(context, card) {
+  const armor = card.armor ?? 0;
+  const shield = statusCount(card, 'shield');
+  if ((!armor && !shield) || context.match.players[opponent(context.side)].passed) return 0;
+  const threat = (context.incomingHit ??= incomingHit(context));
+  return armor * (threat > 0 ? W.armorPerPoint : W.armorWithoutThreat)
+    + shield * (threat > 0 ? Math.min(W.shieldMaxHit, threat, (card.power ?? 0) + armor) : W.shieldWithoutThreat);
 }
 
 export function futureContext(match, side) {
@@ -30,10 +166,9 @@ export function futureContext(match, side) {
     own.some((unit) => consumes(activeOrder(unit)) && unit.card.readyAt < player.turns + turns) ||
     (player.leader?.charges > 0 && consumes(player.leader.ability));
   const inDeck = !available && player.deck.some(({ definition }) => consumes(definition.deploy) || consumes(definition.order));
-  return { match, side, player, own, turns, attacks,
+  return { match, side, player, own, turns, attacks, get resourceTurns() { return liveTurns(match, side); },
     armorPlans: player.hand.some(({ definition }) => definition.aiHints?.placement === 'armored-neighbors'),
-    triggerChance: available ? .68 : inDeck ? .48 : .32,
-    coinWeight: [...player.hand, ...own.map(({ card }) => card)].some(spendsCoins) ? .42 : .25 };
+    triggerChance: available ? .68 : inDeck ? .48 : .32 };
 }
 
 function freeSlots(context, row) {
@@ -105,12 +240,11 @@ export function armorBreakEmergence(card) {
 }
 
 export function delayedCardValue(context, card, row, inHand = false) {
-  const { turns, attacks, player, triggerChance, coinWeight } = context;
+  const { turns, attacks, player, triggerChance } = context;
   if (!turns && !attacks) return 0;
   const abilities = cardAbilities(card);
   const armor = card.armor ?? 0;
-  const shield = statusCount(card, 'shield');
-  const protection = attacks ? .12 * Math.min(armor, attacks * 2) + .5 * shield : 0;
+  const protection = protectionValue(context, card);
   const armorSynergy = turns && armor > 0 && context.armorPlans ? .55 : 0;
   const emergence = armor > 0 && attacks ? armorBreakEmergence(card) * .45 : 0;
   const wish = deathwishPayoff(context, card, row) + (inHand ? inheritancePayoff(context, card) : 0);
@@ -124,7 +258,7 @@ export function delayedCardValue(context, card, row, inHand = false) {
   const growth = powerGrowth * .65 * futureTurns + (card.growth !== undefined && wish ? .22 * futureTurns : 0);
   const countdown = !isLocked(card) && card.counter > 0 && card.counter <= turns ? card.definition.counter?.effect : undefined;
   const coins = countdown?.steps.find(({ action }) => action === 'coins');
-  const counter = countdown ? coins ? Math.min(COIN_LIMIT - (player.coins ?? 0), Math.max(0, coins.amount)) * coinWeight
+  const counter = countdown ? coins ? coinValue(context, Math.min(COIN_LIMIT, (player.coins ?? 0) + Math.max(0, coins.amount))) - coinValue(context)
     : countdown.steps.some(({ action }) => action === 'draw') ? (player.deck.length ? 1.6 : 0)
       : delayedAbilityValue(context, card, countdown, row) : 0;
   const charges = !isLocked(card) && card.orderCharges > 0
@@ -144,14 +278,18 @@ export function wantsToHoldInheritance(context, card, alternatives) {
       (other.power ?? other.definition.provision ?? 0) >= 3);
 }
 
-export function carryoverValue({ match, own, player }, weights) {
+export function carryoverValue(context, passed) {
+  const { match, own, player } = context;
   const resilience = own.reduce((total, { card }) => {
     if (!card.resilient || isLocked(card)) return total;
-    return total + (card.power ?? 0) * weights.carriedUnit + (card.armor ?? 0) * weights.carriedArmor
-      + statusCount(card, 'shield') * weights.carriedShield;
+    return total + (card.power ?? 0) * W.carriedUnit + protectionValue(context, card) * W.carriedUnit;
   }, 0);
-  const leader = player.leader;
-  const uses = leader?.order && !leader.order.usesCharges ? 1 : leader?.charges ?? 0;
-  return resilience + uses * weights.carriedLeader
-    + (match.rules.coinsPersistBetweenRounds ? (player.coins ?? 0) * weights.carriedCoins : 0);
+  const currentUses = passed ? 0 : leaderUses(context);
+  const carryLeader = Math.min(Math.max(0, (player.leader?.charges ?? 0) - currentUses), leaderUses(context, true));
+  const coins = player.coins ?? 0;
+  if (!coins || !match.rules.coinsPersistBetweenRounds) return resilience + carryLeader * W.leaderCharge;
+  const currentCapacity = passed ? 0 : (context.coinCapacity ??= coinCapacity(context));
+  const carryCoins = coinValue(context, coins, currentCapacity + coinCapacity(context, true))
+    - (passed ? 0 : coinValue(context));
+  return resilience + carryLeader * W.leaderCharge + carryCoins;
 }

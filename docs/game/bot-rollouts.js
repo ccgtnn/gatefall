@@ -27,12 +27,12 @@ function shuffle(cards, random) {
   return cards;
 }
 
-export function visibleSupply(match, memory = true) {
+export function visibleSupply(match, memory = true, knowsDeckList = false) {
   const player = match.players.human;
+  if (knowsDeckList && player.knownDeck) return player.knownDeck.map((card) => ({ card, weight: 1 }));
   const faction = FACTIONS[player.factionId];
-  if (!faction) return [];
   const known = new Map();
-  if (memory) {
+  if (memory || knowsDeckList) {
     const field = Object.entries(match.players).flatMap(([side, owner]) =>
       Object.values(owner.board).flat().filter((card) => (card.owner ?? side) === 'human'));
     for (const card of [...player.discard, ...player.exile, ...field]) {
@@ -44,6 +44,11 @@ export function visibleSupply(match, memory = true) {
       }
     }
   }
+  if (knowsDeckList && player.startingDeck) {
+    return player.startingDeck.filter(({ id }) => !known.has(id))
+      .map(({ definition: card }) => ({ card, weight: 1 }));
+  }
+  if (!faction) return [];
   const available = collection(player.factionId);
   const presetCounts = new Map();
   const observedCounts = new Map();
@@ -56,9 +61,11 @@ export function visibleSupply(match, memory = true) {
 
 export function samplePosition(match, supply, random) {
   const { human, bot } = match.players;
+  const handSize = human.publicHandSize ?? human.hand.length;
+  const deckSize = human.publicDeckSize ?? human.deck.length;
   const cards = supply.map(({ card, weight }) => ({ card, key: random() ** (1 / weight) }))
     .sort((a, b) => b.key - a.key)
-    .slice(0, human.hand.length + human.deck.length)
+    .slice(0, handSize + deckSize)
     .map(({ card }, index) => createCard('sample-human-' + index, card));
   // The bot knows the contents of its own deck, but not its shuffled order.
   const order = bot.deck.toSorted((a, b) => a.definition.id.localeCompare(b.definition.id) || a.id.localeCompare(b.id));
@@ -67,7 +74,8 @@ export function samplePosition(match, supply, random) {
     log: [],
     players: {
       bot: { ...bot, deck: shuffle(order, random) },
-      human: { ...human, hand: cards.slice(0, human.hand.length), deck: cards.slice(human.hand.length) },
+      human: { ...human, startingDeck: undefined, knownDeck: undefined, publicHandSize: undefined, publicDeckSize: undefined,
+        hand: cards.slice(0, handSize), deck: cards.slice(handSize) },
     },
   };
 }
@@ -244,16 +252,21 @@ function rollout(sample, action, pickTarget, random, expired, horizon) {
 }
 
 export function compareRollouts(match, candidates, {
-  pickTarget, expired, horizon = 'match', memory = true, rolloutSamples = ROLLOUT_SAMPLES,
+  pickTarget, expired, horizon = 'match', memory = true, knowsDeckList = false, rolloutSamples = ROLLOUT_SAMPLES,
   random = seeded(match.round * 65537 + match.players.bot.turns * 31 + match.players.human.turns),
 }) {
-  const supply = visibleSupply(match, memory);
-  const human = match.players.human;
-  if (supply.length < human.hand.length + human.deck.length) return [];
+  if (!rolloutSamples) return [];
+  const supply = visibleSupply(match, memory, knowsDeckList);
+  const { human, bot } = match.players;
+  const publicHandSize = human.publicHandSize ?? human.hand.length;
+  const publicDeckSize = human.publicDeckSize ?? human.deck.length;
+  if (supply.length < publicHandSize + publicDeckSize) return [];
+  const masked = { ...match, log: [], players: { bot: { ...bot, startingDeck: undefined }, human: { ...human, startingDeck: undefined,
+    hand: [], deck: [], publicHandSize, publicDeckSize } } };
   const totals = candidates.map(() => 0);
   let samples = 0;
   for (; samples < rolloutSamples && !expired(); samples++) {
-    const sampled = samplePosition(match, supply, random);
+    const sampled = samplePosition(masked, supply, random);
     const seed = Math.floor(random() * 2 ** 32);
     const scores = [];
     for (const { action } of candidates) {

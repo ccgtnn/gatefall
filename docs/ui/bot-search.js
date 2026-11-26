@@ -1,5 +1,6 @@
 import { chooseEasyTurn } from '../game/bot.js';
 import { BOT_LEVELS, readBotLevel } from '../game/bot-levels.js';
+import { botSearchState } from '../game/bot-strategy.js';
 
 export function botSearchTimeoutMs(level) {
   return Math.max(3500, BOT_LEVELS[readBotLevel(level)].budgetMs + 1500);
@@ -98,9 +99,11 @@ export function createBotSearch({
 
   async function choose(match, level, withTrace = false) {
     try {
-      return await request(match, readBotLevel(level), withTrace);
+      const mastery = readBotLevel(level);
+      const state = botSearchState(match, BOT_LEVELS[mastery].knowsDeckList);
+      return await request(state, mastery, withTrace);
     } catch {
-      const action = chooseEasyTurn(match);
+      const action = chooseEasyTurn(botSearchState(match));
       const trace = withTrace ? { action, reason: 'Стратегический поиск недоступен. Использую резервный ход.', candidates: [] } : undefined;
       return { action, trace };
     }

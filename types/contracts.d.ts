@@ -308,6 +308,7 @@ interface RowEffect {
 }
 
 export interface PlayerState {
+  startingDeck?: Pick<CardInstance, 'id' | 'definition'>[];
   hand: CardInstance[];
   deck: CardInstance[];
   discard: CardInstance[];
