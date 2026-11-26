@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFile, access } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { FACTIONS } from '../../docs/game/cards.js';
 import { CAPTAIN_CARDS, HOUND, REINFORCED_HOUND } from '../../docs/game/captains.js';
 import { CARD_DEFINITIONS, CATALOG_CARDS, cardsForFaction, findCardDefinition } from '../../docs/game/card-registry.js';
 import { collection } from '../../docs/game/decks.js';
-import { filterCatalog } from '../../docs/ui/catalog-cards.js';
+import { filterCatalog, normalizeCardSearch } from '../../docs/ui/catalog-cards.js';
 import { setCardRarity } from '../../docs/ui/dom.js';
 
 const cards = CATALOG_CARDS;
@@ -100,8 +100,17 @@ test('each playable faction defines all four palette tokens in CSS', async () =>
   }
 });
 
-test('faction backs reference existing artwork and share the Protectorate fallback', async () => {
-  for (const { cardBack = FACTIONS.protectorate.cardBack } of Object.values(FACTIONS)) {
-    await access(new URL(`../../docs/art/${cardBack}`, import.meta.url));
+test('each faction uses its own WebP at 360 by 540', async () => {
+  for (const [faction, { cardBack }] of Object.entries(FACTIONS)) {
+    assert.equal(cardBack, `back-${faction}.webp`);
+    const bytes = await readFile(new URL(`../../docs/art/${cardBack}`, import.meta.url));
+    assert.equal(bytes.toString('ascii', 8, 16), 'WEBPVP8 ');
+    assert.equal(bytes.readUInt16LE(26) & 0x3fff, 360);
+    assert.equal(bytes.readUInt16LE(28) & 0x3fff, 540);
   }
+});
+
+test('deck search normalizes е and ё the same way as the catalog', () => {
+  const name = 'Тяжёлый штурмовик';
+  assert.ok(normalizeCardSearch(name).includes(normalizeCardSearch('тяжелый')));
 });

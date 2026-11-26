@@ -84,7 +84,9 @@ export function createMatchSession({
     screen.querySelector('h2').focus({ preventScroll: true });
   }
 
-  async function leave(surrender = false) {
+  const canLeaveResult = () => matchSettlement === 'done' || matchSettlement === 'stale';
+
+  async function leave(surrender = false, historyEntry) {
     const returnTo = leagueOpponent ? 'league' : 'decks';
     const { match } = turns;
     if (leagueOpponent && (match?.phase === 'playing' || match?.phase === 'mulligan')) {
@@ -112,7 +114,7 @@ export function createMatchSession({
         screen.querySelector('h2')?.focus({ preventScroll: true });
         return;
       }
-    } else if (match?.phase === 'finished' && matchSettlement !== 'done' && matchSettlement !== 'stale') {
+    } else if (match?.phase === 'finished' && !canLeaveResult()) {
       if (matchSettlement === 'unavailable') void saveMatchResult();
       return;
     } else if (surrender === true && (match?.phase === 'playing' || match?.phase === 'mulligan')) {
@@ -130,7 +132,7 @@ export function createMatchSession({
     leagueDialogue = undefined;
     showLeagueSpeech();
     matchSettlement = undefined;
-    onLeave(returnTo);
+    onLeave(returnTo, historyEntry);
     mulliganFieldVisible = false;
     announcement.textContent = '';
     settings.close();
@@ -189,6 +191,7 @@ export function createMatchSession({
     get mulliganFieldVisible() { return mulliganFieldVisible; },
     difficulty: () => leagueOpponent?.difficulty ?? settings.difficulty(),
     cancelDialogue: () => leagueDialogue?.cancelPlay(),
+    canLeaveResult,
     canReplay: () => canPlayDeck(matchDeck),
     canShowRewards: () => !turns.match || (turns.match.phase === 'finished' && matchSettlement === 'done'),
     describeResult: (match) => describeFinishedMatch(match, matchSettlement, leagueOpponent, progress.ranks),

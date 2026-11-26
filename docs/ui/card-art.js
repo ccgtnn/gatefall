@@ -1,4 +1,5 @@
 import { assetUrl } from './asset-url.js';
+import { motionDuration } from './turn-playback.js';
 import { setCardRarity } from './dom.js';
 
 export const PREMIUM_ART_KEY = 'gatefall.premium-card-art';
@@ -48,11 +49,13 @@ export function setPremiumArtEnabled(enabled) {
   savePremiumArt();
 }
 
-function playPremium(id) {
-  return usesPremiumArt(id) && !globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+function playPremium(id, doc) {
+  const speed = doc?.getElementById?.('app')?.dataset.animationSpeed ?? 'system';
+  const reduced = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  return usesPremiumArt(id) && Boolean(motionDuration(speed, reduced));
 }
 
-function artwork(id, poster, className, size, doc, { animated = playPremium(id), lazyArt = false } = {}) {
+function artwork(id, poster, className, size, doc, { animated = playPremium(id, doc), lazyArt = false } = {}) {
   const node = doc.createElement(animated ? 'video' : 'img');
   node.className = className;
   node.width = 480;
@@ -104,7 +107,7 @@ export function refreshPremiumArt(root, id) {
   for (const node of root.querySelectorAll('[data-premium-card]')) {
     const { premiumCard, premiumPoster, premiumSize, premiumLazyArt } = node.dataset;
     if (id && id !== premiumCard) continue;
-    const animated = playPremium(premiumCard);
+    const animated = playPremium(premiumCard, node.ownerDocument ?? root);
     if (Boolean(node.poster) === animated) continue;
     const className = node.className.replace(/\s+card-art-video\b/, '');
     node.replaceWith(artwork(premiumCard, premiumPoster, className, premiumSize, node.ownerDocument ?? document,

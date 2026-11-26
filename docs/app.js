@@ -44,7 +44,7 @@ const announcement = document.querySelector('#announcement');
 let menuView = 'decks';
 let selectedFaction;
 let editedDeck;
-let editNotice;
+const editNotices = new Map();
 let screenEvents;
 let selectedCardId;
 let reloadOnMatchExit = false;
@@ -78,13 +78,15 @@ const session = createMatchSession({
   onStart() {
     selectedFaction = undefined;
     editedDeck = undefined;
-    editNotice = undefined;
     menuView = 'decks';
     navigation.navigate('match');
   },
-  onLeave(view) {
-    menuView = view;
-    navigation.replace(view);
+  onLeave(view, historyEntry) {
+    if (historyEntry) restoreMenuState(historyEntry);
+    else {
+      menuView = view;
+      navigation.replace(view);
+    }
     if (reloadOnMatchExit) window.location.reload();
   },
 });
@@ -92,16 +94,15 @@ const navigation = createAppHistory({
   window, document,
   inMatch: () => turns.match?.phase === 'playing' || turns.match?.phase === 'mulligan',
   confirmLeave: settings.confirmLeave,
-  showMenu({ screen: view, data }) {
+  showMenu(entry) {
+    if (entry.screen === 'match') return Boolean(turns.match);
     if (turns.match?.phase === 'finished') {
-      navigation.navigate('match');
-      void session.leave();
-      return;
+      const canLeave = session.canLeaveResult();
+      void session.leave(false, entry);
+      return canLeave;
     }
-    selectedFaction = data?.faction;
-    editedDeck = data?.deck;
-    editNotice = data?.notice;
-    showMenuScreen(view);
+    restoreMenuState(entry);
+    showMenuScreen(menuView);
   },
 });
 const rewardReveal = createRewardReveal({
@@ -156,11 +157,15 @@ window.addEventListener('storage', (event) => {
     emit('decorations-change');
   }
   if (decorationKeys.includes(event.key)) return;
-  if (reloadKeys.has(event.key) && event.newValue === null) {
+  if (event.key === null || (reloadKeys.has(event.key) && event.newValue === null)) {
     if (turns.match) reloadOnMatchExit = true;
     else window.location.reload();
-  } else if (event.key === REWARD_STORAGE_KEY || event.key === null) {
+  } else if (event.key === REWARD_STORAGE_KEY) {
     progress.refresh();
+  } else if (event.key === DECK_STORAGE_KEY) {
+    deckStore.refresh();
+    if (!turns.match && menuView === 'all-decks') render();
+    else emit('collection-change');
   }
 });
 const timers = createAppTimers(progress, () => emit('league-tick'));
@@ -229,7 +234,7 @@ function showNotice(notice, text, duration) {
 
 function goTo(view) {
   const data = view === 'leader' ? { faction: selectedFaction }
-    : view === 'edit' ? { deck: editedDeck, notice: editNotice } : undefined;
+    : view === 'edit' ? { deckId: editedDeck.id } : undefined;
   navigation.navigate(view, data);
   showMenuScreen(view);
 }
@@ -241,9 +246,18 @@ function showMenuScreen(view) {
   screen.querySelector('.section-back, h2')?.focus({ preventScroll: true });
 }
 
+function restoreMenuState({ screen: view, data }) {
+  screenEvents?.abort();
+  selectedFaction = data?.faction;
+  editedDeck = view === 'edit' ? deckStore.get(data?.deckId) : undefined;
+  menuView = view === 'edit' && !editedDeck ? 'all-decks' : view;
+  if (menuView !== view) navigation.replace(menuView);
+}
+
 function editDeck(deck, notice = '') {
-  editedDeck = structuredClone(deck);
-  editNotice = notice;
+  deckStore.stageDraft(deck);
+  editedDeck = deckStore.get(deck.id);
+  editNotices.set(deck.id, notice);
   goTo('edit');
 }
 
@@ -293,21 +307,18 @@ function render() {
     content = finishedScreen(match, phaseLabel, session.replay, session.leave,
       settings.showBotThoughts(), session.canReplay, Boolean(leagueMatch), settlement, signal);
   } else {
-    const back = () => goTo('all-decks');
+    const back = () => navigation.backTo('all-decks');
     switch (menuView) {
       case 'faction': content = factionPicker(phaseLabel, (id) => {
         selectedFaction = id;
         goTo('leader');
       }, back); break;
-      case 'leader': content = leaderScreen(phaseLabel, selectedFaction, makeDeck, () => goTo('faction')); break;
+      case 'leader': content = leaderScreen(phaseLabel, selectedFaction, makeDeck, () => navigation.backTo('faction')); break;
       case 'edit': content = deckEditor(phaseLabel, editedDeck, {
-        back, notice: editNotice, signal, inventory: progress.inventory, save: (deck) => deckStore.save(deck), play: (deck) => {
-          deckStore.save(deck);
-          session.start(deck);
-        },
+        back, notice: editNotices.get(editedDeck.id), signal, inventory: progress.inventory, save: deckStore.save, play: session.start,
       }); break;
       case 'all-decks': content = deckListScreen(phaseLabel, deckStore.list(), stats, {
-        back: () => goTo('decks'), create: () => goTo('faction'), play: session.start, edit: editDeck,
+        back: () => navigation.backTo('decks'), create: () => goTo('faction'), play: session.start, edit: editDeck,
         copy: (deck) => makeDeck(deck.factionId, deck.leaderId, deck),
         importJson: deckStore.importJson,
         onImported({ deck, missing, saved }) {
@@ -316,10 +327,10 @@ function render() {
           editDeck(deck, details.length ? status + ' Не хватает карт: ' + details.join(', ') + '.' : status);
         },
       }, progress.inventory, signal); break;
-      case 'decorations': content = decorationsScreen(phaseLabel, framePreferences, battlefieldPreferences, () => goTo('decks'), signal); break;
-      case 'ranks': content = rankScreen(phaseLabel, progress, () => goTo('decks'), signal); break;
+      case 'decorations': content = decorationsScreen(phaseLabel, framePreferences, battlefieldPreferences, () => navigation.backTo('decks'), signal); break;
+      case 'ranks': content = rankScreen(phaseLabel, progress, () => navigation.backTo('decks'), signal); break;
       case 'league': content = leagueScreen(phaseLabel, {
-        back: () => goTo('decks'),
+        back: () => navigation.backTo('decks'),
         overview: () => leagueOverview.matches,
         read: progress.league,
         checkpoint: progress.checkpointLeague,
@@ -336,7 +347,7 @@ function render() {
         tavernRewards: () => tavernRewardCount(progress.tavern()),
         league: () => goTo('league'), ranks: () => goTo('ranks'),
         currentRank: () => rankStanding(progress.ranks().rounds).rank,
-        catalog: () => openResources('essence'), decorations: () => goTo('decorations'), all: back, play: session.start,
+        catalog: () => openResources('essence'), decorations: () => goTo('decorations'), all: () => goTo('all-decks'), play: session.start,
       }, () => deckStore.recent(progress.inventory().owned), signal);
     }
   }

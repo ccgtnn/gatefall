@@ -11,10 +11,12 @@ export function createAppHistory({ window, document, inMatch, confirmLeave, show
   const { history } = window;
   const session = globalThis.crypto?.randomUUID?.() ?? String(Math.random());
   const dialogs = [];
+  const screens = new Map();
   let current = { screen: HOME_SCREEN, depth: 0 };
 
   function write(entry, push) {
     current = entry;
+    screens.set(entry.depth, entry.screen);
     const state = { ...history.state, gatefall: { session, ...entry } };
     if (push) history.pushState(state, '');
     else history.replaceState(state, '');
@@ -42,8 +44,9 @@ export function createAppHistory({ window, document, inMatch, confirmLeave, show
       if (dialog) dialog.close('');
       else confirmLeave();
     } else if (previous && (action === 'show-previous' || previous.depth > current.depth)) {
+      const from = current;
       current = previous;
-      showMenu(previous);
+      if (showMenu(previous) === false) history.go(from.depth - previous.depth);
     } else if (previous) {
       // Skip Gatefall entries behind a home screen reached from an in-game Back button.
       current = { screen: HOME_SCREEN, depth: previous.depth };
@@ -54,8 +57,15 @@ export function createAppHistory({ window, document, inMatch, confirmLeave, show
   return {
     navigate(screen, data) {
       const push = current.screen !== screen;
-      if (push && current.data) write(current, false);
       write({ screen, data, depth: current.depth + Number(push) }, push);
+    },
+    backTo(screen) {
+      if (screens.get(current.depth - 1) === screen) {
+        history.back();
+        return;
+      }
+      write({ screen, depth: current.depth }, false);
+      showMenu(current);
     },
     replace(screen, data) {
       write({ screen, data, depth: current.depth }, false);

@@ -87,3 +87,20 @@ test('ownership validation blocks a two-copy deck even when one copy still exist
   assert.equal(inspectDeck(protectorate, owned).missing.get(id), 2);
   assert.equal(inspectDeck(protectorate).valid, true);
 });
+
+test('refresh loads another tab’s decks and merges a subsequent local save', async () => {
+  const { createDeckStorage } = await import('../../docs/ui/deck-storage.js');
+  const entries = new Map();
+  const storage = { getItem: (key) => entries.get(key) ?? null, setItem: (key, value) => entries.set(key, value) };
+  const first = createDeckStorage(storage);
+  const second = createDeckStorage(storage);
+  const deck = { id: 'shared', name: 'Shared', factionId: 'growth', leaderId: 'devourer', cardIds: [] };
+  first.save(deck);
+  second.refresh();
+  assert.deepEqual(second.get(deck.id), deck);
+  second.save({ ...deck, id: 'local' });
+  first.save({ ...deck, name: 'New title' });
+  second.refresh();
+  assert.equal(second.get(deck.id).name, 'New title');
+  assert.deepEqual(second.list().map(({ id }) => id), ['shared', 'local']);
+});

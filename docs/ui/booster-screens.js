@@ -1,3 +1,4 @@
+import { cardBack } from './card-back.js';
 import { assetUrl } from './asset-url.js';
 import { createCard } from '../game/board.js';
 import { findCardDefinition } from '../game/card-registry.js';
@@ -181,7 +182,7 @@ export function createBoosterOpening(progress, openShop) {
       item.style.setProperty('--card-angle', (2 - index) * 12 + 'deg');
       const cover = button(undefined, () => reveal(id, () => face.focus({ preventScroll: true })), 'booster-reveal-card');
       cover.setAttribute('aria-label', `Перевернуть карту ${index + 1} из ${pack.cards.length}`);
-      cover.append(resourceIcon(pack.faction, true));
+      cover.append(cardBack(pack.faction, 'booster-card-back', null) ?? resourceIcon(pack.faction, true));
       const card = createCard(def.id, def);
       const face = cardButton(card, () => showCard(card), { factionId: def.faction }, false, { showProvision: true });
       face.tabIndex = -1;

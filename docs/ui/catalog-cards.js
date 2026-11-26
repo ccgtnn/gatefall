@@ -1,5 +1,5 @@
 const names = new Intl.Collator('ru');
-const normalize = (text) => text.toLocaleLowerCase('ru').replaceAll('ё', 'е');
+export const normalizeCardSearch = (text) => text.toLocaleLowerCase('ru').replaceAll('ё', 'е');
 
 export const availabilityOptions = [
   ['', 'Все карты'], ['owned', 'Доступные'], ['missing', 'Недоступные'],
@@ -13,7 +13,7 @@ export function matchesAvailability(availability, copies) {
 
 export function filterCatalog(cards, { query = '', faction = '', type = '', rarity = '',
   category = '', provision = '', sort = 'provision', availability = '', owned = {} } = {}) {
-  const terms = normalize(query).trim().split(/\s+/).filter(Boolean);
+  const terms = normalizeCardSearch(query).trim().split(/\s+/).filter(Boolean);
   const shown = cards.filter((card) =>
     !card.token &&
     (!faction || card.faction === faction) &&
@@ -22,7 +22,7 @@ export function filterCatalog(cards, { query = '', faction = '', type = '', rari
     (!rarity || card.rarity === rarity) &&
     (!category || card.categories?.includes(category)) &&
     (provision === '' || card.provision === Number(provision)) &&
-    (!terms.length || terms.every((term) => normalize(card.name + ' ' + (card.text ?? '')).includes(term))));
+    (!terms.length || terms.every((term) => normalizeCardSearch(card.name + ' ' + (card.text ?? '')).includes(term))));
 
   const byName = (a, b) => names.compare(a.name, b.name);
   if (sort === 'name') return shown.sort(byName);

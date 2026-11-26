@@ -78,7 +78,7 @@ export function readBase(saved, fresh = false) {
     const valid = [...savedSlots].map((id) => saved?.buildings?.[id])
       .filter((building) => building?.kind === kind && amount(building.level))
       .map(({ level }) => level);
-    const level = Math.max(0, ...valid);
+    const level = Math.min(MAX_BUILDING_LEVEL, Math.max(0, ...valid));
     if (level > 0) buildings[slot] = { kind, level };
   }
   return { materials, buildings };

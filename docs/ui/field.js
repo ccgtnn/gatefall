@@ -1,11 +1,11 @@
-import { assetUrl } from './asset-url.js';
 import { leagueCharacter } from './league-character.js';
 import { activeOrder, opponent, restoreCard, statusCount } from '../game/board.js';
 import { insertionPoint, placementEffectRows } from './card-placement.js';
 import { button, element, iconButton, sideLabel } from './dom.js';
-import { FACTIONS } from '../game/cards.js';
+import { cardBack } from './card-back.js';
 import { ROWS, ROW_LABELS } from '../game/card-metadata.js';
 import { cardArt, cardButton, cardInspection, decorateCard, showCard } from './cards.js';
+import { spawnRowLabel, tributeLabel } from './field-labels.js';
 import { playerHand } from './hand.js';
 import { availableFees, availableOrders, canUseLeader, leaderCooldown, rowArmor, ROW_EFFECTS } from '../game/effects.js';
 import { HAND_LIMIT, ROW_LIMIT, canEndTurn, canPass, rowScore, totalScore } from '../game/match.js';
@@ -52,7 +52,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
         : pending.kind === 'mark-row' ? `Отметить отряды ряда «${ROW_LABELS[row]}»`
           : pending.kind === 'row-effect' ? `Наложить Гниение на ряд «${ROW_LABELS[row]}»`
           : side === 'bot' ? `Нанести урон во вражеском ряду «${ROW_LABELS[row]}»`
-            : `Породить личинки в ряду «${ROW_LABELS[row]}»`);
+            : spawnRowLabel(pending, ROW_LABELS[row]));
     }
     const slots = element('div', 'row-line');
     slots.dataset.castZone = '';
@@ -244,7 +244,8 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     node.dataset.pile = pile;
     node.title = label;
     node.setAttribute('aria-label', label);
-    node.append(element('span', 'pile-icon', pile === 'deck' ? '▤' : '▱'), element('strong', null, count));
+    node.append(pile === 'deck' ? cardBack(player.factionId, 'pile-card-back') : element('span', 'pile-icon', '▱'),
+      element('strong', null, count));
     return node;
   }
 
@@ -260,13 +261,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     }
     const backs = element('span', 'field-hand-backs');
     backs.setAttribute('aria-hidden', 'true');
-    const art = FACTIONS[player.factionId]?.cardBack ?? FACTIONS.protectorate.cardBack;
-    for (let index = 0; index < player.hand.length; index += 1) {
-      const back = element('img');
-      back.src = assetUrl('./art/' + art);
-      back.alt = '';
-      backs.append(back);
-    }
+    for (let index = 0; index < player.hand.length; index += 1) backs.append(cardBack(player.factionId));
     stack.classList.toggle('is-passed', player.passed);
     const numbers = element('span', 'field-hand-numbers');
     numbers.append(element('span', null, 'В руке: ' + player.hand.length),
@@ -311,7 +306,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     offer.setAttribute('aria-labelledby', heading.id);
     const options = element('div', 'tribute-choices');
     for (const cost of pending.options) {
-      const label = cost === '0' ? 'Без взноса' : `◉ ${cost} · Гончие ×${pending.tiers[cost]}`;
+      const label = tributeLabel(pending, cost);
       options.append(button(label, () => playHuman({ type: 'target', cardId: cost }), 'button effect-target'));
     }
     offer.append(heading, options);
@@ -348,9 +343,14 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       playHuman({ type: afterPlay ? 'end-turn' : 'pass' }), 'button field-action');
     action.id = 'pass-button';
     action.disabled = !humanCanAct() || !(afterPlay ? canEndTurn(match, 'human') : canPass(match, 'human'));
-    if (afterPlay && !action.disabled && humanOrders.size) {
+    const ready = !action.disabled && afterPlay ? [
+      humanOrders.size && 'Приказ',
+      availableFees(match, 'human').length && 'Плата',
+      canUseLeader(match, 'human') && 'способность лидера',
+    ].filter(Boolean) : [];
+    if (ready.length) {
       action.classList.add('has-ready-order');
-      action.title = 'Есть готовый Приказ';
+      action.title = 'Доступно · ' + ready.join(', ');
       action.setAttribute('aria-description', action.title);
     }
     if (humanCanAct() && !afterPlay && players.human.usedAbility) action.title = 'Сыграй карту после применения способности';

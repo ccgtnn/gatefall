@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { BASE_PLOTS, buildingEffect, buildingPrice } from '../../docs/game/base.js';
+import { BASE_PLOTS, buildingEffect, buildingPrice, MAX_BUILDING_LEVEL, readBase } from '../../docs/game/base.js';
 import { createRewardProgress, REWARD_STORAGE_KEY } from '../../docs/game/rewards.js';
 
 function storageWithGold() {
@@ -154,4 +154,16 @@ test('existing bases keep material balances and building levels from before the 
   const old = createRewardProgress({ getItem: () => JSON.stringify(snapshot) });
   assert.deepEqual(old.base(), snapshot.base);
   assert.equal(old.inventory().gold, 300);
+});
+
+test('readBase clamps corrupt building levels and keeps other valid levels', () => {
+  const data = { buildings: {
+    warehouse: { kind: 'warehouse', level: Number.MAX_SAFE_INTEGER },
+    '5': { kind: 'tavern', level: 2 },
+    outpost: { kind: 'outpost', level: -6 },
+  } };
+  const { buildings } = readBase(data);
+  assert.equal(buildings.warehouse.level, MAX_BUILDING_LEVEL);
+  assert.equal(buildings['5'].level, 2);
+  assert.equal(buildings.outpost, undefined);
 });

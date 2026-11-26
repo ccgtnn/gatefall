@@ -77,10 +77,10 @@ const captainDeck = Object.freeze([
 export const FACTIONS = Object.freeze({
   protectorate: faction('protectorate', 'back-protectorate.webp', PROTECTORATE),
   growth: faction('growth', 'back-growth.webp', GROWTH),
-  choir: { name: 'Безмолвный хор', cardBack: undefined, strategy: 'Псионика', description: 'Псионики-аскеты, черпающие силу в космосе',
+  choir: { name: 'Безмолвный хор', cardBack: 'back-choir.webp', strategy: 'Псионика', description: 'Псионики-аскеты, черпающие силу в космосе',
     pool: choirPool, deck: choirDeck,
     leader: HIGH_PRIEST, leaders: Object.freeze([HIGH_PRIEST]) },
-  captains: { name: 'Вольные капитаны', cardBack: undefined, strategy: 'Чёрные гончие', description: 'Независимые капитаны, корабли и боевые монеты.',
+  captains: { name: 'Вольные капитаны', cardBack: 'back-captains.webp', strategy: 'Чёрные гончие', description: 'Независимые капитаны, корабли и боевые монеты.',
     pool: CAPTAIN_CARDS, deck: captainDeck,
     leader: SKARA_REINHOLD, leaders: Object.freeze([SKARA_REINHOLD]) },
 });
