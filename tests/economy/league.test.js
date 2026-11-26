@@ -10,8 +10,10 @@ import { createDeckMatch } from '../../docs/game/match.js';
 import { createRewardProgress, REWARD_STORAGE_KEY } from '../../docs/game/rewards.js';
 import { resetProgress } from '../../docs/game/reset-progress.js';
 
-const sunday = new Date(2026, 10, 22, 23, 59).getTime();
-const monday = new Date(2026, 10, 23).getTime();
+const sunday = Date.UTC(2026, 10, 22, 12);
+const monday = Date.UTC(2026, 10, 23, 12);
+const mondayReset = new Date(monday);
+mondayReset.setHours(0, 0, 0, 0);
 const fixed = () => .5;
 const deck = PRESETS[0];
 
@@ -179,7 +181,7 @@ test('second place is promoted too', () => {
 
 test('Monday resets the league exactly once and uses best league and place of the week', () => {
   const league = createLeague(sunday);
-  assert.equal(leagueWeek(sunday).resetAt, monday);
+  assert.equal(leagueWeek(sunday).resetAt, mondayReset.getTime());
   for (let round = 0; round < 28; round += 1) play(league, 'win', 2);
   assert.equal(resetLeagueWeek(league, sunday, fixed), null);
   const next = resetLeagueWeek(league, monday, fixed);

@@ -6,8 +6,10 @@ import { resetProgress } from '../../docs/game/reset-progress.js';
 import { leagueTicket } from '../../docs/game/league.js';
 import { PRESETS } from '../../docs/game/decks.js';
 
-const december = new Date(2026, 11, 1).getTime();
-const november = december - 60_000;
+const december = Date.UTC(2026, 11, 1, 12);
+const november = Date.UTC(2026, 10, 30, 12);
+const decemberReset = new Date(december);
+decemberReset.setHours(0, 0, 0, 0);
 
 function setup() {
   let saved = null;
@@ -91,7 +93,7 @@ test('a local month reset keeps rewards and cannot be repeated by reversing the 
   assert.equal(await wallet.rewardMatch('last-month', 'loss', 'growth', 1), 'done');
   const oldKeys = wallet.inventory().keys;
   const oldSteel = wallet.base().materials.steel;
-  assert.equal(wallet.ranks().resetAt, december);
+  assert.equal(wallet.ranks().resetAt, decemberReset.getTime());
   setTime(december);
   assert.equal(await reopen().checkpointRanks(), 'done');
   assert.equal(wallet.ranks().rounds, 0);
