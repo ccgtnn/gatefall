@@ -100,10 +100,10 @@ function artwork(id, poster, className, size, doc, { animated = playPremium(id, 
   return node;
 }
 
-export function cardArt(definition, className, { fullArt = false, lazyArt = false, doc = document } = {}) {
+export function cardArt(definition, className, { fullArt = false, lazyArt = false, doc = document, animated } = {}) {
   const art = !fullArt && className === 'card-art-crop' ? definition.artCrop ?? definition.art : definition.art;
   return artwork(definition.id, assetUrl('./art/' + art), className, fullArt ? 'large' : 'small', doc, {
-    lazyArt, focus: fullArt ? undefined : definition.artFocus, zoom: String(definition.artZoom ?? 1),
+    animated, lazyArt, focus: fullArt ? undefined : definition.artFocus, zoom: String(definition.artZoom ?? 1),
   });
 }
 
