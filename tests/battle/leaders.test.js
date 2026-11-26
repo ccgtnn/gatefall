@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCard, findUnit, statusCount } from '../../docs/game/board.js';
-import { chooseBotTurn } from '../../docs/game/bot.js';
+import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
 import { DEVOURER_SPAWN } from '../../docs/game/growth.js';
 import { findCardDefinition } from '../../docs/game/card-registry.js';
 import { FACTIONS } from '../../docs/game/cards.js';
@@ -100,7 +100,7 @@ test('all bot difficulties favor a cooling Order and shield an exposed key unit'
     key.statuses = { target: 1, infection: 2 };
     bot.board.surface = [commander, shielded, key];
     human.board.surface = [unit('enemy', 40)];
-    for (const difficulty of ['easy', 'normal', 'hard']) {
+    for (const difficulty of [2, 4, 6]) {
       assert.deepEqual(chooseBotTurn(match, difficulty), leaderAction);
       const pending = act(match, leaderAction, 'bot');
       assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: expected });
@@ -195,7 +195,7 @@ test('strategic bots simulate favorable uses and legal choices for every leader'
         commander.armor = 2;
         bot.board.surface[1] = commander;
       }
-      for (const difficulty of ['normal', 'hard']) {
+      for (const difficulty of [4, 6]) {
         assert.deepEqual(chooseBotTurn(match, difficulty, { rolloutSamples: 0 }), leaderAction, leader.id + ' ' + difficulty);
         let next = act(match, leaderAction, 'bot');
         while (next.pending) {

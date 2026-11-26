@@ -266,7 +266,7 @@ test('128 reproducible matches terminate and keep each side’s cards in exactly
       if (match.phase === 'mulligan') {
         match = confirmMulligan(match, [], { random });
       } else if (match.pending?.side === 'bot' || match.turn === 'bot') {
-        match = applyAction(match, 'bot', chooseBotTurn(match), { random });
+        match = applyAction(match, 'bot', chooseBotTurn(match, 1, { random }), { random });
       } else {
         match = playableCards(match, 'human').length === 0 || random() < 0.2
           ? applyAction(match, 'human', pass) : playFirst(match);

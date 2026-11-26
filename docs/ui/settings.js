@@ -1,3 +1,4 @@
+import { BOT_LEVELS, botLevelLabel, readBotLevel } from '../game/bot-levels.js';
 import { refreshPremiumArt, premiumArtEnabled, setPremiumArtEnabled } from './card-art.js';
 import { dialogClose } from './resources.js';
 import { bindRulesMenu } from './rules.js';
@@ -41,10 +42,18 @@ export function createSettings(app, onLeave, onReset) {
   const fullscreenMode = matchMedia('(display-mode: fullscreen)');
   const difficultySetting = document.querySelector('#bot-difficulty');
   const difficultyKey = 'gatefall.bot-difficulty';
-  try {
-    const saved = localStorage.getItem(difficultyKey);
-    if (['easy', 'normal', 'hard'].includes(saved)) difficultySetting.value = saved;
-  } catch {}
+  for (const level of Object.keys(BOT_LEVELS)) {
+    const option = document.createElement('option');
+    option.value = level;
+    option.textContent = botLevelLabel(level);
+    difficultySetting.append(option);
+  }
+  let savedDifficulty;
+  try { savedDifficulty = localStorage.getItem(difficultyKey); } catch {}
+  difficultySetting.value = String(readBotLevel(savedDifficulty));
+  if (savedDifficulty && savedDifficulty !== difficultySetting.value) {
+    try { localStorage.setItem(difficultyKey, difficultySetting.value); } catch {}
+  }
   difficultySetting.addEventListener('change', () => {
     try { localStorage.setItem(difficultyKey, difficultySetting.value); } catch {}
   });
@@ -179,7 +188,7 @@ export function createSettings(app, onLeave, onReset) {
     close: () => settings.close(),
     motion: () => motionDuration(speedSetting.value, reducedMotion.matches),
     playSound: sounds.play,
-    difficulty: () => difficultySetting.value,
+    difficulty: () => Number(difficultySetting.value),
     showBotThoughts: () => thoughts.checked,
   };
 }

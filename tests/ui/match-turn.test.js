@@ -15,7 +15,7 @@ function controller(options = {}) {
     settings: { motion: () => 0, showBotThoughts: () => false, playSound() {} },
     aim: { update() {}, showTap: () => false },
     notices: {}, announcement: {}, showNotice() {}, hideNotice() {}, render() {}, recordJournal() {},
-    onMatchChanged() {}, onCancelTargeting() {}, difficulty: () => 'easy', battlefieldStyle: () => 'standard',
+    onMatchChanged() {}, onCancelTargeting() {}, difficulty: () => 2, battlefieldStyle: () => 'standard',
     ...options,
   });
 }
@@ -33,7 +33,7 @@ test('the bot waits for playback and a reset cancels its scheduled turn', async 
       querySelectorAll: (selector) => selector === '[data-board-card]' ? [card] : [],
     },
     settings: { motion: () => duration, playSound() {}, showBotThoughts: () => false },
-    difficulty: () => { requestedBotTurn += 1; return 'easy'; },
+    difficulty: () => { requestedBotTurn += 1; return 2; },
   });
   const ready = readyMatch();
   turns.reset(ready);

@@ -70,11 +70,10 @@ export function createMatchTurn({
     const before = match;
     const session = matchSession;
     const level = difficulty();
-    const asyncSearch = level === 'hard' || level === 'normal';
-    if (asyncSearch) showNotice(turnNotice, 'Противник думает…');
+    showNotice(turnNotice, 'Противник думает…');
     const result = await botSearch.choose(before, level, settings.showBotThoughts());
     if (session !== matchSession || match !== before) return;
-    if (asyncSearch) hideNotice(turnNotice);
+    hideNotice(turnNotice);
     if (result === null) return;
     const { action, trace } = result;
     const next = applyAction(before, 'bot', action);

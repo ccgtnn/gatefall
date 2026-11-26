@@ -59,7 +59,7 @@ export function createMatchSession({
     turns.reset(next);
     matchRewardId = league?.id ?? matchId();
     leagueOpponent = league?.bot;
-    turns.warmBot(leagueOpponent?.difficulty ?? settings.difficulty());
+    turns.warmBot();
     leagueDialogue = leagueOpponent && createLeagueDialogue(leagueOpponent);
     const greeting = leagueDialogue?.start(progress.league());
     if (greeting) next.log.push(greeting);
@@ -190,7 +190,7 @@ export function createMatchSession({
     get leagueOpponent() { return leagueOpponent; },
     get leagueSpeech() { return leagueSpeech; },
     get mulliganFieldVisible() { return mulliganFieldVisible; },
-    difficulty: () => leagueOpponent?.difficulty ?? settings.difficulty(),
+    difficulty: () => leagueOpponent?.level ?? settings.difficulty(),
     cancelDialogue: () => leagueDialogue?.cancelPlay(),
     canLeaveResult,
     canReplay: () => canPlayDeck(matchDeck),

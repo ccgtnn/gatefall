@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
 import test from 'node:test';
 import { announcePlay, applyStatus, createCard, damage, findUnit, spawnCards, statusCount, weaken } from '../../docs/game/board.js';
-import { chooseBotTurn, pickBotTarget } from '../../docs/game/bot.js';
+import { pickBotTarget } from '../../docs/game/bot.js';
+import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
 import { FACTIONS, KEYWORDS } from '../../docs/game/cards.js';
 import { AWAKENING, CHOIR_CARDS, CULTIST, FANATIC, LARGE_TENTACLE, PSIONICS, SLEEPER, TENTACLE } from '../../docs/game/choir.js';
 import { collection, copyLimit, inspectDeck, PRESETS } from '../../docs/game/decks.js';
@@ -507,7 +508,7 @@ test('The bot completes placement of a created unit at all difficulties', () => 
   const choosing = applyAction(initial, 'bot', { type: 'play', cardId: 'alien-dream' }, { random: fixed });
   const unitChoice = choosing.pending.cards.find(({ definition }) => definition.type === 'unit');
   const placing = applyAction(choosing, 'bot', { type: 'target', cardId: unitChoice.id }, { random: fixed });
-  for (const difficulty of ['easy', 'normal', 'hard']) {
+  for (const difficulty of [2, 4, 6]) {
     const move = chooseBotTurn(placing, difficulty);
     assert.equal(move.type, 'place');
     const played = applyAction(placing, 'bot', move, { random: fixed });
@@ -523,7 +524,7 @@ test('the bot chooses and places the unit created by Litany on all difficulties'
   bot.leader = null;
   bot.hand = [createCard('litany', cards.get('sleeper-litany'))];
   const choosing = applyAction(initial, 'bot', { type: 'play', cardId: 'litany' }, { random: fixed });
-  for (const difficulty of ['easy', 'normal', 'hard']) {
+  for (const difficulty of [2, 4, 6]) {
     const next = chooseBotTurn(choosing, difficulty);
     assert.ok(choosing.pending.options.includes(next.cardId));
     const placing = applyAction(choosing, 'bot', next, { random: fixed });

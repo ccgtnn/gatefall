@@ -4,7 +4,7 @@ import test from 'node:test';
 import {
   applyStatus, cleanse, createCard, findUnit, refreshSidePower, statusCount,
 } from '../../docs/game/board.js';
-import { chooseBotTurn } from '../../docs/game/bot.js';
+import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
 import { KEYWORDS, NEUTRAL_CARDS } from '../../docs/game/cards.js';
 import { availableOrders } from '../../docs/game/effects.js';
 import { deathwishDefinitions } from '../../docs/game/events.js';
@@ -152,7 +152,7 @@ test('all bot difficulties cleanse allied Lock, Infection or Target and strip a 
     applyStatus(match, findUnit(match, avoided.id), other === 'bot' ? 'shield' : 'infection', 2);
     applyStatus(match, findUnit(match, preferred.id), status, 1, { attacker: 'human' });
     const pending = play(match, monk.id);
-    for (const difficulty of ['easy', 'normal', 'hard']) {
+    for (const difficulty of [2, 4, 6]) {
       assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: preferred.id });
     }
     const next = target(pending, preferred.id);

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { applyStatus, cleanse, createCard, findUnit, statusCount } from '../../docs/game/board.js';
-import { chooseBotTurn, pickBotTarget } from '../../docs/game/bot.js';
+import { pickBotTarget } from '../../docs/game/bot.js';
+import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
 import { FACTIONS } from '../../docs/game/cards.js';
 import { ORBITAL_STRIKE_PRESET, PRESETS, inspectDeck } from '../../docs/game/decks.js';
 import { availableOrders } from '../../docs/game/effects.js';
@@ -217,7 +218,7 @@ test('bots use active rows and target the row with the most new marks', () => {
     match.players.bot.hand = [card(id)];
     match.round = 3;
     match.players.human.board.surface = [dummy('enemy', 2)];
-    for (const difficulty of ['easy', 'normal', 'hard']) {
+    for (const difficulty of [2, 4, 6]) {
       assert.equal(chooseBotTurn(match, difficulty).row, row, id + ' on ' + difficulty);
     }
   }

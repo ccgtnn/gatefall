@@ -3,7 +3,7 @@ import test from 'node:test';
 import {
   applyStatus, consume, createCard, findUnit, refreshSidePower, removeUnit, restoreCard, spendResilience, statusCount,
 } from '../../docs/game/board.js';
-import { chooseBotTurn } from '../../docs/game/bot.js';
+import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
 import { CAPTAIN_CARDS } from '../../docs/game/captains.js';
 import { KEYWORDS, NEUTRAL_CARDS } from '../../docs/game/cards.js';
 import { availableFees, availableOrders, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn } from '../../docs/game/effects.js';
@@ -208,7 +208,7 @@ test('all bot difficulties prefer a live enemy Order, Fee, timer or aura over an
       createUnit('already-locked', { order: selfBoost }), createUnit('priority', traits));
     lock(match, 'already-locked');
     const pending = play(match, 'suppressor');
-    for (const difficulty of ['easy', 'normal', 'hard']) {
+    for (const difficulty of [2, 4, 6]) {
       assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'priority' });
     }
   }

@@ -1,3 +1,4 @@
+import { BOT_LEVELS, readBotLevel } from '../docs/game/bot-levels.js';
 import { availableParallelism } from 'node:os';
 import { writeFileSync } from 'node:fs';
 import { summarizeCards, summarizeOverload, summarizePlagueEvents, summarizeNewNeutrals } from './arena-cards.mjs';
@@ -46,7 +47,7 @@ async function run({ root, trials, rolloutSamples, trace, collectCards, progress
   const { applyAction, confirmMulligan, createMatch, mulliganLimit, totalScore } = await import(root + '/docs/game/match.js');
   const { FACTIONS, NEUTRAL_CARDS } = await import(root + '/docs/game/cards.js');
   const { PRESETS, inspectDeck } = await import(root + '/docs/game/decks.js');
-  const { chooseBotTurn } = await import(root + '/docs/game/bot.js');
+  const { chooseBotTurn, BOT_LEVELS: levelsSupported } = await import(root + '/docs/game/bot.js');
   const results = [];
   const additions = newNeutrals ? NEUTRAL_CARDS.filter(({ id }) => id === 'world-gates' || id === 'falura') : [];
   for (const { levels, faction, seed, starter, group, leaderPair, growth } of trials) {
@@ -88,7 +89,7 @@ async function run({ root, trials, rolloutSamples, trace, collectCards, progress
       }
       const side = match.pending?.side ?? match.turn;
       const options = { random: Math.random, rolloutSamples };
-      if (trace && levels[side] === 'normal') {
+      if (trace && levels[side] === 4) {
         const player = match.players[side];
         options.onDecision = (decision) => {
           const label = (action) => player.hand.find(({ id }) => id === action.cardId)?.definition.name ?? action.cardId;
@@ -101,8 +102,10 @@ async function run({ root, trials, rolloutSamples, trace, collectCards, progress
         };
       }
       const choosing = performance.now();
-      const action = chooseBotTurn(side === 'bot' ? match : mirror(match), levels[side], options);
-      if (levels[side] === 'hard') hardTimings.push(performance.now() - choosing);
+      const level = levels[side];
+      const skill = levelsSupported ? level : level <= 2 ? 'easy' : level <= 5 ? 'normal' : 'hard';
+      const action = chooseBotTurn(side === 'bot' ? match : mirror(match), skill, options);
+      if (levels[side] >= 6) hardTimings.push(performance.now() - choosing);
       const next = applyAction(match, side, action, { random });
       if (collectCards && action.type === 'play') {
         const { definition } = match.players[side].hand.find(({ id }) => id === action.cardId);
@@ -160,18 +163,18 @@ if (isMainThread) {
   if (options['new-neutrals'] && growthDecks.some((name) => name !== 'plague')) {
     throw new Error('--new-neutrals requires --growth=plague');
   }
-  const matchups = (options.matchups ?? 'hard-normal,normal-easy').split(',');
+  const matchups = (options.matchups ?? '6-4,4-2').split(',');
   if (!Number.isSafeInteger(games) || games < 2 || games % 2) throw new Error('--games must be a positive even number');
   for (const matchup of matchups) {
     const [first, second] = matchup.split('-');
-    if (![first, second].every((level) => ['hard', 'normal', 'easy'].includes(level))) throw new Error('Invalid matchup: ' + matchup);
+    if (![first, second].every((level) => Object.hasOwn(BOT_LEVELS, level) || ['hard', 'normal', 'easy'].includes(level))) throw new Error('Invalid matchup: ' + matchup);
     for (const faction of first === second ? ['protectorate'] : ['protectorate', 'growth']) {
       for (let i = 0; i < games; i++) {
         const pair = Math.floor(i / 2);
         const leaderPair = first === second ? [pair % 3, Math.floor(pair / 3) % 3] : undefined;
         for (const growth of growthDecks) trials.push({
           group: first + '-' + second + '/' + faction + (growth === 'plague' ? '/plague' : ''), faction, growth,
-          levels: { human: first, bot: second }, seed: Number(options.seed ?? 1729) + pair,
+          levels: { human: readBotLevel(first), bot: readBotLevel(second) }, seed: Number(options.seed ?? 1729) + pair,
           starter: i % 2 ? 'bot' : 'human', leaderPair,
         });
       }
@@ -215,7 +218,7 @@ if (isMainThread) {
   };
   const matches = batches.flat();
   for (const group of new Set(matches.map((match) => match.group))) {
-    if (!group.startsWith('hard-hard/')) continue;
+    if (!/^(6-6|7-7|hard-hard)\//.test(group)) continue;
     summary[group].byStarter = Object.fromEntries(['human', 'bot'].map((starter) => {
       const subset = matches.filter((match) => match.group === group && match.starter === starter);
       return [starter, Object.fromEntries(['win', 'loss', 'draw'].map((result) => [result, subset.filter((match) => match.result === result).length]))];
@@ -223,7 +226,7 @@ if (isMainThread) {
   }
   if (options.trace) writeFileSync(options.trace, JSON.stringify(matches.filter((match) => match.decisions.length > 0)));
   if (options.cards) {
-    const mirrorMatches = matches.filter(({ group }) => group.startsWith('hard-hard/'));
+    const mirrorMatches = matches.filter(({ group }) => /^(6-6|7-7|hard-hard)\//.test(group));
     const standard = mirrorMatches.filter(({ growth }) => growth !== 'plague');
     const plague = mirrorMatches.filter(({ growth }) => growth === 'plague');
     writeFileSync(options.cards, JSON.stringify({ cards: summarizeCards(standard), overload: summarizeOverload(standard),

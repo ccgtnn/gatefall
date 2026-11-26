@@ -1,8 +1,8 @@
+import { botLevelLabel } from '../game/bot-levels.js';
 import { button, element } from './dom.js';
 import { dialogClose } from './resources.js';
 import { leagueAvatar, LORE_FACTIONS, setLeagueSpeech } from './league-character.js';
 
-export const LEAGUE_DIFFICULTY_LABELS = { easy: 'Лёгкий', normal: 'Обычный', hard: 'Сложный' };
 
 export function leagueRecord({ wins = 0, draws = 0, losses = 0 } = {}) {
   return `В ${wins} · Н ${draws} · П ${losses}`;
@@ -33,7 +33,7 @@ export function leagueProfile(bot, score, encounters, play) {
   const meetings = (encounters?.wins ?? 0) + (encounters?.draws ?? 0) + (encounters?.losses ?? 0);
   const entries = [
     ['Сила', [strength, ` ${bot.strength}/${bot.strengthScale}`]],
-    ['Уровень бота', [LEAGUE_DIFFICULTY_LABELS[bot.difficulty]]],
+    ['Уровень бота', [botLevelLabel(bot.level)]],
     ['Колода сейчас', [bot.deck.name]],
     ['Сезон', [`${leagueRecord(score)} · Очки: ${score.points}`]],
     ['Раунды (выиграно–проиграно)', [leagueRoundRecord(score)]],

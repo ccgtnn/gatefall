@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCard } from '../../docs/game/board.js';
-import { chooseBotTurn } from '../../docs/game/bot.js';
+import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
 import { ANNIHILATION, FACTIONS, FIRST_SIGNAL, NEUTRAL } from '../../docs/game/cards.js';
 import { applyAction, confirmMulligan, createMatch } from '../../docs/game/match.js';
 import { unit } from '../helpers/battle-helpers.js';
@@ -100,7 +100,7 @@ test('an empty field or artifact-only field cannot consume Initiative', () => {
 });
 
 test('both strategic bots value an Initiative sweep and avoid destroying their only strongest unit', () => {
-  for (const difficulty of ['normal', 'hard']) {
+  for (const difficulty of [4, 6]) {
     const match = fixture();
     match.round = 3;
     match.turn = 'bot';
@@ -136,9 +136,9 @@ test('hard reserves Annihilation against a lone enemy of strength five or less',
     match.turn = 'bot';
     match.players.bot.hand = [spell(), unit('alternative', 1)];
     match.players.human.board.surface = [unit('small', power)];
-    assert.notEqual(chooseBotTurn(match, 'hard').cardId, 'spell');
+    assert.notEqual(chooseBotTurn(match, 6).cardId, 'spell');
     match.round = 3;
-    assert.equal(chooseBotTurn(match, 'hard').cardId, 'alternative');
+    assert.equal(chooseBotTurn(match, 6).cardId, 'alternative');
   }
 });
 
@@ -149,8 +149,8 @@ test('hard uses an expensive removal when it kills enough strength or secures a 
   match.players.bot.hand = [spell(), unit('alternative', 2)];
   match.players.bot.board.surface = [unit('friendly', 1)];
   match.players.human.board.surface = [unit('large', 12)];
-  assert.deepEqual(chooseBotTurn(match, 'hard'), cast);
+  assert.deepEqual(chooseBotTurn(match, 6), cast);
   match.players.human.board.surface[0].power = 5;
   match.players.human.passed = true;
-  assert.deepEqual(chooseBotTurn(match, 'hard'), cast);
+  assert.deepEqual(chooseBotTurn(match, 6), cast);
 });

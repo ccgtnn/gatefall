@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { applyStatus, createCard, findUnit, statusCount } from '../../docs/game/board.js';
-import { chooseBotTurn } from '../../docs/game/bot.js';
+import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
 import { FACTIONS, FIRST_SIGNAL, NEUTRAL_CARDS } from '../../docs/game/cards.js';
 import { availableOrders } from '../../docs/game/effects.js';
 import { applyAction, confirmMulligan, createMatch } from '../../docs/game/match.js';
@@ -204,7 +204,7 @@ test('strategic bot sees revived units and can choose an enemy row by simulated 
   match.players.bot.discard = [unit('recruit', 6, { rarity: 'bronze' })];
   match.players.human.board.orbit = [unit('a'), unit('b'), unit('c')];
   match.players.human.board.surface = [unit('d')];
-  for (const difficulty of ['normal', 'hard']) {
+  for (const difficulty of [4, 6]) {
     assert.equal(chooseBotTurn(match, difficulty).cardId, 'field-medic');
     const pending = play(match, 'gravity-pulse');
     assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'orbit' });
@@ -298,7 +298,7 @@ test('the bot saves a growing unit while it has alternatives and values its resu
   match.turn = 'bot';
   const growing = card('carrion-devourer');
   match.players.bot.hand = [unit('small', 2), growing, unit('large', 5)];
-  assert.notEqual(chooseBotTurn(match, 'easy').cardId, growing.id);
+  assert.notEqual(chooseBotTurn(match, 2).cardId, growing.id);
 
   growing.basePower = 8;
   growing.power = 0;
@@ -306,5 +306,5 @@ test('the bot saves a growing unit while it has alternatives and values its resu
   match.players.bot.discard[0].definition.provision = 5;
   match.players.bot.hand = [card('resurrection'), unit('spare')];
   match = play(match, 'resurrection');
-  assert.equal(chooseBotTurn(match, 'easy').cardId, growing.id);
+  assert.equal(chooseBotTurn(match, 2).cardId, growing.id);
 });

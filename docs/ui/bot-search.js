@@ -1,8 +1,13 @@
-import { chooseBotTurn } from '../game/bot.js';
+import { chooseEasyTurn } from '../game/bot.js';
+import { BOT_LEVELS, readBotLevel } from '../game/bot-levels.js';
+
+export function botSearchTimeoutMs(level) {
+  return Math.max(3500, BOT_LEVELS[readBotLevel(level)].budgetMs + 1500);
+}
 
 export function createBotSearch({
   createWorker = () => new Worker(new URL('./bot-worker.js', import.meta.url), { type: 'module' }),
-  timeoutMs = 3500,
+  timeoutMs = botSearchTimeoutMs,
   startupTimeoutMs = 15_000,
 } = {}) {
   let worker;
@@ -41,7 +46,7 @@ export function createBotSearch({
   function sendRequest() {
     if (!ready || !pending) return;
     const current = worker;
-    pending.timer = setTimeout(() => fail(current, new Error('Bot worker timed out')), timeoutMs);
+    pending.timer = setTimeout(() => fail(current, new Error('Bot worker timed out')), timeoutMs(pending.payload.level));
     try {
       current.postMessage(pending.payload);
     } catch (error) {
@@ -67,8 +72,8 @@ export function createBotSearch({
     startupTimer = setTimeout(() => fail(current, new Error('Bot worker did not start')), startupTimeoutMs);
   }
 
-  function warm(difficulty) {
-    if (worker || !['normal', 'hard'].includes(difficulty)) return;
+  function warm() {
+    if (worker) return;
     try {
       startWorker();
     } catch {
@@ -76,12 +81,12 @@ export function createBotSearch({
     }
   }
 
-  function request(match, difficulty, withTrace) {
+  function request(match, level, withTrace) {
     if (pending) cancel();
     return new Promise((resolve, reject) => {
       try {
         if (!worker) startWorker();
-        pending = { resolve, reject, payload: { match, difficulty, withTrace } };
+        pending = { resolve, reject, payload: { match, level, withTrace } };
         sendRequest();
       } catch (error) {
         stopWorker();
@@ -91,19 +96,14 @@ export function createBotSearch({
     });
   }
 
-  async function choose(match, difficulty, withTrace = false) {
-    if (difficulty === 'hard' || difficulty === 'normal') {
-      try {
-        return await request(match, difficulty, withTrace);
-      } catch {
-        // Keep the match playable without ever running the long search on the main thread.
-        difficulty = 'easy';
-      }
+  async function choose(match, level, withTrace = false) {
+    try {
+      return await request(match, readBotLevel(level), withTrace);
+    } catch {
+      const action = chooseEasyTurn(match);
+      const trace = withTrace ? { action, reason: 'Стратегический поиск недоступен. Использую резервный ход.', candidates: [] } : undefined;
+      return { action, trace };
     }
-    let trace;
-    const options = withTrace ? { onDecision: (decision) => { trace = decision; } } : {};
-    const action = chooseBotTurn(match, difficulty, options);
-    return { action, trace };
   }
 
   return { choose, cancel, warm };

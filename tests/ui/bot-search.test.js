@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Worker } from 'node:worker_threads';
-import { createBotSearch } from '../../docs/ui/bot-search.js';
+import { botSearchTimeoutMs, createBotSearch } from '../../docs/ui/bot-search.js';
 import { createMatch } from '../../docs/game/match.js';
 
 const workerEntry = new URL('../../docs/ui/bot-worker.js', import.meta.url).href;
@@ -25,7 +25,7 @@ function nodeWorker(onResponse) {
   };
 }
 
-test('hard search returns control while the worker calculates a legal action and sends its trace', async () => {
+test('level 6 search returns control while the worker calculates a legal action and sends its trace', async () => {
   const match = createMatch({ random: () => 0 });
   match.phase = 'playing';
   match.turn = 'bot';
@@ -33,7 +33,7 @@ test('hard search returns control while the worker calculates a legal action and
   const search = createBotSearch({ createWorker: () => nodeWorker((data) => { response = data; }) });
   try {
     let settled = false;
-    const result = search.choose(match, 'hard', true).then((value) => { settled = true; return value; });
+    const result = search.choose(match, 6, true).then((value) => { settled = true; return value; });
     await new Promise((resolve) => setImmediate(resolve));
     assert.equal(settled, false);
     const { action, trace } = await result;
@@ -50,7 +50,7 @@ test('reset can terminate a pending worker without applying its response', async
   const search = createBotSearch({ createWorker: () => ({
     terminate: () => { stopped = true; }, postMessage() {}, addEventListener() {},
   }) });
-  const choice = search.choose({}, 'hard');
+  const choice = search.choose({}, 6);
   search.cancel();
   assert.equal(await choice, null);
   assert.equal(stopped, true);
@@ -73,11 +73,11 @@ test('successive turns reuse one worker until the match is reset', async () => {
       postMessage() { respond({ data: { action } }); },
     };
   } });
-  assert.deepEqual(await search.choose({}, 'normal'), { action });
-  assert.deepEqual(await search.choose({}, 'hard'), { action });
+  assert.deepEqual(await search.choose({}, 4), { action });
+  assert.deepEqual(await search.choose({}, 6), { action });
   assert.deepEqual([created, stopped], [1, 0]);
   search.cancel();
-  assert.deepEqual(await search.choose({}, 'hard'), { action });
+  assert.deepEqual(await search.choose({}, 6), { action });
   search.cancel();
   assert.deepEqual([created, stopped], [2, 2]);
 });
@@ -87,7 +87,7 @@ test('a failed or timed-out worker is replaced on the next turn', async () => {
     let created = 0;
     let stopped = 0;
     const action = { type: 'pass' };
-    const search = createBotSearch({ timeoutMs: 10, createWorker() {
+    const search = createBotSearch({ timeoutMs: () => 10, createWorker() {
       const first = ++created === 1;
       const listeners = {};
       return {
@@ -105,9 +105,9 @@ test('a failed or timed-out worker is replaced on the next turn', async () => {
     const match = createMatch({ random: () => 0 });
     match.phase = 'playing';
     match.turn = 'bot';
-    assert.ok((await search.choose(match, 'hard')).action);
+    assert.ok((await search.choose(match, 6)).action);
     assert.deepEqual([created, stopped], [1, 1]);
-    assert.deepEqual(await search.choose(match, 'hard'), { action });
+    assert.deepEqual(await search.choose(match, 6), { action });
     search.cancel();
     assert.deepEqual([created, stopped], [2, 2]);
   }
@@ -118,7 +118,7 @@ test('prewarm starts the worker early and the search clock waits for readiness',
   let respond;
   let created = 0;
   let requests = 0;
-  const search = createBotSearch({ timeoutMs: 10, createWorker() {
+  const search = createBotSearch({ timeoutMs: () => 10, createWorker() {
     created += 1;
     return {
       terminate() {},
@@ -130,14 +130,35 @@ test('prewarm starts the worker early and the search clock waits for readiness',
     };
   } });
   try {
-    search.warm('normal');
+    search.warm();
     assert.equal(created, 1);
-    const result = search.choose({}, 'normal');
+    const result = search.choose({}, 4);
     await new Promise((resolve) => setTimeout(resolve, 25));
     assert.equal(requests, 0);
     respond({ data: { ready: true } });
     assert.deepEqual(await result, { action });
     assert.equal(requests, 1);
+  } finally {
+    search.cancel();
+  }
+});
+
+test('every level uses the worker and its timeout allows the search budget plus slack', async () => {
+  assert.equal(botSearchTimeoutMs(1), 3500);
+  assert.equal(botSearchTimeoutMs(6), 6500);
+  assert.equal(botSearchTimeoutMs(7), 9500);
+  let respond;
+  const requests = [];
+  const search = createBotSearch({ createWorker: () => ({
+    addEventListener(type, listener) { if (type === 'message') respond = listener; },
+    terminate() {},
+    postMessage(data) { requests.push(data.level); respond({ data: { action: { type: 'pass' } } }); },
+  }) });
+  search.warm();
+  respond({ data: { ready: true } });
+  try {
+    for (let level = 1; level <= 7; level += 1) await search.choose({}, level);
+    assert.deepEqual(requests, [1, 2, 3, 4, 5, 6, 7]);
   } finally {
     search.cancel();
   }

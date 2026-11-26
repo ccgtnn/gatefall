@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCard, findUnit } from '../../docs/game/board.js';
-import { chooseBotTurn } from '../../docs/game/bot.js';
+import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
 import { FACTIONS, NEUTRAL_CARDS } from '../../docs/game/cards.js';
 import { applyAction, confirmMulligan, createMatch } from '../../docs/game/match.js';
 import { unit, pick as pickTarget, play as playCard } from '../helpers/battle-helpers.js';
@@ -99,5 +99,5 @@ test('the bot chooses a deathwish sacrifice over an ordinary unit', () => {
   [match.players.bot, match.players.human] = [match.players.human, match.players.bot];
   match.turn = 'bot';
   const pending = applyAction(match, 'bot', { type: 'play', cardId: 'bioreactor', row: 'orbit', position: 2 }, { random });
-  assert.equal(chooseBotTurn(pending, 'easy')?.cardId, 'acid-capsule');
+  assert.equal(chooseBotTurn(pending, 2)?.cardId, 'acid-capsule');
 });
