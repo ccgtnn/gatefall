@@ -60,6 +60,19 @@ test('Capture moves the exact card with its strength, armor, statuses and owner,
   assert.equal(findUnit(play(blocked, 'surface'), 'enemy-0').side, 'bot');
 });
 
+test('a ready enemy order remains usable on the same turn after the Shepherd captures it', () => {
+  const ordered = { ...unit(3), order: { steps: [{ action: 'boost', target: { scope: 'source' }, amount: 2 }] } };
+  const initial = setup({ count: 3, hand: [cards.get('abyss-shepherd')], enemies: [ordered] });
+  initial.players.human.turns = 1;
+  initial.players.bot.turns = 4;
+  get(initial, 'enemy-0').readyAt = 4;
+  const captured = pick(play(initial), 'enemy-0');
+  assert.equal(captured.turn, 'human');
+  assert.ok(availableOrders(captured, 'human').some(({ card }) => card.id === 'enemy-0'));
+  const resolved = applyAction(captured, 'human', { type: 'order', cardId: 'enemy-0' });
+  assert.equal(get(resolved, 'enemy-0').power, 5);
+});
+
 test('Fanatic transforms at two power or less in place, but not on lethal damage or while locked', () => {
   const match = setup({ surface: [unit(9), FANATIC, unit(9)] });
   hit(match, 'surface-1', 1);

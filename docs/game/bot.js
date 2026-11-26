@@ -1,3 +1,4 @@
+import { handCount } from './bot-hand.js';
 import { ROWS } from './card-metadata.js';
 import { cardType, findUnit, isUnit, neighbors, placementSide, restoreCard, statusCount, units } from './board.js';
 import { availableOrders, canUseLeader } from './effects.js';
@@ -58,8 +59,8 @@ export function createBotView(match) {
     opponentPassed: human.passed,
     lives: bot.lives,
     opponentLives: human.lives,
-    handSize: bot.hand.length,
-    opponentHandSize: human.publicHandSize ?? human.hand.length,
+    handSize: handCount(bot),
+    opponentHandSize: handCount(human),
     mustPlay: bot.usedAbility,
   };
 }
@@ -228,7 +229,7 @@ export function pickBotTarget(match) {
     armor: (unit) => armorTargetPriority(match, match.pending.side, unit),
     'spend-armor': ({ card }) => (amount ? card.armor : card.armor + card.power * .01) -
       (card.armor <= (amount || Infinity) ? armorBreakEmergence(card) : 0),
-    'infection-target': ({ card }) => infectionGain(card, amount, Math.max(1, match.players[match.pending.side === 'human' ? 'bot' : 'human'].hand.length)),
+    'infection-target': ({ card }) => infectionGain(card, amount, Math.max(1, handCount(match.players[match.pending.side === 'human' ? 'bot' : 'human']))),
     infection: (unit) => [unit, ...neighbors(match, unit)].reduce((sum, { card }) =>
       sum + infectionGain(card, 3), 0),
     'target-mark': ({ card }) => Math.min(3, card.power) - (card.armor ?? 0) * .3 - statusCount(card, 'shield') * 2,
@@ -283,6 +284,10 @@ export function chooseEasyTurn(match) {
   }
   const action = chooseBotAction(view);
   if (action.type !== 'pass' || match.round !== 3) return action;
+  if (canPass(match, 'bot')) {
+    const card = view.cards.find((candidate) => scoreValue(candidate) >= 0);
+    return card ? playCard(card, view) : action;
+  }
   const [card] = playableCards(match, 'bot');
   if (!card) return action;
   if (cardType(card) === 'effect') return { type: 'play', cardId: card.id };

@@ -93,7 +93,7 @@ test('live faction matches resolve all choices, keep card identities unique, and
       value = (Math.imul(1664525, value) + 1013904223) >>> 0;
       return value / 2 ** 32;
     };
-    let match = confirmMulligan(createMatch({ ...pairings[(seed - 1) % pairings.length], random }), []);
+    let match = confirmMulligan(createMatch({ ...pairings[(seed - 1) % pairings.length], random }), [], { random });
     const originalIds = allCards(match).filter(({ definition }) => !definition.token).map(({ id }) => id);
     for (let step = 0; step < 250 && match.phase !== 'finished'; step += 1) {
       if (match.phase === 'mulligan') {

@@ -1,5 +1,6 @@
-import { leaderTargetPriority, offeringPriority, preferredLeaderUse } from './bot-leaders.js';
-import { cardPotential, evaluatePosition, EVAL_WEIGHTS as W } from './bot-evaluation.js';
+import { handCount } from './bot-hand.js';
+import { leaderTargetPriority, offeringPriority } from './bot-leaders.js';
+import { cardPotential, evaluatePosition, positionStrength, EVAL_WEIGHTS as W } from './bot-evaluation.js';
 import { compareRollouts, visibleSupply } from './bot-rollouts.js';
 import { ROWS } from './card-metadata.js';
 import { cardType, createCard, findUnit, placementSide } from './board.js';
@@ -31,8 +32,8 @@ export function botSearchState(match, knowsDeckList = false) {
     players: {
       bot: { ...bot, startingDeck: undefined, deck: bot.deck.toSorted((a, b) => a.id.localeCompare(b.id)) },
       human: { ...human, startingDeck: undefined, knownDeck, deck: [],
-        publicHandSize: human.hand.length, publicDeckSize: human.deck.length,
-        hand: human.hand.length ? [UNKNOWN_PLAY] : [] },
+        publicHandSize: handCount(human), publicDeckSize: human.deck.length, handMasked: true,
+        hand: human.hand.map((_, index) => ({ ...UNKNOWN_PLAY, id: `unknown-play-${index}` })) },
     },
   };
 }
@@ -72,8 +73,14 @@ function placements(state, side, card, rows = ROWS) {
 
 function plays(state, side) {
   const player = state.players[side];
-  const legal = playableCards(state, side)
-    .filter((card) => player.usedAbility || !(destructionSwing(state, side, card) < 0));
+  const seen = new Set();
+  const legal = playableCards(state, side).filter((card) => {
+    if (player.handMasked) {
+      if (seen.has(card.definition.id)) return false;
+      seen.add(card.definition.id);
+    }
+    return state.round === 3 || player.usedAbility || !(destructionSwing(state, side, card) < 0);
+  });
   const context = futureContext(state, side);
   const options = legal.filter((card) => !wantsToHoldInheritance(context, card, legal)).map((card) => {
       const action = { type: 'play', cardId: card.id };
@@ -89,7 +96,7 @@ function plays(state, side) {
 function abilities(state, side) {
   const actions = availableOrders(state, side).map(({ card }) => ({ type: 'order', cardId: card.id }));
   actions.push(...availableFees(state, side).map(({ card }) => ({ type: 'fee', cardId: card.id })));
-  if (preferredLeaderUse(state, side) ?? canUseLeader(state, side)) actions.push({ type: 'leader' });
+  if (canUseLeader(state, side)) actions.push({ type: 'leader' });
   return actions;
 }
 
@@ -186,11 +193,15 @@ function choicePreference(state, side, action) {
 
 function evaluateAction(state, side, action, search) {
   const choiceValue = choicePreference(state, side, action);
+  const finalRound = state.round === 3;
+  const strength = finalRound ? positionStrength(state, side) : 0;
   function finish(next, depth, move) {
     const actor = next.pending?.side ?? next.turn;
     if (depth >= 36 || (!next.pending && (next.phase !== 'playing' || actor !== side ||
         next.players[side].turns !== state.players[side].turns))) {
-      return { next, rating: evaluatePosition(next, 'bot') + (side === 'bot' ? choiceValue : -choiceValue) };
+      const rating = evaluatePosition(next, 'bot') + (side === 'bot' ? choiceValue : -choiceValue);
+      const contribution = finalRound ? positionStrength(next, side, state.round) - strength : 0;
+      return { next, rating, contribution };
     }
 
     let actions;
@@ -208,7 +219,8 @@ function evaluateAction(state, side, action, search) {
     for (const continuation of actions) {
       if (search.expired()) break;
       const result = advance(next, actor, continuation, depth + 1);
-      if (result && (!best || (actor === 'bot' ? result.rating > best.rating : result.rating < best.rating))) best = result;
+      if (result && (!best || (result.rating === best.rating ? result.contribution > best.contribution
+        : actor === 'bot' ? result.rating > best.rating : result.rating < best.rating))) best = result;
     }
     return best;
   }
@@ -218,6 +230,7 @@ function evaluateAction(state, side, action, search) {
     let worst;
     let worstRating;
     let total = 0;
+    let contribution = 0;
     let shortfall = 0;
     for (const roll of rolls) {
       if (rolls.length > 1 && search.expired()) return;
@@ -226,13 +239,14 @@ function evaluateAction(state, side, action, search) {
       if (!result) return;
       shortfall += removalShortfall(before, result.next, actor, card);
       total += result.rating;
+      contribution += result.contribution;
       if (!worst || (actor === 'bot' ? result.rating < worstRating : result.rating > worstRating)) {
         worst = result.next;
         worstRating = result.rating;
       }
     }
     const reserveCost = shortfall / rolls.length;
-    return { next: worst, rating: total / rolls.length - reserveCost * W.removalReserve, reserveCost };
+    return { next: worst, rating: total / rolls.length - reserveCost * W.removalReserve, contribution: contribution / rolls.length, reserveCost };
   }
   return advance(state, side, action, 0);
 }
@@ -271,13 +285,13 @@ function rankPlays(state, search, limit, level) {
 function rankAbilities(state, search, level) {
   const ranked = [];
   const { bot, human } = state.players;
-  const finishFee = state.round === 3 && !bot.hand.length && human.passed
-    ? beneficialFee(state, 'bot', { allCoinsSurplus: true }) : undefined;
+  const finish = state.round === 3 && !handCount(bot) && human.passed;
+  const usefulFee = beneficialFee(state, 'bot', { allCoinsSurplus: finish });
   for (const action of abilities(state, 'bot').slice(0, level.candidates)) {
     if (search.expired()) break;
     const candidate = evaluateAction(state, 'bot', action, search);
     if (candidate) {
-      const tie = action.type === 'fee' && action.cardId === finishFee?.cardId ? W.finalFeeTie : 0;
+      const tie = action.type === 'fee' && action.cardId === usefulFee?.cardId ? W.feeTie : 0;
       ranked.push({ ...candidate, rating: candidate.rating + tie, action });
     }
   }
@@ -327,22 +341,22 @@ function distinct(candidates, key) {
   });
 }
 
-function selectRanked(options, level, ranked, reason, decide = (action, reason, ranked) => report(options, action, reason, ranked)) {
+function selectRanked(options, level, ranked, reason) {
   const best = ranked[0];
   const random = options.random ?? Math.random;
   if (level.errorRate > 0 && ranked.length > 1 && random() < level.errorRate) {
     const pass = ranked.find(({ action }) => action.type === 'pass');
     if (pass && best !== pass && level.passMistakeRate > 0 && random() < level.passMistakeRate) {
-      return decide(pass.action, 'Ошибаюсь с моментом паса.', ranked);
+      return report(options, pass.action, 'Ошибаюсь с моментом паса.', ranked);
     }
     const choices = distinct(ranked, (action) => [action.type, action.cardId ?? action.row].join('/'));
     const pool = (choices.length > 1 ? choices : ranked).slice(1, level.errorPool);
     if (pool.length) {
       const choice = pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))];
-      return decide(choice.action, 'Выбираю ход с более низкой оценкой.', ranked);
+      return report(options, choice.action, 'Выбираю ход с более низкой оценкой.', ranked);
     }
   }
-  return decide(best.action, best.action.type === 'pass' ? 'Пас сохраняет лучшую позицию на матч.' : reason, ranked);
+  return report(options, best.action, best.action.type === 'pass' ? 'Пас сохраняет лучшую позицию на матч.' : reason, ranked);
 }
 
 function forecast(match, ranked, level, search, options) {
@@ -387,21 +401,10 @@ export function chooseStrategicTurn(match, level, options) {
   const limit = searchLimit(options.random);
   const search = limit(level.budgetMs);
   const state = publicMatch(match, level.knowsDeckList);
-  const { bot, human } = state.players;
-  const lead = totalScore(bot) - totalScore(human);
+  const { bot } = state.players;
+  const finalRound = state.round === 3;
   const legal = playableCards(state, 'bot');
-  // The deciding round requires a play whenever one is available.
-  const mayPass = canPass(state, 'bot') && (state.round !== 3 || !legal.length);
-  const preserveLead = human.passed && lead > 0;
-  const repeatable = !preserveLead && availableOrders(state, 'bot').find(({ card }) => card.definition.aiHints?.useOrderWhenReady);
-  const preferredLeader = !human.passed && preferredLeaderUse(state, 'bot');
-  const decide = (action, reason, ranked) => {
-    if (action.type === 'play' || action.type === 'end-turn') {
-      if (preferredLeader) return report(options, { type: 'leader' }, 'Использую подходящий момент для способности лидера.');
-      if (repeatable) return report(options, { type: 'order', cardId: repeatable.card.id }, 'Использую Приказ на порождение.');
-    }
-    return report(options, action, reason, ranked);
-  };
+  const mayPass = canPass(state, 'bot');
   const share = (fraction) => {
     const local = limit(level.budgetMs * fraction);
     return { expired: () => search.expired() || local.expired() };
@@ -410,26 +413,36 @@ export function chooseStrategicTurn(match, level, options) {
   const local = share(.16);
   const baseline = canEnd ? evaluateAction(state, 'bot', END, local) : undefined;
   const pass = mayPass ? evaluateAction(state, 'bot', PASS, local) : undefined;
-  const ranked = canEnd ? [] : rankPlays(state, share(.35), limit, level)
-    .filter((candidate) => preservesArmor(candidate, bot));
+  const plays = canEnd ? [] : rankPlays(state, share(.35), limit, level);
+  const ranked = plays.filter((candidate) => preservesArmor(candidate, bot));
   const efficient = ranked.filter(({ reserveCost }) => reserveCost === 0);
   // A listed removal reserve protects finishers when another play is available.
   const alternatives = efficient.length ? efficient : ranked;
   const candidates = [...alternatives, ...rankAbilities(state, share(.16), level)];
-  if (pass) candidates.push({ ...pass, action: PASS });
+  if (pass) {
+    if (!finalRound) candidates.push({ ...pass, action: PASS });
+    else if (candidates.every(({ contribution }) => contribution <= 0)) {
+      const productive = plays.filter(({ contribution }) => contribution > 0);
+      candidates.push(...(productive.length ? productive : [{ ...pass, action: PASS }]));
+    }
+  }
   if (baseline) candidates.push({ ...baseline, action: END, rating: baseline.rating + W.endTurnTie });
-  candidates.sort((a, b) => b.rating - a.rating || Number(b.action.type === 'pass') - Number(a.action.type === 'pass')
-    || (a.cost ?? 0) - (b.cost ?? 0));
+  candidates.sort((a, b) => {
+    const passOrder = Number(a.action.type === 'pass') - Number(b.action.type === 'pass');
+    return b.rating - a.rating || (finalRound ? b.contribution - a.contribution || passOrder : -passOrder)
+      || (a.cost ?? 0) - (b.cost ?? 0);
+  });
   if (candidates.length) {
     return selectRanked(options, level, forecast(match, candidates, level, search, options),
-      'Сравниваю позицию на матч для доступных ходов.', decide);
+      'Сравниваю позицию на матч для доступных ходов.');
   }
-  if (canEnd) return decide(END, 'Завершаю ход.');
-  if (mayPass && !legal.length) return decide(PASS, 'Нет доступных розыгрышей.');
-  const [card] = legal;
-  if (!card) return decide(abilities(state, 'bot')[0] ?? END, 'Завершаю ход без доступного розыгрыша.');
+  if (canEnd) return report(options, END, 'Завершаю ход.');
+  const [card] = finalRound && mayPass
+    ? legal.filter((entry) => !(destructionSwing(state, 'bot', entry) < 0)) : legal;
+  if (mayPass && !card) return report(options, PASS, 'Нет подходящих розыгрышей.');
+  if (!card) return report(options, abilities(state, 'bot')[0] ?? END, 'Завершаю ход без доступного розыгрыша.');
   const recipient = state.players[placementSide('bot', card)];
   const [row] = availableRows(recipient, card);
   const placement = cardType(card) === 'effect' ? {} : { row, position: recipient.board[row].length };
-  return decide({ type: 'play', cardId: card.id, ...placement }, 'Выбираю допустимый розыгрыш.');
+  return report(options, { type: 'play', cardId: card.id, ...placement }, 'Выбираю допустимый розыгрыш.');
 }

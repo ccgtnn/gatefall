@@ -21,23 +21,25 @@ test('the level 2 bot evaluates deathwish sacrifices and skips the leader when t
   const match = position();
   const { bot } = match.players;
   bot.leader = { ...FACTIONS.growth.leaders.find(({ id }) => id === 'devourer'), charges: 1 };
-  bot.board.orbit = [member('spores', 'growth', 'spore-sac'), plain('neighbor', 4)];
-  assert.equal(chooseBotTurn(match, 2).type, 'leader');
+  bot.board.orbit = [member('cocoon', 'growth', 'cocoon'), plain('neighbor', 4)];
+  const pending = applyAction(match, 'bot', { type: 'leader' });
+  assert.equal(chooseBotTurn(pending, 2).cardId, 'cocoon');
   bot.board.orbit = [];
   assert.equal(chooseBotTurn(match, 2).type, 'play');
 });
 
-test('all difficulties use Skara at low coins and save her charge near the cap', () => {
+test('the bot uses Skara to fund a Tribute and plays the Recruiter first near the coin cap', () => {
   for (const mode of [2, 4, 6]) {
     const match = position(3);
     match.players.bot.leader = { ...FACTIONS.captains.leader, charges: 1 };
     match.players.bot.coins = 2;
-    const action = chooseBotTurn(match, mode);
+    match.players.bot.hand = [member('recruiter', 'captains', 'hound-recruiter'), plain('spare', 1)];
+    const action = chooseBotTurn(match, mode, { rolloutSamples: 0 });
     assert.equal(action.type, 'leader');
     const pending = applyAction(match, 'bot', action);
     assert.ok(pending.pending.options.includes(chooseBotTurn(pending, mode).cardId));
     match.players.bot.coins = 8;
-    assert.notEqual(chooseBotTurn(match, mode).type, 'leader');
+    assert.equal(chooseBotTurn(match, mode, { rolloutSamples: 0 }).cardId, 'recruiter');
   }
 });
 
@@ -45,6 +47,8 @@ test('all difficulties prefer weak offerings and use the Priest to open an Awake
   for (const mode of [2, 4, 6]) {
     const match = position(3);
     match.players.bot.leader = { ...FACTIONS.choir.leader };
+    match.players.bot.hand = [plain('spare', 1)];
+    match.players.bot.lives = match.players.human.lives = 1;
     match.players.bot.board.surface = [plain('strong', 6), plain('weak', 1)];
     const action = chooseBotTurn(match, mode);
     assert.equal(action.type, 'leader');
@@ -52,8 +56,13 @@ test('all difficulties prefer weak offerings and use the Priest to open an Awake
     assert.deepEqual(chooseBotTurn(pending, mode, { rolloutSamples: 0 }), { type: 'target', cardId: 'weak' });
     match.players.bot.board.surface.pop();
     assert.notEqual(chooseBotTurn(match, mode).type, 'leader');
-    match.players.bot.board.orbit.push(createCard('scenario', AWAKENING));
-    assert.equal(chooseBotTurn(match, mode).type, 'leader');
+    const scenario = createCard('scenario', AWAKENING);
+    scenario.chapter = 1;
+    match.players.bot.board.orbit.push(scenario);
+    match.players.bot.board.surface.push(plain('victim', 2));
+    const offering = applyAction(match, 'bot', { type: 'leader' });
+    const chapter = applyAction(offering, 'bot', chooseBotTurn(offering, mode, { rolloutSamples: 0 }));
+    assert.equal(chapter.players.bot.board.orbit.find(({ id }) => id === scenario.id).chapter, 2);
   }
 });
 

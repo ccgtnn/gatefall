@@ -107,7 +107,7 @@ const houndCards = [
 export const SKARA_REINHOLD = Object.freeze({
   id: 'skara-reinhold', name: 'Скара Райнхольд', provisionBonus: 15, art: 'skara-reinhold.webp', artFocus: '50% 27%', artZoom: 1.45,
   text: 'Выбери свой ряд: призови в него 2 Гончие, затем получи 3 боевые монеты.',
-  aiHints: { leaderCoinsAtMost: 6 },
+  aiHints: { leaderCoinsAtMost: 6, leaderChargeValue: 5 },
   ability: ability([
     { action: 'select-row', ref: 'row', filter: 'space', prompt: 'Выбери свой ряд для Гончих Скары.' },
     { action: 'spawn', rowRef: 'row', amount: 2, card: HOUND },

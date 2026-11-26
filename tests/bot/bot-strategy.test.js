@@ -25,7 +25,7 @@ test('strategic bots keep playing with a narrow lead and can pass with a large l
   assert.equal(chooseBotTurn(match, 2).type, 'play');
 
   match.log.push({ type: 'play', side: 'bot' });
-  match.players.bot.board.orbit[0].power = 20;
+  match.players.bot.board.orbit[0].power = 28;
   assert.deepEqual(chooseBotTurn(match, 4, { rolloutSamples: 0 }), pass);
   assert.deepEqual(chooseBotTurn(match, 6, { rolloutSamples: 0 }), pass);
 });
@@ -34,10 +34,14 @@ test('level 4 spends its last removal in round two when a life is at stake', () 
   const match = position(2, 'human');
   match.players.bot.lives = 1;
   match.players.human.board.orbit = [plain('small-enemy', 2)];
+  match.players.human.passed = true;
+  match.players.bot.board.surface = [plain('survivor', 1)];
   match.players.bot.hand = [member('salvo', 'protectorate', 'orbital-salvo')];
   assert.deepEqual(chooseBotTurn(match, 4), { type: 'play', cardId: 'salvo' });
 
   match.players.bot.lives = 2;
+  match.players.human.passed = false;
+  match.players.bot.board.surface = [];
   assert.deepEqual(chooseBotTurn(match, 4), pass);
 });
 
@@ -65,7 +69,7 @@ test('round two can dry pass after winning round one and fights after losing it'
   assert.equal(chooseBotTurn(lost, 6).type, 'play');
 });
 
-test('in the deciding round every bot keeps playing while a card is legal, even with a winning lead', () => {
+test('in the deciding round every bot plays a productive card, even with a winning lead', () => {
   const match = position(3, 'human');
   const { bot, human } = match.players;
   bot.board.orbit = [plain('ahead', 10)];

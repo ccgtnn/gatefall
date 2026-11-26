@@ -69,7 +69,7 @@ export const EFFECT_SCHEMA = Object.freeze({
   rowPower: shape('amount key', { requires: 'rowPowerRequirement' }),
   rowPowerRequirement: shape('field values'),
   aiHints: shape(`
-    armorBreakCostsPower boardBonus endTurnNeedsMarkedEnemy handPotential leaderCoinsAtMost leaderConsume
+    armorBreakCostsPower boardBonus endTurnNeedsMarkedEnemy handPotential leaderChargeValue leaderCoinsAtMost leaderConsume
     leaderOffering leaderReadyOrder leaderShield leaderSpawn placement preferRowWith sacrificeBonus
     spendsRowArmor useOrderWhenReady
   `),
