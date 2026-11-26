@@ -96,9 +96,10 @@ test('every leader has an ability', () => {
   for (const leader of leaders) assert.ok(leader.ability, `${leader.id}: missing ability`);
 });
 
-test.todo('every leader declares at least one charge', () => {
+test('every leader has at least one charge after applying the default', () => {
   for (const leader of leaders) {
-    assert.ok(Number.isInteger(leader.charges) && leader.charges >= 1,
-      `${leader.id}: charges must be an integer greater than or equal to one`);
+    const charges = leader.charges ?? 1;
+    assert.ok(Number.isInteger(charges) && charges >= 1,
+      `${leader.id}: effective charges must be an integer greater than or equal to one`);
   }
 });

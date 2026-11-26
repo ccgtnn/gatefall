@@ -112,30 +112,64 @@ test('the reward dialog waits for the results gate and lets the player collect a
   const previousDocument = globalThis.document;
   t.after(() => { globalThis.document = previousDocument; });
   let focus;
+  const matchesSelector = (node, selector) => {
+    if (selector.startsWith('#')) return node.id === selector.slice(1);
+    if (selector.startsWith('.')) return node.className?.split(' ').includes(selector.slice(1));
+    const attribute = selector.match(/^\[data-([a-z-]+)(?:="([^"]*)")?\]$/);
+    if (attribute) {
+      const key = attribute[1].replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+      return node.dataset[key] !== undefined && (attribute[2] === undefined || node.dataset[key] === attribute[2]);
+    }
+    const negated = selector.match(/^([a-z]+):not\(\.([a-z-]+)\)$/);
+    if (negated) {
+      return node.tagName === negated[1].toUpperCase() && !node.className?.split(' ').includes(negated[2]);
+    }
+    return node.tagName === selector.toUpperCase();
+  };
+  const descendants = (node) => node.children.flatMap((child) => [child, ...descendants(child)]);
   class Node extends EventTarget {
+    constructor(tag) {
+      super();
+      this.tagName = tag.toUpperCase();
+    }
     children = [];
     dataset = {};
     open = false;
     classList = { remove() {} };
     append(...nodes) { this.children.push(...nodes); }
     replaceChildren(...nodes) { this.children = nodes; }
+    querySelector(selector) { return this.querySelectorAll(selector)[0] ?? null; }
+    querySelectorAll(selector) {
+      let roots = [this];
+      for (const part of selector.trim().split(/\s+/)) {
+        roots = [...new Set(roots.flatMap((root) =>
+          descendants(root).filter((node) => matchesSelector(node, part))))];
+      }
+      return roots;
+    }
     setAttribute() {}
     showModal() { this.open = true; }
     close() { this.open = false; }
     focus() { focus = this; }
   }
-  const body = new Node();
-  globalThis.document = { body, createElement: () => new Node(), createElementNS: () => new Node() };
+  const body = new Node('body');
+  globalThis.document = {
+    body,
+    createElement: (tag) => new Node(tag),
+    createElementNS: (_, tag) => new Node(tag),
+  };
 
   let resultsDismissed = false;
   const essenceGains = [];
   const reveal = createRewardReveal({
     motion: () => 0, canShow: () => resultsDismissed, showEssence: (amount) => essenceGains.push(amount),
   });
-  const [dialog] = body.children;
-  const [header, items, actions] = dialog.children;
-  const [, title, counter] = header.children;
-  const [receive, all] = actions.children;
+  const dialog = body.querySelector('.reward-reveal');
+  const title = dialog.querySelector('#reward-reveal-title');
+  const counter = dialog.querySelector('.reward-reveal-count');
+  const items = dialog.querySelector('.reward-reveal-items');
+  const receive = dialog.querySelector('.reward-reveal-actions .primary');
+  const all = dialog.querySelector('.reward-reveal-actions button:not(.primary)');
   const nextTick = () => new Promise((resolve) => setTimeout(resolve, 0));
   enqueueReward(entry('Победа', { gold: 20 }));
   enqueueReward(entry('Ранги', { keys: 2 }));
@@ -151,7 +185,7 @@ test('the reward dialog waits for the results gate and lets the player collect a
   assert.equal(focus, receive);
   assert.equal(title.textContent, 'Победа');
   assert.equal(counter.textContent, '1 из 4');
-  assert.equal(items.children[0].children[1].textContent, '+20');
+  assert.equal(items.querySelector('[data-resource="gold"] strong').textContent, '+20');
 
   dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
   assert.equal(dialog.open, true);
@@ -174,7 +208,7 @@ test('the reward dialog waits for the results gate and lets the player collect a
   await nextTick();
   assert.deepEqual(essenceGains, [20]);
   assert.equal(dialog.open, true);
-  assert.deepEqual(items.children.map(({ dataset }) => dataset.resource), ['keys']);
+  assert.deepEqual(items.querySelectorAll('[data-resource]').map(({ dataset }) => dataset.resource), ['keys']);
   receive.dispatchEvent(new Event('click'));
   assert.equal(dialog.open, false);
   assert.deepEqual(essenceGains, [20, 50]);
