@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { TestNode } from '../helpers/test-node.js';
@@ -67,6 +68,11 @@ test('sandbox builds every section for every faction without writes or fixture e
   const premium = page.builders.card.section.querySelector('[data-state="premium"]');
   assert.equal(premium.querySelector('.card-art-crop').tag, 'video');
   assert.equal(storageWrites, 0);
+});
+
+test('inline reward dialogs do not lock sandbox page scrolling', () => {
+  const css = readFileSync(new URL('../../docs/economy.css', import.meta.url), 'utf8');
+  assert.ok(css.includes('body:has(.reward-book[open]:not(.sandbox-inline-dialog)) { overflow: hidden; }'));
 });
 
 test('every animation scenario runs at zero duration for each playable faction without storage writes', async () => {
