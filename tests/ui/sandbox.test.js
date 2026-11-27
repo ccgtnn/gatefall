@@ -84,6 +84,7 @@ test('every animation scenario runs at zero duration for each playable faction w
   const cases = motionGroups.flatMap(([, items]) => items);
   const choiceCounts = { 'offer-three': 3, 'offer-all': 10, 'offer-all-phone': 10, 'offer-discard': 3 };
   const otherChoices = { 'offer-hand-return': 'hand-return', 'offer-deck-top': 'deck-top', 'offer-tribute': 'tribute' };
+  const turns = { 'turn-human': 'human', 'turn-bot': 'bot', 'turn-empty': 'bot', 'turn-combined': 'human', 'turn-compact': 'human' };
   const mulliganCases = new Set(['deal-round-one', 'deal-round-two', 'mulligan-swap']);
   const roundWinners = { 'round-win': 'human', 'round-loss': 'bot', 'round-draw': null };
   motion.speed.value = 'off';
@@ -100,6 +101,14 @@ test('every animation scenario runs at zero duration for each playable faction w
         assert.equal(state.round, scenario.id === 'deal-round-two' ? 2 : 1, label);
         assert.equal(state.mulligan.used, scenario.id === 'mulligan-swap' ? 1 : 0, label);
         assert.equal(motion.section.querySelectorAll('.is-dealt').length, 0, label);
+      }
+      if (scenario.id in turns) {
+        const side = turns[scenario.id];
+        const turnLabel = motion.section.querySelector('.field-turn-label');
+        assert.equal(turnLabel.textContent, side === 'human' ? 'Твой ход' : 'Ход противника', label);
+        assert.equal(turnLabel.dataset.side, side, label);
+        assert.equal(motion.section.querySelector('[data-turn-state="active"]').dataset.side, side, label);
+        assert.equal(body.querySelectorAll('.turn-banner').length, 0, label);
       }
       if (scenario.id === 'hand-bottom') assert.ok(state.log.some(({ type }) => type === 'hand-bottom'), label);
       if (scenario.id in choiceCounts) {

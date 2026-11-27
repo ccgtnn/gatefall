@@ -65,7 +65,11 @@ export function createFieldPanels({ humanCanAct, playHuman, showDrawer }) {
       count.append(element('span', null, '▯'), element('strong', null, player.hand.length));
       panel.append(count, element('span', 'field-round', 'Раунд ' + match.round));
     }
-    if (side === 'human' && player.passed) panel.append(element('span', 'field-passed', 'Пас'));
+    if (side === 'human' && player.passed) {
+      const passed = element('span', 'field-passed', 'ПАС');
+      passed.dataset.passedSide = side;
+      panel.append(passed);
+    }
     return panel;
   }
 

@@ -78,6 +78,12 @@ function mulligan(match, roundNumber) {
   match.mulligan = { used: 0, excluded: [] };
 }
 
+function turnStart(match, side, empty = false) {
+  match.turn = side;
+  match.log.push({ type: 'turn-start', side, empty });
+}
+
+const botPassed = (match) => { match.players.bot.passed = true; };
 const pass = (match) => applyMotionAction(match, { type: 'pass' });
 const activate = (type, cardId) => (match) => resolve(applyMotionAction(match, { type, cardId: cardId?.(match) }));
 
@@ -156,7 +162,20 @@ export const motionGroups = [
       transformUnit(match, unit(match), unit(match, 'human', 1).card.definition);
     } },
     { id: 'capture', label: 'Захват', run: (match) => { capture(match, 'human', unit(match)); } },
-    { id: 'pass', label: 'Пас', run: pass },
+  ]],
+  ['Переход хода и пас', [
+    { id: 'turn-human', label: 'Ход: твой', run: (match) => { turnStart(match, 'human'); } },
+    { id: 'turn-bot', label: 'Ход противника', run: (match) => { turnStart(match, 'bot'); } },
+    { id: 'pass', label: 'Пас (свой)', run: pass },
+    { id: 'pass-bot', label: 'Пас (соперника)', prepare: (match) => { match.turn = 'bot'; }, run: pass },
+    { id: 'turn-empty', label: 'Пустой ход', prepare: botPassed, run: (match) => { turnStart(match, 'bot', true); } },
+    { id: 'turn-combined', label: 'Противник спасовал · снова твой ход', prepare: botPassed, run: (match) => {
+      turnStart(match, 'bot', true);
+      turnStart(match, 'human');
+    } },
+    { id: 'turn-compact', label: 'Компактный баннер после паса', prepare: botPassed, run: (match) => {
+      turnStart(match, 'human');
+    } },
   ]],
   ['Раунд', [
     { id: 'round-win', label: 'Победа', presentation: 'round-result', prepare: round('human'), run: pass },

@@ -4,6 +4,8 @@ import {
   VISUAL_EVENTS, animate, cardFlash, center, floatingNumber, handRects, moveNeighbors, oldHandPosition, pileAnchor, rects, takeRememberedRect, updateScores,
 } from './card-motion-core.js';
 import { annihilate, fly, hop, leave, revealOpponentCard, swallow } from './card-motion-card-effects.js';
+import { passReasonText } from './match-log.js';
+import { showPassStamp, showTurnBanner, pulsePass, pairsWithTurn } from './turn-banner.js';
 import { presentHandEvent } from './card-motion-hand.js';
 import { hit, lightning, projectile, shield, showActivation } from './card-motion-hit-effects.js';
 
@@ -69,28 +71,24 @@ export function animateHandTurn(screen, duration) {
   });
 }
 
-export function animateTurnSparks(screen, side, duration, scale = 1) {
-  if (!duration) return;
-  const rows = screen.querySelectorAll(`.field-center > .side[data-side="${side}"] > .board-row`);
-  for (const [rowIndex, row] of rows.entries()) {
-    for (let index = 0; index < 3; index += 1) {
-      const spark = screen.ownerDocument.createElement('span');
-      if (!spark.animate) continue;
-      spark.className = 'turn-spark';
-      spark.setAttribute('aria-hidden', 'true');
-      row.append(spark);
-      const flight = spark.animate([
-        { offsetDistance: '0%', opacity: 0 },
-        { offsetDistance: '10%', opacity: 1, offset: .1 },
-        { offsetDistance: '82%', opacity: 1, offset: .82 },
-        { offsetDistance: '100%', opacity: 0 },
-      ], { duration: Math.round(duration * MOTION.pace.turnSparks), delay: (rowIndex + index) * scaleMotion(MOTION.ms.turnSparkStagger, scale) });
-      void flight.finished.then(() => spark.remove(), () => spark.remove());
-    }
+export async function presentJournalEvent(screen, event, commit, render, duration, { next, previous: previousEvent } = {}) {
+  if (event.type === 'turn-start') {
+    const state = commit();
+    // The active turn renders the shared banner when the two events are adjacent.
+    if (pairsWithTurn(event, next)) return false;
+    render(state);
+    if (!duration) return false;
+    const skippedSide = pairsWithTurn(previousEvent, event) ? previousEvent.side : event.empty ? event.side : undefined;
+    if (skippedSide) pulsePass(screen, skippedSide, duration);
+    const opponentSide = event.side === 'human' ? 'bot' : 'human';
+    const compact = !event.empty && state.players[opponentSide].passed && previousEvent?.type !== 'pass';
+    return showTurnBanner(screen, event, duration, { skippedSide, compact });
   }
-}
-
-export async function presentJournalEvent(screen, event, commit, render, duration) {
+  if (event.type === 'pass') {
+    render(commit());
+    if (duration) await showPassStamp(screen, event.side, passReasonText(event.reason), duration);
+    return;
+  }
   const playRect = event.type === 'play' ? takeRememberedRect(event.cardId) : undefined;
   if (event.type === 'draw' || event.type === 'hand-return' || event.type === 'hand-bottom') {
     return presentHandEvent(screen, event, commit, render, duration);

@@ -7,6 +7,17 @@ export function roundText(event) {
   return `Раунд ${event.round} · ${outcome} · ${scores.human} : ${scores.bot}`;
 }
 
+const passReasons = {
+  manual: 'пас',
+  'empty-hand': 'автопас, рука пуста',
+  'full-row': 'автопас, ряды заполнены',
+  'no-target': 'автопас, нет допустимых целей',
+};
+
+export function passReasonText(reason) {
+  return passReasons[reason] ?? passReasons.manual;
+}
+
 export function eventText(event) {
   const side = sideLabel[event.side];
   switch (event.type) {
@@ -19,15 +30,7 @@ export function eventText(event) {
       if (!event.row) return `${side}: «${event.name}» · Эффект${origin}${event.initiative ? ' · Инициатива' : ''}.`;
       return `${side}: «${event.name}» (${event.power ?? 'артефакт'})${origin} → ${ROW_LABELS[event.row]}${event.boardSide ? ' противника' : ''}.`;
     }
-    case 'pass': {
-      const reasons = {
-        manual: 'пас',
-        'empty-hand': 'автопас, рука пуста',
-        'full-row': 'автопас, ряды заполнены',
-        'no-target': 'автопас, нет допустимых целей',
-      };
-      return `${side}: ${reasons[event.reason]}.`;
-    }
+    case 'pass': return `${side}: ${passReasonText(event.reason)}.`;
     case 'turn-start': return event.empty ? `${side}: пропускает ход после паса.` : '';
     case 'turn-skip': return `${side}: ход завершён без паса. Нет карты для розыгрыша.`;
     case 'deck-top': return `${side}: карта перемещена на верх колоды.`;

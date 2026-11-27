@@ -1,3 +1,4 @@
+import { clearTurnBanner } from '../turn-banner.js';
 import {
   animateCoin, animateLifeLoss, dismissRoundTransition, presentJournalEvent, roundResultLabel, showRoundTransition,
 } from '../card-motion.js';
@@ -126,6 +127,7 @@ export function createMotionSection() {
     mulliganPreview = false;
     generation += 1;
     clearRememberedRects();
+    clearTurnBanner(screen);
     coinNotice.hidden = roundNotice.hidden = true;
     status.textContent = '';
     render(motionFixture(factionId));
@@ -142,7 +144,7 @@ export function createMotionSection() {
     const duration = syncSpeed();
     const multiplier = scale();
     const active = () => generation === token;
-    await playJournal(before, next.log.slice(before.log.length), async (event, commit, state) => {
+    await playJournal(before, next.log.slice(before.log.length), async (event, commit, state, nextEvent, previous) => {
       if (!active()) return;
       if (event.type === 'round-end') {
         if (presentation === 'round-result') {
@@ -155,7 +157,7 @@ export function createMotionSection() {
         if (active()) commit();
         return;
       }
-      await presentJournalEvent(screen, event, commit, (state) => { if (active()) render(state); }, duration);
+      await presentJournalEvent(screen, event, commit, (state) => { if (active()) render(state); }, duration, { next: nextEvent, previous });
     });
     if (!active()) return;
     if (presentation === 'round-title') {
@@ -183,6 +185,7 @@ export function createMotionSection() {
   async function playScenario(scenario, wait, token) {
     if (generation !== token) return;
     clearRememberedRects();
+    clearTurnBanner(screen);
     lastScenario = scenario;
     coinNotice.hidden = roundNotice.hidden = true;
     status.textContent = scenario.label;

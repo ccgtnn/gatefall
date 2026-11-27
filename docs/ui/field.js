@@ -68,8 +68,15 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     humanCorner.append(humanCount, pileView(match, 'human', 'deck'));
     const turnControls = element('div', 'field-turn-controls');
     if (phase === 'playing') {
-      const turn = replaying ? 'Розыгрыш' : humanTurn ? 'Твой ход' : 'Ход бота';
-      turnControls.append(element('p', 'field-turn-label', turn));
+      const label = element('p', 'field-turn-label', match.turn === 'human' ? 'Твой ход' : 'Ход противника');
+      label.dataset.side = match.turn;
+      if (match.turn === 'bot') {
+        const dots = element('span', 'field-thinking-dots');
+        dots.setAttribute('aria-hidden', 'true');
+        dots.append(element('i'), element('i'), element('i'));
+        label.append(dots);
+      }
+      turnControls.append(label);
     }
     turnControls.append(action);
     const botCorner = pileView(match, 'bot', 'deck');
