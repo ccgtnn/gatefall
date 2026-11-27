@@ -32,26 +32,27 @@ test('human selects a faction leader and bot sampling can select any of its thre
   }
 });
 
-test('Supreme Commander has two charges, boosts and readies one Order per turn', () => {
+test('Supreme Commander boosts and readies a newly played Order with one charge per turn', () => {
   let match = fixture('protectorate', 'supreme-commander');
   const commander = member('order', 'commander');
-  commander.readyAt = 3;
   commander.armor = 2;
-  match.players.human.board.orbit = [commander, unit('plain')];
-  match.players.human.hand = [unit('spare'), unit('later')];
+  match.players.human.board.orbit = [unit('plain')];
+  match.players.human.board.surface = [createCard('artifact', { id: 'artifact', name: 'Artifact', type: 'artifact' })];
+  match.players.human.hand = [commander, unit('later')];
   match.players.bot.board.orbit = [unit('enemy')];
   match.players.bot.passed = true;
   assert.equal(match.players.human.leader.charges, 2);
 
+  match = act(match, { type: 'play', cardId: 'order', row: 'orbit', position: 0 });
+  assert.equal(availableOrders(match, 'human').length, 0);
   const pending = act(match, leaderAction);
-  assert.deepEqual(pending.pending.options, ['order', 'plain']);
+  assert.deepEqual(pending.pending.options, ['order', 'plain', 'artifact']);
   match = pick(pending, 'order');
   assert.equal(findUnit(match, 'order').card.power, 7);
   assert.equal(availableOrders(match, 'human')[0].card.id, 'order');
   assert.equal(match.players.human.leader.charges, 1);
   assert.strictEqual(act(match, leaderAction), match);
 
-  match = act(match, { type: 'play', cardId: 'spare', row: 'surface', position: 0 });
   match = act(match, { type: 'end-turn' });
   match = pick(act(match, leaderAction), 'plain');
   assert.equal(findUnit(match, 'plain').card.power, 9);
@@ -85,7 +86,7 @@ test('Fleet Admiral boosts and shields one friendly unit per turn for three char
   assert.equal(match.log.filter((event) => event.status === 'shield' && event.cardId === 'ally').length, 1);
 });
 
-test('all bot difficulties favor a cooling Order and shield an exposed key unit', () => {
+test('bots favor the first readiness of an Order and shield an exposed key unit', () => {
   for (const [leader, expected] of [['supreme-commander', 'cooling'], ['fleet-admiral', 'key']]) {
     const match = fixture('protectorate', leader);
     const { human, bot } = match.players;
@@ -93,7 +94,8 @@ test('all bot difficulties favor a cooling Order and shield an exposed key unit'
     human.leader = null;
     match.turn = 'bot';
     const commander = member('cooling', 'commander');
-    commander.readyAt = bot.turns + 2;
+    commander.readyAt = bot.turns + 1;
+    commander.orderPlayedTurn = bot.turns;
     if (leader === 'fleet-admiral') commander.statuses = { shield: 1 };
     const shielded = unit('shielded', 30);
     shielded.statuses = { shield: 1 };
@@ -207,5 +209,48 @@ test('strategic bots resolve legal targets and placements for every leader', () 
         assert.equal(next.playedCard, false);
       }
     }
+  }
+});
+
+test('Zeal leaves the cooldown unchanged after the Order has been used', () => {
+  let match = fixture('protectorate', 'supreme-commander');
+  const commander = member('cassia', 'commander');
+  match.players.human.board.orbit = [unit('armored')];
+  match.players.human.board.orbit[0].armor = 4;
+  match.players.bot.board.orbit = [unit('enemy', 20)];
+  match.players.bot.passed = true;
+  match.players.human.hand = [commander, unit('spare')];
+  match = act(match, { type: 'play', cardId: 'cassia', row: 'orbit', position: 1 });
+  match = pick(act(match, leaderAction), 'cassia');
+  match = pick(pick(act(match, { type: 'order', cardId: 'cassia' }), 'armored'), 'enemy');
+  const used = findUnit(match, 'cassia').card.readyAt;
+  if (match.playedCard) match = act(match, { type: 'end-turn' });
+  assert.ok(used > match.players.human.turns);
+  match = pick(act(match, leaderAction), 'cassia');
+  assert.equal(findUnit(match, 'cassia').card.readyAt, used);
+  assert.equal(availableOrders(match, 'human').length, 0);
+});
+
+test('the three single-charge leaders use the same Order window and can be used only once', () => {
+  for (const [faction, leader, target] of [
+    ['protectorate', 'marshal', 'ally'],
+    ['growth', 'carrier', 'enemy'],
+    ['captains', 'skara-reinhold', 'orbit'],
+  ]) {
+    let match = fixture(faction, leader);
+    match.players.human.board.surface = [unit('ally')];
+    match.players.human.hand = [unit('opening'), unit('spare')];
+    match.players.bot.board.surface = [unit('enemy')];
+    match.players.bot.passed = true;
+    match = act(match, { type: 'play', cardId: 'opening', row: 'surface', position: 1 });
+    assert.equal(match.playedCard, true, leader);
+    assert.equal(canUseLeader(match, 'human'), true, leader);
+    match = pick(act(match, leaderAction), target);
+    assert.deepEqual([match.players.human.leader.charges, match.players.human.leader.lastUsedTurn], [0, 0], leader);
+    assert.equal(match.players.human.turns, 1, leader);
+    assert.strictEqual(act(match, leaderAction), match, leader);
+    if (leader === 'marshal') assert.equal(findUnit(match, 'ally').card.armor, 3);
+    if (leader === 'carrier') assert.equal(statusCount(findUnit(match, 'enemy').card, 'infection'), 2);
+    if (leader === 'skara-reinhold') assert.equal(match.players.human.coins, 3);
   }
 });

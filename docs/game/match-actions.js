@@ -103,6 +103,7 @@ export function applyAction(match, side, action, { random = Math.random, copy = 
     current.roundActed = true;
     const { card } = availableOrders(next, side).find((unit) => unit.card.id === cardId);
     const order = card.definition.order;
+    delete card.orderPlayedTurn;
     card.readyAt = current.turns + (order.cooldown ?? 0) + 1;
     if (card.orderCharges !== undefined) card.orderCharges -= 1;
     if (order.oncePerTurn || card.orderCharges !== undefined) card.orderUsedTurn = current.turns;

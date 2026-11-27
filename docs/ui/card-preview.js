@@ -102,6 +102,11 @@ export function showCard(card, options = {}) {
   if (hasShield || card.statuses?.shield === 0) glossaryWords.add('Силовой щит');
   if (definition.endTurn) glossaryWords.add('Конец хода');
   if (definition.order) glossaryWords.add('Приказ');
+  if (leader ? definition.order?.usesCharges : definition.order?.charges !== undefined) glossaryWords.add('Заряды');
+  if (definition.order?.cooldown > 0) glossaryWords.add('Перезарядка');
+  if (definition.timer !== undefined) glossaryWords.add('Таймер');
+  if (glossaryWords.has('Конец хода') || glossaryWords.has('Таймер')) glossaryWords.add('Пас и пустой ход');
+  if (['Призыв', 'Порождение'].some((word) => glossaryWords.has(word))) glossaryWords.add('Лимит ряда');
   const explanations = [...glossaryWords].filter((word) => Object.hasOwn(KEYWORDS, word))
     .map((word) => [word, KEYWORDS[word]]);
   const orderRow = ROW_LABELS[definition.order?.sourceRow];

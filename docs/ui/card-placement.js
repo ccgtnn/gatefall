@@ -5,7 +5,7 @@ export function placementEffectRows(definition) {
   if (definition.type === 'effect') return [];
   const abilities = [
     definition.deploy, definition.initiative, definition.order, definition.endTurn,
-    definition.startTurn, definition.startTurnPulse, definition.scenario?.prologue,
+    definition.timerNextTurn, definition.timerPulse, definition.timerExpired, definition.scenario?.prologue,
     ...Object.values(definition.fieldEvents ?? {}).map(({ ability }) => ability),
   ];
   return [...new Set(abilities.filter(Boolean).flatMap((ability) =>

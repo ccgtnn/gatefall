@@ -28,7 +28,7 @@ export const SHADOW = Object.freeze({
 });
 
 const faluraOrder = {
-  text: 'Приказ: нанести 2 урона выбранному вражескому отряду. Перезарядка 1 ход. Если на твоём поле есть Тень, готов каждый твой ход.',
+  text: 'Приказ: нанеси 2 урона выбранному вражескому отряду. Перезарядка: 1 ход. Если на твоём поле есть Тень, Приказ готов каждый твой ход.',
   cooldown: 1,
   quickenedBy: SHADOW.id,
   ability: ability([action('damage', chosen('enemy'), 2)], [enemyChoice(2)]),
@@ -43,7 +43,7 @@ export const NEUTRAL_CARDS = Object.freeze([
         [choice('locked', fieldUnits, 'Выбери отряд для Блокировки.', { kind: 'lock' })]),
       keywords: ['Блокировка'],
     }],
-    ['veteran-mercenary', 'Наёмник-ветеран', 'bronze', 4, 3, 'Нанеси 2 урона своему отряду. Усиль себя на 3.', {
+    ['veteran-mercenary', 'Наёмник-ветеран', 'bronze', 4, 3, 'Нанеси 2 урона выбранному своему отряду. Усиль себя на 3.', {
       art: 'veteran-mercenary.webp',
       deploy: ability([action('damage', chosen('ally'), 2), action('boost', self, 3)],
         [choice('ally', allies, 'Выбери свой отряд для 2 урона.', { kind: 'friendly-damage', amount: 2 })]),
@@ -66,7 +66,7 @@ export const NEUTRAL_CARDS = Object.freeze([
       art: 'recon-drone.webp',
       deploy: ability([{ action: 'choose-deck-top' }]),
     }],
-    ['emp-grenade', 'ЭМИ-граната', 'bronze', 5, null, 'Сними всю броню с вражеского отряда. Нанеси 2 урона плюс число снятых единиц брони.', {
+    ['emp-grenade', 'ЭМИ-граната', 'bronze', 5, null, 'Сними всю броню с выбранного вражеского отряда. Нанеси ему 2 урона плюс число снятых единиц брони.', {
       removalReserve: 4,
       art: 'emp-grenade.webp',
       type: 'effect',
@@ -94,7 +94,7 @@ export const NEUTRAL_CARDS = Object.freeze([
       art: 'field-medic.webp',
       deploy: ability([{ action: 'play-from-discard', filter: { rarity: 'bronze' } }]),
     }],
-    ['gate-relic', 'Реликт врат', 'gold', 9, null, 'Приказ (перезарядка 2): усиль свой отряд на 3.', {
+    ['gate-relic', 'Реликт врат', 'gold', 9, null, 'Приказ: усиль выбранный свой отряд на 3. Перезарядка: 2 хода.', {
       art: 'gate-relic.webp',
       type: 'artifact', order: {
         ...ability([action('boost', chosen('ally'), 3)],
@@ -102,23 +102,23 @@ export const NEUTRAL_CARDS = Object.freeze([
         cooldown: 2,
       }, keywords: ['Приказ', 'Усиление'],
     }],
-    ['bounty-hunter', 'Охотник за головами', 'gold', 10, 4, 'Нанеси 6 урона вражескому отряду. Если он погиб от этого удара, усиль себя на 2.', {
+    ['bounty-hunter', 'Охотник за головами', 'gold', 10, 4, 'Нанеси 6 урона выбранному вражескому отряду. Расправа: усиль себя на 2.', {
       removalReserve: 5,
       art: 'bounty-hunter.webp',
       deploy: ability([
         { ...action('damage', chosen('enemy'), 6), save: 'kill' },
         action('boost', self, { result: 'kill', scale: 2 }),
-      ], [enemyChoice(6)]), keywords: ['Урон', 'Усиление'],
+      ], [enemyChoice(6)]), keywords: ['Урон', 'Расправа', 'Усиление'],
     }],
     ['world-gates', 'Врата Миров', 'gold', 11, null, 'Посмотри свою колоду, выбери любую карту и сыграй её.', {
       type: 'effect', art: 'world-gates.webp', accent: 'gate', deploy: ability([{ action: 'play-from-deck', fullDeck: true }]),
     }],
-    ['falura', 'Файлура, Пепел Звезд', 'gold', 19, null,
-      'Замени способность лидера до конца матча Приказом: нанести 2 урона выбранному вражескому отряду. Перезарядка 1 ход. Породи 2 Тени. Пока на твоём поле есть Тень, Приказ готов каждый твой ход.', {
+    ['falura', 'Файлура, Пепел Звёзд', 'gold', 19, null,
+      'Замени способность лидера до конца матча Приказом: нанеси 2 урона выбранному вражескому отряду. Перезарядка: 1 ход. Призови 2 Тени. Пока на твоём поле есть Тень, Приказ готов каждый твой ход.', {
         type: 'artifact', art: 'falura.webp', categories: ['Пустота'],
         deploy: ability([{ action: 'replace-leader', order: faluraOrder },
           { action: 'spawn', card: SHADOW, position: 'right', row: 'source', amount: 2, overflow: true }]),
-        keywords: ['Приказ', 'Урон', 'Порождение'],
+        keywords: ['Приказ', 'Перезарядка', 'Урон', 'Порождение'],
       }],
     ['gate-guardian', 'Хранитель врат', 'gold', 10, 12, 'Броня 4. Уязвимость: отправь эту карту в сброс.', {
       art: 'gate-guardian.webp',
@@ -131,17 +131,17 @@ export const NEUTRAL_CARDS = Object.freeze([
         prompt: 'Выбери карту из сброса за 10 провизии или меньше либо Пожирателя падали.' }]),
     }],
     ['forgotten-gates', 'Врата Забвения', 'gold', 10, null,
-      'При розыгрыше: призови слева случайный отряд за 4 провизии из своей колоды. В начале твоего второго хода после розыгрыша призови справа ещё один такой отряд.', {
+      'При розыгрыше: призови слева случайный отряд за 4 провизии из своей колоды. Таймер 2: призови справа ещё один такой отряд.', {
         type: 'artifact', art: 'forgotten-gates.webp', timer: 2, keywords: ['Призыв', 'Соседи'],
         deploy: ability([summonFromDeck('left', 4)]),
-        startTurn: ability([summonFromDeck('right', 4)]),
+        timerExpired: ability([summonFromDeck('right', 4)]),
       }],
     ['storm-eye', 'Глаз бури', 'bronze', 5, null,
-      'При розыгрыше: создай Псионную бурю над вражескими рядами. В начале каждого из твоих следующих 3 ходов она бьёт 3 раза на 1 урон по случайным вражеским отрядам. Цели могут повторяться. После третьего хода бури Кристалл ломается и наносит ещё 1 урон случайному вражескому отряду.', {
+      'Таймер 3. В конце каждого твоего хода, пока идёт Таймер, Псионная буря 3 раза наносит 1 урон случайному вражескому отряду. Цели могут повторяться. Когда Таймер обнулится, Кристалл ломается и наносит ещё 1 урон случайному вражескому отряду.', {
         type: 'artifact', art: 'storm-eye.webp', categories: ['Кристалл'], keywords: ['Псионная буря', 'Урон'],
         fieldAura: 'psionic-storm', timer: 3,
-        startTurnPulse: ability([{ action: 'scatter', amount: 3, visual: 'lightning' }]),
-        startTurn: ability([{ action: 'break', target: self }, { action: 'scatter', amount: 1, visual: 'lightning' }]),
+        timerPulse: ability([{ action: 'scatter', amount: 3, visual: 'lightning' }]),
+        timerExpired: ability([{ action: 'break', target: self }, { action: 'scatter', amount: 1, visual: 'lightning' }]),
       }],
     ['old-golem', 'Старый голем', 'epic', 9, 9, 'Силовой щит. После розыгрыша тобой любого Голема, включая эту карту, усиливается на 1, пока находится на поле.', {
       art: 'old-golem.webp', categories: ['Голем'], shield: true, keywords: ['Силовой щит', 'Усиление'],

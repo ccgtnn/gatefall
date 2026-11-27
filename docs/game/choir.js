@@ -20,8 +20,8 @@ const psionic = (definition) => card({ type: 'effect', categories: [PSIONICS], .
 function tentacle(id, name, power, hit, stats = {}) {
   return card({
     id, name, power, token: true, categories: [TENTACLE_CATEGORY], ...stats,
-    text: `В конце твоего хода: ${hit} урона своему отряду справа. Если ранен и выжил, усиливается на 2.`,
-    keywords: ['Конец хода', 'Соседи', 'Урон', 'Усиление'],
+    text: `В конце твоего хода: нанеси ${hit} урон своему отряду справа. Когда это Щупальце получает Ранение и выживает, усиль его на 2.`,
+    keywords: ['Конец хода', 'Соседи', 'Урон', 'Ранение', 'Усиление'],
     endTurn: ability([damage({ ...nearby, direction: 'right' }, hit)]),
     events: { damage: ability([boost(2)]) },
   });
@@ -48,7 +48,7 @@ export const SLEEPER = card({
   id: 'ulmarin-sleeper', name: 'Спящий под Вратами', rarity: 'gold', power: 8, doomed: true, token: true,
   art: 'sleeper-under-gates.webp', artCrop: 'sleeper-under-gates-crop.webp',
   text: 'Обречённость. В конце твоего хода: нанеси 1 урон каждому соседу. Если ранил хотя бы один отряд, усиль себя на суммарную потерю их силы и восстанови Приказ. Приказ: нанеси сильнейшему вражескому отряду урон, равный числу твоих культистов Спящего и Щупалец.',
-  keywords: ['Обречённость', 'Конец хода', 'Соседи', 'Урон', 'Усиление', 'Приказ'],
+  keywords: ['Обречённость', 'Конец хода', 'Соседи', 'Урон', 'Ранение', 'Усиление', 'Приказ'],
   endTurn: ability([
     { ...damage(nearby, 1), save: 'dealt', measureDamage: true },
     boost({ result: 'dealt' }),
@@ -107,14 +107,14 @@ export const CHOIR_CARDS = Object.freeze([
   card({
     id: 'whisper-interpreter', name: 'Толкователь шёпота', rarity: 'bronze', provision: 5, power: 1,
     art: 'whisper-interpreter.webp', artCrop: 'whisper-interpreter-crop.webp',
-    text: 'При размещении: сыграй карту Псионики из руки, затем возьми карту.', keywords: [PSIONICS],
+    text: 'При розыгрыше: сыграй выбранную карту Псионики из руки, затем возьми карту.', keywords: [PSIONICS],
     deploy: ability([{ action: 'play-from-hand', filter: { anyType: true, category: PSIONICS },
       prompt: 'Выбери карту Псионики из руки.' }, { action: 'draw', amount: 1 }]),
   }),
   card({
     id: 'forbidden-scroll-keeper', name: 'Хранитель запретных свитков', rarity: 'epic', provision: 7, power: 1,
     art: 'forbidden-scroll-keeper.webp', artCrop: 'forbidden-scroll-keeper-crop.webp',
-    text: 'При размещении: сыграй карту Псионики из колоды.', keywords: [PSIONICS],
+    text: 'При розыгрыше: сыграй выбранную карту Псионики из колоды.', keywords: [PSIONICS],
     deploy: ability([{ action: 'play-from-deck', chooseAll: true, filter: { anyType: true, category: PSIONICS },
       prompt: 'Выбери карту Псионики из колоды.' }]),
   }),
@@ -122,13 +122,13 @@ export const CHOIR_CARDS = Object.freeze([
   card({
     id: 'depth-neophyte', name: 'Неофит глубин', rarity: 'bronze', provision: 5, power: 4, categories: [CULTIST],
     art: 'depth-neophyte.webp', artCrop: 'depth-neophyte-crop.webp',
-    text: 'Одержимость (Псионика): при размещении усиль себя на 1 за каждые 3 карты Псионики.',
+    text: 'Одержимость (Псионика): при розыгрыше усиль себя на 1 за каждые 3 карты Псионики.',
     keywords: ['Одержимость', PSIONICS, 'Усиление'], deploy: ability([boost(obsession)]),
   }),
   card({
     id: 'cult-dreamer', name: 'Сновидец культа', rarity: 'epic', provision: 7, power: 3,
     art: 'cult-dreamer.webp', artCrop: 'cult-dreamer-crop.webp',
-    text: 'Одержимость (Псионика): при размещении возьми по карте за каждые 3 карты Псионики. Верни столько же выбранных карт из руки в случайные места колоды.',
+    text: 'Одержимость (Псионика): при розыгрыше возьми по карте за каждые 3 карты Псионики. Верни столько же выбранных карт из руки в случайные места колоды.',
     keywords: ['Одержимость', PSIONICS],
     deploy: ability([{ action: 'draw', amount: obsession, save: 'drawn' },
       { action: 'return-hand', amount: { result: 'drawn' } }]),
@@ -136,7 +136,7 @@ export const CHOIR_CARDS = Object.freeze([
   card({
     id: 'abyss-shepherd', name: 'Пастырь бездны', rarity: 'gold', provision: 13, power: 1,
     art: 'abyss-shepherd.webp', artCrop: 'abyss-shepherd-crop.webp',
-    text: 'Одержимость (Псионика): при размещении захвати выбранный вражеский отряд с силой не выше 3 / 4 / 5 / 6 при 3 / 6 / 9 / 12 картах Псионики. При меньшем числе карт Захват не срабатывает.',
+    text: 'Одержимость (Псионика): при розыгрыше захвати выбранный вражеский отряд с силой не выше 3 / 4 / 5 / 6 при 3 / 6 / 9 / 12 картах Псионики. При меньшем числе карт Захват не срабатывает.',
     keywords: ['Одержимость', PSIONICS, 'Захват'],
     deploy: ability([{ action: 'capture', target: victim }], [{
       ref: 'victim', kind: 'capture', prompt: 'Выбери вражеский отряд для Захвата.',

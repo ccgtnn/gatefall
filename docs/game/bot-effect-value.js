@@ -1,7 +1,7 @@
 import { cardPotential, EVAL_WEIGHTS as W } from './bot-evaluation.js';
 import { handCount } from './bot-hand.js';
 import { availableRows, cleansableStatuses, HAND_LIMIT, infectionDamage, isUnit, neighbors, opponent, restoreCard, ROW_LIMIT, statusCount, units } from './board.js';
-import { availableFees, orderAbility } from './effects.js';
+import { availableFees, canGrantZeal, orderAbility } from './effects.js';
 import { ROWS } from './card-metadata.js';
 import { canStart, eligiblePileCards, pileCandidates, playPiles, playTiming, reference, rowArmor, rowSide, targets, valueOf } from './effect-queries.js';
 import { armorBreakSwing, consumeBonus, coinValue, delayedCardValue, futureContext, remainingTurns } from './bot-future-value.js';
@@ -25,8 +25,9 @@ export function pendingUnitPriority(match, { kind, side, job }) {
   }
 }
 
-export function feePayoff(context, { card }, free, later = false) {
+export function feePayoff(context, unit, free, later = false) {
   const { match, side, player } = context;
+  const { card } = unit;
   const { fee, order } = cardAbilities(card);
   if (fee.needsSourceSpace && free <= 0) return 0;
   const job = { side, sourceId: card.id, ability: fee };
@@ -37,7 +38,9 @@ export function feePayoff(context, { card }, free, later = false) {
       return value + (select ? Math.max(0, ...targets(match, job, select.targets, true)
         .map(({ card }) => step.card.power - card.power + .2 * ((step.card.armor ?? 0) - (card.armor ?? 0)))) : 0);
     }
-    if (step.action !== 'ready-order' || (!later && card.orderUsedTurn === player.turns)) return value;
+    const refreshes = step.action === 'ready-order' && (later || card.orderUsedTurn !== player.turns);
+    const grantsZeal = step.action === 'grant-zeal' && !later && canGrantZeal(unit, player.turns);
+    if (!refreshes && !grantsZeal) return value;
     const ability = orderAbility(order);
     const orderJob = { ...job, ability };
     if (!canStart(match, orderJob)) return value;
@@ -125,14 +128,33 @@ export function infectionGain(card, amount, turns = Infinity) {
     infectionDamage(card, Math.min(current, turns)));
 }
 
-export function lockPriority({ card, side }, actor) {
-  const locked = isLocked(card);
-  const { order, fee, sidePowerAura, fieldEvents, neighborEvents, endTurn, startTurnGrowth, events } = cardAbilities(card);
-  const primary = Boolean(order || fee || sidePowerAura || fieldEvents || neighborEvents || (!locked && card.timer > 0));
-  const secondary = Boolean(endTurn || startTurnGrowth || events ||
-    (!locked && (card.counter > 0 || card.resilient)) || deathwishDefinitions(card).length);
-  const value = Number(primary) * 3 + Number(secondary);
-  return side === actor ? -value : 5 + value;
+export function lockPriority(match, actor, { card, row, side }) {
+  if (isLocked(card)) return -1;
+  const { order, fee, sidePowerAura, rowPower, fieldEvents, neighborEvents, endTurn, startTurnGrowth, events } = cardAbilities(card);
+  const context = futureContext(match, side);
+  const engine = Number(Boolean(order && card.orderCharges !== 0 || fee ||
+    sidePowerAura || rowPower || fieldEvents || neighborEvents || endTurn || startTurnGrowth));
+  const reactions = Object.values(events ?? {}).reduce((value, { steps }) =>
+    value + steps.reduce((sum, step) => sum + (typeof step.amount === 'number' ? Math.max(0, step.amount) : 1), 0), 0);
+  // A recurring hit can set up a neighbor's damage reaction even without a target right now.
+  const recurringHits = (endTurn?.steps ?? []).reduce((value, step) =>
+    value + (step.action === 'damage' && typeof step.amount === 'number' ? step.amount : 0), 0);
+  const delay = Number(Boolean(card.counter > 0 || card.timer > 0 || card.resilient));
+  const value = engine * 3 + reactions + recurringHits + delay + deathwishDefinitions(card).length +
+    Math.max(0, delayedCardValue(context, card, row));
+  return side === actor ? -value : value;
+}
+
+export function holdUntargetedDamage(match, side, cards) {
+  if (units(match, opponent(side)).some(({ card }) => isUnit(card))) return cards;
+  const productive = cards.filter((card) => {
+    const { deploy, endTurn, order, scenario, timerPulse, timerExpired } = cardAbilities(card);
+    if (card.power || endTurn || order || scenario || timerPulse || timerExpired || !deploy?.steps.length) return true;
+    return !deploy.steps.every((step) => step.action === 'select-row' ||
+      (step.action === 'scatter' && step.side !== 'ally') ||
+      (step.action === 'damage' && step.target?.scope === 'enemy'));
+  });
+  return productive.length ? productive : cards;
 }
 
 export function cleansePriority({ card, side }, actor) {
@@ -255,8 +277,11 @@ function scatterSwing({ match, job, player }, step) {
       ? Math.max(...ROWS.map((row) => rowArmor(player, row))) : valueOf(match, job, step.amount);
     return Math.max(...ROWS.map((row) => rowScatterValue(match.players[side], row, amount)));
   }
-  const health = units(match, side).reduce((sum, { card }) => sum + (card.power ?? 0), 0);
-  return Math.min(health, Math.max(...ROWS.map((row) => rowArmor(player, row))));
+  const recipient = step.side === 'ally' ? player : match.players[side];
+  const amount = step.amount?.result === 'armor'
+    ? Math.max(...ROWS.map((row) => rowArmor(player, row))) : valueOf(match, job, step.amount);
+  const health = ROWS.reduce((sum, row) => sum + rowScatterValue(recipient, row, amount), 0);
+  return Math.min(health, amount) * (step.side === 'ally' ? -1 : 1);
 }
 
 function markSwing({ match, job }, step) {

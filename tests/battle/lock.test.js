@@ -5,6 +5,7 @@ import {
 } from '../../docs/game/board.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
 import { CAPTAIN_CARDS } from '../../docs/game/captains.js';
+import { AWAKENING } from '../../docs/game/choir.js';
 import { KEYWORDS, NEUTRAL_CARDS } from '../../docs/game/cards.js';
 import { availableFees, availableOrders, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn } from '../../docs/game/effects.js';
 import { emit } from '../../docs/game/events.js';
@@ -149,11 +150,11 @@ test('lock stops native and inherited Deathwish both on death and when triggered
   assert.ok(!match.log.some(({ type }) => type === 'deathwish'));
 });
 
-test('lock stops end-turn effects, counters, both kinds of timers and start-turn growth', () => {
+test('lock stops end-turn effects, counters, timers and start-turn growth', () => {
   const match = setup();
   const counter = createUnit('counter', { counter: { amount: 1, effect: selfBoost }, endTurn: selfBoost });
-  const endTimer = createUnit('end-timer', { timer: 1, endTurn: { steps: [{ action: 'tick', target: self }] } });
-  const startTimer = createUnit('start-timer', { timer: 1, startTurn: selfBoost, startTurnPulse: selfBoost, startTurnGrowth: 1 });
+  const endTimer = createUnit('end-timer', { timer: 1, timerExpired: selfBoost });
+  const startTimer = createUnit('start-timer', { timer: 1, timerPulse: selfBoost, timerNextTurn: selfBoost, startTurnGrowth: 1 });
   const control = createUnit('control', { endTurn: selfBoost });
   match.players.human.board.surface.push(counter, endTimer, startTimer, control);
   for (const card of [counter, endTimer, startTimer]) lock(match, card.id);
@@ -211,5 +212,18 @@ test('all bot difficulties prefer a live enemy Order, Fee, timer or aura over an
     for (const difficulty of [2, 4, 6]) {
       assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'priority' });
     }
+  }
+});
+
+test('neither the Suppressor nor the lock status can target scenarios and artifacts', () => {
+  const match = setup();
+  const cards = [NEUTRAL_CARDS.find(({ id }) => id === 'storm-eye'), AWAKENING];
+  match.players.bot.board.surface = cards.map((definition) => createCard(definition.id, definition));
+  const pending = play(match, 'suppressor');
+  for (const { id } of cards) {
+    assert.ok(!pending.pending.options.includes(id));
+    assert.strictEqual(applyAction(pending, 'human', { type: 'target', cardId: id }), pending);
+    lock(pending, id);
+    assert.equal(statusCount(findUnit(pending, id).card, 'lock'), 0);
   }
 });

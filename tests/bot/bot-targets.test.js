@@ -11,8 +11,9 @@ import { readBotLevel } from '../../docs/game/bot-levels.js';
 import { delayedCardValue, futureContext, remainingTurns } from '../../docs/game/bot-future-value.js';
 import { publicMatch } from '../../docs/game/bot-strategy.js';
 import { deckCardValue, effectSwing } from '../../docs/game/bot-effect-value.js';
-import { AWAKENING, CHOIR_CARDS, TENTACLE } from '../../docs/game/choir.js';
-import { FACTIONS, LARVA } from '../../docs/game/cards.js';
+import { AWAKENING, CHOIR_CARDS, LARGE_TENTACLE, TENTACLE } from '../../docs/game/choir.js';
+import { FACTIONS, FIRST_SIGNAL, LARVA } from '../../docs/game/cards.js';
+import { findCardDefinition } from '../../docs/game/card-registry.js';
 import { applyAction, canEndTurn, canPass, confirmMulligan, createMatch } from '../../docs/game/match.js';
 
 import { member, pass, plain, position, standard } from '../helpers/bot-strategy.js';
@@ -257,3 +258,31 @@ test('strategic placement respects a mandatory row even when the preferred row d
   }
 });
 
+
+test('level 7 locks the Greater Tentacle over a vanilla unit or an ordinary Tentacle', () => {
+  const match = position(1);
+  match.players.bot.hand = [createCard('suppressor', findCardDefinition('suppressor')), plain('spare', 4)];
+  match.players.human.board.surface = [plain('vanilla', 20), standard('tentacle', TENTACLE),
+    standard('greater', LARGE_TENTACLE)];
+  const pending = applyAction(match, 'bot', { type: 'play', cardId: 'suppressor', row: 'surface', position: 0 });
+  assert.deepEqual(chooseBotTurn(pending, 7, { rolloutSamples: 0 }), { type: 'target', cardId: 'greater' });
+});
+
+test('level 7 saves immediate enemy-only damage on the Captains’ opening turn', () => {
+  for (const card of [CAPTAIN_CARDS.find(({ id }) => id === 'broken-turret'), {
+    id: 'test-barrage', name: 'Test barrage', type: 'artifact', provision: 4,
+    deploy: { steps: [{ action: 'scatter', amount: 5 }] },
+  }]) {
+    const match = position(1);
+    match.players.bot.factionId = 'captains';
+    match.players.bot.board.surface = [standard(FIRST_SIGNAL.id, FIRST_SIGNAL)];
+    match.players.bot.hand = [standard('barrage', card), plain('productive', 4)];
+    match.players.human.board.surface = [];
+    match.players.human.board.orbit = [];
+    let candidates;
+    const action = chooseBotTurn(match, 7, { rolloutSamples: 0, onDecision: (decision) => { candidates = decision.candidates; } });
+    assert.equal(action.type, 'play');
+    assert.equal(action.cardId, 'productive');
+    assert.ok(!candidates.some(({ action }) => action.cardId === 'barrage'));
+  }
+});

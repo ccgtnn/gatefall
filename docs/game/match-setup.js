@@ -33,7 +33,9 @@ function shuffle(cards, random) {
 }
 
 function createLeader(leader, charges) {
-  return leader ? { ...leader, charges: leader.ability ? (leader.charges ?? charges) : 0 } : null;
+  if (!leader) return null;
+  const printedCharges = leader.charges ?? 1;
+  return { ...leader, charges: leader.ability ? (printedCharges === 1 ? charges : printedCharges) : 0 };
 }
 
 function createPlayer(side, definitions, random, factionId, leader, charges) {

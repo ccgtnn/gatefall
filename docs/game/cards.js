@@ -13,7 +13,7 @@ export { ANNIHILATION, NEUTRAL_CARDS, SHADOW } from './neutral-cards.js';
 export const FIRST_SIGNAL = Object.freeze({
   id: 'first-signal', name: 'Первый сигнал', type: 'artifact', stratagem: true, token: true,
   art: 'first-signal.webp', zeal: true, doomed: true,
-  text: 'Рвение. Обречённый. Приказ: усилить свой отряд на 5. После применения или в конце первого раунда уходит из игры.',
+  text: 'Рвение. Обречённый. Приказ: усиль выбранный свой отряд на 5. После применения или в конце первого раунда уходит из игры.',
   keywords: ['Приказ', 'Рвение', 'Усиление', 'Обречённость'],
   order: {
     ...ability([action('boost', chosen('ally'), 5), action('destroy', self)],

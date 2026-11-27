@@ -215,7 +215,7 @@ test('unused First Signal disappears in round one and is never redeployed', () =
 });
 
 
-test('a played card opens the order window and blocks a second card, pass and leader', () => {
+test('a played card opens the order window and blocks a second card or pass', () => {
   let match = confirmMulligan(setup(), []);
   match.players.human.hand = [unit('first'), unit('second')];
   assert.strictEqual(action(match, 'end-turn'), match);
@@ -226,7 +226,8 @@ test('a played card opens the order window and blocks a second card, pass and le
   assert.equal(canPass(match, 'human'), false);
   assert.strictEqual(action(match, 'play', 'second'), match);
   assert.strictEqual(action(match, 'pass'), match);
-  assert.strictEqual(action(match, 'leader'), match);
+  match = action(action(match, 'leader'), 'target', 'first');
+  assert.equal(match.players.human.leader.charges, 0);
   assert.strictEqual(action(match, 'end-turn', undefined, 'bot'), match);
   match = action(match, 'order', FIRST_SIGNAL.id);
   assert.equal(canEndTurn(match, 'human'), false);
@@ -278,6 +279,7 @@ test('the bot uses an order made legal by its play, or ends the turn if already 
 test('playing with no available order auto-ends even if there is a sleeping order on the board', () => {
   let match = confirmMulligan(setup('bot'), []);
   match = action(match, 'pass');
+  match.players.human.leader.charges = 0;
   match.players.human.hand = [unit('commander', 'commander'), unit('spare')];
   match = action(match, 'play', 'commander');
   assert.equal(match.players.human.turns, 1);

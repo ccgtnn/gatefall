@@ -1,6 +1,6 @@
 import { handCount } from './bot-hand.js';
-import { activeOrder, neighbors, opponent, ROW_LIMIT, statusCount } from './board.js';
-import { canUseLeader } from './effects.js';
+import { neighbors, opponent, ROW_LIMIT, statusCount } from './board.js';
+import { canGrantZeal, canUseLeader } from './effects.js';
 import { targets } from './effect-queries.js';
 import { cardAbilities, deathwishDefinitions } from './events.js';
 
@@ -15,14 +15,10 @@ export function offeringPriority(match, side, unit, amount) {
   return Number(fits) * 100 - card.power;
 }
 
-function orderCanBeReadied(unit, turns) {
-  return activeOrder(unit) && unit.card.readyAt > turns && unit.card.orderUsedTurn !== turns;
-}
-
 export function leaderTargetPriority(match, side, kind) {
-  if (kind === 'ready-order') {
+  if (kind === 'zeal') {
     const { turns } = match.players[side];
-    return (unit) => (orderCanBeReadied(unit, turns) ? 30 : 0) + Math.min(unit.card.power ?? 0, 20);
+    return (unit) => (canGrantZeal(unit, turns) ? 30 : 0) + Math.min(unit.card.power ?? 0, 20);
   }
   if (kind === 'shield') {
     return ({ card }) => {
@@ -52,11 +48,11 @@ export function preferredLeaderUse(match, side) {
   if (!canUseLeader(match, side)) return false;
   if (hints.leaderCoinsAtMost !== undefined) return (player.coins ?? 0) <= hints.leaderCoinsAtMost;
 
-  if (hints.leaderReadyOrder || hints.leaderShield) {
+  if (hints.leaderZeal || hints.leaderShield) {
     const [choice] = leader.ability.select;
     const candidates = targets(match, { side }, choice.targets, true);
     return handCount(player) <= 2 || candidates.some((unit) =>
-      hints.leaderReadyOrder ? orderCanBeReadied(unit, player.turns) : !statusCount(unit.card, 'shield'));
+      hints.leaderZeal ? canGrantZeal(unit, player.turns) : !statusCount(unit.card, 'shield'));
   }
 
   if (hints.leaderSpawn) return true;

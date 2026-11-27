@@ -373,31 +373,35 @@ test('Broken Turret repeats targets, retargets deaths and only fires at enemies 
     ['foe-0', 'foe-0', 'foe-1', 'foe-1', 'foe-1']);
   assert.equal(findUnit(match, 'foe-1').card.power, 2);
   assert.equal(findUnit(match, 'surface-1').card.power, 5);
-  assert.equal(findUnit(match, 'hand-1').card.timer, 1);
+  assert.equal(findUnit(match, 'hand-1').card.timer, 0);
   assert.equal(findUnit(match, 'hand-1').card.artState, undefined);
 });
 
-test('on its next owner turn the turret changes art, shoots one random ally, then disappears', () => {
+test('on its next owner turn the turret shoots one random ally, changes art and stays inert until the round ends', () => {
   const deployed = play(setup({ hand: [turret], orbit: [ordinary], surface: [ordinary] }));
   assert.ok(!deployed.log.some(turretShot));
   const next = playBotSpare(deployed, () => .99);
   const events = next.log.slice(deployed.log.length);
   const art = events.findIndex(({ type }) => type === 'art-state');
   const shot = events.findIndex(turretShot);
-  const destroy = events.findIndex(({ type, reason, cardId }) => type === 'death' && reason === 'destroy' && cardId === 'hand-1');
-  assert.ok(art >= 0 && shot > art && destroy > shot);
+  assert.ok(shot >= 0 && art > shot);
+  assert.equal(events.filter(turretShot).length, 1);
   assert.deepEqual([events[shot].cardId, events[shot].side, events[shot].amount, events[shot].sourceId],
     ['surface-1', 'human', 1, 'hand-1']);
   const replay = createPlaybackState(deployed);
   events.slice(0, shot).forEach((event) => applyJournalEvent(replay, event));
-  assert.equal(findUnit(replay, 'hand-1').card.artState, 'failing');
+  assert.equal(findUnit(replay, 'hand-1').card.artState, undefined);
   assert.equal(findUnit(replay, 'surface-1').card.power, 5);
   events.slice(shot).forEach((event) => applyJournalEvent(replay, event));
   assert.equal(findUnit(replay, 'surface-1').card.power, 4);
-  assert.equal(findUnit(replay, 'hand-1'), undefined);
+  assert.equal(findUnit(replay, 'hand-1').card.artState, 'failing');
   assert.equal(findUnit(next, 'orbit-1').card.power, 5);
-  assert.equal(findUnit(next, 'hand-1'), undefined);
-  assert.ok(human(next).discard.some(({ id }) => id === 'hand-1'));
+  assert.equal(findUnit(next, 'hand-1').card.artState, 'failing');
+  const played = applyAction(next, 'human', { type: 'play', cardId: 'hand-2', row: 'orbit', position: 1 });
+  const later = pass(played, 'human');
+  assert.equal(later.log.filter(turretShot).length, 1);
+  assert.equal(findUnit(later, 'hand-1'), undefined);
+  assert.ok(human(later).discard.some(({ id }) => id === 'hand-1'));
 });
 
 test('a turret with no allied target still breaks and one removed early cannot fire', () => {
@@ -405,7 +409,7 @@ test('a turret with no allied target still breaks and one removed early cannot f
   const noAlly = playBotSpare(deployed, () => 0);
   assert.ok(noAlly.log.some(({ type }) => type === 'art-state'));
   assert.ok(!noAlly.log.some(turretShot));
-  assert.equal(findUnit(noAlly, 'hand-1'), undefined);
+  assert.equal(findUnit(noAlly, 'hand-1').card.artState, 'failing');
   removeUnit(deployed, findUnit(deployed, 'hand-1'), 'destroy');
   const removed = playBotSpare(deployed, () => 0);
   assert.ok(!removed.log.some(({ type }) => type === 'art-state'));

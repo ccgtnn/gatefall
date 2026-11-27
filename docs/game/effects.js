@@ -40,6 +40,11 @@ export function orderAbility(order) {
   };
 }
 
+export function canGrantZeal(unit, turns) {
+  const { card } = unit;
+  return activeOrder(unit) && card.orderPlayedTurn === turns && card.readyAt > turns && card.orderUsedTurn !== turns;
+}
+
 export function availableOrders(match, side) {
   const player = match.players[side];
   return units(match, side).filter((unit) => {
@@ -108,6 +113,7 @@ export function enqueueEndTurn(match, side) {
     { source: card, journal: false }));
   for (const { card } of field) {
     const steps = statusEndTurn(card);
+    if (!isLocked(card) && card.timer > 0) match.effects.push({ side, sourceId: card.id, timerTick: true });
     if (!isLocked(card) && card.counter > 0) steps.push({ action: 'counter', target: { scope: 'source' } });
     if (steps.length) match.effects.push({
       ability: { steps },
@@ -131,8 +137,9 @@ export function enqueueStartTurn(match, side) {
     if (match.players[side].rowEffects?.[row]) match.effects.push({ side, row, rowTick: true });
   }
   for (const { card } of field) {
-    if (card.timer > 0 && (cardAbilities(card).startTurn || cardAbilities(card).startTurnPulse)) {
-      match.effects.push({ side, sourceId: card.id, startTimer: true });
+    if (card.timer === 0 && !card.timerStartResolved && cardAbilities(card).timerNextTurn) {
+      card.timerStartResolved = true;
+      enqueueCardEffect(match, side, card, 'timerNextTurn');
     }
   }
 }
@@ -173,12 +180,12 @@ function playChapter(match, job) {
 export function runEffect(match, job, random) {
   if (job.rowTick) return tickRow(match, job, random);
   if (job.scenarioChapter) return playChapter(match, job);
-  if (job.startTimer) {
+  if (job.timerTick) {
     const source = reference(match, job);
-    if (!source || isLocked(source.card) || !(source.card.timer > 0)) return;
+    if (!source || source.side !== job.side || isLocked(source.card) || !(source.card.timer > 0)) return;
     const expired = tickTimer(match, source);
-    enqueueCardEffect(match, source.side, source.card, 'startTurnPulse');
-    if (expired) enqueueCardEffect(match, source.side, source.card, 'startTurn');
+    enqueueCardEffect(match, source.side, source.card, 'timerPulse');
+    if (expired) enqueueCardEffect(match, source.side, source.card, 'timerExpired');
     return;
   }
   const needsSource = job.requiredSource || job.ability.sourceRow;

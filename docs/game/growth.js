@@ -30,7 +30,7 @@ const chooseLarvaRow = (amount, prompt) => ability([
 const acidGland = Object.freeze({
   id: 'acid-gland', name: 'Кислотная железа', faction: 'growth', type: 'unit',
   power: 2, provision: 4, rarity: 'bronze', art: 'acid-gland.webp', categories: ['Гниль'],
-  text: 'Завещание: наложить Заражение 4 на сильнейший вражеский отряд.',
+  text: 'Завещание: наложи Заражение 4 на сильнейший вражеский отряд.',
   deathwish: ability([{ ...infect({ ...enemies, strongest: true }, 4), mode: 'random' }]), keywords: ['Завещание', 'Заражение'],
 });
 const rotRow = ability([
@@ -42,7 +42,7 @@ const growth = [
   {
     id: 'cocoon', name: 'Кокон', provision: 4, power: 3,
     type: 'unit', rarity: 'bronze', faction: 'growth',
-    text: 'При розыгрыше: породить по личинке с каждой стороны. Завещание: породи 2 личинки.',
+    text: 'При розыгрыше: породи по личинке с каждой стороны. Завещание: породи 2 личинки.',
     art: 'cocoon.webp',
     categories: ['Выводок'],
     deploy: ability([spawn('left'), spawn('right')]),
@@ -64,7 +64,7 @@ const growth = [
   {
     id: 'vine', name: 'Ползучая лоза', provision: 6, power: 2,
     type: 'unit', rarity: 'bronze', faction: 'growth',
-    text: 'В конце своего хода: увеличь n на 1. Завещание: наложи Заражение 2 на 1 + n случайных вражеских отрядов.',
+    text: 'В конце твоего хода: увеличь n на 1. Завещание: наложи Заражение 2 на 1 + n случайных вражеских отрядов.',
     art: 'vine.webp',
     categories: ['Росток'],
     growth: { label: 'n' },
@@ -75,7 +75,7 @@ const growth = [
   {
     id: 'spore-sac', name: 'Споровый мешок', provision: 4, power: 1,
     type: 'unit', rarity: 'bronze', faction: 'growth',
-    text: 'Броня 1. Завещание: породи личинку. В конце своего хода: сила будущей личинки +1.',
+    text: 'Броня 1. Завещание: породи личинку. В конце твоего хода: увеличь силу будущей личинки на 1.',
     art: 'spore-sac.webp',
     armor: 1,
     categories: ['Росток'],
@@ -87,7 +87,7 @@ const growth = [
   {
     id: 'incubator', name: 'Инкубатор', provision: 7,
     type: 'artifact', rarity: 'epic', faction: 'growth',
-    text: 'Стойкость. В конце хода: породить личинку справа. Приказ: породи 2 личинки в выбранном своём ряду.',
+    text: 'Стойкость. В конце твоего хода: породи личинку справа. Приказ: породи 2 личинки в выбранном своём ряду.',
     resilience: true,
     art: 'incubator.webp',
     categories: ['Выводок'],
@@ -100,7 +100,7 @@ const growth = [
   {
     id: 'scavenger', name: 'Трупоед', provision: 5, power: 4,
     type: 'unit', rarity: 'bronze', faction: 'growth',
-    text: 'Рвение. Приказ: поглотить другой свой отряд. Перезарядка: 2 хода.',
+    text: 'Рвение. Приказ: поглоти выбранный другой свой отряд. Перезарядка: 2 хода.',
     art: 'scavenger.webp',
     categories: ['Выводок'],
     zeal: true,
@@ -114,7 +114,7 @@ const growth = [
   {
     id: 'gulper', name: 'Пожиратель личинок', provision: 6, power: 4,
     type: 'unit', rarity: 'bronze', faction: 'growth',
-    text: 'При розыгрыше: поглотить все личинки в своём ряду.',
+    text: 'При розыгрыше: поглоти всех личинок в своём ряду.',
     art: 'gulper.webp',
     categories: ['Выводок'],
     aiHints: { placement: 'consume-row' },
@@ -124,7 +124,7 @@ const growth = [
   {
     id: 'spitter', name: 'Кислотный плевун', provision: 5, power: 3,
     type: 'unit', rarity: 'bronze', faction: 'growth',
-    text: 'При розыгрыше: поглотить свою личинку и наложить Заражение 3 на выбранный вражеский отряд. Приказ: наложить Заражение 3 на выбранный вражеский отряд. Перезарядка: 2 хода.',
+    text: 'При розыгрыше: поглоти выбранную свою личинку и наложи Заражение 3 на выбранный вражеский отряд. Приказ: наложи Заражение 3 на выбранный вражеский отряд. Перезарядка: 2 хода.',
     art: 'spitter.webp',
     categories: ['Гниль'],
     aiHints: { placement: 'consume-row' },
@@ -147,7 +147,7 @@ const growth = [
   {
     id: 'swarm-call', name: 'Зов роя', provision: 5,
     type: 'effect', rarity: 'bronze', faction: 'growth',
-    text: 'Сыграй из колоды случайный обычный отряд Поросли и породи личинку рядом с ним.',
+    text: 'Сыграй из колоды случайный обычный отряд Поросли и породи личинку справа от него.',
     art: 'swarm-call.webp',
     categories: ['Выводок'],
     deploy: ability([{ action: 'play-from-deck',
@@ -157,7 +157,7 @@ const growth = [
   {
     id: 'nest', name: 'Гнездо-мать', provision: 9, power: 3,
     type: 'unit', rarity: 'epic', faction: 'growth',
-    text: 'В конце хода: породить по личинке в каждом своём ряду.',
+    text: 'В конце твоего хода: породи по личинке в каждом своём ряду.',
     art: 'nest.webp',
     categories: ['Выводок'],
     endTurn: ability([spawn('right', 'all')]),
@@ -166,7 +166,7 @@ const growth = [
   {
     id: 'colossus', name: 'Колосс', provision: 8, power: 5,
     type: 'unit', rarity: 'gold', faction: 'growth',
-    text: 'При розыгрыше: поглотить всех своих соседей.',
+    text: 'При розыгрыше: поглоти всех своих соседей.',
     art: 'colossus.webp',
     categories: ['Выводок'],
     aiHints: { placement: 'consume-neighbors' },
@@ -176,7 +176,7 @@ const growth = [
   {
     id: 'ravager', name: 'Выводок-разоритель', provision: 9, power: 4,
     type: 'unit', rarity: 'epic', faction: 'growth',
-    text: 'При розыгрыше: поглотить свой отряд и нанести урон врагу в размере силы жертвы.',
+    text: 'При розыгрыше: поглоти выбранный другой свой отряд и нанеси выбранному вражескому отряду урон, равный силе жертвы.',
     art: 'ravager.webp',
     categories: ['Выводок'],
     deploy: ability([
@@ -205,7 +205,7 @@ const plague = [
   {
     id: 'rot-midge', name: 'Гнилостная мошка', provision: 4, power: 3,
     type: 'unit', rarity: 'bronze', faction: 'growth',
-    text: 'Рвение. Приказ: наложить Заражение 2 на выбранный вражеский отряд. Перезарядка: 2 хода.',
+    text: 'Рвение. Приказ: наложи Заражение 2 на выбранный вражеский отряд. Перезарядка: 2 хода.',
     categories: ['Гниль'],
     art: 'rot-midge.webp',
     zeal: true,
@@ -225,7 +225,7 @@ const plague = [
   {
     id: 'rot-scavenger', name: 'Падальщик гнили', provision: 4, power: 5,
     type: 'unit', rarity: 'bronze', faction: 'growth',
-    text: 'При розыгрыше: усилить себя на 1 за каждый заражённый вражеский отряд.',
+    text: 'При розыгрыше: усиль себя на 1 за каждый заражённый вражеский отряд.',
     categories: ['Гниль'],
     art: 'rot-scavenger.webp',
     deploy: ability([action('boost', self, { count: infectedEnemies })]),
@@ -234,7 +234,7 @@ const plague = [
   {
     id: 'boil', name: 'Нарывник', provision: 4, power: 1,
     type: 'unit', rarity: 'bronze', faction: 'growth',
-    text: 'Броня 1. В конце своего хода: усиль себя на 1. Уязвимость: погибает и оставляет на своём месте 3 личинки.',
+    text: 'Броня 1. В конце твоего хода: усиль себя на 1. Уязвимость: погибает и оставляет на своём месте 3 личинки.',
     categories: ['Гниль'],
     art: 'boil.webp',
     artCrop: 'boil-crop.webp',
@@ -255,7 +255,7 @@ const plague = [
   {
     id: 'rot', name: 'Гниение', provision: 4,
     type: 'effect', rarity: 'bronze', faction: 'growth',
-    text: 'Наложить Гниение на выбранный вражеский ряд на 3 хода.',
+    text: 'Наложи Гниение на выбранный вражеский ряд на 3 хода.',
     categories: ['Гниль'],
     art: 'rot.webp',
     deploy: rotRow,
@@ -264,7 +264,7 @@ const plague = [
   {
     id: 'rot-giant', name: 'Гнилой исполин', provision: 11, power: 3,
     type: 'unit', rarity: 'gold', faction: 'growth',
-    text: 'Пока в колоде или руке: +1 к базовой силе за каждое первое Заражение вражеского отряда. При розыгрыше: 1 урон каждому заражённому вражескому отряду.',
+    text: 'Пока в колоде или руке: +1 к базовой силе за каждое первое Заражение вражеского отряда. При розыгрыше: нанеси 1 урон каждому заражённому вражескому отряду.',
     categories: ['Гниль'],
     art: 'rot-giant.webp',
     pileEvents: { 'first-infection': { enemy: true, ability: ability([action('base-power', self, 1)]) } },
@@ -274,7 +274,7 @@ const plague = [
   {
     id: 'pestilence', name: 'Мор', provision: 8,
     type: 'effect', rarity: 'gold', faction: 'growth',
-    text: 'Наложить Гниение на оба вражеских ряда на 3 хода.',
+    text: 'Наложи Гниение на оба вражеских ряда на 3 хода.',
     categories: ['Гниль'],
     art: 'pestilence.webp',
     deploy: ability([rot('all', 3)]),
@@ -294,7 +294,7 @@ const plague = [
     type: 'artifact', rarity: 'gold', faction: 'growth',
     text: [
       'Главы открываются по одной, когда ты разыгрываешь карту категории Гниль.',
-      'Пролог: призови Кислотную железу слева и справа.',
+      'Пролог: призови по Кислотной железе слева и справа.',
       'Глава 1: наложи Гниение на выбранный вражеский ряд на 3 хода.',
       'Глава 2: нанеси 2 урона всем заражённым вражеским отрядам.',
     ].join('\n'),
@@ -349,7 +349,7 @@ const rebirth = [
   {
     id: 'bioreactor', name: 'Биореактор', provision: 8, power: 3,
     type: 'unit', rarity: 'gold', faction: 'growth',
-    text: 'Неуязвимость. При розыгрыше: поочерёдно поглоти до 3 других своих отрядов, выбирая их по одному.',
+    text: 'Неуязвимость. При розыгрыше: поочерёдно поглоти 3 других своих отрядов, выбирая их по одному.',
     categories: ['Росток'],
     art: 'bioreactor.webp',
     immune: true,
@@ -390,7 +390,7 @@ const growthLeaders = Object.freeze([
     ability: chooseLarvaRow(1, 'Выбери свой ряд для личинки Матки.'),
   },
   {
-    id: 'carrier', provisionBonus: 15, name: 'Носитель', art: 'carrier.webp', keywords: ['Заражение'], text: 'Наложить Заражение 3 на вражеский отряд и его соседей.',
+    id: 'carrier', provisionBonus: 15, name: 'Носитель', art: 'carrier.webp', keywords: ['Заражение'], charges: 1, order: { cooldown: 0, usesCharges: true }, text: 'Приказ (1 заряд): наложи Заражение 3 на выбранный вражеский отряд и его соседей.',
     aiHints: { leaderChargeValue: 4 },
     ability: ability([
       { ...action('status', chosen('enemy'), 3), status: 'infection' },

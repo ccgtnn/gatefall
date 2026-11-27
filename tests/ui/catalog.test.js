@@ -33,9 +33,9 @@ test('Hound tokens stay outside the catalog with or without inventory filters', 
 
 test('catalog searches both name and card text, ignoring case and ё spelling', () => {
   assert.ok(ids({ query: '  АННИГИЛЯЦИЯ  ' }).includes('annihilation'));
-  assert.deepEqual(ids({ query: 'Файлура породи 2 тени' }), ['falura']);
-  assert.ok(ids({ query: 'пепел звёзд' }).includes('falura'));
-  assert.equal(cards.find(({ id }) => id === 'falura').name, 'Файлура, Пепел Звезд');
+  assert.deepEqual(ids({ query: 'Файлура призови 2 тени' }), ['falura']);
+  assert.ok(ids({ query: 'пепел звезд' }).includes('falura'));
+  assert.equal(cards.find(({ id }) => id === 'falura').name, 'Файлура, Пепел Звёзд');
   assert.deepEqual(ids({ query: 'неттакойкарты' }), []);
 });
 

@@ -47,7 +47,7 @@ function factionMark(faction) {
 }
 
 export function decorateCard(node, card, player, { orderOnField = false,
-  showProvision = false, showFaction = false, fullArt = false, lazyArt = false, orderReady = false, orderCooldown = 0, frame } = {}) {
+  showProvision = false, showFaction = false, fullArt = false, lazyArt = false, staticArt = false, orderReady = false, orderCooldown = 0, frame } = {}) {
   const { definition } = card;
   const type = cardType(card);
   node.dataset.type = type;
@@ -68,7 +68,7 @@ export function decorateCard(node, card, player, { orderOnField = false,
   if (definition.categories?.length) node.append(element('span', 'card-category', definition.categories.join(' · ')));
   const alternateArt = definition.artStates?.[card.artState];
   const artwork = alternateArt ? { ...definition, art: alternateArt, artCrop: alternateArt } : definition;
-  addCardCrop(node, artwork, { fullArt, lazyArt });
+  addCardCrop(node, artwork, { fullArt, lazyArt, staticArt });
   if (!definition.art) node.append(element('span', 'card-art-placeholder', definition.name));
 }
 
@@ -117,7 +117,7 @@ function liveBadges(node, card, { orderOnField, showProvision, orderReady, order
   const growth = growthValue(card);
   if (growth !== undefined) badges.push(statBadge('hourglass', definition.growth.label + ': ' + growth, growth));
   if (counter > 0) badges.push(statBadge('hourglass', 'Счётчик ' + counter, counter));
-  if (timer !== undefined) badges.push(statBadge('hourglass', 'Таймер ' + timer, timer));
+  if (timer > 0) badges.push(statBadge('hourglass', 'Таймер ' + timer, timer));
   if (definition.order && !orderOnField) {
     const label = orderReady ? 'Приказ готов' : orderCooldown ? 'Перезарядка Приказа: ' + orderCooldown : 'Приказ';
     badges.push(orderBadge(orderReady, orderCooldown, card.orderCharges === undefined

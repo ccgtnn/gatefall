@@ -229,8 +229,9 @@ export interface CardDefinition {
   aiHints?: Readonly<Record<string, number | boolean | string>>;
   deploy?: Ability;
   initiative?: Ability;
-  startTurn?: Ability;
-  startTurnPulse?: Ability;
+  timerPulse?: Ability;
+  timerExpired?: Ability;
+  timerNextTurn?: Ability;
   endTurn?: Ability;
   deathwish?: Ability;
   order?: CardOrder;
@@ -247,6 +248,8 @@ export interface CardInstance {
   id: string;
   definition: CardDefinition;
   readyAt: number;
+  orderPlayedTurn?: number;
+  timerStartResolved?: boolean;
   power?: number;
   basePower?: number;
   armor?: number;
@@ -340,7 +343,7 @@ export interface EffectJob {
   discard?: CardInstance;
   rowTick?: boolean;
   scenarioChapter?: boolean;
-  startTimer?: boolean;
+  timerTick?: boolean;
   cardAbility?: boolean;
   requiredSource?: boolean;
   started?: boolean;

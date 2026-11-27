@@ -47,7 +47,7 @@ export function spendResilience(card) {
 }
 
 function setOrderReadiness(player, card) {
-  card.readyAt = player.turns + Number(!card.definition.zeal);
+  card.readyAt = player.turns + Number(!(card.definition.stratagem && card.definition.zeal));
 }
 
 export function placeCards(player, row, position, cards) {
@@ -106,6 +106,11 @@ export function recordCardPlay(player, card) {
 export function announcePlay(match, side, card, destination, extra) {
   const firstLegendary = recordCardPlay(match.players[side], card);
   const boardSide = destination && placementSide(side, card);
+  if (boardSide && cardAbilities(card).order) {
+    const { turns } = match.players[boardSide];
+    card.orderPlayedTurn = turns;
+    if (card.definition.zeal) card.readyAt = turns;
+  }
   const reactions = emit(match, { type: 'play', side, ...(boardSide && boardSide !== side && { boardSide }), row: destination?.row, name: card.definition.name,
     power: card.power, cardType: cardType(card), cardId: card.id,
     card: { ...card }, position: destination?.position, ...extra }, { played: card, firstLegendary });
@@ -139,11 +144,12 @@ export function capture(match, side, unit) {
   const player = match.players[side];
   previous.board[unit.row].splice(unit.position, 1);
   card.owner ??= unit.side;
+  delete card.orderPlayedTurn;
   card.readyAt = player.turns + Math.max(0, card.readyAt - previous.turns);
   if (card.orderUsedTurn === previous.turns) card.orderUsedTurn = player.turns;
   else delete card.orderUsedTurn;
   for (const job of match.effects) {
-    if (job.sourceId === card.id && (job.requiredSource || job.startTimer || job.scenarioChapter) && !job.piles) job.side = side;
+    if (job.sourceId === card.id && (job.requiredSource || job.scenarioChapter) && !job.piles) job.side = side;
   }
   const position = player.board[row].length;
   player.board[row].push(card);
