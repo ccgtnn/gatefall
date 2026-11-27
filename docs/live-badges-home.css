@@ -402,5 +402,6 @@ body:has(.is-deck-home, #screen > :is(.league-panel, .rank-panel, .decorations-p
   #app.is-deck-home { padding-block-start: var(--section-content-top); }
   .is-deck-home .brand-logo { width: min(37vw, 20rem); }
   .deck-home { gap: .85rem; }
-  .campaign-slot { min-height: 3rem; }
+  .campaign-slot { aspect-ratio: 3.9 / 1; }
+  .is-deck-home .home-tile { min-height: 3rem; }
 }
