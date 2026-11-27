@@ -130,3 +130,23 @@ body:has(#app[data-reduced-motion="true"]) .field-drawer[open] { animation: none
     font-size: 1.3rem;
   }
 }
+
+.cloud-settings {
+  border-top: 1px solid #777d8970;
+  margin-top: .9rem;
+  padding-top: .8rem;
+}
+.cloud-settings h3, .cloud-settings p:not(:empty) { margin: 0 0 .65rem; }
+.cloud-settings .settings-actions { margin: .5rem 0; align-items: end; }
+.cloud-email { display: grid; gap: .2rem; min-width: 0; }
+.cloud-email input {
+  width: 100%;
+  min-height: 2rem;
+  padding: .2rem .45rem;
+  border: 1px solid #777d89;
+  border-radius: 4px;
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+}
+.cloud-account { overflow-wrap: anywhere; }
