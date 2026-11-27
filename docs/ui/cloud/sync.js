@@ -1,12 +1,18 @@
+import { DECK_STORAGE_KEY } from '../deck-storage.js';
+import { FACTION_STATS_KEY } from '../stats.js';
+import { SYNC_META_PREFIX } from './auth.js';
 import {
   markProgressChange, progressChangedAt, readSnapshot, replaceSnapshot, validateSnapshot, withProgressLock,
 } from './snapshot.js';
 
 const SELECT = 'data,version,updated_at,device';
-const META_PREFIX = 'gatefall-cloud.sync.';
+const SYNC_LOCK = 'gatefall-cloud.sync';
+const KEEPALIVE_LIMIT = 60_000;
 const DEVICE_KEY = 'gatefall-cloud.device';
 const DELAY_MS = 3000;
 const matches = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+const snapshotFingerprint = (data) => 'snapshot:' + JSON.stringify(data);
+const byteLength = (text) => new TextEncoder().encode(text).length;
 
 async function fingerprint(data) {
   const bytes = new TextEncoder().encode(JSON.stringify(data));
@@ -22,6 +28,22 @@ function progressRow(rows) {
   return { ...row, data: validateSnapshot(row.data) };
 }
 
+function storedProgress(data, key) {
+  try { return JSON.parse(data[key]); } catch { return undefined; }
+}
+
+export function progressActivity(data) {
+  const decks = storedProgress(data, DECK_STORAGE_KEY);
+  const stats = storedProgress(data, FACTION_STATS_KEY);
+  return {
+    decks: Array.isArray(decks) ? decks.filter((deck) =>
+      typeof deck?.id === 'string' && !deck.id.startsWith('preset-')).length : undefined,
+    matches: stats && typeof stats === 'object' ? Object.values(stats).reduce((total, tally) =>
+      total + [tally?.win, tally?.loss].reduce((sum, count) =>
+        sum + (Number.isSafeInteger(count) && count > 0 ? count : 0), 0), 0) : undefined,
+  };
+}
+
 export function createCloudSync({
   storage, auth, request, locks, inMatch, chooseConflict, onReplaced, now = Date.now, deviceName = 'Браузер',
 }) {
@@ -33,14 +55,15 @@ export function createCloudSync({
   let dismissedVersion;
   let epoch = 0;
   let status = '';
+  let readyAccount;
   const listeners = new Set();
 
   function meta(id) {
-    try { return JSON.parse(storage?.getItem(META_PREFIX + id) ?? '{}') ?? {}; } catch { return {}; }
+    try { return JSON.parse(storage?.getItem(SYNC_META_PREFIX + id) ?? '{}') ?? {}; } catch { return {}; }
   }
 
   function saveMeta(id, value) {
-    storage.setItem(META_PREFIX + id, JSON.stringify(value));
+    storage.setItem(SYNC_META_PREFIX + id, JSON.stringify(value));
   }
 
   function updateStatus(text) {
@@ -65,7 +88,7 @@ export function createCloudSync({
 
   async function api(path, options, account, active) {
     const current = await auth.access();
-    if (!current || !active()) return null;
+    if (current?.user.id !== account || !active()) return null;
     try {
       return await request(path, { ...options, token: current.accessToken });
     } catch (error) {
@@ -76,30 +99,83 @@ export function createCloudSync({
     }
   }
 
-  async function reconcile({ manual, keepalive }) {
-    const account = auth.session()?.user.id;
-    if (!account || paused || reloading) return;
-    const attempt = epoch;
-    const { reset } = meta(account);
+  const filterFor = (account) => '/rest/v1/progress?user_id=eq.' + encodeURIComponent(account);
+
+  function payload(data, version) {
+    let device = storage.getItem(DEVICE_KEY);
+    if (!device) {
+      device = deviceName + ' · ' + crypto.randomUUID().slice(0, 8);
+      storage.setItem(DEVICE_KEY, device);
+    }
+    return { data, version, device, updated_at: new Date(now()).toISOString() };
+  }
+
+  function recordPending(account, version, digest) {
+    const baseline = meta(account);
+    const previous = baseline.pending;
+    if (previous?.version === version &&
+        [previous.fingerprint, ...(previous.alternates ?? [])].includes(digest)) return;
+    const pending = { version, fingerprint: digest };
+    // A hidden tab can send a competing CAS while a foreground write is in flight.
+    if (previous?.version === version) {
+      pending.alternates = [previous.fingerprint, ...(previous.alternates ?? [])];
+    }
+    saveMeta(account, { ...baseline, pending });
+  }
+
+  function saveOnHide() {
+    const current = auth.session();
+    if (!current || paused || reloading) return;
+    try {
+      const account = current.user.id;
+      const baseline = meta(account);
+      if (!baseline.fingerprint || baseline.reset || !Number.isSafeInteger(baseline.version)) return;
+      // Before a legacy baseline has been reconciled, only a newer player write can trigger keepalive.
+      if (!baseline.hiddenFingerprint && !(Date.parse(progressChangedAt(storage)) >= baseline.lastSync)) return;
+      const data = readSnapshot(storage);
+      // Keepalive starts in this event handler. The canonical text avoids waiting for Web Crypto.
+      const digest = snapshotFingerprint(data);
+      if (baseline.hiddenFingerprint === digest || (baseline.pending?.version === baseline.version + 1 &&
+          [baseline.pending.fingerprint, ...(baseline.pending.alternates ?? [])].includes(digest))) return;
+      const body = payload(data, baseline.version + 1);
+      if (byteLength(JSON.stringify(body)) >= KEEPALIVE_LIMIT) return;
+      recordPending(account, body.version, digest);
+      void request(filterFor(account) + '&version=eq.' + baseline.version, {
+        method: 'PATCH', body, token: current.accessToken,
+        headers: { Prefer: 'return=representation' }, keepalive: true,
+      }).catch(() => {});
+    } catch {
+      // The foreground reconciliation can retry storage and network operations.
+    }
+  }
+
+  async function reconcile({ manual, account, attempt }) {
+    let { reset } = meta(account);
     const active = () => !paused && !reloading && attempt === epoch &&
       auth.session()?.user.id === account && meta(account).reset === reset;
+    if (!active()) return;
     if (reset === 'keep-cloud' && !manual) {
       updateStatus('Облачная копия сохранена. Для выбора копии запусти синхронизацию вручную.');
       return;
     }
-    const filter = '/rest/v1/progress?user_id=eq.' + encodeURIComponent(account);
+    const filter = filterFor(account);
     const read = async () => {
-      const rows = await api(filter + '&select=' + SELECT, { keepalive }, account, active);
+      const rows = await api(filter + '&select=' + SELECT, {}, account, active);
       return active() ? progressRow(rows) : null;
     };
 
-    function remember(row, digest) {
+    function remember(row, digest, settled = true) {
       const previous = meta(account);
       if (previous.version > row.version) return;
       const lastSync = now();
-      saveMeta(account, { version: row.version, fingerprint: digest, lastSync });
+      const snapshot = snapshotFingerprint(row.data);
+      const hiddenFingerprint = byteLength(snapshot) < KEEPALIVE_LIMIT ? snapshot : undefined;
+      saveMeta(account, { version: row.version, fingerprint: digest, hiddenFingerprint, lastSync });
       dismissedVersion = undefined;
-      showSynced(lastSync);
+      if (settled) {
+        readyAccount = account;
+        showSynced(lastSync);
+      }
     }
 
     async function useCloud(remote, local) {
@@ -120,27 +196,21 @@ export function createCloudSync({
         }
         replaceSnapshot(storage, remote.data);
         markProgressChange(storage, remote.updated_at);
-        remember(remote, digest);
         reloading = true;
+        remember(remote, digest);
         onReplaced();
       });
     }
 
     async function write(remote, data, digest) {
-      const version = remote ? remote.version + 1 : 1;
-      let device = storage.getItem(DEVICE_KEY);
-      if (!device) {
-        device = deviceName + ' · ' + crypto.randomUUID().slice(0, 8);
-        storage.setItem(DEVICE_KEY, device);
-      }
-      const body = { data, version, device, updated_at: new Date(now()).toISOString() };
+      const body = payload(data, remote ? remote.version + 1 : 1);
+      if (remote) recordPending(account, body.version, digest);
       let rows;
       try {
         rows = await api(remote ? filter + '&version=eq.' + remote.version : '/rest/v1/progress', {
           method: remote ? 'PATCH' : 'POST',
           body: remote ? body : { ...body, user_id: account },
           headers: { Prefer: 'return=representation' },
-          keepalive: keepalive && new TextEncoder().encode(JSON.stringify(body)).length < 60_000,
         }, account, active);
       } catch (error) {
         if (remote || error?.status !== 409) throw error;
@@ -158,7 +228,18 @@ export function createCloudSync({
     let local = readSnapshot(storage);
     let digest = await fingerprint(local);
     if (!active()) return;
-    const baseline = meta(account);
+    let baseline = meta(account);
+    const pending = baseline.pending;
+    if (remote && reset !== 'keep-cloud' && pending?.version === remote.version) {
+      const cloudDigest = await fingerprint(remote.data);
+      if (!active()) return;
+      const candidates = [pending.fingerprint, ...(pending.alternates ?? [])];
+      if (candidates.includes(cloudDigest) || candidates.includes(snapshotFingerprint(remote.data))) {
+        remember(remote, cloudDigest, false);
+        baseline = meta(account);
+        reset = baseline.reset;
+      }
+    }
     if (remote && baseline.version > remote.version) {
       schedule();
       return;
@@ -167,16 +248,26 @@ export function createCloudSync({
       remember(remote, digest);
       return;
     }
-    if (remote && !reset && (baseline.fingerprint === digest || (!baseline.fingerprint && !Object.keys(local).length))) {
+    const { decks, matches: played } = progressActivity(local);
+    if (remote && !reset && (baseline.fingerprint === digest || (!baseline.fingerprint && !decks && !played))) {
       await useCloud(remote, local);
       return;
     }
-    if (!remote || reset === 'overwrite' || (!reset && remote.version === baseline.version)) {
+    if ((!remote && !baseline.version) || reset === 'overwrite' ||
+        (remote && !reset && baseline.fingerprint && remote.version === baseline.version)) {
       if (await write(remote, local, digest)) return;
       remote = await read();
       if (!active()) return;
-      if (!remote) throw new Error('Версия облачного прогресса изменилась.');
+      if (remote && (matches(local, remote.data) || matches(readSnapshot(storage), remote.data))) {
+        const remoteDigest = await fingerprint(remote.data);
+        if (active()) {
+          remember(remote, remoteDigest);
+          if (!matches(readSnapshot(storage), remote.data)) schedule();
+        }
+        return;
+      }
     }
+    if (!remote) throw new Error('Облачная копия не найдена.');
 
     if (inMatch()) {
       updateStatus('Разные версии прогресса. Выбор копии доступен после выхода из матча.');
@@ -185,7 +276,9 @@ export function createCloudSync({
     local = readSnapshot(storage);
     updateStatus('Прогресс на этом устройстве и в облаке разный.');
     if (!manual && dismissedVersion === remote.version) return;
-    const choice = await chooseConflict({ localAt: progressChangedAt(storage), remote });
+    const choice = await chooseConflict({
+      local, localAt: progressChangedAt(storage), remote, hasBaseline: Boolean(baseline.fingerprint),
+    });
     if (!active()) return;
     if (!choice) {
       dismissedVersion = remote.version;
@@ -203,17 +296,19 @@ export function createCloudSync({
     }
   }
 
-  function run({ manual = false, keepalive = false } = {}) {
+  function run({ manual = false } = {}) {
     clearTimeout(timer);
     if (job) {
-      if (manual) return job.then(() => run({ manual, keepalive }));
+      if (manual) return job.then(() => run({ manual }));
       queued = true;
       return job;
     }
-    if (!auth.session() || paused || reloading) return Promise.resolve();
+    const account = auth.session()?.user.id;
+    if (!account || paused || reloading) return Promise.resolve();
     const attempt = epoch;
     updateStatus('Синхронизация…');
-    job = reconcile({ manual, keepalive }).catch((error) => {
+    const task = () => reconcile({ manual, account, attempt });
+    job = Promise.resolve().then(() => locks ? locks.request(SYNC_LOCK, task) : task()).catch((error) => {
       if (attempt === epoch && auth.session()) {
         updateStatus(error?.status === 0 ? 'Нет сети' : 'Ошибка синхронизации. Попробуй снова.');
       }
@@ -245,11 +340,13 @@ export function createCloudSync({
     epoch += 1;
     clearTimeout(timer);
     dismissedVersion = undefined;
+    readyAccount = undefined;
     updateStatus('');
   }
 
   return {
-    run, schedule, reset, accountChanged,
+    run, schedule, reset, accountChanged, saveOnHide,
+    ready: () => !reloading && (!auth.session() || readyAccount === auth.session().user.id),
     status: () => status,
     reloading: () => reloading,
     version: () => meta(auth.session()?.user.id).version ?? 0,

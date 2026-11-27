@@ -130,7 +130,7 @@ test('level 6 anticipates a visible Surface-only reply without reading the enemy
   match.players.bot.board.surface = [standard('armor-aura', {
     type: 'artifact', endTurn: { steps: [{ action: 'armor', target: { scope: 'neighbors' }, amount: 1 }] },
   })];
-  match.players.human.leader = { name: 'Surface battery', charges: 1, ability: {
+  match.players.human.leader = { name: 'Surface battery', charges: 1, order: { cooldown: 0, usesCharges: true }, ability: {
     select: [{ ref: 'enemy', targets: { scope: 'enemy', type: 'unit', row: 'surface' } }],
     steps: [{ action: 'damage', target: { scope: 'ref', ref: 'enemy' }, amount: 6 }],
   } };

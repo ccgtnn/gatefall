@@ -71,3 +71,38 @@ test('bot-future-value does not close the direct bot-evaluation cycle', () => {
   assert.ok(futureImports.includes('./bot-weights.js'));
   assert.ok(importsOf(sources.get('bot/bot-evaluation.js')).includes('./bot-weights.js'));
 });
+
+// Existing directed cycles. List each simple path explicitly so a new connection
+// within an existing group still fails, even when the group of files stays the same.
+const knownCycles = new Set([
+  'bot/bot-effect-value.js -> bot/bot-evaluation.js -> bot/bot-effect-value.js',
+  'bot/bot-effect-value.js -> bot/bot-evaluation.js -> bot/bot-future-value.js -> bot/bot-effect-value.js',
+  'bot/bot-effect-value.js -> bot/bot-future-value.js -> bot/bot-effect-value.js',
+  'effects/effect-operations.js -> effects/effects.js -> effects/effect-operations.js',
+  'engine/board-placement.js -> engine/board-power.js -> engine/board-placement.js',
+  'engine/board-placement.js -> engine/board-power.js -> engine/board-status.js -> engine/board-placement.js',
+  'engine/board-power.js -> engine/board-status.js -> engine/board-power.js',
+]);
+
+test('game modules introduce no new import cycles', () => {
+  const graph = new Map([...sources].map(([from, source]) => [from, new Set(importsOf(source)
+    .filter((specifier) => specifier.startsWith('.'))
+    .map((specifier) => join(dirname(from), specifier).split(sep).join('/'))
+    .filter((to) => sources.has(to)))]));
+  const unexpected = [];
+  for (const start of graph.keys()) {
+    function visit(path) {
+      for (const next of graph.get(path.at(-1))) {
+        if (next === start) {
+          const cycle = [...path, start].join(' -> ');
+          if (!knownCycles.has(cycle)) unexpected.push(cycle);
+        } else if (next > start && !path.includes(next)) {
+          // Start at the smallest path in each cycle to count rotations once.
+          visit([...path, next]);
+        }
+      }
+    }
+    visit([start]);
+  }
+  assert.deepEqual(unexpected, []);
+});

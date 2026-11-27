@@ -118,9 +118,6 @@
     @media (orientation: portrait) {
       #boot-screen .boot-brand { height: 40%; }
     }
-    @media (prefers-reduced-motion: reduce) {
-      #boot-screen, #boot-screen * { transition: none; }
-    }
   </style>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icon-192.png">
@@ -158,6 +155,7 @@
       <div class="boot-track" aria-hidden="true"><div class="boot-bar"></div></div>
       <p class="boot-hint" role="status">Загрузка игры…</p>
       <button class="boot-retry" type="button" hidden>Обновить</button>
+      <button class="boot-retry boot-export" type="button" hidden>Сохранить прогресс в файл</button>
       <noscript>Для запуска игры нужен JavaScript.</noscript>
     </div>
   </div>
@@ -168,6 +166,7 @@
       const track = screen.querySelector('.boot-track');
       const hint = screen.querySelector('.boot-hint');
       const retry = screen.querySelector('.boot-retry');
+      const backup = screen.querySelector('.boot-export');
       const artworks = [
         ['./art/loading/gate.webp', '70%', '#5fd8ff'],
         ['./art/loading/protectorate.webp', '60%', '#8fb8ff'],
@@ -191,17 +190,27 @@
       const [src, position, accent] = pick(artworks);
       const started = performance.now();
       const motion = matchMedia('(prefers-reduced-motion: reduce)');
-      let reduced = false;
-      try {
-        reduced = ['on', 'true', '1'].includes(localStorage.getItem('gatefall.reduced-motion'));
-      } catch {}
-      screen.classList.toggle('boot-still', reduced || motion.matches);
+      let speed;
+      try { speed = localStorage.getItem('gatefall.animation-speed'); } catch {}
+      const reduced = () => speed !== 'normal' && speed !== 'fast' && motion.matches;
+      screen.classList.toggle('boot-still', reduced());
       screen.style.setProperty('--boot-accent', accent);
       screen.style.setProperty('--boot-position', position);
       hint.textContent = pick(tips);
       art.addEventListener('load', () => art.classList.add('is-loaded'), { once: true });
       art.src = src;
       retry.addEventListener('click', () => location.reload());
+      backup.addEventListener('click', async () => {
+        backup.disabled = true;
+        try {
+          const { downloadSnapshot, exportSnapshot } = await import('./ui/cloud/snapshot.js');
+          downloadSnapshot(exportSnapshot(localStorage));
+        } catch {
+          hint.textContent = 'Не удалось сохранить прогресс в файл.';
+        } finally {
+          backup.disabled = false;
+        }
+      });
 
       // Keep app styles from blocking the first paint, then activate each once loaded.
       const styles = document.querySelectorAll('link[rel="stylesheet"][media="print"]');
@@ -210,6 +219,7 @@
       let pendingStyles = styles.length;
       let appReady = false;
       let settled = false;
+      let failed = false;
       const watchdog = setTimeout(fail, 15000);
 
       function settle() {
@@ -220,17 +230,20 @@
       }
 
       function fail() {
-        if (settled) return;
-        settle();
+        if (settled || failed) return;
+        failed = true;
+        clearTimeout(watchdog);
         track.hidden = true;
         hint.textContent = 'Не удалось загрузить игру. Обнови страницу';
         retry.hidden = false;
+        backup.hidden = false;
+        finishIfReady();
       }
 
       function finishIfReady() {
-        if (settled || !appReady || pendingStyles) return;
+        if (settled || !appReady || (pendingStyles && !failed)) return;
         settle();
-        if (reduced || motion.matches) {
+        if (failed || reduced()) {
           screen.remove();
           return;
         }
@@ -262,7 +275,7 @@
         };
         if (link.sheet) enable();
         else {
-          link.addEventListener('load', enable, { once: true, signal });
+          link.addEventListener('load', enable, { once: true });
           link.addEventListener('error', fail, { once: true, signal });
         }
       }

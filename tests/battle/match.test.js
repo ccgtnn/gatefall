@@ -213,7 +213,7 @@ test('End Turn passes with an empty hand even when the leader, an Order and a Fe
     name: 'Способности', power: 4, order: boost, fee: { coins: 1, ...boost },
   })];
   human.coins = 2;
-  human.leader = { name: 'Лидер', charges: 2, ability: { steps: [{ action: 'coins', amount: 1 }] } };
+  human.leader = { name: 'Лидер', charges: 2, order: { cooldown: 0, usesCharges: true }, ability: { steps: [{ action: 'coins', amount: 1 }] } };
   const [last] = human.hand;
   const played = applyAction(match, 'human', { type: 'play', cardId: last.id, row: 'orbit', position: 0 });
   assert.equal(played.players.human.passed, false);

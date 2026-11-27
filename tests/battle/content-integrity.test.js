@@ -92,8 +92,11 @@ test('every token, summon, and transformation target resolves to a known card id
   assert.deepEqual(missing, []);
 });
 
-test('every leader has an ability', () => {
-  for (const leader of leaders) assert.ok(leader.ability, `${leader.id}: missing ability`);
+test('every leader has an Order and an ability', () => {
+  for (const leader of leaders) {
+    assert.ok(leader.order, `${leader.id}: missing Order`);
+    assert.ok(leader.ability, `${leader.id}: missing ability`);
+  }
 });
 
 test('every leader has at least one charge after applying the default', () => {

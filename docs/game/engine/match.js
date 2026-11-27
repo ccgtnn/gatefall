@@ -4,4 +4,4 @@ export {
   MULLIGAN_LIMIT, ROUND_DRAW, canEndTurn, canPass, canPlayCard, confirmMulligan, mulliganLimit,
   mulliganRemaining, playableCards, replaceMulliganCard, rowScore, totalScore,
 } from './match-rounds.js';
-export { MATCH_RULES, createDeckMatch, createMatch } from './match-setup.js';
+export { MATCH_RULES, carriedCoins, createDeckMatch, createMatch } from './match-setup.js';

@@ -6,19 +6,24 @@ function safeCount(value) {
 
 export function createFactionStats(factions, storage) {
   const totals = new Map(factions.map((id) => [id, { win: 0, loss: 0 }]));
-  try {
-    const saved = JSON.parse(storage.getItem(FACTION_STATS_KEY));
-    for (const [id, tally] of totals) {
-      tally.win = safeCount(saved?.[id]?.win);
-      tally.loss = safeCount(saved?.[id]?.loss);
-    }
-  } catch {}
+  function refresh() {
+    try {
+      const saved = JSON.parse(storage.getItem(FACTION_STATS_KEY));
+      for (const [id, tally] of totals) {
+        tally.win = safeCount(saved?.[id]?.win);
+        tally.loss = safeCount(saved?.[id]?.loss);
+      }
+    } catch {}
+  }
+
+  refresh();
 
   return {
     get(id) { return { ...totals.get(id) }; },
     record(id, outcome) {
       const tally = totals.get(id);
       if (!tally || (outcome !== 'win' && outcome !== 'loss')) return;
+      refresh();
       tally[outcome] += 1;
       try { storage.setItem(FACTION_STATS_KEY, JSON.stringify(Object.fromEntries(totals))); } catch {}
     },

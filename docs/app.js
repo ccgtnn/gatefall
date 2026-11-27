@@ -54,7 +54,7 @@ const aim = bindTargeting(screen, () => turns?.cancelTargeting());
 let localStorage;
 try { localStorage = window.localStorage; } catch {}
 const cloud = createAppCloud(localStorage, () => Boolean(turns?.match));
-const { storage } = cloud;
+const { storage, backgroundStorage } = cloud;
 const deckStore = createDeckStorage(storage);
 const framePreferences = createFramePreferences(storage, document.documentElement);
 const battlefieldPreferences = createBattlefieldPreferences(storage, document.documentElement);
@@ -180,9 +180,19 @@ window.addEventListener('storage', (event) => {
     else emit('collection-change');
   }
 });
-const timers = createAppTimers(progress, () => emit('league-tick'));
-window.addEventListener('pagehide', timers.stop);
-window.addEventListener('pageshow', (event) => { if (event.persisted) timers.start(); });
+const checkpointProgress = createRewardProgress(backgroundStorage, navigator.locks, { enqueueReward });
+checkpointProgress.subscribe(progress.refresh);
+const timers = createAppTimers(progress, () => emit('league-tick'), checkpointProgress);
+let pageActive = true;
+window.addEventListener('pagehide', () => {
+  pageActive = false;
+  timers.stop();
+});
+window.addEventListener('pageshow', (event) => {
+  if (!event.persisted) return;
+  pageActive = true;
+  updateCheckpoints();
+});
 
 const { humanCanAct, playHuman, updateMatch } = turns;
 const hand = {
@@ -417,9 +427,10 @@ function render({ deckListNotice } = {}) {
 render();
 window.gatefallBootReady?.();
 
-// Reconcile an existing cloud copy before background checkpoints create local progress.
-void cloud.start().finally(() => {
-  if (cloud.sync.reloading()) return;
-  void progress.checkpointProduction();
-  timers.start();
-});
+function updateCheckpoints() {
+  if (pageActive && cloud.sync.ready()) timers.start();
+  else timers.stop();
+}
+
+cloud.sync.subscribe(updateCheckpoints);
+void cloud.start().then(updateCheckpoints);

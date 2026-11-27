@@ -23,11 +23,9 @@ export function leaderCooldown(player) {
 export function canUseLeader(match, side) {
   const player = match.players[side];
   const { leader } = player;
-  if (!leader?.ability) return false;
-  const ready = leader.order
-    ? leaderCooldown(player) === 0 && (!leader.order.usesCharges || leader.charges > 0)
-    : (!match.playedCard || player.hand.length === 0) && leader.charges > 0;
-  return ready && canStart(match, { ability: leader.ability, side });
+  if (!leader?.ability || !leader.order) return false;
+  return leaderCooldown(player) === 0 && (!leader.order.usesCharges || leader.charges > 0) &&
+    canStart(match, { ability: leader.ability, side });
 }
 
 export function orderAbility(order) {
