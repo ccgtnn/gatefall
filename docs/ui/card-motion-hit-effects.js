@@ -1,5 +1,5 @@
 import { burstParticles } from './particles.js';
-import { animate, cardFlash, center, floatingNumber, floatNode, point, rects } from './card-motion-core.js';
+import { animate, cardFlash, center, floatingNumber, floatNode, point } from './card-motion-core.js';
 
 export function shield(screen, entry, duration) {
   return cardFlash(screen, entry, 'motion-shield-outline', [
@@ -22,7 +22,7 @@ function orbitalBeam(screen, rect, duration) {
 
 export function projectile(screen, event, entry, duration) {
   if (!entry) return Promise.resolve();
-  const sourceCard = event.sourceId && rects(screen).get(event.sourceId)?.node;
+  const sourceCard = event.sourceId ? screen.querySelector(`[data-board-card="${CSS.escape(event.sourceId)}"]`) : null;
   const sourceLine = screen.querySelector('[data-side="' + event.attacker + '"] [data-row="' + event.sourceRow + '"]');
   const floor = screen.querySelector('.field-center');
   const source = sourceCard ?? sourceLine ?? floor;

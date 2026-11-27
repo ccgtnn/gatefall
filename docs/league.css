@@ -232,7 +232,7 @@ body:has(.in-league-match) #new-game { display: none; }
   border-color: #be9ae0;
   color: #f2e4ff;
 }
-.league-battle .league-speech:not([hidden]) { animation: league-speech-in .85s ease-out both; }
+.league-battle .league-speech:not([hidden]) { animation: league-speech-in calc(var(--motion-base, 320ms) * 2.65625) ease-out both; }
 body:has(#app[data-reduced-motion="true"]) .league-battle .league-speech:not([hidden]) { animation: none; }
 @keyframes league-speech-in {
   from { opacity: 0; transform: translateX(-.4rem); }

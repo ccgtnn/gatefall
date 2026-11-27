@@ -1,10 +1,7 @@
 import { recordCardPlay, spendResilience } from '../game/engine/board.js';
 import { ROWS } from '../game/shared/card-metadata.js';
 
-export function motionDuration(speed, reduced) {
-  if (speed === 'system' && reduced) return 0;
-  return speed === 'fast' ? 200 : 320;
-}
+export { motionDuration } from './motion-tokens.js';
 
 function copyPlayer(player) {
   return {

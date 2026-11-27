@@ -1,5 +1,7 @@
+import { MOTION, scaleMotion } from './motion-tokens.js';
+import { element } from './dom.js';
 import {
-  VISUAL_EVENTS, animate, cardFlash, center, floatingNumber, moveNeighbors, oldHandPosition, rects, updateScores,
+  VISUAL_EVENTS, animate, cardFlash, floatingNumber, moveNeighbors, oldHandPosition, pileAnchor, rects, updateScores,
 } from './card-motion-core.js';
 import { annihilate, fly, hop, leave, revealOpponentCard, swallow } from './card-motion-card-effects.js';
 import { hit, lightning, projectile, shield, showActivation } from './card-motion-hit-effects.js';
@@ -33,7 +35,7 @@ export function animateLifeLoss(screen, winner, duration) {
   }
 }
 
-export function animateCoin(notice, coin, label, duration, noticeDuration) {
+export function animateCoin(notice, coin, label, duration, noticeDuration, scale = 1) {
   animate(coin, [
     { transform: 'translateY(9px) rotateY(0deg) scale(.45)', opacity: 0 },
     { transform: 'translateY(-24px) rotateY(435deg) scale(1.12)', opacity: 1, offset: .42 },
@@ -47,8 +49,8 @@ export function animateCoin(notice, coin, label, duration, noticeDuration) {
   ], duration);
   return animate(notice, [
     { opacity: 0 },
-    { opacity: 1, offset: 170 / noticeDuration },
-    { opacity: 1, offset: 1 - 250 / noticeDuration },
+    { opacity: 1, offset: scaleMotion(MOTION.ms.coinNoticeFadeIn, scale) / noticeDuration },
+    { opacity: 1, offset: 1 - scaleMotion(MOTION.ms.coinNoticeFadeOut, scale) / noticeDuration },
     { opacity: 0 },
   ], noticeDuration);
 }
@@ -56,17 +58,17 @@ export function animateCoin(notice, coin, label, duration, noticeDuration) {
 export function animateHandTurn(screen, duration) {
   if (!duration) return;
   const cards = screen.querySelectorAll('.battle-hand-cards > .hand-card');
-  const step = Math.round(duration / 6);
+  const step = Math.round(duration * MOTION.pace.handStep);
   cards.forEach((card, index) => {
     card.animate?.([
       { boxShadow: '0 0 0 2px #ffdf4100, 0 0 12px #ffdf4100' },
       { boxShadow: '0 0 0 2px #ffdf41, 0 0 12px #ffdf41c9', offset: .35 },
       { boxShadow: '0 0 0 2px #ffdf4100, 0 0 12px #ffdf4100' },
-    ], { delay: index * step, duration: step * 2, easing: 'ease-out' });
+    ], { delay: index * step, duration: step * MOTION.pace.handPulse, easing: MOTION.ease.cssOut });
   });
 }
 
-export function animateTurnSparks(screen, side, duration) {
+export function animateTurnSparks(screen, side, duration, scale = 1) {
   if (!duration) return;
   const rows = screen.querySelectorAll(`.field-center > .side[data-side="${side}"] > .board-row`);
   for (const [rowIndex, row] of rows.entries()) {
@@ -81,7 +83,7 @@ export function animateTurnSparks(screen, side, duration) {
         { offsetDistance: '10%', opacity: 1, offset: .1 },
         { offsetDistance: '82%', opacity: 1, offset: .82 },
         { offsetDistance: '100%', opacity: 0 },
-      ], { duration: Math.round(duration * 1.8), delay: (rowIndex + index) * 35 });
+      ], { duration: Math.round(duration * MOTION.pace.turnSparks), delay: (rowIndex + index) * scaleMotion(MOTION.ms.turnSparkStagger, scale) });
       void flight.finished.then(() => spark.remove(), () => spark.remove());
     }
   }
@@ -117,7 +119,12 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
     return;
   }
 
-  if (event.type === 'play' && event.side === 'bot' && !(await revealOpponentCard(screen, event, duration))) return;
+  let revealOrigin;
+  if (event.type === 'play' && event.side === 'bot') {
+    const reveal = await revealOpponentCard(screen, event, duration);
+    if (!reveal) return;
+    revealOrigin = reveal.origin;
+  }
 
   if (event.type === 'armor' && event.scattered) {
     commit();
@@ -125,9 +132,9 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
   }
   if (event.scattered && (event.visual !== 'lightning' || event.type === 'damage' || event.blockedDamage)) {
     const entry = rects(screen).get(event.cardId);
-    if (event.visual === 'lightning') await lightning(screen, entry, duration * .54);
-    else await projectile(screen, event, entry, duration * .43);
-    duration *= .52;
+    if (event.visual === 'lightning') await lightning(screen, entry, duration * MOTION.pace.lightning);
+    else await projectile(screen, event, entry, duration * MOTION.pace.projectile);
+    duration *= MOTION.pace.afterProjectile;
   }
   if (event.type === 'consume' && event.grouped) {
     commit();
@@ -137,14 +144,16 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
   const previous = rects(screen);
   const previousScores = new Map(Array.from(screen.querySelectorAll('[data-score]'),
     (node) => [node.dataset.score, Number(node.textContent)]));
-  const pile = event.from ? screen.querySelector('[data-pile-side="' + event.side + '"][data-pile="' + event.from + '"]') : null;
-  const origin = pile ? center(pile.getBoundingClientRect())
-    : event.type === 'play' && event.side === 'human' ? oldHandPosition(screen, event.cardId) : null;
+  let origin = revealOrigin;
+  if (!origin && event.type === 'play') {
+    if (event.from === 'deck' || event.from === 'discard') origin = pileAnchor(screen, event.side, event.from);
+    else if (event.side === 'human') origin = oldHandPosition(screen, event.cardId);
+  }
   render(commit());
   const current = rects(screen);
   const entry = current.get(event.cardId);
   const motions = moveNeighbors(previous, current, duration);
-  motions.push(updateScores(screen, previousScores, duration * .88));
+  motions.push(updateScores(screen, previousScores, duration * MOTION.pace.score));
 
   switch (event.type) {
     case 'aura-power':
@@ -201,4 +210,33 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
       motions.push(...showActivation(screen, event, duration));
   }
   await Promise.all(motions);
+}
+
+export function roundResultLabel({ scores, winner }) {
+  const result = winner === 'human' ? 'Раунд за тобой' : winner === 'bot' ? 'Раунд за противником' : 'Раунд: ничья';
+  return `${result} · ${scores.human} : ${scores.bot}`;
+}
+
+export async function showRoundTransition(app, round, duration, scale = 1, wait = (ms) =>
+  new Promise((resolve) => setTimeout(resolve, ms))) {
+  const overlay = element('div', 'motion-overlay round-transition');
+  overlay.setAttribute('role', 'status');
+  overlay.append(element('span', 'round-transition-title', `Раунд ${round}`));
+  app.append(overlay);
+  if (duration) {
+    await overlay.animate([{ opacity: 0 }, { opacity: 1 }], { duration, easing: MOTION.ease.cssOut }).finished;
+  }
+  await wait(scaleMotion(duration ? MOTION.ms.roundTitle : MOTION.ms.roundTitleReduced, scale));
+  return overlay;
+}
+
+export function dismissRoundTransition(overlay, duration) {
+  if (!duration) {
+    overlay.remove();
+    return Promise.resolve();
+  }
+  const fade = overlay.animate([{ opacity: 1 }, { opacity: 0 }], {
+    duration, easing: MOTION.ease.cssIn, fill: 'forwards',
+  });
+  return fade.finished.then(() => overlay.remove(), () => overlay.remove());
 }

@@ -19,7 +19,7 @@ export function leagueAvatar(character) {
     const poster = assetUrl('./art/' + character.avatar);
     const image = element('img');
     image.alt = '';
-    if (character.avatar === 'league/oran-duke.webp' && !globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+    if (character.avatar === 'league/oran-duke.webp' && document.getElementById('app')?.dataset.reducedMotion !== 'true') {
       const video = element('video');
       video.poster = poster;
       video.muted = video.defaultMuted = video.loop = video.playsInline = video.autoplay = true;

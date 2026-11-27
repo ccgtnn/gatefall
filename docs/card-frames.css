@@ -50,8 +50,8 @@
 
 @media (hover: hover) and (pointer: fine) {
   :is(.hand-card, .unit-face)[data-rarity]:not(:disabled, [inert], .is-dragged) {
-    transition: translate var(--action-duration, 160ms) ease, scale var(--action-duration, 160ms) ease,
-      box-shadow var(--action-duration, 160ms) ease;
+    transition: translate var(--action-duration, var(--motion-hover)) ease, scale var(--action-duration, var(--motion-hover)) ease,
+      box-shadow var(--action-duration, var(--motion-hover)) ease;
   }
   :is(.hand-card, .unit-face)[data-rarity]:not(:disabled, [inert], .is-dragged, .is-aiming *):hover {
     translate: 0 -2px;
@@ -60,8 +60,8 @@
     box-shadow: 0 0 11px color-mix(in srgb, var(--rarity-border-color) 70%, transparent);
   }
   .booster-card-slot > .hand-card[data-rarity]:not([inert]) {
-    transition: transform calc(.38s * var(--pack-pace)) ease, translate var(--action-duration, 160ms) ease,
-      scale var(--action-duration, 160ms) ease, box-shadow var(--action-duration, 160ms) ease;
+    transition: transform calc(.38s * var(--pack-pace)) ease, translate var(--action-duration, var(--motion-hover)) ease,
+      scale var(--action-duration, var(--motion-hover)) ease, box-shadow var(--action-duration, var(--motion-hover)) ease;
   }
 }
 

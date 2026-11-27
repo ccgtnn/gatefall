@@ -1,3 +1,4 @@
+import { MOTION } from './motion-tokens.js';
 import { setCardRarity } from './dom.js';
 import { cardArt } from './card-art.js';
 import { NEUTRAL } from '../game/shared/card-metadata.js';
@@ -11,6 +12,40 @@ export function rects(screen) {
     [node.dataset.boardCard, { node, rect: node.getBoundingClientRect() }]));
 }
 
+const rememberedRects = new Map();
+
+export function rememberRect(cardId, rect) {
+  rememberedRects.set(cardId, rect);
+}
+
+export function takeRememberedRect(cardId) {
+  const rect = rememberedRects.get(cardId);
+  rememberedRects.delete(cardId);
+  return rect;
+}
+
+export function clearRememberedRects() {
+  rememberedRects.clear();
+}
+
+function visibleRect(node) {
+  const rect = node?.getBoundingClientRect();
+  return rect?.width > 0 && rect.height > 0 ? rect : undefined;
+}
+
+export function pileAnchor(screen, side, pile) {
+  for (const node of screen.querySelectorAll(`[data-pile-side="${side}"][data-pile="${pile}"]`)) {
+    const rect = visibleRect(node);
+    if (rect) return center(rect);
+  }
+  const stack = visibleRect(screen.querySelector(`.field-hand-stack[data-hand-side="${side}"]`));
+  if (stack) return center(stack);
+  const count = visibleRect(screen.querySelector(side === 'bot' ? '.bot-hand-count' : '.field-corner .field-hand-count'));
+  if (count) return center(count);
+  const half = visibleRect(screen.querySelector(`.side[data-side="${side}"]`));
+  return half ? center(half) : null;
+}
+
 export function center(rect) {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 }
@@ -21,7 +56,7 @@ export function point(x, y) {
 
 export function animate(node, keyframes, duration) {
   if (!node?.animate || !duration) return Promise.resolve();
-  const motion = node.animate(keyframes, { duration, easing: 'cubic-bezier(.22,.61,.36,1)', fill: 'both' });
+  const motion = node.animate(keyframes, { duration, easing: MOTION.ease.out, fill: 'both' });
   return motion.finished.catch(() => {}).finally(() => motion.cancel());
 }
 
@@ -71,6 +106,16 @@ export function floatingCard(screen, event, className, destination, fullArt = fa
 
 export function ghostCard(screen, entry) {
   const clone = entry.node.cloneNode(true);
+  for (const video of clone.querySelectorAll('video')) {
+    const image = screen.ownerDocument.createElement('img');
+    image.className = video.className;
+    image.classList.remove('card-art-video');
+    image.alt = '';
+    image.style.cssText = video.style.cssText;
+    const poster = video.poster || video.dataset.premiumPoster;
+    if (poster) image.src = poster;
+    video.replaceWith(image);
+  }
   clone.classList.add('motion-overlay', 'motion-departure');
   clone.inert = true;
   clone.setAttribute('aria-hidden', 'true');
@@ -133,7 +178,7 @@ export function updateScores(screen, previous, duration) {
       for (const { node, from, to } of changing) node.textContent = Math.round(from + (to - from) * progress);
       frame = view.requestAnimationFrame(update);
     };
-    const timeout = view.setTimeout(finish, duration + 50);
+    const timeout = view.setTimeout(finish, duration + MOTION.ms.scoreTimeoutMargin);
     frame = view.requestAnimationFrame(update);
   });
 }
