@@ -10,7 +10,7 @@ import { availableOrders, canUseLeader } from '../effects/effects.js';
 import { rowArmor } from '../effects/effect-queries.js';
 import { handCount } from './bot-hand.js';
 import { preferredLeaderUse } from './bot-leaders.js';
-import { beneficialFee, effectSwing, infectionGain, shouldProtectArmor, tributeTarget } from './bot-effect-value.js';
+import { beneficialFee, effectSwing, immediateWeatherOrder, immediateWeatherValue, infectionGain, shouldProtectArmor, tributeTarget, usefulWeatherOrder } from './bot-effect-value.js';
 
 import { armorBreakSwing, delayedCardValue, futureContext, wantsToHoldInheritance } from './bot-future-value.js';
 
@@ -145,14 +145,16 @@ function fastPlays(match, side) {
     const statusDeploy = def.deploy?.steps.some(({ status }) => status === 'infection' || status === 'target');
     const removal = (!def.deploy?.sourceRow || def.deploy.sourceRow === choice.row) &&
       (def.removalReserve || statusDeploy || def.scenario ||
-      def.deploy?.steps.some((step) => step.target?.infected || step.amount?.count || step.amount?.markedThisMatch || step.action === 'replace-leader'))
+      def.deploy?.steps.some((step) => step.target?.infected || step.amount?.count || step.amount?.markedThisMatch || step.action === 'replace-leader' ||
+        step.action === 'row-effect' && step.effect === 'firestorm'))
       ? effectSwing(match, side, card) : 0;
+    const weather = immediateWeatherValue(match, side, card, choice.row);
     const scenario = def.scenario ? Math.min(def.scenario.chapters.length,
       player.hand.filter((entry) => entry.definition.categories?.includes(def.scenario.category)).length) * 2 : 0;
     return {
       action: { ...action, row: choice.row, position: choice.position },
       points: (card.power ?? 0) * (def.enemySide ? -1 : 1) + (def.deploy || def.endTurn || def.order ? 1 : 0)
-        + choice.value + removal + scenario + scenarioTrigger + delayedCardValue(context, card, choice.row, true),
+        + choice.value + removal + weather + scenario + scenarioTrigger + delayedCardValue(context, card, choice.row, true),
       cost, reserve: 0,
     };
   });
@@ -181,7 +183,10 @@ function quickAction(match, side, pickTarget) {
     return { type: 'leader' };
   }
   if (match.playedCard) {
-    const [order] = availableOrders(match, side);
+    const orders = availableOrders(match, side);
+    const immediate = immediateWeatherOrder(match, side, orders);
+    if (immediate) return { type: 'order', cardId: immediate.card.id };
+    const order = orders.find((unit) => usefulWeatherOrder(match, side, unit));
     const fee = beneficialFee(match, side);
     if (enemy.passed && lead > 0) return fee ?? END;
     return order ? { type: 'order', cardId: order.card.id } : fee ?? END;
@@ -190,7 +195,7 @@ function quickAction(match, side, pickTarget) {
   const plays = fastPlays(match, side);
   if (!plays.length) {
     if (canUseLeader(match, side)) return { type: 'leader' };
-    const [order] = availableOrders(match, side);
+    const order = availableOrders(match, side).find((unit) => usefulWeatherOrder(match, side, unit));
     return order ? { type: 'order', cardId: order.card.id }
       : beneficialFee(match, side) ?? (canEndTurn(match, side) ? END : PASS);
   }

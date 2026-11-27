@@ -1,4 +1,5 @@
 import { ROW_LABELS } from '../game/shared/card-metadata.js';
+import { ROW_EFFECTS } from '../game/effects/effects.js';
 import { sideLabel } from './dom.js';
 
 export function roundText(event) {
@@ -53,7 +54,7 @@ export function eventText(event) {
       return '';
     }
     case 'cleanse': return `«${event.name}»: наложенные эффекты сняты Очищением.`;
-    case 'row-effect': return `${side}, ${ROW_LABELS[event.row]}: ${event.effect ? 'Гниение · ' + event.effect.remaining : 'Гниение снято'}.`;
+    case 'row-effect': return `${side}, ${ROW_LABELS[event.row]}: ${event.effect ? ROW_EFFECTS[event.effect.type]?.label + ' · ' + event.effect.remaining : 'Погода снята'}.`;
     case 'leader-replaced': return `${side}: Файлура заменила способность лидера Приказом.`;
     case 'scenario-chapter': return `«${event.name}»: глава ${event.chapter}.`;
     case 'base-power': return `${side}: базовая сила карты — ${event.basePower}.`;

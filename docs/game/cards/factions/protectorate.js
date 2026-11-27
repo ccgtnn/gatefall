@@ -1,4 +1,4 @@
-import { ability, action, adjacent, allies, choice, chosen, enemies, enemyChoice, self } from '../card-abilities.js';
+import { ability, action, adjacent, allies, choice, chosen, enemies, enemyChoice, firestormRow, self } from '../card-abilities.js';
 
 const allyRow = { ...allies, row: 'source' };
 const armorNeighbors = (amount) => ability([action('armor', adjacent, amount)]);
@@ -278,6 +278,31 @@ const protectorateExtras = [
       mark({ ...unmarkedEnemy, rowRef: 'row' }),
     ])),
     keywords: ['Цель', 'Тяжёлый корабль'],
+  },
+  {
+    id: 'emperors-hand', name: 'Длань Императора', provision: 13, power: 4,
+    type: 'unit', rarity: 'gold', faction: 'protectorate',
+    text: 'Орбита, при розыгрыше: наложи Огненный шторм на выбранный вражеский ряд на 3 хода. Приказ (2 заряда): выбери вражеский отряд — когда он погибнет, наложи Огненный шторм на его ряд на 2 хода. Поверхность: без эффекта и приказа.',
+    art: 'emperors-hand.webp', artCrop: 'emperors-hand-crop.webp',
+    ...ship,
+    deploy: onRow('orbit', firestormRow(3)),
+    order: {
+      charges: 2,
+      ...onRow('orbit', ability([{
+        action: 'grant-deathwish', target: chosen('enemy'),
+        deathwish: ability([{ action: 'row-effect', effect: 'firestorm', row: 'death', amount: 2 }]),
+      }], [choice('enemy', enemies, 'Выбери вражеский отряд для метки Огненного шторма.', { kind: 'weather-deathwish' })])),
+    },
+    keywords: ['Тяжёлый корабль', 'Приказ', 'Заряды', 'Завещание', 'Огненный шторм', 'Погода'],
+  },
+  {
+    id: 'brander', name: 'Брандер', provision: 6, power: 2,
+    type: 'unit', rarity: 'bronze', faction: 'protectorate',
+    text: 'Поверхность: Рвение. Приказ (1 заряд): наложи Огненный шторм на выбранный вражеский ряд на 2 хода. Орбита: без эффекта.',
+    art: 'brander.webp', artCrop: 'brander-crop.webp',
+    categories: [lightShip], shipClass: lightShip, preferredRow: 'surface', zeal: true,
+    order: { charges: 1, ...onRow('surface', firestormRow(2)) },
+    keywords: ['Лёгкий корабль', 'Рвение', 'Приказ', 'Заряды', 'Огненный шторм', 'Погода'],
   },
 ];
 

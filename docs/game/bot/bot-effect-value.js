@@ -9,6 +9,9 @@ import { armorBreakSwing, consumeBonus, coinValue, delayedCardValue, futureConte
 import { cardAbilities, deathwishDefinitions, isLocked } from '../engine/events.js';
 
 export function pendingUnitPriority(match, { kind, side, job }) {
+  if (kind === 'weather-deathwish') {
+    return (unit) => stormDeathwishValue(match, unit, 2);
+  }
   if (kind === 'destroy') {
     const context = futureContext(match, side);
     return (unit) => unit.side === side ? consumeBonus(context, unit) - unit.card.power
@@ -169,14 +172,80 @@ export function cleansePriority({ card, side }, actor) {
   return side === actor ? -value : value;
 }
 
-export function rowEffectValue(player, row, turns = 3, incremental = true, horizonTurns = handCount(player) + 1) {
-  const candidates = player.board[row].filter(isUnit);
+function firestormDamage(candidates, hits) {
+  // Track each unit's hit count. Use expected survivors as the size of the next target pool.
+  const units = candidates.map((card) => {
+    const protection = (card.armor ?? 0) + statusCount(card, 'shield');
+    const lethal = protection + card.power;
+    const chance = new Float64Array(Math.min(hits, lethal) + 1);
+    chance[0] = 1;
+    return { protection, lethal, chance };
+  });
+  let expected = 0;
+  for (let hit = 0; hit < hits; hit += 1) {
+    const alive = units.reduce((sum, { chance, lethal }) => sum + 1 - (chance[lethal] ?? 0), 0);
+    if (alive <= 0) break;
+    for (const { chance, protection, lethal } of units) {
+      for (let prior = Math.min(hit, lethal - 1); prior >= 0; prior -= 1) {
+        const change = chance[prior] / Math.max(1, alive);
+        chance[prior] -= change;
+        chance[prior + 1] += change;
+        if (prior >= protection) expected += change;
+      }
+    }
+  }
+  return expected;
+}
+
+export function rowEffectValue(player, row, turns = 3, incremental = true,
+  horizonTurns = handCount(player) + 1, type = 'rot', excludedId) {
+  const candidates = player.board[row].filter((card) => isUnit(card) && card.id !== excludedId);
   if (!candidates.length) return 0;
-  const previous = incremental ? player.rowEffects?.[row]?.remaining ?? 0 : 0;
-  const horizon = Math.max(0, Math.min(turns, horizonTurns) - previous);
+  const previous = incremental ? player.rowEffects?.[row] : undefined;
+  const duration = turns + (previous?.type === type ? previous.remaining : 0);
+  const value = (weather, remaining) => weatherValue(candidates, weather, Math.max(0, Math.min(remaining, horizonTurns)));
+  return value(type, duration) - (previous ? value(previous.type, previous.remaining) : 0);
+}
+
+function weatherValue(candidates, type, horizon) {
+  if (type === 'firestorm') return firestormDamage(candidates, 3 * horizon);
+  if (type !== 'rot') return 0;
   return horizon * candidates.reduce((sum, card) => sum +
     (statusCount(card, 'infection') ? Math.min(card.power, Math.max(0, 2 - (card.armor ?? 0))) : Math.min(card.power, 2) * .75), 0)
     / candidates.length;
+}
+
+export function stormDeathwishValue(match, { card, row, side }, duration, alreadyGranted = false) {
+  if (isLocked(card)) return 0;
+  const player = match.players[side];
+  const weather = player.rowEffects?.[row]?.type;
+  const damage = Math.max(0, (card.definition.power ?? card.power) - card.power);
+  const durability = card.power + (card.armor ?? 0) + statusCount(card, 'shield');
+  const hazard = statusCount(card, 'infection') * .5 + (weather === 'firestorm' ? 2 : weather === 'rot' ? 1 : 0);
+  const probability = Math.min(1, (2 + hazard + damage * .5) / (durability + 2));
+  const prior = alreadyGranted ? 0 : (card.inheritedDeathwishes ?? []).filter(({ grantedBy, deathwish }) =>
+    grantedBy && deathwish.steps.some(({ effect }) => effect === 'firestorm')).length * duration;
+  const horizon = remainingTurns(match, side);
+  const gain = rowEffectValue(player, row, duration + prior, true, horizon, 'firestorm', card.id);
+  const existing = prior ? rowEffectValue(player, row, prior, true, horizon, 'firestorm', card.id) : 0;
+  return Math.max(0, gain - existing) * probability;
+}
+
+export function usefulWeatherOrder(match, side, { card }) {
+  const wish = card.definition.order.steps.find(({ action }) => action === 'grant-deathwish');
+  if (!wish) return true;
+  const duration = wish.deathwish.steps.find(({ effect }) => effect === 'firestorm')?.amount;
+  if (!duration) return true;
+  const ability = orderAbility(card.definition.order);
+  const [pick] = ability.select;
+  return targets(match, { side, sourceId: card.id }, pick.targets, true)
+    .some((unit) => stormDeathwishValue(match, unit, duration) > 0);
+}
+
+export function immediateWeatherOrder(match, side, orders) {
+  if (!match.playedCard) return undefined;
+  return orders.find(({ card }) => card.definition.zeal && card.orderPlayedTurn === match.players[side].turns &&
+    card.definition.order.steps.some(({ action, effect }) => action === 'row-effect' && effect === 'firestorm'));
 }
 
 function strongestDestruction(match, side, card) {
@@ -204,8 +273,8 @@ export function destructionRolls(match, side, card) {
 function rowEffectSwing({ match, job }, step) {
   const side = rowSide(job.side, step);
   const defender = match.players[side];
-  const turns = defender.passed ? remainingTurns(match, side) : undefined;
-  const values = ROWS.map((row) => rowEffectValue(defender, row, step.amount, true, turns));
+  const turns = step.effect === 'firestorm' || defender.passed ? remainingTurns(match, side) : undefined;
+  const values = ROWS.map((row) => rowEffectValue(defender, row, step.amount, true, turns, step.effect));
   return step.row === 'all' ? values.reduce((sum, value) => sum + value, 0) : Math.max(...values);
 }
 
@@ -364,6 +433,13 @@ export function effectSwing(match, side, card) {
     }
   }
   return swing;
+}
+
+export function immediateWeatherValue(match, side, card, row) {
+  const { order } = cardAbilities(card);
+  if (!card.definition.zeal || order?.sourceRow !== row) return 0;
+  const weather = order?.steps.find(({ action, effect }) => action === 'row-effect' && effect === 'firestorm');
+  return weather ? rowEffectSwing({ match, job: { side } }, weather) : 0;
 }
 
 export function deckCardValue(match, side, card) {

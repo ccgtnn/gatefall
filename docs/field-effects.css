@@ -361,6 +361,26 @@
   pointer-events: none;
   content: '';
 }
+.board-row[data-row-effect="firestorm"] { border-color: #eb633691; }
+.board-row[data-row-effect="firestorm"] .row-line::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background:
+    radial-gradient(ellipse at 22% 88%, #ff7b3252, transparent 50%),
+    radial-gradient(ellipse at 78% 79%, #ff542344, transparent 55%),
+    linear-gradient(0deg, #9d2e2245, transparent 67%);
+  pointer-events: none;
+  content: '';
+}
+.board-row[data-row-effect="firestorm"] .row-effect-badge { color: #ffae60; }
+.unit-face > .weather-deathwish-mark {
+  inset: auto 2px 30% auto;
+  transform: none;
+  z-index: 1;
+  border-color: #ff8c53;
+}
 .field-center .row-label:disabled { opacity: 1; }
 .row-effect-badge {
   color: #a9ec72;

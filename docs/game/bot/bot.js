@@ -3,7 +3,7 @@ import { ROWS } from '../shared/card-metadata.js';
 import { cardType, findUnit, isUnit, neighbors, placementSide, restoreCard, statusCount, units } from '../engine/board.js';
 import { availableOrders, canUseLeader } from '../effects/effects.js';
 import { rowArmor } from '../effects/effect-queries.js';
-import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, holdUntargetedDamage, lockPriority, pendingUnitPriority, rowDamage, rowEffectValue, rowScatterValue } from './bot-effect-value.js';
+import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionSwing, effectSwing, immediateWeatherOrder, immediateWeatherValue, infectionGain, holdUntargetedDamage, lockPriority, pendingUnitPriority, rowDamage, rowEffectValue, rowScatterValue, usefulWeatherOrder } from './bot-effect-value.js';
 import { armorBreakSwing, consumeBonus, delayedCardValue, futureContext, inheritancePayoff, remainingTurns, wantsToHoldInheritance } from './bot-future-value.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, availableRows, canEndTurn, canPass, playableCards, totalScore } from '../engine/match.js';
 
@@ -36,7 +36,7 @@ export function createBotView(match) {
       if (rowPreference || card.definition.deploy?.steps.some(({ status }) => status === 'target')) {
         const row = rowPreference && bot.board[rowPreference].length < ROW_LIMIT ? rowPreference : undefined;
         const swing = card.definition.deploy?.sourceRow && !row ? 0 : effectSwing(match, 'bot', card);
-        return { ...card, preferredRow: row, swing: (card.power ?? 0) + swing + delayed };
+        return { ...card, preferredRow: row, swing: (card.power ?? 0) + swing + delayed + immediateWeatherValue(match, 'bot', card, row) };
       }
       if (card.definition.deploy?.steps.some((step) => step.amount?.playedCategory || step.amount?.startingCategory ||
           step.action === 'play-from-hand' || step.chooseAll)) {
@@ -158,8 +158,10 @@ export function pickBotTarget(match) {
     return { type: 'target', cardId: row };
   }
   if (kind === 'row-effect') {
-    const enemy = match.players[match.pending.selectionSide];
-    return { type: 'target', cardId: bestTarget(options, (row) => rowEffectValue(enemy, row, amount, true, enemy.passed ? remainingTurns(match, match.pending.selectionSide) : undefined)) };
+    const { selectionSide, rowWeather } = match.pending;
+    const enemy = match.players[selectionSide];
+    const horizon = rowWeather === 'firestorm' || enemy.passed ? remainingTurns(match, selectionSide) : undefined;
+    return { type: 'target', cardId: bestTarget(options, (row) => rowEffectValue(enemy, row, amount, true, horizon, rowWeather)) };
   }
   if (kind === 'mark-row') {
     const enemy = match.players[match.pending.selectionSide];
@@ -265,7 +267,10 @@ export function chooseEasyTurn(match) {
   const view = createBotView(match);
   const enemies = units(match, 'human').filter(({ card }) => isUnit(card));
   const allies = units(match, 'bot');
-  const order = availableOrders(match, 'bot').find(({ card }) => !card.definition.aiHints?.useOrderWhenReady);
+  const orders = availableOrders(match, 'bot');
+  const weatherOrder = immediateWeatherOrder(match, 'bot', orders);
+  if (weatherOrder) return { type: 'order', cardId: weatherOrder.card.id };
+  const order = orders.find((unit) => !unit.card.definition.aiHints?.useOrderWhenReady && usefulWeatherOrder(match, 'bot', unit));
   const alreadyWon = view.opponentPassed && view.score > view.opponentScore;
   if (!alreadyWon) {
     if (order) {
@@ -302,5 +307,10 @@ export function chooseBotTurn(match, mastery, options = {}) {
   const level = BOT_LEVELS[readBotLevel(mastery)];
   const strategy = { ...options, pickTarget: pickBotTarget };
   const state = botSearchState(match, level.knowsDeckList);
+  if (state.pending?.rowWeather === 'firestorm' || state.pending?.kind === 'weather-deathwish') return pickBotTarget(state);
+  if (!state.pending && state.turn === 'bot' && state.playedCard) {
+    const order = immediateWeatherOrder(state, 'bot', availableOrders(state, 'bot'));
+    if (order) return { type: 'order', cardId: order.card.id };
+  }
   return state.pending ? chooseStrategicTarget(state, level, strategy) : chooseStrategicTurn(state, level, strategy);
 }

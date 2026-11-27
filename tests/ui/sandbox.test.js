@@ -93,6 +93,12 @@ test('every animation scenario runs at zero duration for each playable faction w
     for (const scenario of cases) {
       await motion.run(scenario, async () => {});
       const state = motion.state();
+      if (scenario.id === 'firestorm-tick') {
+        const hits = state.log.filter(({ type, visual }) => type === 'damage' && visual === 'firestorm');
+        assert.equal(hits.length, 3);
+        assert.equal(state.players.bot.rowEffects.orbit.remaining, 2);
+        assert.ok(motion.section.querySelector('[data-row-effect="firestorm"]')?.querySelector('.row-effect-badge'));
+      }
       const label = faction + ' · ' + scenario.id;
       assert.ok(state.log.length || scenario.id === 'coin' || mulliganCases.has(scenario.id), label);
       if (mulliganCases.has(scenario.id)) {

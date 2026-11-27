@@ -1,4 +1,4 @@
-import { ability, action, allies, choice, chosen, enemies, enemyChoice, self } from '../card-abilities.js';
+import { ability, action, allies, choice, chosen, enemies, enemyChoice, firestormRow, self } from '../card-abilities.js';
 import { NEUTRAL } from '../../shared/card-metadata.js';
 
 export { NEUTRAL } from '../../shared/card-metadata.js';
@@ -193,4 +193,11 @@ export const NEUTRAL_CARDS = Object.freeze([
   ].map(([id, name, rarity, provision, power, text, rules]) => Object.freeze({
     id, name, rarity, faction: NEUTRAL, provision, type: 'unit', ...(power === null ? {} : { power }), text, ...rules,
   })),
+  Object.freeze({
+    id: 'firestorm', name: 'Огненный шторм', faction: NEUTRAL, type: 'effect', rarity: 'epic', provision: 7,
+    text: 'Наложи Огненный шторм на выбранный вражеский ряд на 3 хода. В начале хода владельца ряда: 3 раза нанеси 1 урон случайному отряду в этом ряду.',
+    art: 'firestorm.webp', artCrop: 'firestorm-crop.webp',
+    deploy: firestormRow(3),
+    keywords: ['Огненный шторм', 'Погода'],
+  }),
 ]);

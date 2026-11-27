@@ -1,0 +1,64 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { findCardDefinition } from '../../docs/game/cards/card-registry.js';
+import { chooseBotTurn } from '../../docs/game/bot/bot.js';
+import { createCard, ROW_LIMIT } from '../../docs/game/engine/board.js';
+import { applyAction, createMatch } from '../../docs/game/engine/match.js';
+import { unit } from '../helpers/battle-helpers.js';
+
+const random = () => 0.99;
+const choose = (match) => chooseBotTurn(match, 2, { random });
+const act = (match, action) => applyAction(match, 'bot', action, { random });
+
+function setup(id) {
+  const match = createMatch({ random });
+  match.phase = 'playing';
+  match.turn = 'bot';
+  for (const [side, player] of Object.entries(match.players)) {
+    player.board = { orbit: [], surface: [] };
+    player.leader = null;
+    player.hand = [unit(side + '-spare', 5), unit(side + '-next', 5)];
+  }
+  match.players.bot.hand = [createCard(id, findCardDefinition(id))];
+  match.players.human.board.orbit = [unit('armored', 4, { armor: 8, shield: true })];
+  match.players.human.board.surface = ['a', 'b', 'c'].map((cardId) => unit(cardId, 1, { token: true }));
+  return match;
+}
+
+test('Firestorm aims for unarmored tokens and changes rows when a new storm would replace more existing value', () => {
+  const cast = act(setup('firestorm'), { type: 'play', cardId: 'firestorm' });
+  assert.deepEqual(choose(cast), { type: 'target', cardId: 'surface' });
+  cast.players.human.rowEffects.surface = { type: 'firestorm', remaining: 3, attacker: 'bot' };
+  cast.players.human.board.orbit = [unit('exposed', 6)];
+  assert.deepEqual(choose(cast), { type: 'target', cardId: 'orbit' });
+});
+
+test('bot plays the Emperor’s Hand in orbit, Brander on surface, and uses Brander before ending its play turn', () => {
+  for (const [id, row, other] of [['emperors-hand', 'orbit', 'surface'], ['brander', 'surface', 'orbit']]) {
+    const match = setup(id);
+    match.players.bot.usedAbility = true;
+    const play = choose(match);
+    assert.deepEqual(play, { type: 'play', cardId: id, row, position: 0 });
+    const after = act(match, play);
+    if (id === 'brander') {
+      assert.equal(after.turn, 'bot');
+      const order = choose(after);
+      assert.deepEqual(order, { type: 'order', cardId: id });
+      assert.deepEqual(choose(act(after, order)), { type: 'target', cardId: 'surface' });
+    }
+    match.players.bot.board[row] = Array.from({ length: ROW_LIMIT }, (_, i) => unit('filler-' + i, 1));
+    match.players.bot.usedAbility = true;
+    assert.equal(choose(match).row, other);
+  }
+});
+
+test('bot marks a vulnerable unit with surviving neighbors and saves charges against a lone unit', () => {
+  const match = setup('emperors-hand');
+  match.players.bot.board.orbit = [match.players.bot.hand.pop()];
+  match.players.bot.hand.push(unit('bot-spare', 3));
+  match.players.human.board.surface = [unit('strong', 6), unit('weak', 1)];
+  const pending = act(match, { type: 'order', cardId: 'emperors-hand' });
+  assert.deepEqual(choose(pending), { type: 'target', cardId: 'weak' });
+  match.players.human.board.surface = [unit('alone', 1)];
+  assert.equal(choose(match).type, 'play');
+});

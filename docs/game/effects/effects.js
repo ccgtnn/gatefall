@@ -5,7 +5,8 @@
 
 import { cardAbilities, emit, isLocked } from '../engine/events.js';
 import { activeOrder, applyStatus, changeBasePower, damage, findUnit, isUnit, opponent, ROW_LIMIT,
-  setRowEffect, statusCount, statusEndTurn, units } from '../engine/board.js';
+  statusCount, statusEndTurn, units } from '../engine/board.js';
+import { tickRowEffectDuration } from '../engine/board-status.js';
 import { ROWS, ROW_LABELS } from '../shared/card-metadata.js';
 import { effectOperations, tickTimer } from './effect-operations.js';
 import { canStart, PAUSED, REPEAT, reference, SCHEDULED, stepAllowed, targets, valueOf, viableChoices } from './effect-queries.js';
@@ -121,6 +122,7 @@ export function enqueueEndTurn(match, side) {
 
 export const ROW_EFFECTS = Object.freeze({
   rot: { label: 'Гниение', icon: '☣' },
+  firestorm: { label: 'Огненный шторм', icon: '🔥' },
 });
 
 export function enqueueStartTurn(match, side) {
@@ -143,12 +145,20 @@ export function enqueueStartTurn(match, side) {
 
 function tickRow(match, job, random) {
   const { side, row } = job;
-  const effect = match.players[side].rowEffects?.[row];
+  const effect = job.tickingWeather ?? match.players[side].rowEffects?.[row];
   if (!effect) return;
-  setRowEffect(match, side, row, effect.remaining > 1 ? { ...effect, remaining: effect.remaining - 1 } : null);
+  if (!job.tickingWeather) tickRowEffectDuration(match, side, row, effect);
+  if (effect.type !== 'rot' && effect.type !== 'firestorm') return;
   const targets = units(match, side, [row]).filter(({ card }) => isUnit(card));
-  if (!targets.length || effect.type !== 'rot') return;
+  if (!targets.length) return;
   const unit = targets[Math.floor(random() * targets.length)];
+  if (effect.type === 'firestorm') {
+    const hits = (job.hits ?? 3) - 1;
+    if (hits > 0) match.effects.unshift({ ...job, tickingWeather: effect, hits });
+    damage(match, unit, 1, effect.sourceDefinitionId,
+      { attacker: effect.attacker, scattered: true, visual: 'firestorm' });
+    return;
+  }
   if (statusCount(unit.card, 'infection')) damage(match, unit, 2, effect.sourceDefinitionId, { attacker: effect.attacker });
   else applyStatus(match, unit, 'infection', 2, { sourceDefinitionId: effect.sourceDefinitionId, attacker: effect.attacker });
 }

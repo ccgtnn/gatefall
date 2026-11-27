@@ -40,7 +40,7 @@ test('catalog searches both name and card text, ignoring case and ё spelling', 
 });
 
 test('all collectible gold cards are included and catalog filters combine across factions', () => {
-  assert.equal(ids({ rarity: 'gold' }).length, 32);
+  assert.equal(ids({ rarity: 'gold' }).length, 33);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'artifact', category: 'Пустота', provision: '19' }),
     ['falura']);
   assert.deepEqual(ids({ faction: 'growth', rarity: 'gold', type: 'artifact', category: 'Пустота', provision: '19' }), []);

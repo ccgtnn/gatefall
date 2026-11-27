@@ -3,6 +3,16 @@ import { onPowerLoss, refreshRowPower, refreshSidePower, removeUnit } from './bo
 import { emit, isLocked } from './events.js';
 
 export function setRowEffect(match, side, row, effect) {
+  const current = match.players[side].rowEffects?.[row];
+  updateRowEffect(match, side, row, effect && current?.type === effect.type
+    ? { ...effect, remaining: current.remaining + effect.remaining } : effect);
+}
+
+export function tickRowEffectDuration(match, side, row, effect) {
+  updateRowEffect(match, side, row, effect.remaining > 1 ? { ...effect, remaining: effect.remaining - 1 } : null);
+}
+
+function updateRowEffect(match, side, row, effect) {
   const player = match.players[side];
   player.rowEffects ??= {};
   if (effect) player.rowEffects[row] = effect;

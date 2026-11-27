@@ -87,6 +87,12 @@
   box-shadow: 0 0 .7rem .2rem #69d6ff;
 }
 
+.motion-firestorm-drop {
+  height: 1.2rem;
+  background: linear-gradient(transparent, #ff592c 48%, #fff0ac);
+  box-shadow: 0 .2rem .65rem .12rem #ff5419;
+}
+
 .motion-infection { background: radial-gradient(ellipse, #abff555c, #4cd32b60); border: 1px solid #a5ff6a; }
 .motion-poison { color: #bcff72; }
 

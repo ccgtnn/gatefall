@@ -126,3 +126,21 @@ test('every leader has at least one charge after applying the default', () => {
       `${leader.id}: effective charges must be an integer greater than or equal to one`);
   }
 });
+
+test('Firestorm and both ships have their printed stats and all four art assets', () => {
+  for (const [id, faction, type, power, provision, rarity, row, ship] of [
+    ['firestorm', 'neutral', 'effect', undefined, 7, 'epic', undefined, undefined],
+    ['emperors-hand', 'protectorate', 'unit', 4, 13, 'gold', 'orbit', 'Тяжёлый корабль'],
+    ['brander', 'protectorate', 'unit', 2, 6, 'bronze', 'surface', 'Лёгкий корабль'],
+  ]) {
+    const card = CARD_DEFINITIONS.find((definition) => definition.id === id);
+    assert.deepEqual([card.faction, card.type, card.power, card.provision, card.rarity, card.preferredRow, card.shipClass],
+      [faction, type, power, provision, rarity, row, ship]);
+    assert.equal(card.art, id + '.webp');
+    assert.equal(card.artCrop, id + '-crop.webp');
+    assert.ok(hasPremiumArt(id), id);
+    for (const file of [card.art, card.artCrop, id + '-card.mp4', id + '-preview.mp4']) {
+      assert.ok(statSync(new URL('../../docs/art/' + file, import.meta.url)).size > 0, file);
+    }
+  }
+});

@@ -1,7 +1,7 @@
 import { handCount } from './bot-hand.js';
 import { ROWS } from '../shared/card-metadata.js';
 import { activeOrder, infectionDamage, opponent, statusCount, units } from '../engine/board.js';
-import { rowEffectValue } from './bot-effect-value.js';
+import { rowEffectValue, stormDeathwishValue } from './bot-effect-value.js';
 import { carryoverValue, coinValue, delayedCardValue, futureContext, leaderUses, leaderChargeValue } from './bot-future-value.js';
 import { availableOrders } from '../effects/effects.js';
 import { cardAbilities } from '../engine/events.js';
@@ -21,16 +21,27 @@ function boardValue(state, side, context, parts) {
   const { passed } = context;
   const ready = new Set(passed ? [] : availableOrders(state, side).map(({ card }) => card.id));
   const enemy = state.players[opponent(side)];
-  const rot = ROWS.reduce((sum, row) => {
+  const weather = ROWS.reduce((sum, row) => {
     const effect = enemy.rowEffects?.[row];
-    return sum + (effect?.type === 'rot' ? rowEffectValue(enemy, row, effect.remaining, false, context.opponentTurns) : 0);
+    const active = effect && (effect.attacker === side || (!effect.attacker && effect.type === 'rot'))
+      ? rowEffectValue(enemy, row, effect.remaining, false, context.opponentTurns, effect.type) : 0;
+    return sum + active;
   }, 0);
-  const exposed = units(state, opponent(side)).filter(({ card }) => statusCount(card, 'target')).length;
+  const enemyUnits = units(state, opponent(side));
+  const marked = enemyUnits.reduce((value, unit) => {
+    if (!unit.card.inheritedDeathwishes?.length) return value;
+    const duration = unit.card.inheritedDeathwishes
+      .filter(({ grantedBy }) => grantedBy === side)
+      .flatMap(({ deathwish }) => deathwish.steps)
+      .reduce((total, step) => total + (step.effect === 'firestorm' ? step.amount : 0), 0);
+    return value + (duration ? stormDeathwishValue(state, unit, duration, true) : 0);
+  }, 0);
+  const exposed = enemyUnits.filter(({ card }) => statusCount(card, 'target')).length;
   const plans = player.hand.some(({ definition }) => definition.keywords?.includes('Цель'));
   const leader = passed ? 0 : leaderUses(context) * leaderChargeValue(context);
   const coins = passed ? 0 : coinValue(context);
   const marks = !passed && plans ? exposed * W.markedTarget : 0;
-  if (parts) Object.assign(parts, { rowEffects: rot, leaderCharges: leader, coins });
+  if (parts) Object.assign(parts, { rowEffects: weather + marked, leaderCharges: leader, coins });
   const board = context.own.reduce((sum, unit) => {
     const { card, row } = unit;
     const { definition, timer } = card;
@@ -51,7 +62,7 @@ function boardValue(state, side, context, parts) {
         player.hand.filter((entry) => entry.definition.categories?.includes(definition.scenario.category)).length) * W.scenarioChapter : 0)
       + (abilities.fieldEvents?.death && ROWS.some((row) =>
         enemy.board[row].some((entry) => entry.statuses?.infection)) ? W.deathReaction : 0);
-  }, rot + (passed ? 0 : leader + coins + marks));
+  }, weather + marked + (passed ? 0 : leader + coins + marks));
   if (parts) parts.delayed = board - Object.values(parts).reduce((sum, value) => sum + value, 0);
   return board;
 }

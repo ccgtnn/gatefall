@@ -58,6 +58,7 @@ export function inheritableDeathwishes(player) {
   for (const card of player.discard) {
     if (card.definition.rarity !== 'bronze') continue;
     for (const definition of deathwishDefinitions(card)) {
+      if (definition.grantedBy) continue;
       const signature = JSON.stringify(definition.deathwish);
       if (!wishes.has(signature)) wishes.set(signature, definition);
     }
@@ -66,8 +67,8 @@ export function inheritableDeathwishes(player) {
 }
 
 export function deathwishJobs(card, context) {
-  return deathwishDefinitions(card).map((definition) => ({
-    ...context, sourceGrowth: card.growth, ability: definition.deathwish, deathwish: card.definition.name, cardAbility: true,
+  return deathwishDefinitions(card).filter((definition) => !definition.grantedBy || context.deathSide).map((definition) => ({
+    ...context, ...(definition.grantedBy && { side: definition.grantedBy, sourceDefinitionId: definition.id }), sourceGrowth: card.growth, ability: definition.deathwish, deathwish: card.definition.name, cardAbility: true,
   }));
 }
 
@@ -82,7 +83,7 @@ export function deathwishJobs(card, context) {
 export function emit(match, event, { source, neighbors = [], death, journal = true, side = event.side, played, firstLegendary } = {}) {
   if (journal) match.log.push(event);
   const jobs = [];
-  if (death) jobs.push(...deathwishJobs(source, { side: event.side, ...death }));
+  if (death) jobs.push(...deathwishJobs(source, { side: event.side, deathSide: event.side, ...death }));
   const abilities = cardAbilities(source);
   const self = abilities.events?.[event.type] ?? (event.type === 'turn-end' ? abilities.endTurn : undefined);
   if (self) jobs.push({ ability: self, side, sourceId: source.id, sourceDefinitionId: source.definition.id, causeDefinitionId: event.sourceDefinitionId, requiredSource: true, cardAbility: true });
