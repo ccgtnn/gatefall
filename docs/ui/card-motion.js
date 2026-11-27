@@ -1,9 +1,10 @@
 import { MOTION, scaleMotion } from './motion-tokens.js';
 import { element } from './dom.js';
 import {
-  VISUAL_EVENTS, animate, cardFlash, floatingNumber, moveNeighbors, oldHandPosition, pileAnchor, rects, updateScores,
+  VISUAL_EVENTS, animate, cardFlash, floatingNumber, handRects, moveNeighbors, oldHandPosition, pileAnchor, rects, updateScores,
 } from './card-motion-core.js';
 import { annihilate, fly, hop, leave, revealOpponentCard, swallow } from './card-motion-card-effects.js';
+import { presentHandEvent } from './card-motion-hand.js';
 import { hit, lightning, projectile, shield, showActivation } from './card-motion-hit-effects.js';
 
 export function animateLifeLoss(screen, winner, duration) {
@@ -90,6 +91,9 @@ export function animateTurnSparks(screen, side, duration, scale = 1) {
 }
 
 export async function presentJournalEvent(screen, event, commit, render, duration) {
+  if (event.type === 'draw' || event.type === 'hand-return' || event.type === 'hand-bottom') {
+    return presentHandEvent(screen, event, commit, render, duration);
+  }
   if (event.type === 'art-state') {
     if (!duration) {
       commit();
@@ -149,10 +153,12 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
     if (event.from === 'deck' || event.from === 'discard') origin = pileAnchor(screen, event.side, event.from);
     else if (event.side === 'human') origin = oldHandPosition(screen, event.cardId);
   }
+  const previousHand = event.type === 'play' ? handRects(screen) : null;
   render(commit());
   const current = rects(screen);
   const entry = current.get(event.cardId);
   const motions = moveNeighbors(previous, current, duration);
+  if (previousHand) motions.push(...moveNeighbors(previousHand, handRects(screen), duration));
   motions.push(updateScores(screen, previousScores, duration * MOTION.pace.score));
 
   switch (event.type) {

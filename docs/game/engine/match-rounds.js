@@ -2,6 +2,8 @@
 
 /** @typedef {import('../../../types/contracts').MatchState} MatchState */
 /** @typedef {import('../../../types/contracts').Side} Side */
+/** @typedef {import('../../../types/contracts').RoundDrawEvent} RoundDrawEvent */
+/** @typedef {import('../../../types/contracts').TurnStartEvent} TurnStartEvent */
 
 import {
   availableRows, cardType, changeCoins, createCard, discardCard, opponent, placementSide, placeCards,
@@ -123,7 +125,7 @@ export function confirmMulligan(match, cardIds = [], { random = Math.random } = 
     next.log.push({ type: 'mulligan', side, count: counts[side], round: next.round });
   }
   beginRound(next);
-  beginTurn(next);
+  beginTurn(next, next.starter);
   progress(next, random);
   return next;
 }
@@ -131,9 +133,13 @@ export function confirmMulligan(match, cardIds = [], { random = Math.random } = 
 function drawForRound(match, side) {
   const player = match.players[side];
   const draw = Math.min(ROUND_DRAW, player.deck.length);
-  const count = takeCards(player, draw).length;
-  player.extraSwaps = draw - count;
-  match.log.push({ type: 'draw', side, count, extraSwaps: player.extraSwaps });
+  const cards = takeCards(player, draw);
+  player.extraSwaps = draw - cards.length;
+  /** @type {RoundDrawEvent} */
+  const event = {
+    type: 'draw', side, count: cards.length, cards: structuredClone(cards), reason: 'round', extraSwaps: player.extraSwaps,
+  };
+  match.log.push(event);
 }
 
 function resolveRound(match) {
@@ -183,9 +189,13 @@ function resolveRound(match) {
   match.turn = null;
 }
 
-function beginTurn(match) {
+/** @param {MatchState} match @param {Side} side */
+function beginTurn(match, side) {
+  /** @type {TurnStartEvent} */
+  const event = { type: 'turn-start', side, empty: match.ending === 'empty-start' };
+  match.log.push(event);
   match.startingTurn = true;
-  enqueueStartTurn(match, match.turn);
+  enqueueStartTurn(match, side);
 }
 
 export function markPassed(match, side, reason) {
@@ -236,7 +246,7 @@ export function progress(match, random) {
       else {
         match.turn = otherSide;
         if (match.players[otherSide].passed) match.ending = 'empty-start';
-        beginTurn(match);
+        beginTurn(match, otherSide);
       }
       continue;
     }

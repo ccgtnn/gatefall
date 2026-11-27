@@ -91,3 +91,54 @@
 .motion-poison { color: #bcff72; }
 
 .motion-annihilation { background: radial-gradient(ellipse, #fff 8%, #dceaffda 42%, transparent 72%); }
+
+.motion-draw { perspective: 650px; }
+.motion-draw-flip {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+.motion-draw-flip > .motion-draw-face,
+.motion-draw-flip > .motion-draw-back {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+}
+.motion-draw-back {
+  border-radius: 5px;
+  object-fit: cover;
+  transform: rotateY(180deg);
+}
+.motion-draw-back-only > .motion-draw-back { transform: none; }
+
+.hand-card.motion-mulligan-out { position: fixed; z-index: 20; }
+.mulligan-deal-pending .hand-grid > .hand-card { visibility: hidden; }
+.hand-card.is-dealt {
+  animation: mulligan-deal var(--deal-duration) var(--deal-ease)
+    calc(var(--deal-i) * var(--deal-step)) both;
+}
+.hand-card.is-dealt-new::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, transparent 25%, #ffe8a58c, transparent 75%);
+  pointer-events: none;
+  content: '';
+  animation: mulligan-new var(--deal-duration) ease-out calc(var(--deal-i) * var(--deal-step)) both;
+}
+@keyframes mulligan-deal {
+  from { transform: translate(42vw, 34vh) rotate(18deg) scale(.72); opacity: 0; }
+  72% { opacity: 1; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes mulligan-new {
+  0%, 55%, 100% { opacity: 0; }
+  76% { opacity: 1; }
+}
+[data-reduced-motion="true"] .mulligan-deal-pending .hand-grid > .hand-card { visibility: visible; }
+[data-reduced-motion="true"] .hand-card.is-dealt,
+[data-reduced-motion="true"] .hand-card.is-dealt-new::after { animation: none; }
+.motion-draw-fallback { border-radius: 5px; overflow: hidden; background: #152434; }

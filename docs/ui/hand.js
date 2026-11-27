@@ -3,6 +3,8 @@ import { button, element } from './dom.js';
 import { availableRows, cardType, placementSide } from '../game/engine/board.js';
 import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/engine/match.js';
 import { cardButton, showCard } from './cards.js';
+import { animate, ghostCard } from './card-motion-core.js';
+import { MOTION } from './motion-tokens.js';
 
 export function updatePlacementSelection(screen, match, selectedCardId) {
   const card = match.players.human.hand.find(({ id }) => id === selectedCardId);
@@ -31,7 +33,57 @@ function hasMulliganChoice(match) {
     hand.some((card) => card.definition.id !== definition.id));
 }
 
-export function mulliganScreen({ getMatch, setMatch, updateMatch, setMulliganField, settingsButton, motion }) {
+async function dealMulligan(panel, nodes, match, motion, deal) {
+  if (deal.round === match.round) return;
+  if (match.round === 1 && deal.ready && motion()) {
+    panel.classList.add('mulligan-deal-pending');
+    await deal.ready;
+    panel.classList.remove('mulligan-deal-pending');
+  } else {
+    // The caller attaches the panel after constructing it.
+    await Promise.resolve();
+  }
+  if (!panel.isConnected || deal.round === match.round) return;
+  deal.round = match.round;
+  const base = motion();
+  if (!base) return;
+  const draw = match.log.findLast(({ type, side, reason }) => type === 'draw' && side === 'human' && reason === 'round');
+  const newIds = new Set(draw?.cards?.map(({ id }) => id));
+  const dealt = match.round === 1 ? nodes : nodes.filter(({ dataset }) => newIds.has(dataset.cardId));
+  panel.style.setProperty('--deal-duration', base * MOTION.pace.deal + 'ms');
+  panel.style.setProperty('--deal-step', base * MOTION.pace.dealStep + 'ms');
+  panel.style.setProperty('--deal-ease', MOTION.ease.draw);
+  for (const [index, node] of dealt.entries()) {
+    node.style.setProperty('--deal-i', String(index));
+    node.classList.add('is-dealt');
+    if (match.round > 1) node.classList.add('is-dealt-new');
+  }
+  await Promise.all(dealt.flatMap((node) => (node.getAnimations?.() ?? []).map((motion) => motion.finished.catch(() => {}))));
+  for (const node of dealt) node.classList.remove('is-dealt', 'is-dealt-new');
+}
+
+async function replaceChoice(panel, previous, replacement, base) {
+  if (!base || !panel.isConnected || !previous.isConnected || !previous.animate) {
+    previous.replaceWith(replacement);
+    return;
+  }
+  const ghost = ghostCard(panel, { node: previous, rect: previous.getBoundingClientRect() });
+  ghost.classList.add('motion-mulligan-out');
+  previous.replaceWith(replacement);
+  const outgoing = animate(ghost, [
+    { transform: 'translateY(0)', opacity: 1 },
+    { transform: `translateY(${MOTION.hand.mulliganDrop}px)`, opacity: 0 },
+  ], base * MOTION.pace.mulliganOut).finally(() => ghost.remove());
+  const flip = replacement.animate([
+    { transform: 'perspective(650px) rotateY(90deg)' },
+    { transform: 'perspective(650px) rotateY(0deg)' },
+  ], { duration: base * MOTION.pace.mulliganIn, delay: base * MOTION.pace.mulliganOut,
+    easing: MOTION.ease.draw, fill: 'both' });
+  await Promise.all([outgoing, flip.finished.catch(() => {})]);
+  flip.cancel();
+}
+
+export function mulliganScreen({ getMatch, setMatch, updateMatch, setMulliganField, settingsButton, motion, mulliganDeal }) {
   const match = getMatch();
   const panel = element('section', 'mulligan mulligan-overlay');
   panel.setAttribute('role', 'dialog');
@@ -60,7 +112,8 @@ export function mulliganScreen({ getMatch, setMatch, updateMatch, setMulliganFie
   }
 
   function choice(card, index) {
-    return cardButton(card, (event) => {
+    return cardButton(card, async (event) => {
+      if (panel.inert || !panel.isConnected) return;
       const match = getMatch();
       if (!mulliganRemaining(match)) return;
       const next = replaceMulliganCard(match, card.id);
@@ -72,10 +125,11 @@ export function mulliganScreen({ getMatch, setMatch, updateMatch, setMulliganFie
       const previous = event.currentTarget;
       const focused = document.activeElement === previous;
       const replacement = choice(next.players.human.hand[index], index);
-      previous.replaceWith(replacement);
+      const replacing = replaceChoice(panel, previous, replacement, motion());
       updateCounter();
-      if (!hasMulliganChoice(next)) void finishMulligan();
-      else if (focused) replacement.focus({ preventScroll: true });
+      if (focused) replacement.focus({ preventScroll: true });
+      await replacing;
+      if (next === getMatch() && !hasMulliganChoice(next)) void finishMulligan();
     }, match.players.human);
   }
 
@@ -84,10 +138,13 @@ export function mulliganScreen({ getMatch, setMatch, updateMatch, setMulliganFie
   header.append(heading, counter);
   const actions = element('div', 'mulligan-actions');
   actions.append(button('Посмотреть поле', () => setMulliganField(true)), confirm);
-  cards.append(...match.players.human.hand.map(choice));
+  const nodes = match.players.human.hand.map(choice);
+  cards.append(...nodes);
   panel.append(header, cards, actions, settingsButton());
   updateCounter();
-  if (!hasMulliganChoice(match)) queueMicrotask(finishMulligan);
+  const deal = mulliganDeal();
+  const dealing = dealMulligan(panel, nodes, match, motion, deal);
+  if (!hasMulliganChoice(match)) void dealing.then(finishMulligan);
   return panel;
 }
 

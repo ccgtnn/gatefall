@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createCard, placeCards } from '../../docs/game/engine/board.js';
+import { applyStatus, createCard, findUnit, placeCards } from '../../docs/game/engine/board.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
 import { FACTIONS, FIRST_SIGNAL } from '../../docs/game/cards/cards.js';
 import { availableOrders } from '../../docs/game/effects/effects.js';
@@ -153,7 +153,11 @@ test('later mulligans allow two swaps without blocked draws, including when the 
   let match = confirmMulligan(setup(), []);
   match.players.human.hand.splice(0, 3);
   match.players.human.deck.splice(2);
+  const drawn = match.players.human.deck.slice();
   match = applyAction(applyAction(match, 'human', pass), 'bot', pass);
+  const event = match.log.findLast(({ type, side }) => type === 'draw' && side === 'human');
+  assert.deepEqual(event, { type: 'draw', reason: 'round', side: 'human', count: 2, cards: drawn, extraSwaps: 0 });
+  assert.notStrictEqual(event.cards[0], match.players.human.hand.at(-2));
   assert.equal(match.players.human.hand.length, 9);
   assert.equal(match.players.human.extraSwaps, 0);
   assert.equal(mulliganLimit(match, 'human'), 2);
@@ -286,4 +290,35 @@ test('playing with no available order auto-ends even if there is a sleeping orde
   assert.equal(match.turn, 'human');
   assert.equal(match.playedCard, false);
   assert.equal(canPass(match, 'human'), true);
+});
+
+test('turn-start brackets turn effects and identifies the empty turn of a passed side', () => {
+  let match = confirmMulligan(setup(), []);
+  assert.deepEqual(match.log.findLast(({ type }) => type === 'turn-start'),
+    { type: 'turn-start', side: 'human', empty: false });
+  match.players.human.board.orbit = [unit('infected')];
+  applyStatus(match, findUnit(match, 'infected'), 'infection', 2);
+  const growing = unit('growing');
+  growing.definition = { ...growing.definition, startTurnGrowth: 1 };
+  match.players.bot.board.orbit = [growing];
+  match.players.bot.hand = [unit('bot-play'), unit('bot-spare')];
+
+  const afterPass = action(match, 'pass');
+  const events = afterPass.log.slice(match.log.length);
+  const turnStart = events.findIndex(({ type }) => type === 'turn-start');
+  assert.deepEqual(events[turnStart], { type: 'turn-start', side: 'bot', empty: false });
+  const tick = events.findIndex(({ type, tick }) => type === 'status' && tick);
+  assert.ok(tick >= 0 && tick < turnStart);
+  assert.ok(events.findIndex(({ cardId, type }) => cardId === growing.id && type === 'base-power') > turnStart);
+
+  match = action(afterPass, 'play', afterPass.players.bot.hand[0].id);
+  if (match.turn === 'bot') match = action(match, 'end-turn');
+  assert.deepEqual(match.log.slice(afterPass.log.length).filter(({ type }) => type === 'turn-start'), [
+    { type: 'turn-start', side: 'human', empty: true },
+    { type: 'turn-start', side: 'bot', empty: false },
+  ]);
+
+  const roundEnd = action(match, 'pass');
+  assert.ok(roundEnd.log.slice(match.log.length).some(({ type }) => type === 'round-end'));
+  assert.ok(roundEnd.log.slice(match.log.length).every(({ type }) => type !== 'turn-start'));
 });

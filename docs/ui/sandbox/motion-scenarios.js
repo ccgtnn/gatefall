@@ -59,9 +59,9 @@ function shot(match, amount, visual) {
   });
 }
 
-function draw(match, side, amount) {
+function draw(match, side, amount, reason) {
   const cards = takeCards(match.players[side], amount);
-  match.log.push({ type: 'draw', side, count: cards.length, cards });
+  match.log.push({ type: 'draw', side, count: cards.length, cards, ...(reason && { reason, extraSwaps: 0 }) });
 }
 
 function round(winner) {
@@ -69,6 +69,13 @@ function round(winner) {
     match.players.bot.passed = true;
     if (winner) boost(match, unit(match, winner), 2);
   };
+}
+
+function mulligan(match, roundNumber) {
+  match.phase = 'mulligan';
+  match.turn = null;
+  match.round = roundNumber;
+  match.mulligan = { used: 0, excluded: [] };
 }
 
 const pass = (match) => applyMotionAction(match, { type: 'pass' });
@@ -119,7 +126,7 @@ export const motionGroups = [
     { id: 'summon', label: 'Призыв', prepare: realCard('forgotten-gates'), run: play },
     { id: 'coins', label: 'Монеты', run: (match) => { changeCoins(match, 'human', 3); changeCoins(match, 'human', -2); } },
   ]],
-  ['Пока без анимации', [
+  ['Рука и муллиган', [
     { id: 'draw-one', label: 'Добор 1', run: (match) => { draw(match, 'human', 1); } },
     { id: 'draw-three', label: 'Добор 3', run: (match) => { draw(match, 'human', 3); } },
     { id: 'opponent-draw', label: 'Добор соперника', run: (match) => { draw(match, 'bot', 1); } },
@@ -127,6 +134,20 @@ export const motionGroups = [
       effect('Возврат в колоду', [{ action: 'return-hand', amount: 1 }])(match);
       return play(match);
     }, run: resolve },
+    { id: 'hand-bottom', label: 'На дно колоды', prepare: (match) => {
+      effect('На дно колоды', [{ action: 'choose-hand-bottom' }])(match);
+      return play(match);
+    }, run: resolve },
+    { id: 'deal-round-one', label: 'Раздача (раунд 1)', presentation: 'mulligan-deal', run: (match) => mulligan(match, 1) },
+    { id: 'deal-round-two', label: 'Раздача (раунд 2)', presentation: 'mulligan-deal', run: (match) => {
+      draw(match, 'human', 3, 'round');
+      mulligan(match, 2);
+    } },
+    { id: 'mulligan-swap', label: 'Замена в муллигане', presentation: 'mulligan-swap', prepare: (match) => {
+      mulligan(match, 1);
+    }, run: () => undefined },
+  ]],
+  ['Пока без анимации', [
     { id: 'lock', label: 'Блокировка', run: (match) => { applyStatus(match, unit(match), 'lock', 2); } },
     { id: 'mark', label: 'Цель', run: (match) => { applyStatus(match, unit(match), 'target', 1, { attacker: 'human' }); } },
     { id: 'cleanse', label: 'Очищение', prepare: (match) => { unit(match, 'human').card.statuses = { lock: 2, infection: 2 }; },

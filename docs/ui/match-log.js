@@ -28,6 +28,7 @@ export function eventText(event) {
       };
       return `${side}: ${reasons[event.reason]}.`;
     }
+    case 'turn-start': return event.empty ? `${side}: пропускает ход после паса.` : '';
     case 'turn-skip': return `${side}: ход завершён без паса. Нет карты для розыгрыша.`;
     case 'deck-top': return `${side}: карта перемещена на верх колоды.`;
     case 'capture': return `${side}: Захват «${event.name}» в ряд «${ROW_LABELS[event.row]}».`;

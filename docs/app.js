@@ -199,6 +199,7 @@ const hand = {
   getMatch: () => turns.match,
   setMatch: turns.setMatch,
   updateMatch, setMulliganField: session.setMulliganField, settingsButton, motion: () => settings.motion(),
+  mulliganDeal: session.mulliganDeal,
 };
 const battlefield = createBattlefield({
   getMatch: () => turns.match,

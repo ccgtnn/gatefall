@@ -212,3 +212,113 @@ test('card motion durations use named tokens and the sandbox scale has no global
   assert.equal(motionDuration('system', true), 0);
   assert.equal(motionDuration('off', false, 4), 0);
 });
+
+function handScenario(t, count, side = 'human') {
+  const { trace, overlays, screen } = scenario();
+  const priorDocument = globalThis.document;
+  globalThis.document = screen.ownerDocument;
+  t.after(() => { globalThis.document = priorDocument; });
+  screen.isConnected = true;
+  const cards = Array.from({ length: count }, (_, index) => ({ id: 'drawn-' + index }));
+  const rect = { left: 20, top: 40, width: 80, height: 120 };
+  const counter = screen.ownerDocument.createElement();
+  counter.className = 'bot-hand-count';
+  counter.getBoundingClientRect = () => rect;
+  let rendered = false;
+  const slots = cards.map(({ id }) => {
+    const node = screen.ownerDocument.createElement();
+    node.className = 'hand-card';
+    node.dataset.cardId = id;
+    node.getBoundingClientRect = () => rect;
+    node.cloneNode = () => {
+      const face = screen.ownerDocument.createElement();
+      face.className = 'cloned-face';
+      face.querySelectorAll = () => [];
+      trace.push('clone face');
+      return face;
+    };
+    return node;
+  });
+  screen.querySelectorAll = (selector) => {
+    if (selector.startsWith('[data-pile-side')) return [counter];
+    if (selector.startsWith('.bot-hand-count')) return [counter];
+    if (selector === '.hand [data-card-id]' && rendered) return slots;
+    return [];
+  };
+  const commit = () => {
+    trace.push('commit');
+    return { players: { [side]: { factionId: 'growth', deck: [] } } };
+  };
+  const render = () => { rendered = true; trace.push('render'); };
+  const event = { type: 'draw', side, count, cards };
+  return { trace, overlays, screen, slots, event, commit, render };
+}
+
+test('draw commits and renders before starting the flight and revealing the real hand card', async (t) => {
+  const { trace, overlays, screen, slots, event, commit, render } = handScenario(t, 1);
+  await presentJournalEvent(screen, event, commit, render, 320);
+  assert.deepEqual(trace.slice(0, 4), ['commit', 'render', 'clone face', 'motion-overlay motion-draw:start']);
+  assert.equal(overlays[0].children[0].children.length, 2);
+  assert.equal(overlays[0].style.width, '80px');
+  assert.equal(overlays[0].motion.options.duration, 544);
+  assert.deepEqual(slots[0].motion.keyframes.slice(0, 2).map(({ opacity, offset }) => [opacity, offset]),
+    [[0, undefined], [0, .82]]);
+});
+
+test('opponent draw flies only card backs and announces the count after they land', async (t) => {
+  const { trace, overlays, screen, event, commit, render } = handScenario(t, 3, 'bot');
+  await presentJournalEvent(screen, event, commit, render, 320);
+  assert.deepEqual(trace.slice(0, 2), ['commit', 'render']);
+  assert.equal(trace.includes('clone face'), false);
+  const flights = overlays.slice(0, 3);
+  assert.ok(flights.every((node) => node.children[0].children.length === 1 &&
+    node.children[0].children[0].className === 'motion-draw-back'));
+  assert.equal(overlays[3].textContent, '+3');
+  assert.ok(trace.lastIndexOf('motion-overlay motion-draw:end') < trace.indexOf('bot-hand-count:start'));
+});
+
+test('round draw, disabled motion and disconnected screens only commit', async (t) => {
+  const { trace, overlays, screen, event, commit, render } = handScenario(t, 1);
+  await presentJournalEvent(screen, event, commit, render, 0);
+  await presentJournalEvent(screen, { ...event, reason: 'round' }, commit, render, 320);
+  screen.isConnected = false;
+  await presentJournalEvent(screen, event, commit, render, 320);
+  assert.deepEqual(trace, ['commit', 'commit', 'commit']);
+  assert.deepEqual(overlays, []);
+});
+
+test('draw staggers a large batch within 1.1 seconds for either side', async (t) => {
+  for (const side of ['human', 'bot']) {
+    const { overlays, screen, event, commit, render } = handScenario(t, 10, side);
+    await presentJournalEvent(screen, event, commit, render, 320);
+    const flights = overlays.filter(({ className }) => className === 'motion-overlay motion-draw');
+    const feedback = overlays.find(({ className }) => className.includes('motion-number'));
+    assert.equal(flights.length, 10);
+    const end = Math.max(...flights.map(({ motion: { options } }) => options.duration + options.delay));
+    assert.ok(end + (feedback?.motion.options.duration ?? 0) <= 1100);
+    assert.ok(flights[1].motion.options.delay < 96);
+  }
+});
+
+test('returning to the bottom uses the saved hand position and slides the remaining card', async (t) => {
+  const { trace, overlays, screen, slots, commit, render } = handScenario(t, 2);
+  const [leaving, neighbor] = slots;
+  const bounds = neighbor.getBoundingClientRect();
+  const query = screen.querySelectorAll;
+  let updated = false;
+  screen.querySelectorAll = (selector) => selector === '.hand [data-card-id]'
+    ? (updated ? [neighbor] : slots)
+    : query(selector);
+  neighbor.getBoundingClientRect = () => ({ ...bounds, left: updated ? 40 : 80 });
+  rememberRect(leaving.dataset.cardId, { ...bounds, left: 125 });
+  await presentJournalEvent(screen, { type: 'hand-bottom', side: 'human', cardId: leaving.dataset.cardId }, commit, () => {
+    updated = true;
+    render();
+  }, 320);
+  assert.deepEqual(trace.slice(0, 2), ['commit', 'render']);
+  assert.equal(overlays[0].style.left, '125px');
+  assert.equal(overlays[0].motion.options.duration, 320 * 1.4);
+  assert.equal(overlays[0].children[0].motion.keyframes.at(-1).transform, 'rotateY(180deg)');
+  assert.match(neighbor.motion.keyframes[0].transform, /translate3d\(40px/);
+  assert.equal(takeRememberedRect(leaving.dataset.cardId), undefined);
+});

@@ -44,6 +44,10 @@ export function applyJournalEvent(state, event) {
     state.turn = side;
     return;
   }
+  if (type === 'turn-start') {
+    state.turn = side;
+    return;
+  }
   if (!player) return;
 
   if (type === 'coins') player.coins = event.coins;
@@ -69,6 +73,7 @@ export function applyJournalEvent(state, event) {
     const drawn = new Set(event.cards.map(({ id }) => id));
     player.deck = player.deck.filter(({ id }) => !drawn.has(id));
     player.hand.push(...event.cards);
+    if (event.reason === 'round') player.extraSwaps = event.extraSwaps;
     return;
   }
   if (type === 'play') {

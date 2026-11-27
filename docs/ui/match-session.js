@@ -26,6 +26,7 @@ export function createMatchSession({
   let speechTimer;
   let matchSettlement;
   let mulliganFieldVisible = false;
+  let mulliganDeal;
 
   function showLeagueSpeech(speech) {
     clearTimeout(speechTimer);
@@ -74,19 +75,22 @@ export function createMatchSession({
     onStart();
     mulliganFieldVisible = false;
     announcement.textContent = '';
-    render();
+    mulliganDeal = { round: 0 };
     const first = next.starter === 'human';
     const label = element('span', 'coin-result', 'Монетка: ты ходишь ' + (first ? 'первым' : 'вторым'));
     const coin = element('span', 'tossed-coin ' + (first ? 'coin-first' : 'coin-second'), first ? '✦' : '◈');
     coin.setAttribute('aria-hidden', 'true');
     const { toss: coinDuration, notice: noticeDuration } = coinTimings(settings.motion());
-    showNotice(coinNotice, '', noticeDuration);
-    coinNotice.append(coin, label);
     if (coinDuration) {
-      void animateCoin(coinNotice, coin, label, coinDuration, noticeDuration).then(() => {
+      showNotice(coinNotice, '');
+      coinNotice.append(coin, label);
+      mulliganDeal.ready = animateCoin(coinNotice, coin, label, coinDuration, noticeDuration).then(() => {
         if (coin.parentElement === coinNotice) hideNotice(coinNotice);
       });
+    } else {
+      announcement.textContent = label.textContent;
     }
+    render();
     screen.querySelector('h2').focus({ preventScroll: true });
   }
 
@@ -196,6 +200,7 @@ export function createMatchSession({
     get leagueOpponent() { return leagueOpponent; },
     get leagueSpeech() { return leagueSpeech; },
     get mulliganFieldVisible() { return mulliganFieldVisible; },
+    mulliganDeal: () => mulliganDeal,
     difficulty: () => leagueOpponent?.level ?? settings.difficulty(),
     cancelDialogue: () => leagueDialogue?.cancelPlay(),
     canLeaveResult,

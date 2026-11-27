@@ -7,6 +7,11 @@ export const VISUAL_EVENTS = new Set([
   'play', 'damage', 'boost', 'weaken', 'armor', 'status', 'cleanse', 'death', 'destroy', 'discard', 'spawn', 'deathwish', 'consume', 'consume-group', 'leader', 'order', 'aura-power', 'transform',
 ]);
 
+export function handRects(screen) {
+  return new Map(Array.from(screen.querySelectorAll('.hand [data-card-id]'), (node) =>
+    [node.dataset.cardId, { node, rect: node.getBoundingClientRect() }]));
+}
+
 export function rects(screen) {
   return new Map(Array.from(screen.querySelectorAll('[data-board-card]'), (node) =>
     [node.dataset.boardCard, { node, rect: node.getBoundingClientRect() }]));
@@ -28,7 +33,7 @@ export function clearRememberedRects() {
   rememberedRects.clear();
 }
 
-function visibleRect(node) {
+export function visibleRect(node) {
   const rect = node?.getBoundingClientRect();
   return rect?.width > 0 && rect.height > 0 ? rect : undefined;
 }
@@ -104,8 +109,8 @@ export function floatingCard(screen, event, className, destination, fullArt = fa
   return card;
 }
 
-export function ghostCard(screen, entry) {
-  const clone = entry.node.cloneNode(true);
+export function copyCardFace(screen, node) {
+  const clone = node.cloneNode(true);
   for (const video of clone.querySelectorAll('video')) {
     const image = screen.ownerDocument.createElement('img');
     image.className = video.className;
@@ -116,9 +121,14 @@ export function ghostCard(screen, entry) {
     if (poster) image.src = poster;
     video.replaceWith(image);
   }
-  clone.classList.add('motion-overlay', 'motion-departure');
   clone.inert = true;
   clone.setAttribute('aria-hidden', 'true');
+  return clone;
+}
+
+export function ghostCard(screen, entry) {
+  const clone = copyCardFace(screen, entry.node);
+  clone.classList.add('motion-overlay', 'motion-departure');
   Object.assign(clone.style, {
     left: entry.rect.left + 'px', top: entry.rect.top + 'px',
     width: entry.rect.width + 'px', height: entry.rect.height + 'px',

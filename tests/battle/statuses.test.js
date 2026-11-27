@@ -51,7 +51,7 @@ test('lethal infection emits death and triggers deathwish on a pass', () => {
   applyStatus(match, findUnit(match, 'infected'), 'infection', 3);
   const next = applyAction(match, 'human', { type: 'pass' });
   assert.equal(findUnit(next, 'infected'), undefined);
-  assert.deepEqual(next.log.slice(-4).map(({ type }) => type), ['pass', 'status', 'death', 'deathwish']);
+  assert.deepEqual(next.log.slice(match.log.length).map(({ type }) => type), ['pass', 'status', 'death', 'deathwish', 'turn-start']);
   assert.equal(next.players.human.discard.find(({ id }) => id === 'infected').armor, 3);
 });
 
