@@ -115,6 +115,7 @@
 .deck-card-heading { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; padding-inline-end: 2rem; }
 .deck-primary-badge { color: #f6d78b; font-size: .76rem; white-space: nowrap; }
 .deck-card-menu { position: absolute; z-index: 3; inset-block-start: .45rem; inset-inline-end: .45rem; }
+.deck-card-menu:has(> .deck-card-menu-popover:not([hidden])) { z-index: 20; }
 .deck-card-menu-trigger { min-width: 1.9rem; min-height: 1.9rem; padding: .15rem; }
 .deck-card-menu-popover {
   position: absolute;
