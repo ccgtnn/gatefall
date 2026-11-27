@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { findCardDefinition } from '../../docs/game/cards/card-registry.js';
 import { chooseBotTurn } from '../../docs/game/bot/bot.js';
+import { effectSwing } from '../../docs/game/bot/bot-effect-value.js';
+import { canUseLeader } from '../../docs/game/effects/effects.js';
 import { createCard, ROW_LIMIT } from '../../docs/game/engine/board.js';
 import { applyAction, createMatch } from '../../docs/game/engine/match.js';
 import { unit } from '../helpers/battle-helpers.js';
@@ -61,4 +63,49 @@ test('bot marks a vulnerable unit with surviving neighbors and saves charges aga
   assert.deepEqual(choose(pending), { type: 'target', cardId: 'weak' });
   match.players.human.board.surface = [unit('alone', 1)];
   assert.equal(choose(match).type, 'play');
+});
+
+
+test('bot plays Salfurion into both rows and uses its order once recharged against vulnerable units', () => {
+  const match = setup('salfurion');
+  const { human, bot } = match.players;
+  match.round = 3;
+  for (const row of ['orbit', 'surface']) {
+    human.board[row] = Array.from({ length: 6 }, (_, i) => unit(row + i, 1, { token: true }));
+  }
+  bot.hand.push(unit('backup', 2));
+  bot.usedAbility = true;
+  const oldLeader = createMatch({ humanLeader: 'fleet-admiral', random }).players.human.leader;
+  bot.leader = oldLeader;
+  const chargedValue = effectSwing(match, 'bot', bot.hand[0]);
+  bot.leader = { ...oldLeader, charges: 0 };
+  assert.ok(effectSwing(match, 'bot', bot.hand[0]) > chargedValue);
+  const play = choose(match);
+  assert.deepEqual(play, { type: 'play', cardId: 'salfurion' });
+  const cast = act(match, play);
+  assert.equal(cast.turn, 'human');
+  const [reply] = cast.players.human.hand;
+  const ready = applyAction(cast, 'human', { type: 'play', cardId: reply.id, row: 'surface', position: cast.players.human.board.surface.length }, { random });
+  // Once the deployment's ticks end, new units in both rows make the next order worthwhile.
+  ready.players.human.rowEffects = {};
+  ready.players.human.board.orbit = [unit('new-orbit', 4)];
+  ready.players.human.board.surface = [unit('new-surface', 4)];
+  const action = choose(ready);
+  const beforeOrder = action.type === 'leader' ? ready : act(ready, action);
+  assert.deepEqual(choose(beforeOrder), { type: 'leader' });
+  const ordered = act(beforeOrder, { type: 'leader' });
+  assert.equal(canUseLeader(ordered, 'bot'), false);
+
+  ordered.turn = 'bot';
+  ordered.playedCard = true;
+  ordered.players.bot.turns = beforeOrder.players.bot.turns + 4;
+  ordered.players.human.rowEffects = {};
+  ordered.players.human.hand = [unit('last-enemy-card', 1)];
+  for (const row of ['orbit', 'surface']) {
+    ordered.players.human.board[row] = [unit('protected-' + row, 4, { armor: 2, shield: true })];
+  }
+  assert.equal(canUseLeader(ordered, 'bot'), true);
+  assert.equal(choose(ordered).type, 'end-turn');
+  ordered.players.human.board.surface = [unit('exposed', 4, { armor: 1, shield: true })];
+  assert.deepEqual(choose(ordered), { type: 'leader' });
 });

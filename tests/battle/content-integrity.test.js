@@ -67,6 +67,21 @@ test('both Plague engines have their printed stats and premium artwork', () => {
   }
 });
 
+test('Salfurion is a neutral gold effect with full, cropped, leader and premium art', () => {
+  const id = 'salfurion';
+  const card = CARD_DEFINITIONS.find((definition) => definition.id === id);
+  assert.deepEqual([card.faction, card.type, card.rarity, card.provision], ['neutral', 'effect', 'gold', 18]);
+  assert.deepEqual(card.keywords, ['Огненный шторм', 'Приказ', 'Перезарядка']);
+  assert.equal(card.art, id + '.webp');
+  assert.equal(card.artCrop, id + '-crop.webp');
+  const portrait = card.deploy.steps.find(({ action }) => action === 'replace-leader').portrait;
+  assert.equal(portrait, id + '-portrait.webp');
+  assert.ok(hasPremiumArt(id));
+  for (const file of [card.art, card.artCrop, portrait, id + '-card.mp4', id + '-preview.mp4']) {
+    assert.ok(statSync(new URL('../../docs/art/' + file, import.meta.url)).size > 0, file);
+  }
+});
+
 test('every preset and League character deck id exists in the card registry', () => {
   const known = new Set(CARD_DEFINITIONS.map(({ id }) => id));
   const leagueDecks = [...LEAGUE_BOTS.values()].map(({ id, deck }) => ({ ...deck, characterId: id }));

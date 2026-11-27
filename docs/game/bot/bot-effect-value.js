@@ -5,7 +5,7 @@ import { availableRows, cleansableStatuses, HAND_LIMIT, infectionDamage, isUnit,
 import { availableFees, canGrantZeal, orderAbility } from '../effects/effects.js';
 import { ROWS } from '../shared/card-metadata.js';
 import { canStart, eligiblePileCards, pileCandidates, playPiles, playTiming, reference, rowArmor, rowSide, targets, valueOf } from '../effects/effect-queries.js';
-import { armorBreakSwing, consumeBonus, coinValue, delayedCardValue, futureContext, remainingTurns } from './bot-future-value.js';
+import { armorBreakSwing, consumeBonus, coinValue, delayedCardValue, futureContext, leaderChargeValue, leaderUses, remainingTurns } from './bot-future-value.js';
 import { cardAbilities, deathwishDefinitions, isLocked } from '../engine/events.js';
 
 export function pendingUnitPriority(match, { kind, side, job }) {
@@ -278,6 +278,41 @@ function rowEffectSwing({ match, job }, step) {
   return step.row === 'all' ? values.reduce((sum, value) => sum + value, 0) : Math.max(...values);
 }
 
+export function leaderFirestormStep(ability) {
+  return ability?.steps.find(({ action, effect, row }) =>
+    action === 'row-effect' && effect === 'firestorm' && row === 'all');
+}
+
+export function leaderFirestormValue(match, side, weather) {
+  return rowEffectSwing({ match, job: { side } }, weather);
+}
+
+function replacementLeaderSwing({ match, job, player }, step) {
+  const weather = leaderFirestormStep(step.order.ability);
+  if (!weather) return 2;
+
+  const { side } = job;
+  const current = futureContext(match, side);
+  const replacement = { ...current, player: { ...player, leader: {
+    ability: step.order.ability, order: step.order, charges: 0, readyAtTurn: player.turns + 1,
+  } } };
+  const enemy = match.players[opponent(side)];
+  const deployed = job.ability.steps.find(({ action, effect, row }) =>
+    action === 'row-effect' && effect === 'firestorm' && row === 'all')?.amount ?? 0;
+  const extra = leaderUses(replacement) * weather.amount;
+  const liveValue = ROWS.reduce((sum, row) =>
+    sum + rowEffectValue(enemy, row, deployed + extra, true, current.opponentTurns, 'firestorm') -
+      rowEffectValue(enemy, row, deployed, true, current.opponentTurns, 'firestorm'), 0);
+  const nextRoundValue = leaderUses(replacement, true) * leaderChargeValue(replacement, true);
+  const currentUses = leaderUses(current);
+  const futureUses = leaderUses(current, true);
+  const oldLeader = player.leader;
+  const savedUses = oldLeader?.order?.usesCharges
+    ? Math.min(Math.max(0, oldLeader.charges - currentUses), futureUses) : futureUses;
+  return liveValue + nextRoundValue -
+    currentUses * leaderChargeValue(current) - savedUses * leaderChargeValue(current, true);
+}
+
 function boostSwing({ match, job }, { amount }) {
   return amount?.count || amount?.markedThisMatch || amount?.startingCategory ? valueOf(match, job, amount) : 0;
 }
@@ -409,7 +444,7 @@ const stepValues = {
   'play-from-discard': discardPlaySwing,
   'summon-from-deck': summonSwing,
   spawn: spawnSwing,
-  'replace-leader': () => 2,
+  'replace-leader': replacementLeaderSwing,
   scatter: scatterSwing,
   status: infectionSwing,
   damage: damageSwing,

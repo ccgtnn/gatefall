@@ -160,7 +160,7 @@ test('a bot with a winning lead passes before using the Incubator', () => {
 test('levels 5–7 compare pass with plays using the match position', () => {
   for (const level of [5, 6, 7]) {
     const ahead = position(1);
-    ahead.players.bot.board.orbit = [plain('lead', 15)];
+    ahead.players.bot.board.orbit = [plain('lead', 24)];
     assert.deepEqual(chooseBotTurn(ahead, level), pass, 'bank a large lead at level ' + level);
 
     const behind = position(1);

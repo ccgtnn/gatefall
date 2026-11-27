@@ -39,7 +39,7 @@ export const EFFECT_SCHEMA = Object.freeze({
   abilityCondition: shape('atLeast selectable', { targets: 'target' }),
   stepCondition: shape('coinsAtLeast coinsBelow orAlliesCategory', { targets: 'target' }),
   step: shape(`
-    action category choose chooseAll effect faction fallbackPosition fullDeck grouped kind measureDamage
+    action name art portrait category choose chooseAll effect faction fallbackPosition fullDeck grouped kind measureDamage
     mode multiplier of overflow position preservePower prompt rarity ref requiresResult row rowRef
     save savePosition saveTargets side sourceRow state status type visual
   `, {

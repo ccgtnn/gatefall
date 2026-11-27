@@ -1,4 +1,5 @@
 import { handCount } from './bot-hand.js';
+import { leaderFirestormStep, leaderFirestormValue } from './bot-effect-value.js';
 import { neighbors, opponent, ROW_LIMIT, statusCount } from '../engine/board.js';
 import { canGrantZeal, canUseLeader } from '../effects/effects.js';
 import { targets } from '../effects/effect-queries.js';
@@ -31,12 +32,19 @@ export function leaderTargetPriority(match, side, kind) {
   }
 }
 
+export function canUseBotLeader(match, side) {
+  if (!canUseLeader(match, side)) return false;
+  const weather = leaderFirestormStep(match.players[side].leader.ability);
+  return !weather || leaderFirestormValue(match, side, weather) > 0;
+}
+
 // Undefined leaves an existing leader to the usual difficulty-specific strategy.
 export function preferredLeaderUse(match, side) {
   const player = match.players[side];
   const { leader } = player;
   const hints = leader?.aiHints;
-  // A replacement order keeps the portrait but has its own ability.
+  if (leaderFirestormStep(leader?.ability)) return canUseBotLeader(match, side);
+  // Replacement orders use their own decision rules.
   if (!leader || leader.order?.sourceDefinitionId) return;
   const [first] = leader.ability?.select ?? [];
   if (first?.kind === 'infection' && !match.players[opponent(side)].passed && canUseLeader(match, side)) {

@@ -1,13 +1,13 @@
 import { handCount } from './bot-hand.js';
 import { ROWS } from '../shared/card-metadata.js';
 import { cardType, findUnit, isUnit, neighbors, placementSide, restoreCard, statusCount, units } from '../engine/board.js';
-import { availableOrders, canUseLeader } from '../effects/effects.js';
+import { availableOrders } from '../effects/effects.js';
 import { rowArmor } from '../effects/effect-queries.js';
 import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionSwing, effectSwing, immediateWeatherOrder, immediateWeatherValue, infectionGain, holdUntargetedDamage, lockPriority, pendingUnitPriority, rowDamage, rowEffectValue, rowScatterValue, usefulWeatherOrder } from './bot-effect-value.js';
 import { armorBreakSwing, consumeBonus, delayedCardValue, futureContext, inheritancePayoff, remainingTurns, wantsToHoldInheritance } from './bot-future-value.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, availableRows, canEndTurn, canPass, playableCards, totalScore } from '../engine/match.js';
 
-import { leaderTargetPriority, offeringPriority, preferredLeaderUse } from './bot-leaders.js';
+import { canUseBotLeader, leaderTargetPriority, offeringPriority, preferredLeaderUse } from './bot-leaders.js';
 import { deathwishDefinitions } from '../engine/events.js';
 import { BOT_LEVELS, readBotLevel } from './bot-levels.js';
 import { botSearchState, chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js';
@@ -247,7 +247,7 @@ function beneficialLeader(match, view, allies) {
   const player = match.players.bot;
   const preference = preferredLeaderUse(match, 'bot');
   if (preference !== undefined) return preference;
-  if (!canUseLeader(match, 'bot')) return false;
+  if (!canUseBotLeader(match, 'bot')) return false;
   if (player.leader.order && !player.leader.order.usesCharges) return units(match, 'human').some(({ card }) => isUnit(card) && (card.armor ?? 0) < 2);
   const kind = player.leader.ability.select?.[0]?.kind;
   if (kind === 'marshal') {
@@ -281,7 +281,7 @@ export function chooseEasyTurn(match) {
     }
     const fee = beneficialFee(match, 'bot');
     if (fee) return fee;
-    if (beneficialLeader(match, view, allies) || (!view.cards.length && !match.playedCard && canUseLeader(match, 'bot') && !view.opponentPassed)) return { type: 'leader' };
+    if (beneficialLeader(match, view, allies) || (!view.cards.length && !match.playedCard && canUseBotLeader(match, 'bot') && !view.opponentPassed)) return { type: 'leader' };
   }
   if (canEndTurn(match, 'bot')) return { type: 'end-turn' };
   const forecast = futureContext(match, 'bot');

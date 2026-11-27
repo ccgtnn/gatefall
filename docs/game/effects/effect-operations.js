@@ -184,10 +184,28 @@ function rowEffect(match, job, step) {
 function replaceLeader(match, job, step) {
   const player = match.players[job.side];
   const { ability, text, ...order } = step.order;
-  const leader = { ...(player.leader ?? { name: 'Файлура' }), ability, text,
+  const art = step.portrait ?? step.art;
+  const identityChanged = Boolean(step.name || art);
+  const previous = player.leader;
+  const leader = { ...(previous ?? { name: 'Файлура' }), ability, text,
     order: { ...order, sourceDefinitionId: job.sourceDefinitionId } };
+  if (identityChanged) {
+    leader.id = job.sourceDefinitionId ?? previous?.id;
+    leader.name = step.name ?? leader.name;
+    leader.charges = 0;
+    leader.readyAtTurn = player.turns + 1;
+    delete leader.lastUsedTurn;
+    delete leader.aiHints;
+    delete leader.keywords;
+    if (art) {
+      leader.art = art;
+      delete leader.artFocus;
+      delete leader.artZoom;
+    }
+  }
   player.leader = leader;
-  match.log.push({ type: 'leader-replaced', side: job.side, name: leader.name, leader });
+  match.log.push({ type: 'leader-replaced', side: job.side, name: leader.name, leader,
+    ...(identityChanged && { identityChanged }) });
 }
 
 const applyTargetStatus = eachTarget((match, job, step, target) =>

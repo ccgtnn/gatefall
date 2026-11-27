@@ -58,7 +58,7 @@ export function showCard(card, options = {}) {
   if (definition.accent) body.dataset.accent = definition.accent;
   if (back) body.append(button('Назад к карте', back, 'button preview-back'));
   body.append(title, element('p', 'muted preview-details', details.join(' · ')));
-  if (hasPremiumArt(definition.id)) {
+  if (!leader && hasPremiumArt(definition.id)) {
     const versions = element('div', 'preview-art-versions');
     versions.setAttribute('role', 'group');
     versions.setAttribute('aria-label', 'Версия карты');
@@ -119,7 +119,7 @@ export function showCard(card, options = {}) {
     decorateCard(face, card, { factionId: definition.faction }, { showProvision: !definition.token, showFaction: true, fullArt: true, orderReady, orderCooldown, frame });
     layout.append(face);
   } else if (definition.art) {
-    layout.append(cardArt(definition, 'preview-art', { fullArt: true }));
+    layout.append(cardArt(definition, 'preview-art', { fullArt: true, staticArt: true }));
   }
   layout.append(body);
   if (explanations.length) {
