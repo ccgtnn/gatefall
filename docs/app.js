@@ -48,10 +48,11 @@ const editNotices = new Map();
 let screenEvents;
 let selectedCardId;
 let reloadOnMatchExit = false;
-const aim = bindTargeting(screen, () => turns.cancelTargeting());
+let turns;
+const aim = bindTargeting(screen, () => turns?.cancelTargeting());
 let localStorage;
 try { localStorage = window.localStorage; } catch {}
-const cloud = createAppCloud(localStorage, () => Boolean(turns.match));
+const cloud = createAppCloud(localStorage, () => Boolean(turns?.match));
 const { storage } = cloud;
 const deckStore = createDeckStorage(storage);
 const framePreferences = createFramePreferences(storage, document.documentElement);
@@ -64,7 +65,7 @@ const settings = createSettings(app, (surrender) => session.leave(surrender), as
   await cloud.sync.reset(() => resetProgress(localStorage, navigator.locks), overwrite);
   window.location.reload();
 }, botDifficulty, cloud);
-const turns = createMatchTurn({
+turns = createMatchTurn({
   app, screen, settings, aim, notices: { turnNotice, coinNotice, roundNotice }, announcement,
   showNotice, hideNotice, render,
   difficulty: () => session.difficulty(),
