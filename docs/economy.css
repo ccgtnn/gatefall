@@ -100,7 +100,7 @@ body:has(#app[data-animation-speed="fast"]) { --pack-pace: .48; }
   inset-block-start: calc(var(--resource-top) + var(--resource-frame));
   inset-inline-start: var(--resource-left);
 }
-body:has(.reward-book[open]) { overflow: hidden; }
+body:has(.reward-book[open]:not(.sandbox-inline-dialog)) { overflow: hidden; }
 .economy-content { display: grid; gap: 1rem; }
 .economy-description, .booster-quantity, .catalog-quantity { color: #bed0e0; }
 .economy-status { min-height: 1.4em; color: #ffe0a5; }
