@@ -1,4 +1,5 @@
 import { refreshPremiumArt, premiumArtEnabled, setPremiumArtEnabled } from './card-art.js';
+import { button, element } from './dom.js';
 import { dialogClose } from './resources.js';
 import { bindRulesMenu } from './rules.js';
 import { createSoundEffects, DEFAULT_VOLUME } from './sound.js';
@@ -41,9 +42,33 @@ export function createSettings(app, onLeave, onReset, difficulty) {
   const fullscreenMode = matchMedia('(display-mode: fullscreen)');
   difficulty.bind(document.querySelector('#bot-difficulty'));
   const thoughts = document.querySelector('#bot-thoughts');
+  let readPosition;
+  const copyStatus = element('p', 'muted');
+  copyStatus.setAttribute('role', 'status');
+  const copyPosition = button('Скопировать позицию', async () => {
+    if (!thoughts.checked || matchMenu.hidden) return;
+    try {
+      const position = readPosition?.();
+      if (!position) {
+        copyStatus.textContent = 'Позиция пока недоступна.';
+        return;
+      }
+      await navigator.clipboard.writeText(position);
+      copyStatus.textContent = 'Позиция скопирована.';
+    } catch {
+      copyStatus.textContent = 'Не удалось скопировать позицию.';
+    }
+  }, 'button');
+  copyPosition.hidden = copyStatus.hidden = true;
+  matchMenu.append(copyPosition, copyStatus);
+  function syncPositionCopy() {
+    copyPosition.hidden = copyStatus.hidden = !thoughts.checked || matchMenu.hidden;
+    copyStatus.textContent = '';
+  }
   const thoughtsKey = 'gatefall.bot-thoughts';
   try { thoughts.checked = localStorage.getItem(thoughtsKey) === 'on'; } catch {}
   thoughts.addEventListener('change', () => {
+    syncPositionCopy();
     try { localStorage.setItem(thoughtsKey, thoughts.checked ? 'on' : 'off'); } catch {}
   });
   const premiumArt = document.querySelector('#premium-card-art');
@@ -120,6 +145,7 @@ export function createSettings(app, onLeave, onReset, difficulty) {
 
   function showSettings() {
     matchMenu.hidden = !app.classList.contains('in-match');
+    syncPositionCopy();
     fullscreenStatus.textContent = document.fullscreenEnabled || fullscreenMode.matches
       ? '' : 'Браузер не поддерживает полноэкранный режим. Попробуй установить игру через меню браузера.';
     syncFullscreen();
@@ -173,5 +199,6 @@ export function createSettings(app, onLeave, onReset, difficulty) {
     playSound: sounds.play,
     difficulty: difficulty.read,
     showBotThoughts: () => thoughts.checked,
+    bindPositionCopy: (read) => { readPosition = read; },
   };
 }

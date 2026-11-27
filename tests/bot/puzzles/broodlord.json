@@ -1,0 +1,254 @@
+{
+  "name": "Владыка выводка",
+  "description": "Три личинки на Поверхности, одна на Орбите. Владыка должен выйти к трём личинкам.",
+  "level": 6,
+  "rolloutSamples": 0,
+  "state": {
+    "rules": {
+      "nextStarter": "winner",
+      "leaderCharges": 1,
+      "coinCarryRatio": 0.5
+    },
+    "players": {
+      "bot": {
+        "startingCategories": {
+          "Выводок": 13,
+          "Росток": 5,
+          "Гниль": 4
+        },
+        "lives": 2,
+        "hand": [
+          {
+            "id": "lord",
+            "definition": {
+              "$card": "broodlord"
+            },
+            "readyAt": 0,
+            "power": 4,
+            "basePower": 4,
+            "armor": 0
+          },
+          {
+            "id": "ordinary",
+            "definition": {
+              "$card": 0
+            },
+            "readyAt": 0,
+            "power": 5,
+            "basePower": 5,
+            "armor": 0
+          }
+        ],
+        "deck": [],
+        "board": {
+          "orbit": [
+            {
+              "id": "spare-larva",
+              "definition": {
+                "$card": "larva"
+              },
+              "readyAt": 0,
+              "power": 1,
+              "basePower": 1,
+              "armor": 0
+            }
+          ],
+          "surface": [
+            {
+              "id": "a",
+              "definition": {
+                "$card": "larva"
+              },
+              "readyAt": 0,
+              "power": 1,
+              "basePower": 1,
+              "armor": 0
+            },
+            {
+              "id": "b",
+              "definition": {
+                "$card": "larva"
+              },
+              "readyAt": 0,
+              "power": 1,
+              "basePower": 1,
+              "armor": 0
+            },
+            {
+              "id": "c",
+              "definition": {
+                "$card": "larva"
+              },
+              "readyAt": 0,
+              "power": 1,
+              "basePower": 1,
+              "armor": 0
+            }
+          ]
+        },
+        "rowEffects": {},
+        "discard": [],
+        "exile": [],
+        "turns": 0,
+        "coins": 0,
+        "marksPlaced": 0,
+        "usedAbility": false,
+        "roundActed": false,
+        "extraSwaps": 0,
+        "leader": null,
+        "faction": "Поросль",
+        "factionId": "growth",
+        "passed": false
+      },
+      "human": {
+        "startingCategories": {},
+        "lives": 2,
+        "hand": [],
+        "deck": [],
+        "board": {
+          "orbit": [
+            {
+              "id": "enemy",
+              "definition": {
+                "$card": 1
+              },
+              "readyAt": 0,
+              "power": 9,
+              "basePower": 9,
+              "armor": 0
+            }
+          ],
+          "surface": []
+        },
+        "rowEffects": {},
+        "discard": [],
+        "exile": [],
+        "turns": 0,
+        "coins": 0,
+        "marksPlaced": 0,
+        "usedAbility": false,
+        "roundActed": false,
+        "extraSwaps": 0,
+        "leader": null,
+        "faction": "Протекторат",
+        "factionId": "protectorate",
+        "passed": false,
+        "knownDeck": [
+          {
+            "$card": "annihilation"
+          },
+          {
+            "$card": "anvil"
+          },
+          {
+            "$card": "assault"
+          },
+          {
+            "$card": "assault"
+          },
+          {
+            "$card": "bastion"
+          },
+          {
+            "$card": "colonel"
+          },
+          {
+            "$card": "commander"
+          },
+          {
+            "$card": "engineer"
+          },
+          {
+            "$card": "engineer"
+          },
+          {
+            "$card": "gate-guardian"
+          },
+          {
+            "$card": "gate-relic"
+          },
+          {
+            "$card": "infantry"
+          },
+          {
+            "$card": "infantry"
+          },
+          {
+            "$card": "orbital-salvo"
+          },
+          {
+            "$card": "orbital-salvo"
+          },
+          {
+            "$card": "recon-drone"
+          },
+          {
+            "$card": "recon-drone"
+          },
+          {
+            "$card": "reinforcements"
+          },
+          {
+            "$card": "shield-generator"
+          },
+          {
+            "$card": "shield-overload"
+          },
+          {
+            "$card": "smelter"
+          },
+          {
+            "$card": "smelter"
+          },
+          {
+            "$card": "smuggler"
+          },
+          {
+            "$card": "standard"
+          },
+          {
+            "$card": "warden"
+          }
+        ],
+        "publicHandSize": 0,
+        "publicDeckSize": 0,
+        "handMasked": true
+      }
+    },
+    "phase": "playing",
+    "mulligan": {
+      "used": 0,
+      "excluded": []
+    },
+    "round": 3,
+    "starter": "bot",
+    "turn": "bot",
+    "result": null,
+    "log": [],
+    "tokenCount": 0,
+    "effects": [],
+    "pending": null,
+    "playedCard": false,
+    "ending": null,
+    "startingTurn": false,
+    "$definitions": [
+      {
+        "id": "ordinary",
+        "name": "ordinary",
+        "type": "unit",
+        "power": 5
+      },
+      {
+        "id": "enemy",
+        "name": "enemy",
+        "type": "unit",
+        "power": 9
+      }
+    ]
+  },
+  "expect": {
+    "type": "play",
+    "cardId": "lord",
+    "row": "surface"
+  }
+}

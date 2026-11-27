@@ -88,3 +88,23 @@ test('a target confirmation from the previous match cannot change the next match
   assert.equal(turns.match, replacement);
   assert.equal(turns.humanCanAct(), true);
 });
+
+test('position copying reads the current logical match and difficulty', () => {
+  let readPosition;
+  let level = 5;
+  const turns = controller({
+    settings: { bindPositionCopy: (read) => { readPosition = read; } },
+    difficulty: () => level,
+  });
+  assert.equal(readPosition(), undefined);
+  const ready = readyMatch();
+  const hidden = ready.players.human.hand[0].id;
+  turns.reset(ready);
+  const { state, level: copiedLevel } = JSON.parse(readPosition());
+  assert.equal(copiedLevel, 5);
+  assert.ok(!state.players.human.hand.some(({ id }) => id === hidden));
+  level = 7;
+  assert.equal(JSON.parse(readPosition()).level, 7);
+  turns.reset();
+  assert.equal(readPosition(), undefined);
+});

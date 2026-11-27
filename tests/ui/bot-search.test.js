@@ -39,6 +39,8 @@ test('level 6 search returns control while the worker calculates a legal action 
     const { action, trace } = await result;
     assert.ok(['play', 'leader', 'pass', 'order', 'fee'].includes(action.type));
     assert.deepEqual(trace.action, action);
+    assert.ok(trace.candidates.length);
+    assert.ok(trace.candidates.every(({ changes }) => Number.isFinite(changes.field) && Number.isFinite(changes.outcome)));
     assert.deepEqual(response, { action, trace });
   } finally {
     search.cancel();

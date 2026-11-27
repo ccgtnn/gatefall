@@ -3,15 +3,35 @@ import { button, element } from './dom.js';
 import { cardButton, showCard } from './cards.js';
 import { eventText } from './match-log.js';
 
+const CHANGE_LABELS = Object.freeze({
+  field: 'поле', handReserve: 'резерв руки', handTempo: 'темп руки', coins: 'монеты',
+  armor: 'броня', shields: 'щиты', orders: 'приказы', leaderCharges: 'заряды лидера',
+  rowEffects: 'эффекты рядов', delayed: 'отложенные эффекты', carryover: 'перенос',
+  lives: 'жизни', outcome: 'исход',
+});
+const changeNumber = new Intl.NumberFormat('ru', { maximumFractionDigits: 1 });
+
+function formatChanges(changes) {
+  return Object.entries(changes ?? {})
+    .filter(([key, value]) => Object.hasOwn(CHANGE_LABELS, key) && Number.isFinite(value) && Math.abs(value) >= .05)
+    .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a))
+    .slice(0, 3)
+    .map(([key, value]) => CHANGE_LABELS[key] + ' ' + (value < 0 ? '−' : '+') + changeNumber.format(Math.abs(value)))
+    .join(' · ');
+}
+
 function botThought(event) {
   const entry = element('li', 'bot-thought');
   entry.append(element('strong', null, 'Бот выбрал «' + event.chosen + '»'), element('p', null, event.reason));
   if (event.candidates.length) {
     const options = element('ol', 'bot-thought-options');
-    for (const { label, score, samples } of event.candidates) {
+    for (const { label, score, samples, changes } of event.candidates) {
       const estimate = Number.isFinite(score) ? score.toLocaleString('ru', { maximumFractionDigits: 1 }) : '—';
-      options.append(element('li', null, label + ' · ' + estimate +
-        (samples ? ' из 100 (' + samples + ' сим.)' : '')));
+      const option = element('li', null, label + ' · ' + estimate +
+        (samples ? ' из 100 (' + samples + ' сим.)' : ''));
+      const explanation = formatChanges(changes);
+      if (explanation) option.append(element('p', 'muted', explanation));
+      options.append(option);
     }
     entry.append(options);
   }

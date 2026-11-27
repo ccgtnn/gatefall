@@ -1,6 +1,6 @@
 import { handCount } from './bot-hand.js';
 import { leaderTargetPriority, offeringPriority } from './bot-leaders.js';
-import { cardPotential, evaluatePosition, positionStrength } from './bot-evaluation.js';
+import { cardPotential, evaluateBreakdown, evaluatePosition, positionStrength } from './bot-evaluation.js';
 import { EVAL_WEIGHTS as W } from './bot-weights.js';
 import { compareRollouts, visibleSupply } from './bot-rollouts.js';
 import { ROWS } from '../shared/card-metadata.js';
@@ -308,13 +308,18 @@ function replyRating(candidate, search, level) {
   return Number.isFinite(worst) ? candidate.rating + W.visibleReply * (worst - evaluatePosition(state, 'bot')) : candidate.rating;
 }
 
-function report(options, action, reason, candidates = []) {
-  options.onDecision?.({
-    action, reason,
-    candidates: candidates.slice(0, 3).map(({ action, rating, average, samples }) => ({
-      action, score: average === undefined ? rating : 100 * average, samples,
-    })),
-  });
+function report(options, action, reason, candidates = [], state) {
+  if (options.onDecision) {
+    const baseline = candidates.length ? evaluateBreakdown(state, 'bot').parts : undefined;
+    options.onDecision({
+      action, reason,
+      candidates: candidates.slice(0, 3).map(({ action, rating, average, samples, next }) => {
+        const { parts } = evaluateBreakdown(next, 'bot');
+        const changes = Object.fromEntries(Object.entries(parts).map(([key, value]) => [key, value - baseline[key]]));
+        return { action, score: average === undefined ? rating : 100 * average, samples, changes };
+      }),
+    });
+  }
   return action;
 }
 
@@ -337,22 +342,22 @@ function distinct(candidates, key) {
   });
 }
 
-function selectRanked(options, level, ranked, reason) {
+function selectRanked(options, level, ranked, reason, state) {
   const best = ranked[0];
   const random = options.random ?? Math.random;
   if (level.errorRate > 0 && ranked.length > 1 && random() < level.errorRate) {
     const pass = ranked.find(({ action }) => action.type === 'pass');
     if (pass && best !== pass && level.passMistakeRate > 0 && random() < level.passMistakeRate) {
-      return report(options, pass.action, 'Ошибаюсь с моментом паса.', ranked);
+      return report(options, pass.action, 'Ошибаюсь с моментом паса.', ranked, state);
     }
     const choices = distinct(ranked, (action) => [action.type, action.cardId ?? action.row].join('/'));
     const pool = (choices.length > 1 ? choices : ranked).slice(1, level.errorPool);
     if (pool.length) {
       const choice = pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))];
-      return report(options, choice.action, 'Выбираю ход с более низкой оценкой.', ranked);
+      return report(options, choice.action, 'Выбираю ход с более низкой оценкой.', ranked, state);
     }
   }
-  return report(options, best.action, best.action.type === 'pass' ? 'Пас сохраняет лучшую позицию на матч.' : reason, ranked);
+  return report(options, best.action, best.action.type === 'pass' ? 'Пас сохраняет лучшую позицию на матч.' : reason, ranked, state);
 }
 
 function forecast(match, ranked, level, search, options) {
@@ -390,7 +395,7 @@ export function chooseStrategicTarget(match, level, options) {
   if (!ranked.length) return report(options, options.pickTarget(match), 'Выбираю допустимую цель.');
   ranked.sort((a, b) => b.rating - a.rating || b.choiceValue - a.choiceValue);
   return selectRanked(options, level, forecast(match, ranked, level, search, options),
-    'Выбор цели или позиции по итогам розыгрыша.');
+    'Выбор цели или позиции по итогам розыгрыша.', state);
 }
 
 export function chooseStrategicTurn(match, level, options) {
@@ -430,7 +435,7 @@ export function chooseStrategicTurn(match, level, options) {
   });
   if (candidates.length) {
     return selectRanked(options, level, forecast(match, candidates, level, search, options),
-      'Сравниваю позицию на матч для доступных ходов.');
+      'Сравниваю позицию на матч для доступных ходов.', state);
   }
   if (canEnd) return report(options, END, 'Завершаю ход.');
   const [card] = finalRound && mayPass

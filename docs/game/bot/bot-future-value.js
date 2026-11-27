@@ -217,13 +217,18 @@ function incomingHit(context) {
   return Math.max(0, ...options);
 }
 
-function protectionValue(context, card) {
+function protectionValue(context, card, parts) {
   const armor = card.armor ?? 0;
   const shield = statusCount(card, 'shield');
   if ((!armor && !shield) || context.match.players[opponent(context.side)].passed) return 0;
   const threat = (context.incomingHit ??= incomingHit(context));
-  return armor * (threat > 0 ? W.armorPerPoint : W.armorWithoutThreat)
-    + shield * (threat > 0 ? Math.min(W.shieldMaxHit, threat, (card.power ?? 0) + armor) : W.shieldWithoutThreat);
+  const armorValue = armor * (threat > 0 ? W.armorPerPoint : W.armorWithoutThreat);
+  const shieldValue = shield * (threat > 0 ? Math.min(W.shieldMaxHit, threat, (card.power ?? 0) + armor) : W.shieldWithoutThreat);
+  if (parts) {
+    parts.armor += armorValue;
+    parts.shields += shieldValue;
+  }
+  return armorValue + shieldValue;
 }
 
 export function futureContext(match, side, passingSide) {
@@ -347,12 +352,12 @@ function endTurnValue(context, card, ability, row, turns) {
   return value;
 }
 
-export function delayedCardValue(context, card, row, inHand = false) {
+export function delayedCardValue(context, card, row, inHand = false, parts) {
   const { turns, attacks, player, triggerChance } = context;
   if (!turns && !attacks) return 0;
   const abilities = cardAbilities(card);
   const armor = card.armor ?? 0;
-  const protection = protectionValue(context, card);
+  const protection = protectionValue(context, card, parts);
   const armorSynergy = turns && armor > 0 && context.armorPlans ? .55 : 0;
   const emergence = armor > 0 && attacks ? (armorBreakSwing(card) ?? 0) * .45 : 0;
   const wish = deathwishPayoff(context, card, row) + (inHand ? inheritancePayoff(context, card) : 0);
@@ -367,6 +372,10 @@ export function delayedCardValue(context, card, row, inHand = false) {
       : delayedAbilityValue(context, card, countdown, row) : 0;
   const charges = card.orderCharges > 0 && activeOrder({ card, row })
     ? Math.min(card.orderCharges, Math.max(0, context.resourceTurns - Math.max(0, card.readyAt - player.turns))) * .48 : 0;
+  if (parts) {
+    parts.armor += armorSynergy + emergence;
+    parts.orders += charges;
+  }
   return protection + armorSynergy + emergence + activation * wish + engine + growth + counter * .8 + charges;
 }
 
