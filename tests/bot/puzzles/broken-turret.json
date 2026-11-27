@@ -1,0 +1,247 @@
+{
+  "name": "Сломанная турель",
+  "description": "Первый ход Капитанов. У врага нет отрядов, а в руке есть обычный отряд.",
+  "level": 7,
+  "rolloutSamples": 0,
+  "state": {
+    "rules": {
+      "nextStarter": "winner",
+      "leaderCharges": 1,
+      "coinCarryRatio": 0.5
+    },
+    "players": {
+      "bot": {
+        "startingCategories": {
+          "Выводок": 13,
+          "Росток": 5,
+          "Гниль": 4
+        },
+        "lives": 2,
+        "hand": [
+          {
+            "id": "turret",
+            "definition": {
+              "$card": "broken-turret"
+            },
+            "readyAt": 0,
+            "timer": 1
+          },
+          {
+            "id": "productive",
+            "definition": {
+              "$card": 0
+            },
+            "readyAt": 0,
+            "power": 4,
+            "basePower": 4,
+            "armor": 0
+          }
+        ],
+        "deck": [],
+        "board": {
+          "orbit": [],
+          "surface": [
+            {
+              "id": "first-signal",
+              "definition": {
+                "$card": "first-signal"
+              },
+              "readyAt": 0
+            }
+          ]
+        },
+        "rowEffects": {},
+        "discard": [],
+        "exile": [],
+        "turns": 0,
+        "coins": 0,
+        "marksPlaced": 0,
+        "usedAbility": false,
+        "roundActed": false,
+        "extraSwaps": 0,
+        "leader": null,
+        "faction": "Вольные капитаны",
+        "factionId": "captains",
+        "passed": false
+      },
+      "human": {
+        "startingCategories": {},
+        "lives": 2,
+        "hand": [
+          {
+            "id": "unknown-play-0",
+            "definition": {
+              "$card": 1
+            },
+            "readyAt": 0,
+            "power": 5.5,
+            "basePower": 5.5,
+            "armor": 0
+          },
+          {
+            "id": "unknown-play-1",
+            "definition": {
+              "$card": 1
+            },
+            "readyAt": 0,
+            "power": 5.5,
+            "basePower": 5.5,
+            "armor": 0
+          },
+          {
+            "id": "unknown-play-2",
+            "definition": {
+              "$card": 1
+            },
+            "readyAt": 0,
+            "power": 5.5,
+            "basePower": 5.5,
+            "armor": 0
+          },
+          {
+            "id": "unknown-play-3",
+            "definition": {
+              "$card": 1
+            },
+            "readyAt": 0,
+            "power": 5.5,
+            "basePower": 5.5,
+            "armor": 0
+          }
+        ],
+        "deck": [],
+        "board": {
+          "orbit": [],
+          "surface": []
+        },
+        "rowEffects": {},
+        "discard": [],
+        "exile": [],
+        "turns": 0,
+        "coins": 0,
+        "marksPlaced": 0,
+        "usedAbility": false,
+        "roundActed": false,
+        "extraSwaps": 0,
+        "leader": null,
+        "faction": "Протекторат",
+        "factionId": "protectorate",
+        "passed": false,
+        "knownDeck": [
+          {
+            "$card": "annihilation"
+          },
+          {
+            "$card": "anvil"
+          },
+          {
+            "$card": "assault"
+          },
+          {
+            "$card": "assault"
+          },
+          {
+            "$card": "bastion"
+          },
+          {
+            "$card": "colonel"
+          },
+          {
+            "$card": "commander"
+          },
+          {
+            "$card": "engineer"
+          },
+          {
+            "$card": "engineer"
+          },
+          {
+            "$card": "gate-guardian"
+          },
+          {
+            "$card": "gate-relic"
+          },
+          {
+            "$card": "infantry"
+          },
+          {
+            "$card": "infantry"
+          },
+          {
+            "$card": "orbital-salvo"
+          },
+          {
+            "$card": "orbital-salvo"
+          },
+          {
+            "$card": "recon-drone"
+          },
+          {
+            "$card": "recon-drone"
+          },
+          {
+            "$card": "reinforcements"
+          },
+          {
+            "$card": "shield-generator"
+          },
+          {
+            "$card": "shield-overload"
+          },
+          {
+            "$card": "smelter"
+          },
+          {
+            "$card": "smelter"
+          },
+          {
+            "$card": "smuggler"
+          },
+          {
+            "$card": "standard"
+          },
+          {
+            "$card": "warden"
+          }
+        ],
+        "publicHandSize": 4,
+        "publicDeckSize": 0,
+        "handMasked": true
+      }
+    },
+    "phase": "playing",
+    "mulligan": {
+      "used": 0,
+      "excluded": []
+    },
+    "round": 1,
+    "starter": "bot",
+    "turn": "bot",
+    "result": null,
+    "log": [],
+    "tokenCount": 0,
+    "effects": [],
+    "pending": null,
+    "playedCard": false,
+    "ending": null,
+    "startingTurn": false,
+    "$definitions": [
+      {
+        "id": "productive",
+        "name": "productive",
+        "type": "unit",
+        "power": 4
+      },
+      {
+        "id": "unknown-play",
+        "name": "Неизвестная карта",
+        "type": "unit",
+        "power": 5.5
+      }
+    ]
+  },
+  "expect": {
+    "type": "play",
+    "notCardId": "turret"
+  }
+}

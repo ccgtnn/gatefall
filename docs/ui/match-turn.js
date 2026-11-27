@@ -1,5 +1,6 @@
 import { animateHandTurn, animateLifeLoss, animateTurnSparks, presentJournalEvent } from './card-motion.js';
 import { BOT_DELAY_MS } from '../game/bot/bot.js';
+import { serializeBotPosition } from '../game/bot/bot-position.js';
 import { createBotSearch } from './bot-search.js';
 import { applyAction } from '../game/engine/match.js';
 import { playJournal } from './turn-playback.js';
@@ -22,6 +23,8 @@ export function createMatchTurn({
   let targetAction;
   let confirmingTarget = false;
   let retryRolls = [];
+
+  settings.bindPositionCopy?.(() => match && !replaying && serializeBotPosition(match, difficulty()));
 
   function reset(next) {
     matchSession += 1;
@@ -81,8 +84,8 @@ export function createMatchTurn({
       next.log.push({
         type: 'bot-thought', side: 'bot',
         chosen: describeBotAction(match, action), reason: trace.reason,
-        candidates: trace.candidates.map(({ action, score, samples }) => ({
-          label: describeBotAction(match, action), score, samples,
+        candidates: trace.candidates.map(({ action, score, samples, changes }) => ({
+          label: describeBotAction(match, action), score, samples, changes,
         })),
       });
     }

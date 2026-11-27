@@ -16,7 +16,7 @@ export function cardPotential(card) {
     + (deploy ? W.deploy : 0) + (endTurn || order ? W.engine : 0);
 }
 
-function boardValue(state, side, context) {
+function boardValue(state, side, context, parts) {
   const player = state.players[side];
   const { passed } = context;
   const ready = new Set(passed ? [] : availableOrders(state, side).map(({ card }) => card.id));
@@ -27,7 +27,11 @@ function boardValue(state, side, context) {
   }, 0);
   const exposed = units(state, opponent(side)).filter(({ card }) => statusCount(card, 'target')).length;
   const plans = player.hand.some(({ definition }) => definition.keywords?.includes('Цель'));
-  return context.own.reduce((sum, unit) => {
+  const leader = passed ? 0 : leaderUses(context) * leaderChargeValue(context);
+  const coins = passed ? 0 : coinValue(context);
+  const marks = !passed && plans ? exposed * W.markedTarget : 0;
+  if (parts) Object.assign(parts, { rowEffects: rot, leaderCharges: leader, coins });
+  const board = context.own.reduce((sum, unit) => {
     const { card, row } = unit;
     const { definition, timer } = card;
     const abilities = cardAbilities(card);
@@ -35,7 +39,8 @@ function boardValue(state, side, context) {
       !['spawn', 'advance-growth', 'boost'].includes(action) && !(action === 'damage' && target?.scope === 'neighbors'));
     const orderValue = !passed && card.orderCharges === undefined
       ? (ready.has(card.id) ? W.readyOrder : activeOrder(unit) ? W.coolingOrder : 0) : 0;
-    const delayed = delayedCardValue(context, card, row)
+    if (parts) parts.orders += orderValue;
+    const delayed = delayedCardValue(context, card, row, false, parts)
       - W.infection * infectionDamage(card, Math.min(context.turns, statusCount(card, 'infection')));
     if (passed) return sum + delayed;
     return sum + delayed + (definition.aiHints?.boardBonus ?? 0)
@@ -46,7 +51,9 @@ function boardValue(state, side, context) {
         player.hand.filter((entry) => entry.definition.categories?.includes(definition.scenario.category)).length) * W.scenarioChapter : 0)
       + (abilities.fieldEvents?.death && ROWS.some((row) =>
         enemy.board[row].some((entry) => entry.statuses?.infection)) ? W.deathReaction : 0);
-  }, rot + (passed ? 0 : leaderUses(context) * leaderChargeValue(context) + coinValue(context) + (plans ? exposed * W.markedTarget : 0)));
+  }, rot + (passed ? 0 : leader + coins + marks));
+  if (parts) parts.delayed = board - Object.values(parts).reduce((sum, value) => sum + value, 0);
+  return board;
 }
 
 function handCards(player, play, roundChanged, growthTurns) {
@@ -101,12 +108,42 @@ function passOutcome(active, waiting, activeInfo, waitingInfo, round) {
   return Math.max(pass, confidence * win + (1 - confidence) * loss - cost);
 }
 
+const boardParts = () => ({ rowEffects: 0, leaderCharges: 0, coins: 0, armor: 0, shields: 0, orders: 0, delayed: 0 });
+
+function describePosition(total, lives = 0, left, right, scale = 0, handTempo = 0) {
+  const parts = { field: 0, handReserve: 0, handTempo: 0, ...boardParts(), carryover: 0, lives, outcome: 0 };
+  if (left && right) {
+    parts.handReserve = left.reserve - right.reserve;
+    parts.carryover = left.carry - right.carry;
+    if (scale) {
+      parts.field = (left.raw - right.raw) * scale;
+      parts.handTempo = handTempo * scale;
+      for (const key of Object.keys(left.parts)) parts[key] = (left.parts[key] - right.parts[key]) * W.futureBoard * scale;
+    }
+  }
+  parts.outcome = total - Object.values(parts).reduce((sum, value) => sum + value, 0);
+  return { total, parts };
+}
+
+function outcomeScore(breakdown, total, lives, left, right) {
+  return breakdown ? describePosition(total, lives, left, right) : total;
+}
+
+export function evaluateBreakdown(state, side, projection) {
+  return evaluate(state, side, projection, true);
+}
+
 // A caller can score a cheap one-move projection for rollout policy. The full search
 // supplies a state already advanced by the engine. Hidden cards must be masked or sampled first.
 export function evaluatePosition(state, side, projection) {
+  return evaluate(state, side, projection, false);
+}
+
+function evaluate(state, side, projection, breakdown) {
   if (state.phase === 'finished' && state.result) {
-    if (state.result === 'draw') return 0;
-    return (state.result === (side === 'human' ? 'win' : 'loss') ? 1 : -1) * W.matchWin;
+    const total = state.result === 'draw' ? 0 :
+      (state.result === (side === 'human' ? 'win' : 'loss') ? 1 : -1) * W.matchWin;
+    return outcomeScore(breakdown, total);
   }
   const other = opponent(side);
   const own = state.players[side];
@@ -121,39 +158,51 @@ export function evaluatePosition(state, side, projection) {
     const growthTurns = round < 3 ? Math.min(W.handGrowthTurns, context.turns) : 0;
     const cards = handCards(player, move, state.phase === 'mulligan', growthTurns);
     const raw = totalScore(player) + (move?.gain ?? 0);
+    const parts = breakdown ? boardParts() : undefined;
     return {
-      passed, cards, turns: context.turns, raw,
-      score: raw + W.futureBoard * boardValue(state, key, context),
+      passed, cards, turns: context.turns, raw, parts,
+      score: raw + W.futureBoard * boardValue(state, key, context, parts),
       reserve: round === 3 && (passed || !context.turns) ? 0 : reserve(player, cards, round),
       carry: round < 3 ? carryoverValue(context, passed) : 0,
     };
   };
   const left = info(side, own);
   const right = info(other, rival);
-  const base = W.life * (own.lives - rival.lives) + left.reserve - right.reserve + left.carry - right.carry;
+  const lives = W.life * (own.lives - rival.lives);
+  const base = lives + left.reserve - right.reserve + left.carry - right.carry;
   if (left.passed && right.passed) {
-    if (left.raw > right.raw) return rival.lives === 1 ? W.matchWin : base + W.life;
-    if (right.raw > left.raw) return own.lives === 1 ? -W.matchWin : base - W.life;
-    if (own.lives === 1 || rival.lives === 1) return Math.sign(own.lives - rival.lives) * W.matchWin;
-    return base;
+    if (left.raw > right.raw) return rival.lives === 1
+      ? outcomeScore(breakdown, W.matchWin) : outcomeScore(breakdown, base + W.life, lives, left, right);
+    if (right.raw > left.raw) return own.lives === 1
+      ? outcomeScore(breakdown, -W.matchWin) : outcomeScore(breakdown, base - W.life, lives, left, right);
+    if (own.lives === 1 || rival.lives === 1) return outcomeScore(breakdown, Math.sign(own.lives - rival.lives) * W.matchWin);
+    return outcomeScore(breakdown, base, lives, left, right);
   }
   if (left.passed) {
-    if (own.lives === 1 && (right.raw > left.raw || right.raw === left.raw && rival.lives > own.lives)) return -W.matchWin;
-    return base - passOutcome(rival, own, right, left, round);
+    if (own.lives === 1 && (right.raw > left.raw || right.raw === left.raw && rival.lives > own.lives)) return outcomeScore(breakdown, -W.matchWin);
+    return outcomeScore(breakdown, base - passOutcome(rival, own, right, left, round), lives, left, right);
   }
   if (right.passed) {
-    if (rival.lives === 1 && (left.raw > right.raw || left.raw === right.raw && own.lives > rival.lives)) return W.matchWin;
-    return base + passOutcome(own, rival, left, right, round);
+    if (rival.lives === 1 && (left.raw > right.raw || left.raw === right.raw && own.lives > rival.lives)) return outcomeScore(breakdown, W.matchWin);
+    return outcomeScore(breakdown, base + passOutcome(own, rival, left, right, round), lives, left, right);
   }
 
   const lead = left.score - right.score;
   const maxGain = (cards) => cards.reduce((sum, points) => sum + Math.max(W.minimumOutput, points), 0);
-  if (lead > maxGain(right.cards) && round < 3) return base + roundStake(own, rival);
-  if (-lead > maxGain(left.cards) && round < 3) return base - roundStake(rival, own);
-  const pressure = lead + (left.cards.length - right.cards.length) * W.defaultPower * W.handTempo;
+  if (lead > maxGain(right.cards) && round < 3) return outcomeScore(breakdown, base + roundStake(own, rival), lives, left, right);
+  if (-lead > maxGain(left.cards) && round < 3) return outcomeScore(breakdown, base - roundStake(rival, own), lives, left, right);
+  const handTempo = (left.cards.length - right.cards.length) * W.defaultPower * W.handTempo;
+  const pressure = lead + handTempo;
   const uncertainty = W.scoreScale + (left.turns + right.turns) * W.uncertaintyPerTurn;
   const stake = pressure >= 0 ? roundStake(own, rival) : roundStake(rival, own);
-  return base + W.roundInfluence[round - 1] * stake * Math.tanh(pressure / uncertainty);
+  const influence = W.roundInfluence[round - 1] * stake;
+  const roundValue = influence * Math.tanh(pressure / uncertainty);
+  const total = base + roundValue;
+  if (!breakdown) return total;
+  // Apportion the nonlinear round estimate by each input's share of pressure.
+  // At zero pressure, the limiting slope keeps offsetting contributions visible.
+  const scale = pressure ? roundValue / pressure : influence / uncertainty;
+  return describePosition(total, lives, left, right, scale, handTempo);
 }
 
 // Finished simulations clear the board. The round journal retains its last score.
