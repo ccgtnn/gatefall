@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { findCardDefinition } from '../../docs/game/cards/card-registry.js';
 import { createCard } from '../../docs/game/engine/board.js';
-import { confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
+import { applyAction, confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
+import { progress } from '../../docs/game/engine/match-rounds.js';
 import { bindTargeting, updatePendingAim } from '../../docs/ui/targeting.js';
 import { TestNode } from '../helpers/test-node.js';
 
@@ -154,3 +155,68 @@ test('choice overlays have no aim curve and right click reaches card inspection 
   menu({ ...inside, target: { closest: () => null } });
   assert.equal(cancels, 0);
 });
+
+const targetKinds = [
+  'armor', 'boost', 'capture', 'cleanse', 'consume', 'damage', 'deathwish', 'destroy', 'emp',
+  'friendly-damage', 'infection', 'infection-target', 'leader-offering', 'lock', 'marshal',
+  'sacrifice', 'shield', 'spend-armor', 'target-mark', 'transform', 'zeal',
+];
+const prompt = 'Выбери цель.';
+const deckOffer = { action: 'play-from-deck', filter: { rarity: 'bronze' }, choose: 1 };
+const selectRow = (filter) => ({ action: 'select-row', ref: 'row', filter, prompt });
+const choices = [
+  ...targetKinds.map((kind) => [kind, '.unit-face.effect-target', {
+    steps: [], select: [{ kind, ref: 'unit', targets: { scope: 'field', type: 'unit' }, prompt }],
+  }]),
+  ...[
+    ['armor-row', [selectRow('armor')]],
+    ['enemy-row', [selectRow('units')]],
+    ['mark-row', [selectRow('units'), { action: 'status', status: 'target', target: { scope: 'enemy', rowRef: 'row' } }]],
+    ['row-effect', [{ ...selectRow('any'), side: 'enemy' }]],
+    ['spawn-row', [selectRow('space')]],
+  ].map(([kind, steps]) => [kind, '.row-label.effect-target', { steps }]),
+  ['deck-card', '[data-choice-card]', { steps: [deckOffer] }],
+  ['deck-top', '[data-choice-card]', { steps: [{ action: 'choose-deck-top' }] }],
+  ['hand-bottom', '[data-choice-card]', { steps: [{ action: 'choose-hand-bottom' }] }],
+  ['hand-return', '[data-choice-card]', { steps: [{ action: 'return-hand', amount: 1 }] }],
+  ['deck-placement', '.placement-choice', { steps: [deckOffer] }],
+  ['tribute', '.tribute-option', { steps: [{ action: 'choose-tribute', tiers: { 3: 1 } }] }],
+];
+
+function isAvailable(node) {
+  for (let current = node; current; current = current.parent) {
+    if (current.inert || current.disabled || current.hidden || current.getAttribute('aria-disabled') === 'true') return false;
+  }
+  return true;
+}
+
+for (const [kind, control, ability] of choices) {
+  test(`human ${kind} renders an available control that advances the effect`, () => {
+    let match = fixture();
+    match.pending = null;
+    const random = () => 0;
+    const { human, bot } = match.players;
+    const vine = findCardDefinition('vine');
+    human.board.surface = [createCard('ally', { ...vine, armor: 1 })];
+    bot.board.surface = [createCard('enemy', vine)];
+    human.coins = 3;
+    match.effects.push({
+      side: 'human', sourceId: 'ally', ability,
+      ...(kind === 'deck-placement' && { refs: { deckCard: human.deck[0].id } }),
+    });
+    progress(match, random);
+    assert.equal(match.pending?.kind, kind);
+
+    const battlefield = createBattlefield({
+      getMatch: () => match, isReplaying: () => false, getSelectedCardId: () => undefined,
+      playHuman: (action) => { match = applyAction(match, 'human', action, { random }); },
+      humanCanAct: () => false, settingsButton: () => new TestNode('button'), getLeagueOpponent: () => undefined,
+    });
+    const game = battlefield();
+    const continuation = game.querySelectorAll(control).find(isAvailable);
+    assert.ok(continuation, `Expected an available ${control} for ${kind}`);
+    const before = match;
+    click(continuation);
+    assert.notEqual(match, before, 'The engine must accept the action from the rendered control');
+  });
+}
