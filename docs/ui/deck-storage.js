@@ -4,6 +4,7 @@ import { inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/cards/decks.
 
 export const DECK_STORAGE_KEY = 'gatefall.decks';
 export const RECENT_DECKS_KEY = 'gatefall.recent-decks';
+export const PRIMARY_DECK_KEY = 'gatefall.primary-deck';
 
 const FORMAT = 'gatefall-deck';
 const VERSION = 1;
@@ -96,12 +97,62 @@ export function createDeckStorage(storage) {
 
   refresh();
   let played = [];
-  try {
-    const stored = JSON.parse(storage.getItem(RECENT_DECKS_KEY));
-    if (Array.isArray(stored)) {
-      played = stored.filter((entry) => typeof entry?.id === 'string' && Number.isFinite(entry.at));
+  function refreshRecent() {
+    try {
+      const stored = JSON.parse(storage?.getItem(RECENT_DECKS_KEY));
+      played = Array.isArray(stored)
+        ? stored.filter((entry) => typeof entry?.id === 'string' && Number.isFinite(entry.at)) : [];
+    } catch {}
+  }
+  refreshRecent();
+
+  function readPrimary() {
+    try {
+      const id = storage?.getItem(PRIMARY_DECK_KEY);
+      return typeof id === 'string' && id ? id : undefined;
+    } catch {
+      return undefined;
     }
-  } catch {}
+  }
+
+  function clearPrimary(id) {
+    if (id !== undefined && readPrimary() !== id) return;
+    try {
+      if (typeof storage?.removeItem === 'function') storage.removeItem(PRIMARY_DECK_KEY);
+      else storage?.setItem(PRIMARY_DECK_KEY, '');
+    } catch {}
+  }
+
+  function primary(owned) {
+    refresh();
+    const id = readPrimary();
+    if (!id) return undefined;
+    const deck = [...PRESETS, ...decks].find((deck) => deck.id === id);
+    if (!deck || !inspectDeck(deck, owned).valid) {
+      clearPrimary(id);
+      return undefined;
+    }
+    return structuredClone(deck);
+  }
+
+  function setPrimary(id, owned) {
+    if (!id) {
+      clearPrimary();
+      return true;
+    }
+    refresh();
+    const deck = [...PRESETS, ...decks].find((deck) => deck.id === id);
+    if (!deck || !inspectDeck(deck, owned).valid) {
+      clearPrimary(id);
+      return false;
+    }
+    try {
+      storage?.setItem(PRIMARY_DECK_KEY, id);
+      return readPrimary() === id;
+    } catch {
+      return false;
+    }
+  }
 
   function save(deck) {
     if (deck.id.startsWith('preset-')) return false;
@@ -110,6 +161,20 @@ export function createDeckStorage(storage) {
     const index = decks.findIndex(({ id }) => id === deck.id);
     if (index < 0) decks.push(structuredClone(deck));
     else decks[index] = structuredClone(deck);
+    return persist();
+  }
+
+  function remove(deckId) {
+    if (typeof deckId !== 'string' || deckId.startsWith('preset-')) return false;
+    refresh();
+    const index = decks.findIndex(({ id }) => id === deckId);
+    if (index < 0 && !drafts.has(deckId)) return false;
+    if (index >= 0) decks.splice(index, 1);
+    drafts.delete(deckId);
+    refreshRecent();
+    played = played.filter(({ id }) => id !== deckId);
+    try { storage?.setItem(RECENT_DECKS_KEY, JSON.stringify(played)); } catch {}
+    clearPrimary(deckId);
     return persist();
   }
 
@@ -127,9 +192,13 @@ export function createDeckStorage(storage) {
   return {
     recent(owned) { return recentPlayableDecks(decks, [...played].sort((a, b) => b.at - a.at), owned); },
     recordPlay(id, at = Date.now()) {
+      refreshRecent();
       played = [{ id, at }, ...played.filter((entry) => entry.id !== id)];
       try { storage?.setItem(RECENT_DECKS_KEY, JSON.stringify(played)); } catch {}
     },
+    primary,
+    setPrimary,
+    remove,
     list() { return structuredClone(decks); },
     get(id) { return structuredClone(decks.find((deck) => deck.id === id) ?? drafts.get(id)); },
     stageDraft(deck) {
