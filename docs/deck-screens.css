@@ -1,5 +1,32 @@
 #app:has(.card-catalog) { width: calc(100% - clamp(1rem, 4vw, 4rem)); }
 
+#app.is-all-decks { --collection-background: url('./art/backgrounds/war-table.webp'); }
+#app.is-catalog, dialog:has(.card-catalog)::backdrop {
+  --collection-background: url('./art/backgrounds/collection-table.webp');
+}
+
+#app.is-all-decks, #app.is-catalog:has(#screen .card-catalog) { isolation: isolate; }
+#app.is-all-decks::before, #app.is-catalog:has(#screen .card-catalog)::before {
+  content: '';
+  z-index: -1;
+  pointer-events: none;
+}
+dialog:modal:has(.card-catalog) { background: transparent; }
+
+#app.is-all-decks::before, #app.is-catalog:has(#screen .card-catalog)::before,
+dialog:has(.card-catalog)::backdrop {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse, rgb(8 16 31 / var(--collection-shade, 55%)),
+    rgb(8 16 31 / var(--collection-edge-shade, 40%))), var(--collection-background) center / cover no-repeat #101a2a;
+}
+@media (max-width: 48rem) {
+  #app:is(.is-catalog, .is-all-decks), dialog:has(.card-catalog)::backdrop {
+    --collection-shade: 70%;
+    --collection-edge-shade: 55%;
+  }
+}
+
 .card-catalog { display: grid; gap: .85rem; }
 .catalog-heading { display: flex; align-items: center; gap: .85rem; }
 .faction-filters { display: flex; flex-wrap: wrap; gap: .35rem; }
@@ -99,6 +126,17 @@
 }
 .deck-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; }
 .deck-toolbar h2 { margin-inline-end: auto; }
+.all-decks-toolbar { flex-wrap: nowrap; align-items: start; }
+.deck-toolbar-controls {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .4rem;
+  min-width: 0;
+}
+.deck-transfer-menu { position: relative; flex: none; z-index: 4; }
+
 .deck-list-group { display: grid; gap: .5rem; }
 .deck-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: .55rem; }
 .deck-list-item {
@@ -110,6 +148,24 @@
   cursor: pointer;
 }
 .deck-list-item:hover, .deck-list-item:focus-visible { border-color: var(--faction-edge, var(--edge)); }
+.all-decks .deck-list-item {
+  background: rgb(13 24 41 / 78%);
+  border: 1px solid var(--edge);
+}
+.all-decks .deck-list-item:is(:hover, :focus-visible) { border-color: var(--faction-edge, var(--edge)); }
+@supports (backdrop-filter: blur(6px)) {
+  .all-decks .deck-list-item { background: transparent; }
+  .all-decks .deck-list-item::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: rgb(13 24 41 / 60%);
+    backdrop-filter: blur(6px);
+    pointer-events: none;
+  }
+  .all-decks .deck-list-item > :is(.deck-card-heading, p) { position: relative; }
+}
 .deck-list-item h4, .deck-list-item p { overflow-wrap: anywhere; }
 .deck-list-item h4 { color: var(--faction-light, inherit); }
 .deck-card-heading { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; padding-inline-end: 2rem; }

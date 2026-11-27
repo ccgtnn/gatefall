@@ -137,6 +137,7 @@ const prepareRewardBook = prepareLazySection(rewardBook.dialog, rewardBook.shell
 
 const catalog = economyDialog('card-collection', 'Все карты');
 catalog.dialog.addEventListener('toggle', () => {
+  app.classList.toggle('is-catalog', catalog.dialog.open);
   if (catalog.dialog.open) resumeCardVideos(catalog.body);
 });
 const prepareCatalog = prepareLazySection(catalog.dialog, catalog.body, async () => {
@@ -404,6 +405,8 @@ function render({ deckListNotice } = {}) {
     }
   }
   app.classList.toggle('is-deck-home', content.classList.contains('deck-home'));
+  app.classList.toggle('is-catalog', catalog.dialog.open || content.classList.contains('card-catalog'));
+  app.classList.toggle('is-all-decks', content.classList.contains('all-decks'));
   if (app.classList.contains('in-match')) keepCardVideos(screen, content);
   screen.replaceChildren(content);
   if (app.classList.contains('in-match')) resumeCardVideos(content);
