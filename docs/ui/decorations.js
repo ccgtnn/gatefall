@@ -21,6 +21,7 @@ const battlefields = [
   { id: 'metal', name: 'Тактический стол', art: 'battlefield-metal.webp' },
   { id: 'bridge', name: 'Мостик флагмана', art: 'battlefield-bridge.webp' },
   { id: 'new-year', name: 'Новогодний стол', art: 'battlefield-new-year.webp' },
+  { id: 'heart-of-growth', name: 'Сердце Поросли', art: 'battlefield-heart-of-growth.webp' },
 ];
 
 export function createFramePreferences(storage, root) {

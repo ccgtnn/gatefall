@@ -141,29 +141,37 @@ test('miniatures temporarily preview choices on hover and focus, and click persi
   assert.match(stage.style.backgroundImage, /battlefield-metal\.webp/);
 });
 
-test('the flagship bridge follows metal and uses its WebP in the preview and on the board', (t) => {
+test('the flagship bridge and heart of growth share their board layout and use separate art', (t) => {
   const { panel, root, fields, stored } = fixture(t);
   const [, fieldsTab] = byRole(panel, 'tab');
   const [, fieldOptions] = byRole(panel, 'tabpanel');
   press(fieldsTab);
-  const [, , metal, bridge, newYear] = fieldOptions.children;
+  const [, , metal, bridge, newYear, growth] = fieldOptions.children;
   assert.equal(byClass(metal, 'decoration-name').textContent, 'Тактический стол');
-  assert.equal(byClass(bridge, 'decoration-name').textContent, 'Мостик флагмана');
   assert.equal(byClass(newYear, 'decoration-name').textContent, 'Новогодний стол');
-  assert.match(byClass(bridge, 'decoration-field').src, /battlefield-bridge\.webp/);
-  press(bridge);
-  assert.equal(fields.current(), 'bridge');
-  assert.equal(root.dataset.battlefieldChoice, 'bridge');
-  assert.equal(stored.get('gatefall.battlefield'), 'bridge');
-  assert.match(byClass(panel, 'decoration-stage').style.backgroundImage, /battlefield-bridge\.webp/);
+
+  for (const [option, id, name] of [
+    [bridge, 'bridge', 'Мостик флагмана'],
+    [growth, 'heart-of-growth', 'Сердце Поросли'],
+  ]) {
+    const artFile = `battlefield-${id}.webp`;
+    assert.equal(byClass(option, 'decoration-name').textContent, name);
+    assert.ok(byClass(option, 'decoration-field').src.includes(artFile));
+    press(option);
+    assert.equal(fields.current(), id);
+    assert.equal(root.dataset.battlefieldChoice, id);
+    assert.equal(stored.get('gatefall.battlefield'), id);
+    assert.ok(byClass(panel, 'decoration-stage').style.backgroundImage.includes(artFile));
+    const art = readFileSync(new URL('../../docs/art/' + artFile, import.meta.url));
+    assert.equal(art.toString('ascii', 8, 12), 'WEBP');
+    assert.ok(art.length <= 250_000);
+  }
 
   const css = readFileSync(new URL('../../docs/decorations.css', import.meta.url), 'utf8');
-  assert.match(css, /\[data-battlefield-choice="bridge"\]\) \.match-board \{[^}]+url\('\.\/art\/battlefield-bridge\.webp'\)/);
-  assert.match(css, /\[data-battlefield-choice="bridge"\]\) \.field-right \{[^}]+background: rgb\(8 14 28 \/ 0\.62\);[^}]+backdrop-filter: blur\(4px\);/);
-  assert.match(css, /\[data-battlefield-choice="bridge"\]\) \.field-left \{[^}]+justify-items: center;[^}]+padding-inline: 28% 0;/);
-  const art = readFileSync(new URL('../../docs/art/battlefield-bridge.webp', import.meta.url));
-  assert.equal(art.toString('ascii', 8, 12), 'WEBP');
-  assert.ok(art.length <= 250_000);
+  assert.match(css, /"bridge"\], \[data-battlefield-choice="heart-of-growth"\]\) \.match-board \{[^}]+url\('\.\/art\/battlefield-bridge\.webp'\)/);
+  assert.match(css, /\[data-battlefield-choice="heart-of-growth"\]\) \.match-board \{[^}]+--battlefield-art: url\('\.\/art\/battlefield-heart-of-growth\.webp'\)/);
+  assert.match(css, /"bridge"\], \[data-battlefield-choice="heart-of-growth"\]\) \.field-right \{[^}]+background: rgb\(8 14 28 \/ 0\.62\);[^}]+backdrop-filter: blur\(4px\);/);
+  assert.match(css, /"bridge"\], \[data-battlefield-choice="heart-of-growth"\]\) \.field-left \{[^}]+justify-items: center;[^}]+padding-inline: 28% 0;/);
 });
 
 test('locked options explain how to unlock and never select or persist', (t) => {
