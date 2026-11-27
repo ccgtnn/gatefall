@@ -114,3 +114,20 @@ test('deck search normalizes е and ё the same way as the catalog', () => {
   const name = 'Тяжёлый штурмовик';
   assert.ok(normalizeCardSearch(name).includes(normalizeCardSearch('тяжелый')));
 });
+
+test('collection screens use their own fixed WebP backgrounds', async () => {
+  const [css, app] = await Promise.all(['deck-screens.css', 'app.js']
+    .map((file) => readFile(new URL(`../../docs/${file}`, import.meta.url), 'utf8')));
+  for (const [state, screen, asset] of [
+    ['is-catalog', 'card-catalog', 'collection-table.webp'],
+    ['is-all-decks', 'all-decks', 'war-table.webp'],
+  ]) {
+    assert.ok(css.includes(`#app.${state}`));
+    assert.ok(css.includes(`url('./art/backgrounds/${asset}')`));
+    assert.match(app, new RegExp(`classList\\.toggle\\('${state}', [^\\n]+classList\\.contains\\('${screen}'\\)`));
+    const bytes = await readFile(new URL(`../../docs/art/backgrounds/${asset}`, import.meta.url));
+    assert.equal(bytes.toString('ascii', 8, 16), 'WEBPVP8 ');
+    assert.equal(bytes.readUInt16LE(26) & 0x3fff, 1920);
+    assert.ok(bytes.length <= 250_000, `${asset} is ${bytes.length} bytes`);
+  }
+});

@@ -145,6 +145,72 @@ export function deckHomeScreen(phaseLabel, actions, progress, quickMatch, signal
   return screen;
 }
 
+function deckTransferMenu(decks, dialog, signal) {
+  const root = element('div', 'deck-transfer-menu');
+  const menu = element('div', 'deck-card-menu-popover');
+  menu.setAttribute('role', 'menu');
+  menu.hidden = true;
+  const trigger = iconButton('⋯', 'Ещё', () => {
+    if (!menu.hidden) {
+      close(true);
+      return;
+    }
+    closeActiveDeckMenu();
+    menu.hidden = false;
+    trigger.setAttribute('aria-expanded', 'true');
+    activeDeckMenu = close;
+    entries[0].focus();
+  }, 'deck-card-menu-trigger');
+  trigger.setAttribute('aria-haspopup', 'menu');
+  trigger.setAttribute('aria-expanded', 'false');
+
+  const entries = [
+    ['Импорт JSON', () => dialog.showModal(), false],
+    ['Экспорт всех своих колод', () => exportOwnDecks(decks), decks.length === 0],
+  ].map(([label, action, disabled]) => {
+    const entry = button(label, () => {
+      if (entry.disabled) return;
+      close(true);
+      action();
+    }, 'deck-menu-item');
+    entry.setAttribute('role', 'menuitem');
+    entry.disabled = disabled;
+    entry.tabIndex = -1;
+    return entry;
+  });
+  menu.append(...entries);
+  root.append(trigger, menu);
+
+  function close(restoreFocus = false) {
+    if (menu.hidden) return;
+    menu.hidden = true;
+    trigger.setAttribute('aria-expanded', 'false');
+    if (activeDeckMenu === close) activeDeckMenu = undefined;
+    if (restoreFocus) trigger.focus();
+  }
+
+  menu.addEventListener('keydown', (event) => {
+    if (event.key === 'Tab') close(true);
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const enabled = entries.filter((entry) => !entry.disabled);
+    const index = enabled.indexOf(document.activeElement);
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? enabled.length - 1
+      : (index + (event.key === 'ArrowDown' ? 1 : -1) + enabled.length) % enabled.length;
+    enabled[next].focus();
+  });
+  document.addEventListener('click', (event) => {
+    if (!root.contains(event.target)) close();
+  }, { signal });
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || menu.hidden) return;
+    event.preventDefault();
+    close(true);
+  }, { signal });
+  signal?.addEventListener('abort', () => close(), { once: true });
+  return root;
+}
+
 export function deckListScreen(phaseLabel, decks, stats, actions, inventory, signal) {
   phaseLabel.textContent = '';
   const screen = element('section', 'all-decks');
@@ -158,10 +224,9 @@ export function deckListScreen(phaseLabel, decks, stats, actions, inventory, sig
   const status = element('p', 'deck-save-status', actions.notice);
   status.setAttribute('role', 'status');
   const dialog = deckImportDialog((text) => actions.importJson(text, inventory().owned), actions.onImported);
-  const exportAll = button('Экспорт всех своих колод', () => exportOwnDecks(decks));
-  exportAll.disabled = !decks.length;
-  toolbar.append(filters, button('Новая колода', actions.create, 'button primary'),
-    button('Импорт JSON', () => dialog.showModal()), exportAll);
+  const controls = element('div', 'deck-toolbar-controls');
+  controls.append(filters, button('Новая колода', actions.create, 'button primary'));
+  toolbar.append(controls, deckTransferMenu(decks, dialog, signal));
   screen.append(sectionBack(actions.back), toolbar, status, dialog);
   let faction = '';
   let primaryId = actions.primary?.(inventory().owned)?.id ?? '';

@@ -60,6 +60,7 @@ class Node extends EventTarget {
     this.parent = undefined;
   }
   showModal() { this.open = true; }
+  reset() {}
   close(value = '') {
     this.returnValue = value;
     this.open = false;
@@ -201,6 +202,62 @@ test('the primary custom deck is the first card in All Decks', (t) => {
   assert.equal(cards[0].attributes['aria-label'], 'Редактировать: Основная своя');
   assert.equal(label(byClass(cards[0], 'deck-primary-badge')), '★ Основная');
   assert.equal(cards[1].attributes['aria-label'], 'Редактировать: Первая своя');
+});
+
+test('the deck toolbar puts transfers in a keyboard-friendly menu', (t) => {
+  const scope = new AbortController();
+  t.after(() => scope.abort());
+  const noop = () => {};
+  const render = (decks) => deckListScreen(new Node('p'), decks, { get: () => ({ win: 0, loss: 0 }) }, {
+    notice: '', back: noop, create: noop, edit: noop, copy: noop, importJson: noop, onImported: noop,
+  }, () => ({ owned: {} }), scope.signal);
+  const screen = render([]);
+  const toolbar = byClass(screen, 'all-decks-toolbar');
+  const controls = byClass(toolbar, 'deck-toolbar-controls');
+  const root = byClass(toolbar, 'deck-transfer-menu');
+  const menu = byClass(root, 'deck-card-menu-popover');
+  const trigger = byClass(root, 'deck-card-menu-trigger');
+  const importButton = menuButton(menu, 'Импорт JSON');
+  const exportLabel = 'Экспорт всех своих колод';
+  const dialog = tree(screen).find((node) => node.tag === 'dialog');
+  assert.ok(menuButton(controls, 'Новая колода'));
+  assert.equal(menuButton(controls, 'Импорт JSON'), undefined);
+  assert.equal(menuButton(controls, exportLabel), undefined);
+  assert.equal(trigger.getAttribute('aria-label'), 'Ещё');
+  assert.equal(trigger.getAttribute('aria-haspopup'), 'menu');
+  assert.equal(menu.getAttribute('role'), 'menu');
+  assert.equal(importButton.getAttribute('role'), 'menuitem');
+  assert.equal(menu.hidden, true);
+  assert.equal(menuButton(menu, exportLabel).disabled, true);
+
+  press(trigger);
+  assert.equal(menu.hidden, false);
+  assert.equal(trigger.getAttribute('aria-expanded'), 'true');
+  assert.equal(document.activeElement, importButton);
+  document.dispatchEvent(new Event('click'));
+  assert.equal(menu.hidden, true);
+  press(trigger);
+  press(importButton);
+  assert.equal(menu.hidden, true);
+  assert.equal(dialog.open, true);
+  dialog.close();
+
+  const own = { ...PRESETS[0], id: 'own' };
+  const filledRoot = byClass(render([own]), 'deck-transfer-menu');
+  const filledMenu = byClass(filledRoot, 'deck-card-menu-popover');
+  const filledTrigger = byClass(filledRoot, 'deck-card-menu-trigger');
+  const exportButton = menuButton(filledMenu, exportLabel);
+  assert.equal(exportButton.disabled, false);
+  press(filledTrigger);
+  const down = new Event('keydown');
+  Object.defineProperty(down, 'key', { value: 'ArrowDown' });
+  filledMenu.dispatchEvent(down);
+  assert.equal(document.activeElement, exportButton);
+  const escape = new Event('keydown');
+  Object.defineProperty(escape, 'key', { value: 'Escape' });
+  document.dispatchEvent(escape);
+  assert.equal(filledMenu.hidden, true);
+  assert.equal(document.activeElement, filledTrigger);
 });
 
 test('editor deletion returns to the list and is not undone by autosave', async (t) => {
