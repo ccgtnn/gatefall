@@ -45,7 +45,11 @@ function fixture(signal) {
   const own = { ...preset, id: 'my-human', name: 'Моя колода' };
   const rival = { ...growth, id: 'my-bot', name: 'Колода соперника' };
   const saved = new Map();
-  const storage = { getItem: (key) => saved.get(key) ?? null, setItem: (key, value) => saved.set(key, value) };
+  const storage = {
+    getItem: (key) => saved.get(key) ?? null,
+    setItem: (key, value) => saved.set(key, value),
+    removeItem: (key) => saved.delete(key),
+  };
   const deckStore = createDeckStorage(storage);
   deckStore.save(own);
   deckStore.save(rival);
@@ -142,6 +146,40 @@ test('quick match falls back when a saved deck is deleted or no longer owned', (
   for (const id of Object.keys(owned)) delete owned[id];
   emit('collection-change');
   assert.ok(player.disabled);
+});
+
+test('the primary deck leads quick match, while a later manual choice remains saved', (t) => {
+  const scope = new AbortController();
+  t.after(() => scope.abort());
+  const { own, rival, deckStore, saved, view } = fixture(scope.signal);
+  deckStore.setPrimary(rival.id);
+  saved.set(QUICK_MATCH_KEY, JSON.stringify({ player: rival.id, bot: '' }));
+  const home = view(() => {});
+  const player = tree(home).filter(({ tag }) => tag === 'select')[0];
+  assert.equal(player.children[0].value, rival.id);
+  assert.equal(player.value, rival.id);
+  select(player, own.id);
+  assert.deepEqual(JSON.parse(saved.get(QUICK_MATCH_KEY)), { player: own.id, bot: '' });
+  const reopened = tree(view(() => {})).filter(({ tag }) => tag === 'select')[0];
+  assert.equal(reopened.children[0].value, rival.id);
+  assert.equal(reopened.value, own.id);
+});
+
+test('quick match falls back to the primary deck after deletion and clears a deleted primary', (t) => {
+  const scope = new AbortController();
+  t.after(() => scope.abort());
+  const { own, rival, deckStore, saved, view } = fixture(scope.signal);
+  deckStore.setPrimary(rival.id);
+  saved.set(QUICK_MATCH_KEY, JSON.stringify({ player: own.id, bot: '' }));
+  const player = tree(view(() => {})).filter(({ tag }) => tag === 'select')[0];
+  deckStore.remove(own.id);
+  emit('collection-change');
+  assert.equal(player.value, rival.id);
+  assert.equal(player.children[0].value, rival.id);
+  deckStore.remove(rival.id);
+  emit('collection-change');
+  assert.equal(deckStore.primary(), undefined);
+  assert.equal(player.value, PRESETS[0].id);
 });
 
 test('home tiles show production, tavern rewards, next League opponent and rank rewards', (t) => {

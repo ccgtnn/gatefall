@@ -21,6 +21,24 @@ export function iconButton(icon, label, handler, className = '') {
   return node;
 }
 
+export function confirmDeckDeletion(title, onConfirm, host = document.body) {
+  const dialog = element('dialog', 'deck-delete-dialog');
+  dialog.setAttribute('aria-label', `Удалить колоду „${title}“?`);
+  const actions = element('div', 'deck-toolbar deck-delete-actions');
+  const cancel = button('Отмена', () => dialog.close('cancel'));
+  const remove = button('Удалить', () => dialog.close('delete'), 'button deck-danger');
+  actions.append(cancel, remove);
+  dialog.append(element('h3', null, `Удалить колоду „${title}“?`),
+    element('p', 'muted', 'Действие нельзя отменить.'), actions);
+  dialog.addEventListener('close', () => {
+    dialog.remove();
+    if (dialog.returnValue === 'delete') onConfirm();
+  }, { once: true });
+  host.append(dialog);
+  dialog.showModal();
+  return dialog;
+}
+
 export function setCardRarity(node, rarity) {
   if (rarity) node.dataset.rarity = rarity;
   else delete node.dataset.rarity;

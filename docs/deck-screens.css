@@ -101,10 +101,48 @@
 .deck-toolbar h2 { margin-inline-end: auto; }
 .deck-list-group { display: grid; gap: .5rem; }
 .deck-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: .55rem; }
-.deck-list-item { display: grid; gap: .38rem; padding: .75rem; min-width: 0; }
+.deck-list-item {
+  position: relative;
+  display: grid;
+  gap: .38rem;
+  padding: .75rem;
+  min-width: 0;
+  cursor: pointer;
+}
+.deck-list-item:hover, .deck-list-item:focus-visible { border-color: var(--faction-edge, var(--edge)); }
 .deck-list-item h4, .deck-list-item p { overflow-wrap: anywhere; }
 .deck-list-item h4 { color: var(--faction-light, inherit); }
-.deck-list-item .deck-toolbar { margin-top: .25rem; }
+.deck-card-heading { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; padding-inline-end: 2rem; }
+.deck-primary-badge { color: #f6d78b; font-size: .76rem; white-space: nowrap; }
+.deck-card-menu { position: absolute; z-index: 3; inset-block-start: .45rem; inset-inline-end: .45rem; }
+.deck-card-menu-trigger { min-width: 1.9rem; min-height: 1.9rem; padding: .15rem; }
+.deck-card-menu-popover {
+  position: absolute;
+  inset-block-start: calc(100% + .25rem);
+  inset-inline-end: 0;
+  display: grid;
+  width: min(14rem, calc(100vw - 2rem));
+  padding: .3rem;
+  border: 1px solid var(--faction-edge, var(--edge));
+  border-radius: .35rem;
+  background: #162330;
+  box-shadow: 0 .5rem 1.5rem #0009;
+}
+.deck-card-menu-popover[hidden] { display: none; }
+.deck-menu-item {
+  padding: .5rem .6rem;
+  text-align: start;
+  color: inherit;
+  border: 0;
+  border-radius: .22rem;
+  background: transparent;
+}
+.deck-menu-item:hover, .deck-menu-item:focus-visible { background: #2a3948; }
+.deck-menu-item:disabled { opacity: .65; }
+.deck-danger { color: #ffa9a1; border-color: #9b554f; }
+.deck-delete-dialog { max-width: min(26rem, calc(100% - 2rem)); color: inherit; background: #162330; border: 1px solid var(--edge); }
+.deck-delete-dialog::backdrop { background: #070d14c9; }
+.deck-delete-actions { justify-content: flex-end; margin-block-start: 1rem; }
 
 #app:has(.deck-editor) { width: calc(100% - clamp(.75rem, 2vw, 2rem)); }
 .deck-editor { display: grid; gap: .5rem; }

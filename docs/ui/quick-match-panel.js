@@ -45,11 +45,16 @@ export function quickMatchPanel({ deckStore, inventory, storage, difficulty, pla
     const { owned } = inventory();
     const userDecks = deckStore.list().filter((deck) => inspectDeck(deck, owned).valid);
     const playerPresets = PRESETS.filter((deck) => inspectDeck(deck, owned).valid);
-    playerDecks = new Map([...userDecks, ...playerPresets].map((deck) => [deck.id, deck]));
+    const primary = deckStore.primary(owned);
+    const available = [...userDecks, ...playerPresets];
+    const ordered = primary && available.some(({ id }) => id === primary.id)
+      ? [primary, ...available.filter(({ id }) => id !== primary.id)] : available;
+    playerDecks = new Map(ordered.map((deck) => [deck.id, deck]));
     botDecks = new Map([...PRESETS.filter((deck) => inspectDeck(deck).valid), ...userDecks]
       .map((deck) => [deck.id, deck]));
     const playerId = playerDecks.has(selected.player) ? selected.player
-      : deckStore.recent(owned).find(({ id }) => playerDecks.has(id))?.id ?? playerPresets[0]?.id ?? userDecks[0]?.id ?? '';
+      : primary && playerDecks.has(primary.id) ? primary.id
+        : deckStore.recent(owned).find(({ id }) => playerDecks.has(id))?.id ?? playerPresets[0]?.id ?? userDecks[0]?.id ?? '';
     const botId = botDecks.has(selected.bot) ? selected.bot : '';
     const labels = (entries) => [...entries.values()].map(({ id, name }) => [id, name]);
     setOptions(player.input, playerDecks.size ? labels(playerDecks) : [['', 'Нет играбельных колод']], playerId);

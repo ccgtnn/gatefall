@@ -88,6 +88,60 @@ test('ownership validation blocks a two-copy deck even when one copy still exist
   assert.equal(inspectDeck(protectorate).valid, true);
 });
 
+test('remove deletes saved decks, recent entries, drafts and the primary marker but not presets', async () => {
+  const { createDeckStorage, PRIMARY_DECK_KEY, RECENT_DECKS_KEY } = await import('../../docs/ui/deck-storage.js');
+  const values = new Map();
+  const storage = {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+    removeItem: (key) => values.delete(key),
+  };
+  const store = createDeckStorage(storage);
+  const first = { ...protectorate, id: 'first' };
+  const second = { ...growth, id: 'second' };
+  store.save(first);
+  store.save(second);
+  store.recordPlay(first.id, 1);
+  store.recordPlay(second.id, 2);
+  store.setPrimary(first.id);
+  store.stageDraft({ ...first, id: 'draft' });
+
+  assert.equal(store.remove(protectorate.id), false);
+  assert.equal(store.remove(first.id), true);
+  assert.deepEqual(store.list(), [second]);
+  assert.equal(store.get(first.id), undefined);
+  assert.deepEqual(store.recent(), [second]);
+  assert.deepEqual(JSON.parse(values.get(RECENT_DECKS_KEY)), [{ id: second.id, at: 2 }]);
+  assert.equal(values.has(PRIMARY_DECK_KEY), false);
+  assert.equal(store.primary(), undefined);
+  assert.deepEqual(createDeckStorage(storage).list(), [second]);
+  assert.equal(store.remove('draft'), true);
+  assert.equal(store.get('draft'), undefined);
+});
+
+test('primary decks may be presets, move between decks and reset when invalid or missing', async () => {
+  const { createDeckStorage, PRIMARY_DECK_KEY } = await import('../../docs/ui/deck-storage.js');
+  const values = new Map();
+  const storage = {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+    removeItem: (key) => values.delete(key),
+  };
+  const store = createDeckStorage(storage);
+  const custom = { ...protectorate, id: 'custom' };
+  store.save(custom);
+  assert.equal(store.setPrimary(growth.id), true);
+  assert.equal(store.primary().id, growth.id);
+  assert.equal(store.setPrimary(custom.id), true);
+  assert.equal(store.primary().id, custom.id);
+  store.save({ ...custom, cardIds: [] });
+  assert.equal(store.primary(), undefined);
+  assert.equal(values.has(PRIMARY_DECK_KEY), false);
+  values.set(PRIMARY_DECK_KEY, 'missing');
+  assert.equal(store.primary(), undefined);
+  assert.equal(values.has(PRIMARY_DECK_KEY), false);
+});
+
 test('refresh loads another tab’s decks and merges a subsequent local save', async () => {
   const { createDeckStorage } = await import('../../docs/ui/deck-storage.js');
   const entries = new Map();
@@ -103,4 +157,7 @@ test('refresh loads another tab’s decks and merges a subsequent local save', a
   second.refresh();
   assert.equal(second.get(deck.id).name, 'New title');
   assert.deepEqual(second.list().map(({ id }) => id), ['shared', 'local']);
+  first.remove(deck.id);
+  second.refresh();
+  assert.deepEqual(second.list().map(({ id }) => id), ['local']);
 });

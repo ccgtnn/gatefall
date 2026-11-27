@@ -3,7 +3,8 @@ import { createAppHistory } from './ui/app-history.js';
 import { createAppTimers } from './ui/app-timers.js';
 import { keepCardVideos, resumeCardVideos } from './ui/card-art.js';
 import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js';
-import { createDeckStorage, DECK_STORAGE_KEY, newDeckId, RECENT_DECKS_KEY } from './ui/deck-storage.js';
+import { createDeckStorage, DECK_STORAGE_KEY, newDeckId, PRIMARY_DECK_KEY, RECENT_DECKS_KEY } from './ui/deck-storage.js';
+import { QUICK_MATCH_KEY } from './ui/quick-match-panel.js';
 import { bindCardPlacement } from './ui/card-placement.js';
 import { placementSide } from './game/engine/board.js';
 import { FACTIONS } from './game/cards/cards.js';
@@ -173,6 +174,9 @@ window.addEventListener('storage', (event) => {
     deckStore.refresh();
     if (!turns.match && menuView === 'all-decks') render();
     else emit('collection-change');
+  } else if (event.key === PRIMARY_DECK_KEY) {
+    if (!turns.match && ['all-decks', 'league'].includes(menuView)) render();
+    else emit('collection-change');
   }
 });
 const timers = createAppTimers(progress, () => emit('league-tick'));
@@ -283,6 +287,26 @@ function makeDeck(factionId, leaderId, source) {
   }, skipped ? `В копию вошли доступные карты. Пропущено копий · ${skipped}.` : '');
 }
 
+function openDeckEditor(deck) {
+  if (deck.id.startsWith('preset-')) makeDeck(deck.factionId, deck.leaderId, deck);
+  else editDeck(deck);
+}
+
+function setPrimaryDeck(deck) {
+  if (!deckStore.setPrimary(deck.id, progress.inventory().owned)) return;
+  try {
+    const selected = JSON.parse(storage?.getItem(QUICK_MATCH_KEY)) ?? {};
+    storage?.setItem(QUICK_MATCH_KEY, JSON.stringify({ ...selected, player: deck.id }));
+  } catch {
+    try { storage?.setItem(QUICK_MATCH_KEY, JSON.stringify({ player: deck.id })); } catch {}
+  }
+  render({ deckListNotice: `Основная колода: ${deck.name}.` });
+}
+
+function deleteDeck(deck) {
+  return deckStore.remove(deck.id);
+}
+
 function placeSelected(row, side) {
   if (!selectedCardId || !humanCanAct()) return;
   const { match } = turns;
@@ -325,12 +349,19 @@ function render({ deckListNotice } = {}) {
         editNotices.delete(editedDeck.id);
         content = deckEditor(phaseLabel, editedDeck, {
           back, notice, signal, inventory: progress.inventory, save: deckStore.save, play: session.start,
+          remove: deleteDeck,
         });
         break;
       }
       case 'all-decks': content = deckListScreen(phaseLabel, deckStore.list(), stats, {
-        back: () => navigation.backTo('decks'), create: () => goTo('faction'), play: session.start, edit: editDeck,
+        back: () => navigation.backTo('decks'), create: () => goTo('faction'), edit: openDeckEditor,
         copy: (deck) => makeDeck(deck.factionId, deck.leaderId, deck),
+        primary: deckStore.primary,
+        setPrimary: setPrimaryDeck,
+        refresh: render,
+        remove: (deck) => {
+          if (deleteDeck(deck)) render({ deckListNotice: `Колода «${deck.name}» удалена.` });
+        },
         importJson: deckStore.importJson,
         notice: deckListNotice,
         onImported({ deck, decks, missing, saved }) {
@@ -356,7 +387,11 @@ function render({ deckListNotice } = {}) {
         checkpoint: progress.checkpointLeague,
         decks: () => {
           const { owned } = progress.inventory();
-          return [...PRESETS, ...deckStore.list()].filter((deck) => inspectDeck(deck, owned).valid);
+          const decks = [...PRESETS, ...deckStore.list()].filter((deck) => inspectDeck(deck, owned).valid);
+          const primary = deckStore.primary(owned);
+          return primary
+            ? [primary, ...decks.filter(({ id }) => id !== primary.id)]
+            : decks;
         },
         gold: () => progress.inventory().gold,
         play: session.startLeague,

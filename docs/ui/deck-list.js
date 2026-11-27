@@ -2,7 +2,7 @@ import { on } from './app-events.js';
 import { FACTIONS } from '../game/cards/cards.js';
 import { FACTION_CATALOG } from '../game/cards/faction-catalog.js';
 import { inspectDeck, PRESETS } from '../game/cards/decks.js';
-import { button, element } from './dom.js';
+import { button, confirmDeckDeletion, element, iconButton } from './dom.js';
 import { factionFilters } from './faction-filters.js';
 import { homeTiles } from './home-tiles.js';
 import { quickMatchPanel } from './quick-match-panel.js';
@@ -11,41 +11,123 @@ import { deckImportDialog, exportDeckJson, exportOwnDecks } from './deck-transfe
 import { sectionBack } from './resources.js';
 import { violations } from './deck-shared.js';
 
-function deckListItem(deck, stats, actions) {
+let activeDeckMenu;
+
+function closeActiveDeckMenu() {
+  activeDeckMenu?.();
+}
+
+export function deckListItem(deck, stats, actions, isPrimary = false, signal) {
   const result = inspectDeck(deck);
   const item = element('article', 'panel deck-list-item');
   item.dataset.faction = deck.factionId;
+  item.tabIndex = 0;
   const title = deck.name.trim() || 'Без названия';
-  item.append(element('h4', null, title), element('p', 'muted',
+  item.setAttribute('aria-label', 'Редактировать: ' + title);
+  const heading = element('div', 'deck-card-heading');
+  heading.append(element('h4', null, title));
+  if (isPrimary) heading.append(element('span', 'deck-primary-badge', '★ Основная'));
+  item.append(heading, element('p', 'muted',
     [FACTIONS[deck.factionId]?.name, result.leader?.name, result.cards.length + ' карт',
       result.cost + ' / ' + result.budget + ' провизии'].filter(Boolean).join(' · ')));
   if (stats) {
     const { win, loss } = stats.get(deck.factionId);
     item.append(element('p', 'muted', 'Победы ' + win + ' · Поражения ' + loss));
   }
-  const row = element('div', 'deck-toolbar');
-  const play = button('Играть', () => actions.play(deck), 'button primary');
-  play.setAttribute('aria-label', 'Играть: ' + title);
-  row.append(play);
-  if (actions.copy) {
-    const copy = button('Копировать', () => actions.copy(deck));
-    copy.setAttribute('aria-label', 'Копировать: ' + title);
-    row.append(copy);
+
+  const menuRoot = element('div', 'deck-card-menu');
+  const menu = element('div', 'deck-card-menu-popover');
+  menu.setAttribute('role', 'menu');
+  menu.hidden = true;
+  const trigger = iconButton('⋯', 'Действия: ' + title, (event) => {
+    event.stopPropagation();
+    if (menu.hidden) openMenu();
+    else closeMenu(true);
+  }, 'deck-card-menu-trigger');
+  trigger.setAttribute('aria-haspopup', 'menu');
+  trigger.setAttribute('aria-expanded', 'false');
+  menuRoot.append(trigger, menu);
+  item.append(menuRoot);
+
+  const entries = [
+    [isPrimary ? 'Основная ✓' : 'Сделать основной', () => actions.setPrimary(deck), isPrimary],
+    ['Редактировать', () => actions.edit(deck), false],
+    ['Копировать', () => actions.copy(deck), false],
+    ['Экспорт JSON', () => actions.export(deck), false],
+  ];
+  if (!deck.id.startsWith('preset-') && actions.remove) {
+    entries.push(['Удалить', () => confirmDeckDeletion(title, () => actions.remove(deck)), false, true]);
   }
-  if (actions.edit) {
-    const edit = button('Редактировать', () => actions.edit(deck));
-    edit.setAttribute('aria-label', 'Редактировать: ' + title);
-    row.append(edit);
+  const buttons = entries.map(([label, action, disabled, danger]) => {
+    const entry = button(label, (event) => {
+      event.stopPropagation();
+      closeMenu();
+      action();
+    }, 'deck-menu-item' + (danger ? ' deck-danger' : ''));
+    entry.setAttribute('role', 'menuitem');
+    entry.disabled = disabled;
+    menu.append(entry);
+    return entry;
+  });
+
+  function enabledButtons() {
+    return buttons.filter((entry) => !entry.disabled);
   }
-  if (actions.exportStatus) {
-    const exportButton = button('Экспорт JSON', () => exportDeckJson(deck, actions.exportStatus));
-    exportButton.setAttribute('aria-label', 'Экспорт JSON: ' + title);
-    row.append(exportButton);
+
+  function closeMenu(focus = false) {
+    if (menu.hidden) return;
+    menu.hidden = true;
+    trigger.setAttribute('aria-expanded', 'false');
+    if (activeDeckMenu === closeMenu) activeDeckMenu = undefined;
+    if (focus) trigger.focus();
   }
+
+  function openMenu() {
+    closeActiveDeckMenu();
+    menu.hidden = false;
+    trigger.setAttribute('aria-expanded', 'true');
+    activeDeckMenu = closeMenu;
+    enabledButtons()[0]?.focus();
+  }
+
+  menuRoot.addEventListener('click', (event) => event.stopPropagation());
+  menu.addEventListener('keydown', (event) => {
+    const enabled = enabledButtons();
+    const index = enabled.indexOf(document.activeElement);
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu(true);
+    } else if (event.key === 'Tab') {
+      closeMenu();
+    } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+      event.preventDefault();
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? enabled.length - 1
+        : (index + (event.key === 'ArrowDown' ? 1 : -1) + enabled.length) % enabled.length;
+      enabled[next]?.focus();
+    }
+  });
+  document.addEventListener('click', (event) => {
+    if (!menuRoot.contains(event.target)) closeMenu();
+  }, { signal });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !menu.hidden) closeMenu(true);
+  }, { signal });
+  signal?.addEventListener('abort', () => closeMenu(), { once: true });
+
+  item.addEventListener('click', (event) => {
+    if (!menuRoot.contains(event.target)) actions.edit(deck);
+  });
+  item.addEventListener('keydown', (event) => {
+    if (event.target !== item || !['Enter', ' '].includes(event.key)) return;
+    event.preventDefault();
+    actions.edit(deck);
+  });
+
   const errors = element('p', 'deck-invalid');
   errors.hidden = true;
-  item.append(errors, row);
-  return { deck, item, errors, play };
+  item.append(errors);
+  return { deck, item, errors };
 }
 
 const campaigns = [];
@@ -82,17 +164,26 @@ export function deckListScreen(phaseLabel, decks, stats, actions, inventory, sig
     button('Импорт JSON', () => dialog.showModal()), exportAll);
   screen.append(sectionBack(actions.back), toolbar, status, dialog);
   let faction = '';
-  const groups = [
+  let primaryId = actions.primary?.(inventory().owned)?.id ?? '';
+  const definitions = [
     ['Стартовые колоды', PRESETS, true],
     ['Сохранённые колоды', decks, false],
-  ].map(([title, entries, preset]) => {
+  ];
+  if (primaryId && !primaryId.startsWith('preset-')) definitions.reverse();
+  const groups = definitions.map(([title, entries, preset]) => {
     const group = element('section', 'deck-list-group');
     const list = element('div', 'deck-list');
     const empty = element('p', 'muted');
     group.append(element('h3', null, title), list, empty);
     screen.append(group);
-    const items = entries.map((deck) => deckListItem(deck, preset ? stats : undefined,
-      { play: actions.play, copy: actions.copy, edit: preset ? undefined : actions.edit, exportStatus: status }));
+    const ordered = entries.toSorted((first, second) => Number(second.id === primaryId) - Number(first.id === primaryId));
+    const items = ordered.map((deck) => deckListItem(deck, preset ? stats : undefined, {
+      copy: actions.copy,
+      edit: actions.edit,
+      export: (deck) => exportDeckJson(deck, status),
+      remove: actions.remove,
+      setPrimary: actions.setPrimary,
+    }, deck.id === primaryId, signal));
     list.append(...items.map(({ item }) => item));
     return { items, empty, list, preset };
   });
@@ -101,12 +192,11 @@ export function deckListScreen(phaseLabel, decks, stats, actions, inventory, sig
     const { owned } = inventory();
     for (const { items, empty, list, preset } of groups) {
       let count = 0;
-      for (const { deck, item, errors, play } of items) {
+      for (const { deck, item, errors } of items) {
         item.hidden = Boolean(faction && deck.factionId !== faction);
         if (item.hidden) continue;
         count += 1;
         const result = inspectDeck(deck, owned);
-        play.disabled = !result.valid;
         errors.hidden = result.valid;
         errors.textContent = violations(result).join(' ');
       }
@@ -116,7 +206,15 @@ export function deckListScreen(phaseLabel, decks, stats, actions, inventory, sig
         : !preset && !items.length ? 'Пока нет сохранённых колод.' : 'Нет доступных колод.';
     }
   }
-  on('collection-change', update, { signal });
+  on('collection-change', () => {
+    const nextPrimaryId = actions.primary?.(inventory().owned)?.id ?? '';
+    if (nextPrimaryId !== primaryId) {
+      primaryId = nextPrimaryId;
+      actions.refresh?.();
+      return;
+    }
+    update();
+  }, { signal });
   update();
   return screen;
 }
