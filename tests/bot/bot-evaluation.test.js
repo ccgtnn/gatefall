@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { COIN_LIMIT, ROW_LIMIT, createCard } from '../../docs/game/engine/board.js';
+import { COIN_LIMIT, ROW_LIMIT, applyStatus, createCard, findUnit } from '../../docs/game/engine/board.js';
 import { CAPTAIN_CARDS, HOUND } from '../../docs/game/cards/factions/captains.js';
 import { createBotView, pickBotTarget } from '../../docs/game/bot/bot.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
@@ -149,4 +149,32 @@ test('once the opponent has passed, surplus points add no match value to a secur
   const enough = evaluatePosition(match, 'bot');
   lead.power = 30;
   assert.equal(evaluatePosition(match, 'bot'), enough);
+});
+
+test('Plague engines are worth playing when the enemy board gives them targets', () => {
+  const match = position();
+  const card = (id) => standard(id, FACTIONS.growth.pool.find((definition) => definition.id === id));
+  const leviathan = card('plague-leviathan');
+  const sower = card('plague-sower');
+  const forecast = (candidate) => delayedCardValue(futureContext(match, 'bot'), candidate, 'orbit', true);
+  const score = (candidate) => {
+    match.players.bot.board.orbit = [plain('anchor', 20), ...(candidate ? [candidate] : [])];
+    return evaluatePosition(match, 'bot');
+  };
+  assert.equal(forecast(leviathan), 0);
+  assert.equal(forecast(sower), 0);
+  const infected = plain('infected', 8);
+  match.players.human.board.orbit = [infected, plain('clean', 8), plain('other-clean', 8)];
+  applyStatus(match, findUnit(match, infected.id), 'infection', 2);
+  const baseline = score();
+  assert.ok(forecast(leviathan) > 0);
+  assert.ok(forecast(sower) > 0);
+  assert.ok(score(leviathan) > baseline);
+  const paired = forecast(sower);
+  assert.ok(score(sower) > baseline);
+  assert.ok(paired > forecast(sower));
+  for (const { id } of match.players.human.board.orbit) {
+    applyStatus(match, findUnit(match, id), 'infection', 5);
+  }
+  assert.equal(forecast(sower), 0);
 });

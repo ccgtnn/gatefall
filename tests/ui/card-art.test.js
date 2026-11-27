@@ -174,6 +174,21 @@ test('World Gates uses its own premium clips on the small and full card faces', 
   }
 });
 
+test('Plague cards use their own static and premium art on both faces', async () => {
+  const { cardArt } = await import('../../docs/ui/card-art.js');
+  for (const id of ['plague-leviathan', 'plague-sower']) {
+    const { definition } = makeCard(id);
+    for (const [fullArt, poster, clip] of [[false, '-crop.webp', '-card.mp4'], [true, '.webp', '-preview.mp4']]) {
+      const still = cardArt(definition, 'card-art-crop', { fullArt, animated: false });
+      assert.equal(still.src, './art/' + id + poster);
+      const video = cardArt(definition, 'card-art-crop', { fullArt, animated: true });
+      assert.equal(video.src, './art/' + id + clip);
+      assert.equal(video.poster, still.src);
+      assert.ok(video.loop && video.muted && video.playsInline);
+    }
+  }
+});
+
 test('filtered or moved video resumes after layout only while it is visible and attached', async () => {
   const { resumeCardVideos } = await import('../../docs/ui/card-art.js');
   const frames = [];

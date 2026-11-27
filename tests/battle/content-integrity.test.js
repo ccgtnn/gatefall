@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { statSync } from 'node:fs';
 import { CARD_DEFINITIONS } from '../../docs/game/cards/card-registry.js';
 import { FACTIONS } from '../../docs/game/cards/cards.js';
 import { inspectDeck, PRESETS } from '../../docs/game/cards/decks.js';
@@ -7,6 +8,7 @@ import { effectOperations } from '../../docs/game/effects/effect-operations.js';
 import { EFFECT_SCHEMA } from '../../docs/game/shared/effect-schema.js';
 import { LEAGUE_BOTS } from '../../docs/game/meta/league.js';
 import { visitDefinitions } from '../helpers/effect-definitions.js';
+import { hasPremiumArt } from '../../docs/ui/card-art.js';
 
 const leaders = Object.values(FACTIONS).flatMap((faction) => faction.leaders);
 const cards = new Set(CARD_DEFINITIONS);
@@ -45,6 +47,24 @@ test('all registered cards have unique ids and complete metadata', () => {
     if (card.type === 'unit') assert.ok(card.power > 0, `${card.id}: unit power must be positive`);
   }
   assert.deepEqual(duplicates, []);
+});
+
+test('both Plague engines have their printed stats and premium artwork', () => {
+  for (const [id, power, provision, rarity, requiredRow] of [
+    ['plague-leviathan', 3, 9, 'epic', 'orbit'],
+    ['plague-sower', 4, 10, 'gold', undefined],
+  ]) {
+    const card = CARD_DEFINITIONS.find((definition) => definition.id === id);
+    assert.deepEqual([card.faction, card.type, card.power, card.provision, card.rarity, card.requiredRow],
+      ['growth', 'unit', power, provision, rarity, requiredRow]);
+    assert.deepEqual(card.categories, ['Гниль']);
+    assert.equal(card.art, id + '.webp');
+    assert.equal(card.artCrop, id + '-crop.webp');
+    assert.ok(hasPremiumArt(id), id);
+    for (const file of [card.art, card.artCrop, id + '-card.mp4', id + '-preview.mp4']) {
+      assert.ok(statSync(new URL('../../docs/art/' + file, import.meta.url)).size > 0, file);
+    }
+  }
 });
 
 test('every preset and League character deck id exists in the card registry', () => {
