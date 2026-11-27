@@ -19,6 +19,7 @@ const battlefields = [
   { id: 'standard', name: 'Стандартное поле', art: 'home-nebula.webp' },
   { id: 'wood', name: 'Деревянная доска', art: 'battlefield-wood.webp' },
   { id: 'metal', name: 'Тактический стол', art: 'battlefield-metal.webp' },
+  { id: 'bridge', name: 'Мостик флагмана', art: 'battlefield-bridge.webp' },
   { id: 'new-year', name: 'Новогодний стол', art: 'battlefield-new-year.webp' },
 ];
 

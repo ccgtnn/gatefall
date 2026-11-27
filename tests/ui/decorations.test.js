@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { emit } from '../../docs/ui/app-events.js';
 
@@ -138,6 +139,29 @@ test('miniatures temporarily preview choices on hover and focus, and click persi
   emit('decorations-change');
   assert.equal(metal.getAttribute('aria-pressed'), 'true');
   assert.match(stage.style.backgroundImage, /battlefield-metal\.webp/);
+});
+
+test('the flagship bridge follows metal and uses its WebP in the preview and on the board', (t) => {
+  const { panel, root, fields, stored } = fixture(t);
+  const [, fieldsTab] = byRole(panel, 'tab');
+  const [, fieldOptions] = byRole(panel, 'tabpanel');
+  press(fieldsTab);
+  const [, , metal, bridge, newYear] = fieldOptions.children;
+  assert.equal(byClass(metal, 'decoration-name').textContent, 'Тактический стол');
+  assert.equal(byClass(bridge, 'decoration-name').textContent, 'Мостик флагмана');
+  assert.equal(byClass(newYear, 'decoration-name').textContent, 'Новогодний стол');
+  assert.match(byClass(bridge, 'decoration-field').src, /battlefield-bridge\.webp/);
+  press(bridge);
+  assert.equal(fields.current(), 'bridge');
+  assert.equal(root.dataset.battlefieldChoice, 'bridge');
+  assert.equal(stored.get('gatefall.battlefield'), 'bridge');
+  assert.match(byClass(panel, 'decoration-stage').style.backgroundImage, /battlefield-bridge\.webp/);
+
+  const css = readFileSync(new URL('../../docs/decorations.css', import.meta.url), 'utf8');
+  assert.match(css, /\[data-battlefield-choice="bridge"\]\) \.match-board \{[^}]+url\('\.\/art\/battlefield-bridge\.webp'\)/);
+  const art = readFileSync(new URL('../../docs/art/battlefield-bridge.webp', import.meta.url));
+  assert.equal(art.toString('ascii', 8, 12), 'WEBP');
+  assert.ok(art.length <= 250_000);
 });
 
 test('locked options explain how to unlock and never select or persist', (t) => {
