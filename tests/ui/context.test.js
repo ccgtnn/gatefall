@@ -35,7 +35,7 @@ test('work context excludes general documentation, analysis and league data even
   const { stdout } = await run('engine', 'ART_STYLE.md', 'README.md', 'CHANGELOG.md',
     'tools/analysis/arena-step-19.md', 'docs/game/meta/data/league-characters.js', 'docs/game/meta/data/league-context-lines.js');
   const files = stdout.split('\n').filter((line) => line.startsWith('## '));
-  assert.ok(!files.some((line) => /^## (ART_STYLE|README|CHANGELOG)\.md$|^## (tools\/analysis|docs\/game\/data)\//.test(line)));
+  assert.ok(!files.some((line) => /^## (ART_STYLE|README|CHANGELOG)\.md$|^## (tools\/analysis|docs\/game\/meta\/data)\//.test(line)));
 });
 
 test('extra files cannot read outside the repository', async (t) => {

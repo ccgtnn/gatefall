@@ -54,7 +54,7 @@ function usage() {
 }
 
 const excludedFiles = new Set(['ART_STYLE.md', 'README.md', 'CHANGELOG.md']);
-const excludedDirectories = ['tools/analysis/', 'docs/game/data/'];
+const excludedDirectories = ['tools/analysis/', 'docs/game/meta/data/'];
 
 async function loadSource(root, requested) {
   const file = await realpath(resolve(root, requested));
