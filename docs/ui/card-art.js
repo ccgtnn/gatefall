@@ -29,6 +29,8 @@ const clips = new Map([
   ['minor-offering', { small: 'minor-offering-card.mp4', large: 'minor-offering-preview.mp4' }],
   ['sleeper-litany', { small: 'sleeper-litany-card.mp4', large: 'sleeper-litany-preview.mp4' }],
   ['mind-strike', { small: 'mind-strike-card.mp4', large: 'mind-strike-preview.mp4' }],
+  ['plague-leviathan', { small: 'plague-leviathan-card.mp4', large: 'plague-leviathan-preview.mp4' }],
+  ['plague-sower', { small: 'plague-sower-card.mp4', large: 'plague-sower-preview.mp4' }],
 ]);
 let premiumEnabled = false;
 const premiumOverrides = new Map();

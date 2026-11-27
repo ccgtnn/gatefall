@@ -271,3 +271,79 @@ test('reviving a strengthened unit restores modified base power and preserves sp
   assert.equal(findUnit(match, 'modified').card.power, 7);
   assert.equal(findUnit(match, 'modified').card.resilient, false);
 });
+
+test('Plague Leviathan can only play in orbit and gains up to five power from infected enemies', () => {
+  for (const [infected, expectedPower] of [[0, 3], [2, 5], [6, 8]]) {
+    let match = fixture('plague-leviathan');
+    match.players.bot.passed = false;
+    match.players.human.board.surface = [unit('infected-ally')];
+    match.players.bot.board.surface = [unit('clean')];
+    match.players.bot.board.orbit = Array.from({ length: infected }, (_, i) => unit('infected-' + i));
+    for (const id of ['infected-ally', ...match.players.bot.board.orbit.map(({ id }) => id)]) {
+      applyStatus(match, findUnit(match, id), 'infection', 3);
+    }
+    const illegal = { ...action('play', 'plague-leviathan'), row: 'surface' };
+    assert.equal(applyAction(match, 'human', illegal, { random }), match);
+    match = act(match, 'play', 'plague-leviathan');
+    assert.equal(findUnit(match, 'plague-leviathan').row, 'orbit');
+    assert.equal(findUnit(match, 'plague-leviathan').card.power, expectedPower);
+  }
+});
+
+test('Plague Sower applies exactly two infection to a clean enemy and skips a fully infected board', () => {
+  for (const clean of [true, false]) {
+    let match = fixture('plague-sower');
+    match.players.bot.passed = false;
+    match.players.human.board.surface = [unit('ally')];
+    match.players.bot.board.orbit = [unit('infected')];
+    match.players.bot.board.surface = [unit('candidate')];
+    applyStatus(match, findUnit(match, 'infected'), 'infection', 3);
+    if (!clean) applyStatus(match, findUnit(match, 'candidate'), 'infection', 1);
+    match = act(match, 'play', 'plague-sower');
+    assert.deepEqual(['ally', 'infected', 'candidate'].map((id) => infection(match, id)),
+      [0, 3, clean ? 2 : 1]);
+  }
+});
+
+test('Plague Sower uses the supplied match RNG to choose among clean enemies', () => {
+  const pickForSeed = (seed) => {
+    let match = fixture('plague-sower');
+    match.players.bot.passed = false;
+    const candidates = ['one', 'two', 'three'];
+    match.players.bot.board.orbit = candidates.map((id) => unit(id));
+    const seeded = () => {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      return seed / 2 ** 32;
+    };
+    match = applyAction(match, 'human', action('play', 'plague-sower'), { random: seeded });
+    const selected = candidates.filter((id) => infection(match, id) === 2);
+    assert.equal(selected.length, 1);
+    return selected[0];
+  };
+  assert.equal(pickForSeed(17), pickForSeed(17));
+  assert.notEqual(pickForSeed(17), pickForSeed(1500));
+});
+
+test('both Plague engines trigger on empty turns unless blocked', () => {
+  for (const locked of [false, true]) {
+    let match = fixture();
+    match.players.human.board.orbit = [card('plague-leviathan'), card('plague-sower')];
+    match.players.human.passed = true;
+    match.players.bot.passed = false;
+    match.turn = 'bot';
+    match.players.bot.hand.push(unit('bot-next'));
+    match.players.bot.board.surface = [unit('infected'), unit('clean')];
+    applyStatus(match, findUnit(match, 'infected'), 'infection', 3);
+    if (locked) {
+      for (const id of ['plague-leviathan', 'plague-sower']) {
+        applyStatus(match, findUnit(match, id), 'lock', 1);
+      }
+    }
+    match = act(match, 'play', 'bot-spare', 0, 'bot');
+    assert.ok(match.log.some(({ type, side, empty }) => type === 'turn-start' && side === 'human' && empty));
+    assert.equal(findUnit(match, 'plague-leviathan').card.power, locked ? 3 : 4);
+    const sowerInfections = match.log.filter(({ type, sourceDefinitionId, tick }) =>
+      type === 'status' && sourceDefinitionId === 'plague-sower' && !tick);
+    assert.deepEqual(sowerInfections.map(({ count }) => count), locked ? [] : [2]);
+  }
+});

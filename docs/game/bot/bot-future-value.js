@@ -322,6 +322,49 @@ export function armorBreakSwing(card) {
   return steps.reduce((sum, step) => step.action === 'spawn' ? sum + step.amount * (step.card.power ?? 0) : sum, -card.power);
 }
 
+function infectionGrowth(context, job, amount, turns) {
+  const { match, side, opponentTurns } = context;
+  const infected = targets(match, job, amount.count);
+  let growth = 0;
+  for (let turn = 0; turn < turns; turn += 1) {
+    const ticks = Math.min(opponentTurns, turn + Number(match.turn !== side));
+    const count = infected.filter(({ card }) =>
+      statusCount(card, 'infection') > ticks && infectionDamage(card, ticks) < card.power).length;
+    growth += Math.min(count, amount.cap ?? Infinity) * (amount.scale ?? 1);
+  }
+  return growth;
+}
+
+function infectionEngine(context, job, step, turns) {
+  const { match, side, opponentTurns } = context;
+  const enemies = targets(match, job, { ...step.target, infected: undefined });
+  const leviathan = context.own.some(({ card }) => card.definition.id === 'plague-leviathan' && !isLocked(card));
+  const applications = [];
+  let value = 0;
+  for (let turn = 0; turn < turns; turn += 1) {
+    const ticks = turn + Number(match.turn !== side);
+    if (ticks >= opponentTurns) break;
+    const clean = enemies.filter(({ card }) => {
+      const infection = statusCount(card, 'infection');
+      return infection <= ticks && infectionDamage(card, infection) < card.power;
+    });
+    // Recently infected targets need time to become eligible again.
+    if (clean.length <= applications.filter((expires) => expires > ticks).length) continue;
+    const amount = valueOf(match, job, step.amount);
+    const payoff = clean.reduce((total, { card }) => {
+      const infection = statusCount(card, 'infection');
+      const shields = Math.max(0, statusCount(card, 'shield') - infection);
+      const damage = Math.max(0, Math.min(amount, opponentTurns - ticks) - shields);
+      const power = card.power - infectionDamage(card);
+      const feedsLeviathan = leviathan && turn + 1 < turns && amount > 1 && (power > 1 || shields > 0);
+      return total + Math.min(damage, power) + (feedsLeviathan ? .65 : 0);
+    }, 0);
+    value += payoff / clean.length;
+    applications.push(ticks + amount);
+  }
+  return value;
+}
+
 function endTurnValue(context, card, ability, row, turns) {
   if (!ability || !turns) return 0;
   const { match, side, passed, player } = context;
@@ -343,8 +386,14 @@ function endTurnValue(context, card, ability, row, turns) {
       }, 0);
       value += hit * .65;
     } else if (step.action === 'boost' && step.target?.scope === 'source') {
-      const amount = valueOf(match, job, step.amount);
-      value += amount * (step.amount?.result ? 1 : turns) * .65;
+      const amount = step.amount;
+      const growth = amount?.count?.scope === 'enemy' && amount.count.infected
+        ? infectionGrowth(context, job, amount, turns)
+        : valueOf(match, job, amount) * (amount?.result ? 1 : turns);
+      value += growth * .65;
+    } else if (step.action === 'status' && step.status === 'infection' &&
+      step.mode === 'random' && step.target?.scope === 'enemy' && step.target.infected === false) {
+      value += infectionEngine(context, job, step, turns);
     } else if (!passed && card.readyAt > player.turns &&
       ((step.action === 'ready-order' && card.orderUsedTurn !== player.turns) ||
         (step.action === 'grant-zeal' && canGrantZeal({ card, row, side }, player.turns)))) {

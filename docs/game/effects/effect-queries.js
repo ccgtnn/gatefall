@@ -187,7 +187,10 @@ export function valueOf(match, job, expression, target) {
     return Math.max(0, expression.base + (plays?.[expression.playedCategory] ?? 0) * expression.scale);
   }
   if (expression?.markedThisMatch) return (match.players[job.side].marksPlaced ?? 0) * expression.markedThisMatch;
-  if (expression?.count) return targets(match, job, expression.count).length * (expression.scale ?? 1);
+  if (expression?.count) {
+    const count = targets(match, job, expression.count).length;
+    return Math.min(count, expression.cap ?? Infinity) * (expression.scale ?? 1);
+  }
   if (expression?.status) return target ? statusCount(target.card, expression.status) * (expression.scale ?? 1) : 0;
   if (expression?.row) return target?.row === expression.row ? expression.then : expression.otherwise;
   if (expression?.stat) {
