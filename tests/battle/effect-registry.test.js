@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { effectOperations } from '../../docs/game/effect-operations.js';
-import { runEffect } from '../../docs/game/effects.js';
-import { createMatch } from '../../docs/game/match.js';
+import { effectOperations } from '../../docs/game/effects/effect-operations.js';
+import { runEffect } from '../../docs/game/effects/effects.js';
+import { createMatch } from '../../docs/game/engine/match.js';
 import { visitDefinitions } from '../helpers/effect-definitions.js';
 
 test('all card, token, leader and scenario actions have a registered handler', () => {

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { BASE_PLOTS, buildingEffect, buildingPrice, MAX_BUILDING_LEVEL, readBase } from '../../docs/game/base.js';
-import { createRewardProgress, REWARD_STORAGE_KEY } from '../../docs/game/rewards.js';
+import { BASE_PLOTS, buildingEffect, buildingPrice, MAX_BUILDING_LEVEL, readBase } from '../../docs/game/meta/base.js';
+import { createRewardProgress, REWARD_STORAGE_KEY } from '../../docs/game/meta/rewards.js';
 
 function storageWithGold() {
   let saved = JSON.stringify({ unlocked: [

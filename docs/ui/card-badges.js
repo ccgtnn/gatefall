@@ -1,9 +1,9 @@
 import { element } from './dom.js';
-import { CARD_TYPES, NEUTRAL, RARITY_LABELS } from '../game/card-metadata.js';
-import { FACTION_CATALOG } from '../game/faction-catalog.js';
-import { basePower, cardType, isUnit, statusCount } from '../game/board.js';
+import { CARD_TYPES, NEUTRAL, RARITY_LABELS } from '../game/shared/card-metadata.js';
+import { FACTION_CATALOG } from '../game/cards/faction-catalog.js';
+import { basePower, cardType, isUnit, statusCount } from '../game/engine/board.js';
 import { resourceIcon } from './resource-icon.js';
-import { deathwishDefinitions } from '../game/events.js';
+import { deathwishDefinitions } from '../game/engine/events.js';
 import { orderBadge, scenarioBadge, statBadge } from './stat-badges.js';
 import { addCardCrop } from './card-art.js';
 

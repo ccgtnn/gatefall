@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { BOOSTER_FACTIONS, craftPrice, dismantleValue, createRewardProgress, drawBoosterCards, REWARD_STORAGE_KEY } from '../../docs/game/rewards.js';
-import { REWARD_SECTIONS, rewardState } from '../../docs/game/reward-book.js';
-import { copyLimit } from '../../docs/game/decks.js';
-import { FACTIONS, NEUTRAL_CARDS, RARITY_LABELS } from '../../docs/game/cards.js';
+import { BOOSTER_FACTIONS, craftPrice, dismantleValue, createRewardProgress, drawBoosterCards, REWARD_STORAGE_KEY } from '../../docs/game/meta/rewards.js';
+import { REWARD_SECTIONS, rewardState } from '../../docs/game/meta/reward-book.js';
+import { copyLimit } from '../../docs/game/cards/decks.js';
+import { FACTIONS, NEUTRAL_CARDS, RARITY_LABELS } from '../../docs/game/cards/cards.js';
 
 function localStorage(snapshot) {
   const values = new Map(snapshot ? [[REWARD_STORAGE_KEY, JSON.stringify(snapshot)]] : []);

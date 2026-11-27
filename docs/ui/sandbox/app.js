@@ -1,4 +1,4 @@
-import { findCardDefinition } from '../../game/card-registry.js';
+import { findCardDefinition } from '../../game/cards/card-registry.js';
 import { button, element, selectField } from '../dom.js';
 import { createCardSection } from './card-section.js';
 import { defaultCardId, factionCards, factionOptions } from './fixtures.js';

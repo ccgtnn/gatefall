@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
 import test from 'node:test';
-import { createCard } from '../../docs/game/board.js';
-import { FACTIONS, NEUTRAL_CARDS } from '../../docs/game/cards.js';
-import { AWAKENING, LARGE_TENTACLE } from '../../docs/game/choir.js';
-import { CAPTAIN_CARDS } from '../../docs/game/captains.js';
+import { createCard } from '../../docs/game/engine/board.js';
+import { FACTIONS, NEUTRAL_CARDS } from '../../docs/game/cards/cards.js';
+import { AWAKENING, LARGE_TENTACLE } from '../../docs/game/cards/factions/choir.js';
+import { CAPTAIN_CARDS } from '../../docs/game/cards/factions/captains.js';
 
 import { TestElement, byClass, decorateCard, drawable, makeCard, orderBadge, preview, showCard, tree } from '../helpers/card-badges.js';
 

@@ -3,13 +3,13 @@ import { access } from 'node:fs/promises';
 import test from 'node:test';
 import {
   applyStatus, cleanse, createCard, findUnit, refreshSidePower, statusCount,
-} from '../../docs/game/board.js';
+} from '../../docs/game/engine/board.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
-import { KEYWORDS, NEUTRAL_CARDS } from '../../docs/game/cards.js';
-import { availableOrders } from '../../docs/game/effects.js';
-import { deathwishDefinitions } from '../../docs/game/events.js';
-import { applyAction } from '../../docs/game/match.js';
-import { createRewardProgress } from '../../docs/game/rewards.js';
+import { KEYWORDS, NEUTRAL_CARDS } from '../../docs/game/cards/cards.js';
+import { availableOrders } from '../../docs/game/effects/effects.js';
+import { deathwishDefinitions } from '../../docs/game/engine/events.js';
+import { applyAction } from '../../docs/game/engine/match.js';
+import { createRewardProgress } from '../../docs/game/meta/rewards.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
 import { unit as makeUnit, emptyPlayingMatch, pick, play as playCard } from '../helpers/battle-helpers.js';
 

@@ -1,8 +1,8 @@
 import { leagueCharacter } from './league-character.js';
 import { button, element, iconButton } from './dom.js';
 import { playerHand } from './hand.js';
-import { availableFees, canUseLeader } from '../game/effects.js';
-import { HAND_LIMIT, canEndTurn, canPass } from '../game/match.js';
+import { availableFees, canUseLeader } from '../game/effects/effects.js';
+import { HAND_LIMIT, canEndTurn, canPass } from '../game/engine/match.js';
 import { createFieldChoices } from './field-choices.js';
 import { createFieldPanels } from './field-panels.js';
 import { createFieldRows } from './field-rows.js';

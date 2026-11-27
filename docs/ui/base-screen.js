@@ -1,5 +1,5 @@
 import { createBaseGrid } from './base-grid.js';
-import { MATERIALS } from '../game/base.js';
+import { MATERIALS } from '../game/meta/base.js';
 import { element } from './dom.js';
 import { resourceGlyph as materialIcon, resourceLabel } from './resources.js';
 

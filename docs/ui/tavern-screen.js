@@ -1,4 +1,4 @@
-import { questComplete, TAVERN_QUEST_BY_ID } from '../game/tavern.js';
+import { questComplete, TAVERN_QUEST_BY_ID } from '../game/meta/tavern.js';
 import { button, createBusyGuard, element } from './dom.js';
 import { sectionDialog } from './resources.js';
 import { resourceIcon } from './resource-icon.js';

@@ -1,5 +1,5 @@
 import { on } from './app-events.js';
-import { LEAGUES, LEAGUE_RULES, leagueDivision, leagueOpponent, leagueTicket } from '../game/league.js';
+import { LEAGUES, LEAGUE_RULES, leagueDivision, leagueOpponent, leagueTicket } from '../game/meta/league.js';
 import { nextOpponent } from './league-opponent.js';
 import { leagueProfile } from './league-profile.js';
 import { divisionColumn, leagueTabs, rewardText, roundText, standings } from './league-standings.js';

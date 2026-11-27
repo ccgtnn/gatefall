@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createCard } from '../../docs/game/board.js';
-import { availableFees, availableOrders, canUseLeader } from '../../docs/game/effects.js';
+import { createCard } from '../../docs/game/engine/board.js';
+import { availableFees, availableOrders, canUseLeader } from '../../docs/game/effects/effects.js';
 import { DECKS } from '../helpers/prototype-decks.js';
 import {
   HAND_LIMIT, ROW_LIMIT, applyAction, availableRows, canEndTurn, confirmMulligan, createMatch, mulliganLimit, playableCards, totalScore,
-} from '../../docs/game/match.js';
-import { chooseBotTurn } from '../../docs/game/bot.js';
+} from '../../docs/game/engine/match.js';
+import { chooseBotTurn } from '../../docs/game/bot/bot.js';
 
 const pass = { type: 'pass' };
 

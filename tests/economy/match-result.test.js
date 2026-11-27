@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createRewardProgress } from '../../docs/game/rewards.js';
+import { createRewardProgress } from '../../docs/game/meta/rewards.js';
 import { describeFinishedMatch, settleFinishedMatch } from '../../docs/ui/match-result.js';
 
 const humanRound = { type: 'round-end', winner: 'human' };

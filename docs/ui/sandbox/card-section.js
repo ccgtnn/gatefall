@@ -1,4 +1,4 @@
-import { createCard } from '../../game/board.js';
+import { createCard } from '../../game/engine/board.js';
 import { cardArt, hasPremiumArt } from '../card-art.js';
 import { cardButton, showCard } from '../cards.js';
 import { element } from '../dom.js';

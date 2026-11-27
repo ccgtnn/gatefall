@@ -1,8 +1,8 @@
-import * as cards from '../../docs/game/cards.js';
-import * as captains from '../../docs/game/captains.js';
-import * as choir from '../../docs/game/choir.js';
-import * as growth from '../../docs/game/growth.js';
-import * as neutrals from '../../docs/game/neutral-cards.js';
+import * as cards from '../../docs/game/cards/cards.js';
+import * as captains from '../../docs/game/cards/factions/captains.js';
+import * as choir from '../../docs/game/cards/factions/choir.js';
+import * as growth from '../../docs/game/cards/factions/growth.js';
+import * as neutrals from '../../docs/game/cards/factions/neutral-cards.js';
 
 export function visitDefinitions(visitor) {
   const visited = new WeakSet();

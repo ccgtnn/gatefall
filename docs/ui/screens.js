@@ -1,7 +1,7 @@
 import { on } from './app-events.js';
 import { leagueCharacter } from './league-character.js';
 import { button, element } from './dom.js';
-import { FACTIONS } from '../game/cards.js';
+import { FACTIONS } from '../game/cards/cards.js';
 import { addCardCrop } from './cards.js';
 import { logView } from './menu.js';
 import { roundText } from './match-log.js';

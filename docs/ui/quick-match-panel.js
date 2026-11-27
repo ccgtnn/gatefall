@@ -1,5 +1,5 @@
 import { on } from './app-events.js';
-import { inspectDeck, PRESETS } from '../game/decks.js';
+import { inspectDeck, PRESETS } from '../game/cards/decks.js';
 import { button, element, selectField } from './dom.js';
 
 export const QUICK_MATCH_KEY = 'gatefall.quick-match';

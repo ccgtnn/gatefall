@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildingEffect, buildingPrice, productionHours } from '../../docs/game/base.js';
-import { createRewardProgress, REWARD_STORAGE_KEY } from '../../docs/game/rewards.js';
-import { resetProgress } from '../../docs/game/reset-progress.js';
+import { buildingEffect, buildingPrice, productionHours } from '../../docs/game/meta/base.js';
+import { createRewardProgress, REWARD_STORAGE_KEY } from '../../docs/game/meta/rewards.js';
+import { resetProgress } from '../../docs/game/meta/reset-progress.js';
 
 const HOUR = 3_600_000;
 function setup(snapshot = { startingGold: 1000, startingKeys: 1000 }) {

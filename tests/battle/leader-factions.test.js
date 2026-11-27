@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createCard, ROW_LIMIT } from '../../docs/game/board.js';
-import { AWAKENING, PSIONICS, TENTACLE } from '../../docs/game/choir.js';
-import { CAPTAIN_CARDS, HOUND } from '../../docs/game/captains.js';
-import { copyLimit, inspectDeck, PRESETS } from '../../docs/game/decks.js';
-import { canUseLeader } from '../../docs/game/effects.js';
-import { applyAction, createDeckMatch, createMatch } from '../../docs/game/match.js';
-import { createRewardProgress, drawBoosterCards } from '../../docs/game/rewards.js';
+import { createCard, ROW_LIMIT } from '../../docs/game/engine/board.js';
+import { AWAKENING, PSIONICS, TENTACLE } from '../../docs/game/cards/factions/choir.js';
+import { CAPTAIN_CARDS, HOUND } from '../../docs/game/cards/factions/captains.js';
+import { copyLimit, inspectDeck, PRESETS } from '../../docs/game/cards/decks.js';
+import { canUseLeader } from '../../docs/game/effects/effects.js';
+import { applyAction, createDeckMatch, createMatch } from '../../docs/game/engine/match.js';
+import { createRewardProgress, drawBoosterCards } from '../../docs/game/meta/rewards.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
 import { unit } from '../helpers/battle-helpers.js';
 

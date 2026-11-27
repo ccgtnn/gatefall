@@ -1,5 +1,5 @@
 import { assetUrl } from './asset-url.js';
-import { BOOSTER_FACTIONS } from '../game/collection-economy.js';
+import { BOOSTER_FACTIONS } from '../game/meta/collection-economy.js';
 import { element } from './dom.js';
 import { resourceIcon } from './resource-icon.js';
 import { sectionDialog } from './resources.js';

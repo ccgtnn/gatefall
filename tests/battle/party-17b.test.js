@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyStatus, cleanse, findUnit, heal } from '../../docs/game/board.js';
-import { FACTIONS } from '../../docs/game/cards.js';
-import { effectOperations } from '../../docs/game/effect-operations.js';
-import { chooseSubset } from '../../docs/game/effect-queries.js';
-import { applyAction, canEndTurn, canPlayCard } from '../../docs/game/match.js';
+import { applyStatus, cleanse, findUnit, heal } from '../../docs/game/engine/board.js';
+import { FACTIONS } from '../../docs/game/cards/cards.js';
+import { effectOperations } from '../../docs/game/effects/effect-operations.js';
+import { chooseSubset } from '../../docs/game/effects/effect-queries.js';
+import { applyAction, canEndTurn, canPlayCard } from '../../docs/game/engine/match.js';
 import { plain, position, standard } from '../helpers/bot-strategy.js';
 
 const card = (id, faction) => standard(id, FACTIONS[faction].pool.find((def) => def.id === id));

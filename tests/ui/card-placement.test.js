@@ -1,4 +1,4 @@
-import { FACTIONS } from '../../docs/game/cards.js';
+import { FACTIONS } from '../../docs/game/cards/cards.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { bindCardPlacement, insertionPoint, placementEffectRows } from '../../docs/ui/card-placement.js';

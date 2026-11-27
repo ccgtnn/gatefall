@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PRESETS } from '../../docs/game/decks.js';
+import { PRESETS } from '../../docs/game/cards/decks.js';
 import { createDeckStorage, parseDeckJson, serializeDeckJson } from '../../docs/ui/deck-storage.js';
 
 const preset = PRESETS[0];

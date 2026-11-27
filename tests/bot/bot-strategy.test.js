@@ -1,19 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { COIN_LIMIT, ROW_LIMIT, createCard } from '../../docs/game/board.js';
-import { CAPTAIN_CARDS, HOUND } from '../../docs/game/captains.js';
-import { createBotView, pickBotTarget } from '../../docs/game/bot.js';
+import { COIN_LIMIT, ROW_LIMIT, createCard } from '../../docs/game/engine/board.js';
+import { CAPTAIN_CARDS, HOUND } from '../../docs/game/cards/factions/captains.js';
+import { createBotView, pickBotTarget } from '../../docs/game/bot/bot.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
-import { BOT_LEVELS, chooseBotTurn as decideAtLevel } from '../../docs/game/bot.js';
-import { evaluatePosition } from '../../docs/game/bot-evaluation.js';
-import { visibleSupply } from '../../docs/game/bot-rollouts.js';
-import { readBotLevel } from '../../docs/game/bot-levels.js';
-import { delayedCardValue, futureContext, remainingTurns } from '../../docs/game/bot-future-value.js';
-import { publicMatch } from '../../docs/game/bot-strategy.js';
-import { deckCardValue, effectSwing } from '../../docs/game/bot-effect-value.js';
-import { AWAKENING, CHOIR_CARDS, TENTACLE } from '../../docs/game/choir.js';
-import { FACTIONS, LARVA } from '../../docs/game/cards.js';
-import { applyAction, canEndTurn, canPass, confirmMulligan, createMatch } from '../../docs/game/match.js';
+import { BOT_LEVELS, chooseBotTurn as decideAtLevel } from '../../docs/game/bot/bot.js';
+import { evaluatePosition } from '../../docs/game/bot/bot-evaluation.js';
+import { visibleSupply } from '../../docs/game/bot/bot-rollouts.js';
+import { readBotLevel } from '../../docs/game/bot/bot-levels.js';
+import { delayedCardValue, futureContext, remainingTurns } from '../../docs/game/bot/bot-future-value.js';
+import { publicMatch } from '../../docs/game/bot/bot-strategy.js';
+import { deckCardValue, effectSwing } from '../../docs/game/bot/bot-effect-value.js';
+import { AWAKENING, CHOIR_CARDS, TENTACLE } from '../../docs/game/cards/factions/choir.js';
+import { FACTIONS, LARVA } from '../../docs/game/cards/cards.js';
+import { applyAction, canEndTurn, canPass, confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
 
 import { member, pass, plain, position, standard } from '../helpers/bot-strategy.js';
 

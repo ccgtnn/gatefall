@@ -1,5 +1,5 @@
-import { canUseLeader, leaderCooldown } from '../game/effects.js';
-import { totalScore } from '../game/match.js';
+import { canUseLeader, leaderCooldown } from '../game/effects/effects.js';
+import { totalScore } from '../game/engine/match.js';
 import { cardBack } from './card-back.js';
 import { cardArt, cardInspection, showCard } from './cards.js';
 import { button, element, sideLabel } from './dom.js';

@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createCard } from '../../docs/game/board.js';
-import { FACTIONS } from '../../docs/game/cards.js';
-import { applyAction, confirmMulligan, createMatch } from '../../docs/game/match.js';
+import { createCard } from '../../docs/game/engine/board.js';
+import { FACTIONS } from '../../docs/game/cards/cards.js';
+import { applyAction, confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
 import { createMatchTurn } from '../../docs/ui/match-turn.js';
 
 function readyMatch() {

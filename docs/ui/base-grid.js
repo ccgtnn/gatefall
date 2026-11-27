@@ -1,7 +1,7 @@
 import { assetUrl } from './asset-url.js';
 import { createTavernScreen } from './tavern-screen.js';
-import { weeklyBundle } from '../game/outpost.js';
-import { BUILDINGS, MAX_BUILDING_LEVEL, buildingEffect, buildingPrice, buildingSlot, constructionShortages } from '../game/base.js';
+import { weeklyBundle } from '../game/meta/outpost.js';
+import { BUILDINGS, MAX_BUILDING_LEVEL, buildingEffect, buildingPrice, buildingSlot, constructionShortages } from '../game/meta/base.js';
 import { button, createBusyGuard, element } from './dom.js';
 import { dialogClose } from './resources.js';
 

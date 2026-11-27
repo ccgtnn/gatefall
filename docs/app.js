@@ -5,9 +5,9 @@ import { keepCardVideos, resumeCardVideos } from './ui/card-art.js';
 import { deckEditor, deckHomeScreen, deckListScreen, factionPicker } from './ui/deck-builder.js';
 import { createDeckStorage, DECK_STORAGE_KEY, newDeckId, RECENT_DECKS_KEY } from './ui/deck-storage.js';
 import { bindCardPlacement } from './ui/card-placement.js';
-import { placementSide } from './game/board.js';
-import { FACTIONS } from './game/cards.js';
-import { inspectDeck, PRESETS } from './game/decks.js';
+import { placementSide } from './game/engine/board.js';
+import { FACTIONS } from './game/cards/cards.js';
+import { inspectDeck, PRESETS } from './game/cards/decks.js';
 import { iconButton } from './ui/dom.js';
 import { preview, showCard } from './ui/cards.js';
 import { createBattlefield } from './ui/field.js';
@@ -20,14 +20,14 @@ import { BOT_DIFFICULTY_KEY, createBotDifficulty } from './ui/bot-difficulty.js'
 import { createSettings } from './ui/settings.js';
 
 import { createFactionStats, FACTION_STATS_KEY } from './ui/stats.js';
-import { createRewardProgress, REWARD_STORAGE_KEY } from './game/rewards.js';
+import { createRewardProgress, REWARD_STORAGE_KEY } from './game/meta/rewards.js';
 import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js';
 import { createResourceBar, prepareLazySection, sectionDialog, showEssenceGain } from './ui/resources.js';
 import { bindTargeting, updatePendingAim } from './ui/targeting.js';
 import { BATTLEFIELD_STORAGE_KEY, createBattlefieldPreferences, createFramePreferences, decorationsScreen, FRAME_STORAGE_KEY } from './ui/decorations.js';
 import { rankScreen } from './ui/rank-screen.js';
 import { leagueScreen, LEAGUE_OVERVIEW_QUERY } from './ui/league-screen.js';
-import { resetProgress } from './game/reset-progress.js';
+import { resetProgress } from './game/meta/reset-progress.js';
 import { createRewardReveal, enqueueReward } from './ui/reward-reveal.js';
 
 const app = document.querySelector('#app');

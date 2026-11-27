@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createCard, findUnit, removeUnit } from '../../docs/game/board.js';
-import { NEUTRAL_CARDS } from '../../docs/game/cards.js';
-import { applyAction, createMatch } from '../../docs/game/match.js';
+import { createCard, findUnit, removeUnit } from '../../docs/game/engine/board.js';
+import { NEUTRAL_CARDS } from '../../docs/game/cards/cards.js';
+import { applyAction, createMatch } from '../../docs/game/engine/match.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
 import { unit as makeUnit, play as playCard } from '../helpers/battle-helpers.js';
 

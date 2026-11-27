@@ -1,4 +1,4 @@
-import { MIN_CARDS, MIN_UNITS } from '../game/decks.js';
+import { MIN_CARDS, MIN_UNITS } from '../game/cards/decks.js';
 
 export const byProvision = (a, b) => b.provision - a.provision || a.name.localeCompare(b.name, 'ru');
 

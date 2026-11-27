@@ -1,4 +1,4 @@
-import { BOOSTER_PRICE } from '../game/collection-economy.js';
+import { BOOSTER_PRICE } from '../game/meta/collection-economy.js';
 import { economyDialog, liveStatus, packOptions } from './booster-shared.js';
 import { button, createBusyGuard, element } from './dom.js';
 import { resourceIcon } from './resource-icon.js';

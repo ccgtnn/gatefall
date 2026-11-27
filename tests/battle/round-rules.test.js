@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createCard, placeCards } from '../../docs/game/board.js';
+import { createCard, placeCards } from '../../docs/game/engine/board.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
-import { FACTIONS, FIRST_SIGNAL } from '../../docs/game/cards.js';
-import { availableOrders } from '../../docs/game/effects.js';
-import { applyAction, canEndTurn, canPass, confirmMulligan, createMatch, mulliganLimit, mulliganRemaining, replaceMulliganCard } from '../../docs/game/match.js';
+import { FACTIONS, FIRST_SIGNAL } from '../../docs/game/cards/cards.js';
+import { availableOrders } from '../../docs/game/effects/effects.js';
+import { applyAction, canEndTurn, canPass, confirmMulligan, createMatch, mulliganLimit, mulliganRemaining, replaceMulliganCard } from '../../docs/game/engine/match.js';
 
 const pass = { type: 'pass' };
 const definitions = new Map(Object.values(FACTIONS).flatMap(({ deck }) => deck.map((card) => [card.id, card])));

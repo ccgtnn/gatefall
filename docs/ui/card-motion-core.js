@@ -1,6 +1,6 @@
 import { setCardRarity } from './dom.js';
 import { cardArt } from './card-art.js';
-import { NEUTRAL } from '../game/card-metadata.js';
+import { NEUTRAL } from '../game/shared/card-metadata.js';
 
 export const VISUAL_EVENTS = new Set([
   'play', 'damage', 'boost', 'weaken', 'armor', 'status', 'cleanse', 'death', 'destroy', 'discard', 'spawn', 'deathwish', 'consume', 'consume-group', 'leader', 'order', 'aura-power', 'transform',

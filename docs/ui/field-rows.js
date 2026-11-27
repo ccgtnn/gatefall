@@ -1,11 +1,11 @@
-import { activeOrder, opponent, statusCount } from '../game/board.js';
+import { activeOrder, opponent, statusCount } from '../game/engine/board.js';
 import { insertionPoint, placementEffectRows } from './card-placement.js';
 import { button, element, sideLabel } from './dom.js';
-import { ROWS, ROW_LABELS } from '../game/card-metadata.js';
+import { ROWS, ROW_LABELS } from '../game/shared/card-metadata.js';
 import { cardInspection, decorateCard, showCard } from './cards.js';
 import { spawnRowLabel } from './field-labels.js';
-import { availableFees, availableOrders, rowArmor, ROW_EFFECTS } from '../game/effects.js';
-import { ROW_LIMIT, rowScore } from '../game/match.js';
+import { availableFees, availableOrders, rowArmor, ROW_EFFECTS } from '../game/effects/effects.js';
+import { ROW_LIMIT, rowScore } from '../game/engine/match.js';
 import { orderBadge } from './stat-badges.js';
 
 export function createFieldRows({ getSelectedCardId, humanCanAct, isReplaying, placeSelected, playHuman }) {

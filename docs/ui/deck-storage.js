@@ -1,6 +1,6 @@
-import { FACTIONS } from '../game/cards.js';
-import { findCardDefinition } from '../game/card-registry.js';
-import { inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/decks.js';
+import { FACTIONS } from '../game/cards/cards.js';
+import { findCardDefinition } from '../game/cards/card-registry.js';
+import { inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/cards/decks.js';
 
 export const DECK_STORAGE_KEY = 'gatefall.decks';
 export const RECENT_DECKS_KEY = 'gatefall.recent-decks';

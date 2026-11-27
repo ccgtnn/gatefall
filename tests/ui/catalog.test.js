@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
-import { FACTIONS } from '../../docs/game/cards.js';
-import { CAPTAIN_CARDS, HOUND, REINFORCED_HOUND } from '../../docs/game/captains.js';
-import { CARD_DEFINITIONS, CATALOG_CARDS, cardsForFaction, findCardDefinition } from '../../docs/game/card-registry.js';
-import { collection } from '../../docs/game/decks.js';
+import { FACTIONS } from '../../docs/game/cards/cards.js';
+import { CAPTAIN_CARDS, HOUND, REINFORCED_HOUND } from '../../docs/game/cards/factions/captains.js';
+import { CARD_DEFINITIONS, CATALOG_CARDS, cardsForFaction, findCardDefinition } from '../../docs/game/cards/card-registry.js';
+import { collection } from '../../docs/game/cards/decks.js';
 import { filterCatalog, normalizeCardSearch } from '../../docs/ui/catalog-cards.js';
 import { setCardRarity } from '../../docs/ui/dom.js';
 

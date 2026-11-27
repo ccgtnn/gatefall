@@ -1,5 +1,5 @@
 import { button, createBusyGuard, element } from './dom.js';
-import { REWARD_SECTIONS, rewardState } from '../game/reward-book.js';
+import { REWARD_SECTIONS, rewardState } from '../game/meta/reward-book.js';
 import { createRewardMap } from './reward-book-map.js';
 import { resourceIcon } from './resource-icon.js';
 import { dialogClose } from './resources.js';

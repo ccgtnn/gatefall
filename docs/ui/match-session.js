@@ -1,8 +1,8 @@
 import { animateCoin } from './card-motion.js';
 import { clearParticles } from './particles.js';
-import { inspectDeck } from '../game/decks.js';
-import { createDeckMatch } from '../game/match.js';
-import { createLeagueDialogue, LEAGUE_DIALOGUE } from '../game/league-dialogue.js';
+import { inspectDeck } from '../game/cards/decks.js';
+import { createDeckMatch } from '../game/engine/match.js';
+import { createLeagueDialogue, LEAGUE_DIALOGUE } from '../game/meta/league-dialogue.js';
 import { element } from './dom.js';
 import { setLeagueSpeech } from './league-character.js';
 import { describeFinishedMatch, settleFinishedMatch } from './match-result.js';

@@ -1,7 +1,7 @@
 import { animateHandTurn, animateLifeLoss, animateTurnSparks, presentJournalEvent } from './card-motion.js';
-import { BOT_DELAY_MS } from '../game/bot.js';
+import { BOT_DELAY_MS } from '../game/bot/bot.js';
 import { createBotSearch } from './bot-search.js';
-import { applyAction } from '../game/match.js';
+import { applyAction } from '../game/engine/match.js';
 import { playJournal } from './turn-playback.js';
 import { element } from './dom.js';
 import { describeBotAction, eventText } from './match-log.js';

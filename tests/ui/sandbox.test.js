@@ -102,7 +102,7 @@ globalThis.matchMedia = () => ({ matches: false });
 const { createSandboxPage } = await import('../../docs/ui/sandbox/app.js');
 await import('../../docs/ui/sandbox/index.js');
 const { factionOptions, factionCards, defaultCardId } = await import('../../docs/ui/sandbox/fixtures.js');
-const { findCardDefinition } = await import('../../docs/game/card-registry.js');
+const { findCardDefinition } = await import('../../docs/game/cards/card-registry.js');
 
 test('sandbox builds every section for every faction without writes or fixture errors', () => {
   const root = new TestNode('main');

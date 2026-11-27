@@ -1,17 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { statSync } from 'node:fs';
-import { inspectDeck } from '../../docs/game/decks.js';
-import { FACTIONS } from '../../docs/game/cards.js';
-import { FACTION_CATALOG, UPCOMING_FACTIONS } from '../../docs/game/faction-catalog.js';
-import { LEAGUE_CHARACTERS } from '../../docs/game/data/league-characters.js';
-import { LEAGUE_CONTEXT_LINES } from '../../docs/game/data/league-context-lines.js';
-import { leagueDeckFor } from '../../docs/game/league-decks.js';
-import { createLeagueDialogue, pickLeagueLine } from '../../docs/game/league-dialogue.js';
+import { inspectDeck } from '../../docs/game/cards/decks.js';
+import { FACTIONS } from '../../docs/game/cards/cards.js';
+import { FACTION_CATALOG, UPCOMING_FACTIONS } from '../../docs/game/cards/faction-catalog.js';
+import { LEAGUE_CHARACTERS } from '../../docs/game/meta/data/league-characters.js';
+import { LEAGUE_CONTEXT_LINES } from '../../docs/game/meta/data/league-context-lines.js';
+import { leagueDeckFor } from '../../docs/game/meta/league-decks.js';
+import { createLeagueDialogue, pickLeagueLine } from '../../docs/game/meta/league-dialogue.js';
 import { leagueRecord, leagueRoundRecord } from '../../docs/ui/league-profile.js';
 import {
   createLeague, finishLeagueMatch, LEAGUES, leagueSchedule, leagueTicket, reserveLeagueMatch,
-} from '../../docs/game/league.js';
+} from '../../docs/game/meta/league.js';
 
 const reasons = ['start', 'botStrong', 'humanStrong', 'roundWin', 'roundLoss', 'pass', 'win', 'loss'];
 const telepath = LEAGUE_CHARACTERS.find(({ name }) => name === 'Первый Голос');

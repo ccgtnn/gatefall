@@ -1,7 +1,7 @@
 import { on } from './app-events.js';
-import { FACTIONS } from '../game/cards.js';
-import { FACTION_CATALOG } from '../game/faction-catalog.js';
-import { inspectDeck, PRESETS } from '../game/decks.js';
+import { FACTIONS } from '../game/cards/cards.js';
+import { FACTION_CATALOG } from '../game/cards/faction-catalog.js';
+import { inspectDeck, PRESETS } from '../game/cards/decks.js';
 import { button, element } from './dom.js';
 import { factionFilters } from './faction-filters.js';
 import { homeTiles } from './home-tiles.js';

@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyStatus, basePower, changeBasePower, damage, findUnit, heal, setRowEffect, statusCount } from '../../docs/game/board.js';
-import { FACTIONS, LARVA, NEUTRAL_CARDS, SHADOW } from '../../docs/game/cards.js';
-import { applyAction, canPlayCard, createMatch, totalScore } from '../../docs/game/match.js';
+import { applyStatus, basePower, changeBasePower, damage, findUnit, heal, setRowEffect, statusCount } from '../../docs/game/engine/board.js';
+import { FACTIONS, LARVA, NEUTRAL_CARDS, SHADOW } from '../../docs/game/cards/cards.js';
+import { applyAction, canPlayCard, createMatch, totalScore } from '../../docs/game/engine/match.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
 import { unit as makeUnit } from '../helpers/battle-helpers.js';
 

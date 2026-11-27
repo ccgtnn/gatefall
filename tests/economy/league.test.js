@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PRESETS } from '../../docs/game/decks.js';
+import { PRESETS } from '../../docs/game/cards/decks.js';
 import {
   createLeague, DIAMOND, finishLeagueMatch, LEAGUE_BOTS, LEAGUE_RULES, LEAGUES, leagueDivision, leagueOpponent,
   leagueLevel, leagueSchedule, leagueStake, leagueTable, leagueTicket, leagueWeek,
   reserveLeagueMatch, resetLeagueWeek, upgradeLeague,
-} from '../../docs/game/league.js';
-import { createDeckMatch } from '../../docs/game/match.js';
-import { createRewardProgress, REWARD_STORAGE_KEY } from '../../docs/game/rewards.js';
-import { resetProgress } from '../../docs/game/reset-progress.js';
+} from '../../docs/game/meta/league.js';
+import { createDeckMatch } from '../../docs/game/engine/match.js';
+import { createRewardProgress, REWARD_STORAGE_KEY } from '../../docs/game/meta/rewards.js';
+import { resetProgress } from '../../docs/game/meta/reset-progress.js';
 
 const sunday = Date.UTC(2026, 10, 22, 12);
 const monday = Date.UTC(2026, 10, 23, 12);

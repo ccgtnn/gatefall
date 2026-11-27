@@ -4,18 +4,18 @@ import { fileURLToPath } from 'node:url';
 
 const profiles = {
   engine: ['Движок матча', [
-    'docs/game/match.js', 'docs/game/match-setup.js', 'docs/game/match-rounds.js', 'docs/game/match-actions.js',
-    'docs/game/board.js', 'docs/game/board-placement.js', 'docs/game/board-power.js', 'docs/game/board-status.js',
-    'docs/game/effects.js',
-    'docs/game/effect-operations.js', 'docs/game/effect-piles.js', 'docs/game/effect-queries.js', 'docs/game/effect-schema.js', 'docs/game/events.js', 'docs/game/card-metadata.js', 'tests/battle/round-rules.test.js',
+    'docs/game/engine/match.js', 'docs/game/engine/match-setup.js', 'docs/game/engine/match-rounds.js', 'docs/game/engine/match-actions.js',
+    'docs/game/engine/board.js', 'docs/game/engine/board-placement.js', 'docs/game/engine/board-power.js', 'docs/game/engine/board-status.js',
+    'docs/game/effects/effects.js',
+    'docs/game/effects/effect-operations.js', 'docs/game/effects/effect-piles.js', 'docs/game/effects/effect-queries.js', 'docs/game/shared/effect-schema.js', 'docs/game/engine/events.js', 'docs/game/shared/card-metadata.js', 'tests/battle/round-rules.test.js',
   ]],
   bot: ['Стратегия и симуляции бота', [
-    'docs/game/bot.js', 'docs/game/bot-strategy.js', 'docs/game/bot-evaluation.js', 'docs/game/bot-levels.js', 'docs/game/bot-rollouts.js',
-    'docs/game/bot-effect-value.js', 'docs/game/bot-future-value.js', 'docs/game/bot-leaders.js', 'tests/bot/bot-strategy.test.js',
+    'docs/game/bot/bot.js', 'docs/game/bot/bot-strategy.js', 'docs/game/bot/bot-evaluation.js', 'docs/game/bot/bot-levels.js', 'docs/game/bot/bot-rollouts.js',
+    'docs/game/bot/bot-effect-value.js', 'docs/game/bot/bot-future-value.js', 'docs/game/bot/bot-leaders.js', 'tests/bot/bot-strategy.test.js',
   ]],
   economy: ['Сохранения, награды и экономика', [
-    'docs/game/rewards.js', 'docs/game/collection-economy.js', 'docs/game/base.js',
-    'docs/game/base-production.js', 'docs/game/tavern.js', 'docs/game/ranks.js', 'docs/game/league.js', 'tests/economy/rewards.test.js',
+    'docs/game/meta/rewards.js', 'docs/game/meta/collection-economy.js', 'docs/game/meta/base.js',
+    'docs/game/meta/base-production.js', 'docs/game/meta/tavern.js', 'docs/game/meta/ranks.js', 'docs/game/meta/league.js', 'tests/economy/rewards.test.js',
   ]],
   ui: ['Оболочка игры и управление экранами', [
     'docs/app.js', 'docs/ui/dom.js', 'docs/ui/resources.js', 'docs/ui/settings.js',
@@ -27,7 +27,7 @@ const profiles = {
   ]],
   'ui:catalog': ['Каталог и просмотр карт', [
     'docs/ui/catalog-screen.js', 'docs/ui/catalog-cards.js', 'docs/ui/cards.js',
-    'docs/ui/card-art.js', 'docs/game/card-registry.js', 'tests/ui/catalog.test.js',
+    'docs/ui/card-art.js', 'docs/game/cards/card-registry.js', 'tests/ui/catalog.test.js',
   ]],
   'ui:base': ['Экран Базы и Таверны', [
     'docs/ui/base-screen.js', 'docs/ui/base-grid.js',
@@ -35,7 +35,7 @@ const profiles = {
   ]],
   'ui:rewards': ['Книга наград и панель ресурсов', [
     'docs/ui/reward-book.js', 'docs/ui/reward-reveal.js', 'docs/ui/resources.js',
-    'docs/game/reward-book.js', 'tests/economy/reward-reveal.test.js',
+    'docs/game/meta/reward-book.js', 'tests/economy/reward-reveal.test.js',
   ]],
 };
 
@@ -54,7 +54,7 @@ function usage() {
 }
 
 const excludedFiles = new Set(['ART_STYLE.md', 'README.md', 'CHANGELOG.md']);
-const excludedDirectories = ['tools/analysis/', 'docs/game/data/'];
+const excludedDirectories = ['tools/analysis/', 'docs/game/meta/data/'];
 
 async function loadSource(root, requested) {
   const file = await realpath(resolve(root, requested));

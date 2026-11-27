@@ -15,30 +15,45 @@
 | `npm run test:ui` | Интерфейс, каталог, колоды, звук, сборка Pages |
 | `npm run --silent ctx -- --help` | Список пакетов контекста для передачи кода |
 
+## Зоны docs/game
+
+Для задачи в одной зоне читай только её файлы, README зоны и `types/contracts.d.ts`.
+
+| Зона | Назначение | Разрешённые зависимости |
+| --- | --- | --- |
+| `shared/` | Метаданные, схема, очки, shuffle, ключи хранилища | Только внутри `shared/` |
+| `cards/` | Карты, фракции, колоды, каталог | `shared/` |
+| `engine/` | Поле, события и состояние матча | `shared/`, `effects/`; `cards/` только в `match-setup.js` |
+| `effects/` | Рантайм DSL эффектов | `shared/`, `engine/` |
+| `bot/` | Стратегия, уровни и симуляции бота | `shared/`, `cards/`, `engine/`, `effects/` |
+| `meta/` | Экономика, сохранения и Лига | `shared/`, `cards/` |
+
+Границы проверяются в `tests/architecture/boundaries.test.js`; единственное исключение — чтение реестра карт рантаймом `create-play` в `effects/effect-queries.js`. `docs/ui/` и `docs/app.js` могут импортировать любую зону.
+
 ## Где искать
 
 | Область | Файлы |
 | --- | --- |
-| Сборка фракций и стартовые колоды | `docs/game/cards.js`, `docs/game/decks.js` |
-| Карты и лидеры фракций | `docs/game/protectorate.js`, `growth.js`, `captains.js`, `choir.js` |
-| Словарь способностей | `docs/game/card-keywords.js` |
-| Нейтральные карты | `docs/game/neutral-cards.js`, `tests/battle/neutral-cards.test.js` |
-| Реестр и общие свойства карт | `docs/game/card-registry.js`, `card-metadata.js`, `tests/ui/catalog.test.js` |
-| Создание матча, раунды, пас и действия | `docs/game/match-setup.js`, `match-rounds.js`, `match-actions.js`. Публичные импорты через `match.js` |
-| Ряды, размещение и перемещение карт | `docs/game/board-placement.js`. Публичные импорты поля через `board.js` |
-| Сила, урон, гибель и ауры | `docs/game/board-power.js`, определения с `sidePower` или `rowPower`, `tests/battle/captains.test.js` |
-| Статусы, броня и эффекты рядов | `docs/game/board-status.js` |
-| Очередь способностей и реакции на события | `docs/game/effects.js`, `events.js` |
-| Бот и симуляции | `docs/game/bot.js`, `bot-levels.js`, `bot-strategy.js`, `bot-evaluation.js`, `bot-rollouts.js` |
+| Сборка фракций и стартовые колоды | `docs/game/cards/cards.js`, `docs/game/cards/decks.js` |
+| Карты и лидеры фракций | `docs/game/cards/factions/protectorate.js`, `growth.js`, `captains.js`, `choir.js` |
+| Словарь способностей | `docs/game/shared/card-keywords.js` |
+| Нейтральные карты | `docs/game/cards/factions/neutral-cards.js`, `tests/battle/neutral-cards.test.js` |
+| Реестр и общие свойства карт | `docs/game/cards/card-registry.js`, `card-metadata.js`, `tests/ui/catalog.test.js` |
+| Создание матча, раунды, пас и действия | `docs/game/engine/match-setup.js`, `match-rounds.js`, `match-actions.js`. Публичные импорты через `match.js` |
+| Ряды, размещение и перемещение карт | `docs/game/engine/board-placement.js`. Публичные импорты поля через `board.js` |
+| Сила, урон, гибель и ауры | `docs/game/engine/board-power.js`, определения с `sidePower` или `rowPower`, `tests/battle/captains.test.js` |
+| Статусы, броня и эффекты рядов | `docs/game/engine/board-status.js` |
+| Очередь способностей и реакции на события | `docs/game/effects/effects.js`, `events.js` |
+| Бот и симуляции | `docs/game/bot/bot.js`, `bot-levels.js`, `bot-strategy.js`, `bot-evaluation.js`, `bot-rollouts.js` |
 | Подсказки стратегии | `aiHints` в определениях карт, [CONTRACTS.md](CONTRACTS.md) |
-| Оценка эффектов ботом | `stepValues` в `docs/game/bot-effect-value.js`, учёт будущих ходов в `docs/game/bot-future-value.js`, `npm run test:bot` |
-| Реестр эффектов | `docs/game/effect-operations.js`, действия с колодой и рукой в `effect-piles.js`, проверка в `tests/battle/effect-registry.test.js` |
-| Схема DSL эффектов | `docs/game/effect-schema.js`, проверка в `tests/battle/effect-schema.test.js` |
-| Выбор целей и фильтры колоды | `docs/game/effect-queries.js`, `npm run test:battle` |
-| Экономика и прогресс | `docs/game/rewards.js`, `base.js`, `tavern.js`, `ranks.js`, `league.js` |
-| Персонажи и реплики Лиги | `docs/game/data/league-characters.js`, `docs/game/data/league-context-lines.js` |
-| Коллекция, крафт и бустеры | `docs/game/collection-economy.js`, `tests/economy/rewards.test.js` |
-| Главы и маршруты Книги наград | `docs/game/reward-book.js`, `tests/economy/rewards.test.js` |
+| Оценка эффектов ботом | `stepValues` в `docs/game/bot/bot-effect-value.js`, учёт будущих ходов в `docs/game/bot/bot-future-value.js`, `npm run test:bot` |
+| Реестр эффектов | `docs/game/effects/effect-operations.js`, действия с колодой и рукой в `effect-piles.js`, проверка в `tests/battle/effect-registry.test.js` |
+| Схема DSL эффектов | `docs/game/shared/effect-schema.js`, проверка в `tests/battle/effect-schema.test.js` |
+| Выбор целей и фильтры колоды | `docs/game/effects/effect-queries.js`, `npm run test:battle` |
+| Экономика и прогресс | `docs/game/meta/rewards.js`, `base.js`, `tavern.js`, `ranks.js`, `league.js` |
+| Персонажи и реплики Лиги | `docs/game/meta/data/league-characters.js`, `docs/game/meta/data/league-context-lines.js` |
+| Коллекция, крафт и бустеры | `docs/game/meta/collection-economy.js`, `tests/economy/rewards.test.js` |
+| Главы и маршруты Книги наград | `docs/game/meta/reward-book.js`, `tests/economy/rewards.test.js` |
 | Экран Лиги | `docs/ui/league-screen.js`; соперник в `league-opponent.js`, таблицы и награды в `league-standings.js` |
 | Интерфейс Книги наград | `docs/ui/reward-book.js`; карта маршрута и узлы в `reward-book-map.js` |
 | Магазин и открытие бустеров | Фасад `docs/ui/booster-screens.js`; магазин в `booster-shop.js`, открытие в `booster-opening.js`, общие элементы в `booster-shared.js` |
@@ -63,7 +78,7 @@
 
 ## Порядок работы
 
-- Для мелких правок во время работы запускайте только тематические тесты. Перед каждым коммитом запускайте полный `npm test`. Новые тесты размещайте в `tests/battle/`, `tests/bot/`, `tests/economy/` или `tests/ui/`. Общие хелперы и тестовые данные храните в `tests/helpers/`. `npm test` обнаруживает тесты автоматически.
+- Для мелких правок во время работы запускайте только тематические тесты. Перед каждым коммитом запускайте полный `npm test`. Новые тесты размещайте в `tests/battle/`, `tests/bot/`, `tests/economy/`, `tests/ui/` или `tests/architecture/`. Общие хелперы и тестовые данные храните в `tests/helpers/`. `npm test` обнаруживает тесты автоматически.
 - Браузер не открывать. Визуальные изменения пользователь проверяет сам после деплоя. Браузер — только если пользователь прямо попросил в задаче.
 - Визуальные проверки — через sandbox.html (пользователь), агенты браузер не открывают.
 - Одна задача — одна ветка. Вливайте её в `main` в день работы.

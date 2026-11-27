@@ -1,4 +1,4 @@
-import { pendingEffectSource } from '../game/effect-queries.js';
+import { pendingEffectSource } from '../game/effects/effect-queries.js';
 import { cardArt } from './card-art.js';
 
 const TARGET = '[data-aim-target]';

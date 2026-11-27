@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Worker } from 'node:worker_threads';
 import { botSearchTimeoutMs, createBotSearch } from '../../docs/ui/bot-search.js';
-import { createMatch } from '../../docs/game/match.js';
+import { createMatch } from '../../docs/game/engine/match.js';
 
 const workerEntry = new URL('../../docs/ui/bot-worker.js', import.meta.url).href;
 

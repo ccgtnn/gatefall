@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createCard, findUnit, ROW_LIMIT } from '../../docs/game/board.js';
-import { NEUTRAL_CARDS } from '../../docs/game/cards.js';
-import { applyAction, confirmMulligan, createMatch } from '../../docs/game/match.js';
+import { createCard, findUnit, ROW_LIMIT } from '../../docs/game/engine/board.js';
+import { NEUTRAL_CARDS } from '../../docs/game/cards/cards.js';
+import { applyAction, confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
 import { unit as makeUnit } from '../helpers/battle-helpers.js';
 
 const robot = NEUTRAL_CARDS.find(({ id }) => id === 'helper-robot');

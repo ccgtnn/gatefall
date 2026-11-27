@@ -1,4 +1,4 @@
-import { ROW_LABELS } from '../game/card-metadata.js';
+import { ROW_LABELS } from '../game/shared/card-metadata.js';
 import { sideLabel } from './dom.js';
 
 export function roundText(event) {

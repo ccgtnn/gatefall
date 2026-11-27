@@ -1,4 +1,4 @@
-import { botLevelLabel } from '../game/bot-levels.js';
+import { botLevelLabel } from '../game/bot/bot-levels.js';
 import { button, element } from './dom.js';
 import { dialogClose } from './resources.js';
 import { leagueAvatar, LORE_FACTIONS, setLeagueSpeech } from './league-character.js';

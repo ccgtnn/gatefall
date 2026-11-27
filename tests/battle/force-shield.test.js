@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyStatus, createCard, damage, findUnit, statusCount, tickInfection } from '../../docs/game/board.js';
-import { NEUTRAL_CARDS } from '../../docs/game/cards.js';
-import { applyAction, confirmMulligan, createMatch } from '../../docs/game/match.js';
+import { applyStatus, createCard, damage, findUnit, statusCount, tickInfection } from '../../docs/game/engine/board.js';
+import { NEUTRAL_CARDS } from '../../docs/game/cards/cards.js';
+import { applyAction, confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
 
 function deployedGolem() {

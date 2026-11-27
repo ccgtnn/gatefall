@@ -1,4 +1,4 @@
-import { createCard } from '../../game/board.js';
+import { createCard } from '../../game/engine/board.js';
 import { cardButton, showCard } from '../cards.js';
 import { element } from '../dom.js';
 import { factionCards } from './fixtures.js';

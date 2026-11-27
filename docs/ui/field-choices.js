@@ -1,4 +1,4 @@
-import { restoreCard } from '../game/board.js';
+import { restoreCard } from '../game/engine/board.js';
 import { cardButton } from './cards.js';
 import { button, element } from './dom.js';
 import { tributeLabel } from './field-labels.js';
