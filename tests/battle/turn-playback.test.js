@@ -68,12 +68,14 @@ test('the next turn remains blocked until even the final animation finishes', as
 test('round result can show the final board before cleanup and before the next round is presented', async () => {
   const previous = confirmMulligan(createMatch({ random: () => 0 }), []);
   previous.players.human.board.orbit = [card('ally', 'protectorate', 'infantry')];
+  const drawn = previous.players.human.deck.slice(0, 3);
   const banner = Promise.withResolvers();
   const seen = [];
   const events = [
     { type: 'boost', side: 'human', cardId: 'ally', power: 5 },
     { type: 'round-end', scores: { human: 5, bot: 0 }, winner: 'human' },
-    { type: 'draw', side: 'human', count: 3 },
+    { type: 'draw', side: 'human', count: 3, cards: drawn, reason: 'round', extraSwaps: 0 },
+    { type: 'turn-start', side: 'bot', empty: false },
   ];
   const sequence = playJournal(previous, events, async ({ type }, commit, state) => {
     seen.push(type);
@@ -83,13 +85,18 @@ test('round result can show the final board before cleanup and before the next r
       await banner.promise;
     }
     const updated = commit();
-    if (type === 'draw') assert.deepEqual(updated.players.human.board.orbit, []);
+    if (type === 'draw') {
+      assert.deepEqual(updated.players.human.board.orbit, []);
+      assert.deepEqual(updated.players.human.hand, [...previous.players.human.hand, ...drawn]);
+      assert.deepEqual(updated.players.human.deck, previous.players.human.deck.slice(3));
+    }
+    if (type === 'turn-start') assert.equal(updated.turn, 'bot');
   });
   await Promise.resolve();
   assert.deepEqual(seen, ['boost', 'round-end']);
   banner.resolve();
   await sequence;
-  assert.deepEqual(seen, ['boost', 'round-end', 'draw']);
+  assert.deepEqual(seen, ['boost', 'round-end', 'draw', 'turn-start']);
   assert.equal(previous.players.human.board.orbit.length, 1);
 });
 

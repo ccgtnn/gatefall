@@ -4,6 +4,7 @@ import {
 import { clearRememberedRects } from '../card-motion-core.js';
 import { button, element, selectField } from '../dom.js';
 import { createBattlefield } from '../field.js';
+import { mulliganScreen } from '../hand.js';
 import { coinTimings, MOTION, motionDuration, scaleMotion } from '../motion-tokens.js';
 import { playJournal } from '../turn-playback.js';
 import { motionFixture } from './fixtures.js';
@@ -32,6 +33,8 @@ export function createMotionSection() {
   let lastScenario;
   let busy = false;
   let generation = 0;
+  let mulliganPreview = false;
+  let mulliganDeal;
   const speed = selectField('Скорость', [['normal', 'Обычная'], ['fast', 'Быстрая'], ['off', 'Выкл']], 'deck-field');
   speed.input.value = 'normal';
   const slow = element('input');
@@ -72,8 +75,8 @@ export function createMotionSection() {
     getMatch: () => match,
     isReplaying: () => busy,
     getSelectedCardId: () => undefined,
-    isMulliganFieldVisible: () => true,
-    setMulliganField: () => {},
+    isMulliganFieldVisible: () => !mulliganPreview,
+    setMulliganField,
     playHuman: choose,
     humanCanAct: () => false,
     placeSelected: (row, side) => {
@@ -84,7 +87,15 @@ export function createMotionSection() {
     settingsButton: () => element('span'),
     showDrawer: () => {},
     selectCard: () => {},
-    mulliganScreen: () => element('span'),
+    mulliganScreen: () => mulliganScreen({
+      getMatch: () => match,
+      setMatch: (state) => { match = state; },
+      updateMatch: render,
+      setMulliganField,
+      settingsButton: () => element('span'),
+      motion: syncSpeed,
+      mulliganDeal: () => mulliganDeal,
+    }),
     getLeagueOpponent: () => null,
     getLeagueSpeech: () => null,
   });
@@ -105,7 +116,13 @@ export function createMotionSection() {
     screen.replaceChildren(battlefield());
   }
 
+  function setMulliganField(visible) {
+    mulliganPreview = !visible;
+    render();
+  }
+
   function resetScene() {
+    mulliganPreview = false;
     generation += 1;
     clearRememberedRects();
     coinNotice.hidden = roundNotice.hidden = true;
@@ -168,8 +185,22 @@ export function createMotionSection() {
     coinNotice.hidden = roundNotice.hidden = true;
     status.textContent = scenario.label;
     const { before, next } = prepareMotionScenario(factionId, scenario);
-    render(before);
-    await present(before, next, scenario.presentation, wait, token);
+    const swap = scenario.presentation === 'mulligan-swap';
+    mulliganPreview = swap || scenario.presentation === 'mulligan-deal';
+    mulliganDeal = { round: swap ? before.round : 0 };
+    if (swap) {
+      render(before);
+      screen.querySelector('.hand-grid')?.querySelector('.hand-card')?.dispatchEvent(new Event('click'));
+    } else {
+      render(before);
+      const presentation = scenario.id === 'deal-round-one' && syncSpeed() ? 'coin' : scenario.presentation;
+      await present(before, next, presentation, wait, token);
+    }
+    if (mulliganPreview && generation === token) {
+      await Promise.resolve();
+      const motions = screen.querySelector('.mulligan')?.getAnimations?.({ subtree: true }) ?? [];
+      await Promise.all(motions.map((motion) => motion.finished.catch(() => {})));
+    }
   }
 
   async function perform(task) {
@@ -182,7 +213,7 @@ export function createMotionSection() {
       throw error;
     } finally {
       setBusy(false);
-      render();
+      if (!mulliganPreview) render();
     }
   }
 

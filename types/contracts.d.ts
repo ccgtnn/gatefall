@@ -400,6 +400,22 @@ export interface MatchEvent {
   [field: string]: unknown;
 }
 
+export interface TurnStartEvent extends MatchEvent {
+  type: 'turn-start';
+  side: Side;
+  /** True when the side has already passed and only automatic effects run. */
+  empty: boolean;
+}
+
+export interface RoundDrawEvent extends MatchEvent {
+  type: 'draw';
+  reason: 'round';
+  side: Side;
+  count: number;
+  cards: CardInstance[];
+  extraSwaps: number;
+}
+
 export interface EmitOptions {
   source?: CardInstance;
   neighbors?: BoardUnit[];
