@@ -202,7 +202,7 @@
     box-shadow: none;
   }
 
-  :where([data-battlefield-choice="bridge"]) .match-board {
+  :where([data-battlefield-choice="bridge"], [data-battlefield-choice="heart-of-growth"]) .match-board {
     --row-label-width: 9.5%;
     /* The hand window starts below and ends above the center lanes. */
     grid-template:
@@ -214,47 +214,50 @@
       12.31% minmax(0, 1fr) 1.86% 21% 8.81%;
     gap: 0;
     padding: 0;
-    background: #0b1220 url('./art/battlefield-bridge.webp') center / 100% 100% no-repeat;
+    background: #0b1220 var(--battlefield-art, url('./art/battlefield-bridge.webp')) center / 100% 100% no-repeat;
   }
-  :where([data-battlefield-choice="bridge"]) .field-center {
+  :where([data-battlefield-choice="heart-of-growth"]) .match-board {
+    --battlefield-art: url('./art/battlefield-heart-of-growth.webp');
+  }
+  :where([data-battlefield-choice="bridge"], [data-battlefield-choice="heart-of-growth"]) .field-center {
     grid-template-rows: minmax(0, 580fr) minmax(0, 578fr);
     row-gap: 2.85%;
   }
-  :where([data-battlefield-choice="bridge"]) .field-center .side[data-side="bot"] {
+  :where([data-battlefield-choice="bridge"], [data-battlefield-choice="heart-of-growth"]) .field-center .side[data-side="bot"] {
     grid-template-rows: minmax(0, 275fr) minmax(0, 272fr);
     row-gap: 5.69%;
   }
-  :where([data-battlefield-choice="bridge"]) .field-center .side[data-side="human"] {
+  :where([data-battlefield-choice="bridge"], [data-battlefield-choice="heart-of-growth"]) .field-center .side[data-side="human"] {
     grid-template-rows: minmax(0, 271fr) minmax(0, 272fr);
     row-gap: 6.06%;
   }
-  :where([data-battlefield-choice="bridge"]) .field-center .side[data-side="human"]::before {
+  :where([data-battlefield-choice="bridge"], [data-battlefield-choice="heart-of-growth"]) .field-center .side[data-side="human"]::before {
     content: none;
   }
-  :where([data-battlefield-choice="bridge"]) .field-center .board-row {
+  :where([data-battlefield-choice="bridge"], [data-battlefield-choice="heart-of-growth"]) .field-center .board-row {
     grid-template-columns: var(--row-label-width) minmax(0, 1fr);
     --lane-line: transparent;
     background: transparent;
     box-shadow: none;
   }
-  :where([data-battlefield-choice="bridge"]) :is(.field-rail, .battle-hand) {
+  :where([data-battlefield-choice="bridge"], [data-battlefield-choice="heart-of-growth"]) :is(.field-rail, .battle-hand) {
     border-color: transparent;
     background: transparent;
     box-shadow: none;
   }
-  :where([data-battlefield-choice="bridge"]) .field-right {
+  :where([data-battlefield-choice="bridge"], [data-battlefield-choice="heart-of-growth"]) .field-right {
     padding: 0.35rem;
     border: 1px solid rgb(154 210 236 / 0.38);
     border-radius: 0.5rem;
     background: rgb(8 14 28 / 0.62);
     backdrop-filter: blur(4px);
   }
-  :where([data-battlefield-choice="bridge"]) .field-left {
+  :where([data-battlefield-choice="bridge"], [data-battlefield-choice="heart-of-growth"]) .field-left {
     justify-items: center;
     padding-inline: 28% 0;
   }
   @supports not (backdrop-filter: blur(4px)) {
-    :where([data-battlefield-choice="bridge"]) .field-right {
+    :where([data-battlefield-choice="bridge"], [data-battlefield-choice="heart-of-growth"]) .field-right {
       background: rgb(8 14 28 / 0.72);
     }
   }
