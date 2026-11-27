@@ -2,6 +2,7 @@ import { pendingEffectSource } from '../game/effects/effect-queries.js';
 import { cardArt } from './card-art.js';
 
 const TARGET = '[data-aim-target]';
+const choiceKinds = new Set(['deck-card', 'deck-top', 'hand-bottom', 'hand-return', 'tribute']);
 const COLORS = {
   damage: '#ff6649',
   boost: '#ffdc80',
@@ -9,6 +10,10 @@ const COLORS = {
   infection: '#a7dc80',
   neutral: '#8edcff',
 };
+
+export function isChoicePending(pending) {
+  return choiceKinds.has(pending?.kind);
+}
 
 export function aimTone(kind, side) {
   if (['target-mark', 'mark-row'].includes(kind)) return 'mark';
@@ -112,7 +117,7 @@ export function bindTargeting(screen, cancel) {
     target.click();
   }, true);
   document.addEventListener('contextmenu', (event) => {
-    if (!source || event.pointerType === 'touch' || event.sourceCapabilities?.firesTouchEvents ||
+    if (!source || event.target?.closest?.('.choice-overlay') || event.pointerType === 'touch' || event.sourceCapabilities?.firesTouchEvents ||
         document.querySelector('dialog[open]') || !cancel()) return;
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -147,15 +152,16 @@ export function aimAnchor(node) {
 }
 
 export function updatePendingAim(screen, aim, match, targetAction) {
-  const pending = match?.pending?.side === 'human' ? match.pending : null;
+  const pending = match?.pending?.side === 'human' && !isChoicePending(match.pending) ? match.pending : null;
   let source;
   if (pending) {
     const { sourceId, card } = pendingEffectSource(match, targetAction);
-    source = sourceId
+    source = pending.kind === 'deck-placement' && screen.querySelector('.target-prompt .aim-source-art');
+    source ||= sourceId
       ? screen.querySelector(`[data-board-card="${CSS.escape(sourceId)}"] .unit-face`)
       : screen.querySelector('[data-aim-leader="human"]');
     if (!source) {
-      const prompt = screen.querySelector('.target-prompt, #deck-choice-title');
+      const prompt = screen.querySelector('.target-prompt');
       if (card?.definition.art && prompt) {
         source = cardArt(card.definition, 'aim-source-art');
         prompt.prepend(source);

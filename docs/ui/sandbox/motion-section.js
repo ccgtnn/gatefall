@@ -1,7 +1,7 @@
 import {
   animateCoin, animateLifeLoss, dismissRoundTransition, presentJournalEvent, roundResultLabel, showRoundTransition,
 } from '../card-motion.js';
-import { clearRememberedRects } from '../card-motion-core.js';
+import { animateChoiceSelection, clearRememberedRects, rememberChoicePosition } from '../card-motion-core.js';
 import { button, element, selectField } from '../dom.js';
 import { createBattlefield } from '../field.js';
 import { mulliganScreen } from '../hand.js';
@@ -78,6 +78,7 @@ export function createMotionSection() {
     isMulliganFieldVisible: () => !mulliganPreview,
     setMulliganField,
     playHuman: choose,
+    phoneChoice: () => lastScenario?.phoneChoice,
     humanCanAct: () => false,
     placeSelected: (row, side) => {
       if (match.pending?.kind === 'deck-placement') {
@@ -181,6 +182,7 @@ export function createMotionSection() {
 
   async function playScenario(scenario, wait, token) {
     if (generation !== token) return;
+    clearRememberedRects();
     lastScenario = scenario;
     coinNotice.hidden = roundNotice.hidden = true;
     status.textContent = scenario.label;
@@ -231,11 +233,20 @@ export function createMotionSection() {
     });
   }
 
-  function choose(action) {
+  function choose(action, choiceNode) {
     if (busy || !match.pending) return;
-    const next = applyMotionAction(match, action);
-    if (next === match) return;
-    handle(perform((token) => present(match, next, undefined, pause, token)));
+    const before = match;
+    const next = applyMotionAction(before, action);
+    if (next === before) return;
+    handle(perform(async (token) => {
+      if (choiceNode) {
+        const animation = animateChoiceSelection(choiceNode, syncSpeed());
+        if (animation) await animation;
+        if (generation !== token) return;
+        rememberChoicePosition(before, next, action.cardId, choiceNode);
+      }
+      await present(before, next, undefined, pause, token);
+    }));
   }
 
   function update(id) {

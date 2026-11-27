@@ -168,7 +168,14 @@ export const motionGroups = [
   ['Диалог', [
     { id: 'offer-three', label: '3 из колоды', prepare: realCard('reinforcements'), run: play },
     { id: 'offer-all', label: 'Вся колода', prepare: realCard('world-gates'), run: play },
+    { id: 'offer-all-phone', label: 'Вся колода (телефон, два касания)', phoneChoice: true, prepare: realCard('world-gates'), run: play },
     { id: 'offer-discard', label: 'Сброс', prepare: realCard('resurrection'), run: play },
+    { id: 'offer-hand-return', label: 'Рука → колода', prepare: effect('Возврат в колоду', [{ action: 'return-hand', amount: 1 }]), run: play },
+    { id: 'offer-deck-top', label: 'Верх колоды', prepare: effect('Верх колоды', [{ action: 'choose-deck-top' }]), run: play },
+    { id: 'offer-tribute', label: 'Взнос', prepare: (match) => {
+      realCard('hound-recruiter')(match);
+      match.players.human.coins = 6;
+    }, run: play },
   ]],
 ];
 

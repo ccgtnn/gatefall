@@ -80,35 +80,227 @@
 .rules-dialog dd { margin: .15rem 0 0; }
 .deck-choice .deck-record { font-size: .76rem; color: #e2eff7; font-variant-numeric: tabular-nums; }
 
-.deck-offer {
+.choice-overlay {
   position: absolute;
-  z-index: 4;
-  inset: 50% auto auto 50%;
-  transform: translate(-50%, -50%);
-  width: min(92%, 27rem);
-  padding: .55rem;
+  z-index: 10;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+}
+.choice-overlay::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: #050b13d9;
+  content: '';
+}
+.deck-offer {
+  --choice-gap: .65rem;
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+  width: min(94%, 74rem);
+  max-height: 96%;
+  box-sizing: border-box;
+  padding: .85rem;
   background: #101e29;
 }
-.deck-offer h2 { margin: 0 0 .45rem; font-size: clamp(.85rem, 3.5dvh, 1.2rem); }
-.deck-choice-cards { display: flex; justify-content: center; gap: .4rem; }
-.deck-choice-cards .hand-card {
-  flex: 1 1 0;
-  max-width: 7rem;
-  min-width: 0;
-  aspect-ratio: 2 / 3;
+.choice-header, .choice-controls {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+}
+.choice-heading { flex: 1; min-width: 0; }
+.choice-heading h2 {
+  margin: 0;
+  font-size: clamp(.92rem, 3.5dvh, 1.2rem);
+  line-height: 1.2;
+}
+.choice-subtitle { margin: .15rem 0 0; color: #bad0df; font-size: .82rem; }
+.choice-source-art, .target-prompt .aim-source-art {
+  display: inline-block;
+  width: 2.2rem;
+  height: 2.65rem;
+  flex: none;
+  object-fit: cover;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+.target-prompt .aim-source-art { margin-inline-end: .45rem; }
+.choice-overlay [hidden] { display: none; }
+.choice-hand {
+  display: flex;
+  gap: .45rem;
+  overflow-x: auto;
+  padding: .25rem;
+}
+.choice-overlay .choice-hand .hand-card {
+  flex: 0 0 3.4rem;
+  width: 3.4rem;
   height: auto;
-  max-height: 46dvh;
+  aspect-ratio: 2 / 3;
+  touch-action: pan-x;
+}
+.choice-layout { display: flex; min-height: 0; gap: 1rem; }
+.deck-choice-cards {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  justify-content: safe center;
+  gap: var(--choice-gap);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: .65rem;
+}
+.choice-item {
+  flex: 0 0 clamp(9rem, 12vw, 14rem);
+  min-width: 0;
+  max-width: 100%;
+  text-align: center;
+}
+.choice-overlay .choice-item .hand-card {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
   touch-action: manipulation;
 }
+.choice-item .hand-card[aria-disabled="true"] { opacity: .48; cursor: default; }
+.choice-item .hand-card[aria-pressed="true"] {
+  outline: 2px solid #a3efff;
+  outline-offset: 2px;
+}
+.choice-overlay .choice-confirming-card {
+  z-index: 4;
+  transform: translateY(-6%) scale(1.1);
+  box-shadow: 0 0 0 2px #bcefff, 0 0 20px #81e2ffb0;
+}
+.choice-overlay .choice-dismissing {
+  transform: scale(.94);
+  opacity: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .choice-item .hand-card[data-rarity]:not([aria-disabled], [inert], .choice-overlay[inert] *):hover {
+    translate: 0 -6px;
+    scale: 1.04;
+  }
+}
 .deck-choice-name {
-  position: absolute;
-  z-index: 1;
-  inset: auto 0 0;
-  padding: .16em;
-  background: #0b1822e8;
-  line-height: 1.1;
+  margin: .32rem 0 .18rem;
+  color: #effaff;
+  font-size: 1rem;
+  line-height: 1.15;
   overflow-wrap: anywhere;
-  font-size: clamp(.6rem, 2.7dvh, .88rem);
+}
+.deck-choice-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
+  margin: 0;
+  font-size: .82rem;
+  line-height: 1.2;
+  color: #c4d6e1;
+  white-space: pre-line;
+}
+.deck-offer[data-choice-size="many"] .deck-choice-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(8.5rem, 9vw, 11rem), 1fr));
+  align-content: start;
+  justify-content: stretch;
+}
+.deck-offer[data-choice-size="many"] .deck-choice-text { display: none; }
+.choice-detail {
+  flex: 0 0 19rem;
+  max-width: 40%;
+  box-sizing: border-box;
+  padding: .65rem;
+  overflow: auto;
+  background: #091520;
+  border-radius: 8px;
+  text-align: center;
+}
+.choice-detail-art {
+  width: min(100%, 15rem);
+  aspect-ratio: 2 / 3;
+  margin-inline: auto;
+  background: #102432;
+  border-radius: 7px;
+  overflow: hidden;
+}
+.choice-detail h3 { margin: .5rem 0 .22rem; }
+.choice-detail p { margin: 0; white-space: pre-line; font-size: .88rem; }
+.deck-offer.tribute-offer { width: min(94%, 38rem); }
+.tribute-choices { position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: .55rem; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .choice-enter {
+    --choice-base: var(--motion-base, 320ms);
+  }
+  .choice-enter::before {
+    animation: choice-fade calc(var(--choice-base) * var(--choice-backdrop-pace)) ease-out both;
+  }
+  .choice-enter .deck-offer {
+    animation: choice-rise calc(var(--choice-base) * var(--choice-panel-pace)) var(--choice-ease) both;
+  }
+  .choice-enter .choice-item, .choice-enter .tribute-option {
+    animation: choice-fan calc(var(--choice-base) * var(--choice-card-pace)) var(--choice-ease)
+      calc(var(--choice-base) * var(--choice-step) * var(--choice-index, 0)) both;
+  }
+}
+[data-reduced-motion="true"] .choice-enter { --choice-base: 0ms; }
+@keyframes choice-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes choice-rise {
+  from { transform: translateY(1rem); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes choice-fan {
+  from { transform: translate(var(--from-x, 0px), var(--from-y, 60%)) rotate(var(--fan, 0deg)) scale(.55); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (pointer: coarse), (hover: none), (max-height: 540px) {
+  .choice-overlay { container-name: compact-choice; container-type: inline-size; }
+}
+.choice-overlay[data-choice-phone="true"] { container-name: compact-choice; container-type: inline-size; }
+@container compact-choice (min-width: 0px) {
+  .deck-offer, .deck-offer.tribute-offer { width: 100%; max-height: 100%; height: 100%; padding: .4rem; gap: .28rem; }
+  .choice-header, .choice-controls { gap: .3rem; }
+  .choice-heading h2 {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .choice-controls .button, .tribute-option { min-height: 40px; min-width: 40px; padding-inline: .35rem; }
+  .choice-subtitle { margin-top: .1rem; }
+  .choice-source-art { width: 1.65rem; height: 2.15rem; }
+  .choice-layout { flex: 1; }
+  .choice-detail, .deck-choice-text { display: none; }
+  .deck-offer .deck-choice-cards, .deck-offer[data-choice-size="many"] .deck-choice-cards {
+    display: flex;
+    align-items: start;
+    scroll-snap-type: x mandatory;
+    touch-action: pan-x;
+    padding: .45rem .45rem .2rem;
+  }
+  .choice-item {
+    flex-basis: calc(min(64dvh, 17rem) * 2 / 3);
+    scroll-snap-align: center;
+  }
+  .deck-offer[data-choice-size="medium"] .choice-item {
+    flex-basis: min(calc((100% - (var(--n) - 1) * var(--choice-gap)) / var(--n)), calc(min(64dvh, 17rem) * 2 / 3));
+  }
+  .deck-offer[data-choice-size="many"] .choice-item { flex-basis: calc(min(58dvh, 15rem) * 2 / 3); }
+  .deck-offer[data-choice-size="many"] .deck-choice-cards {
+    justify-content: start;
+    padding-inline: .75rem;
+    mask-image: linear-gradient(90deg, transparent, #000 .65rem, #000 calc(100% - .65rem), transparent);
+  }
+  .deck-choice-name { font-size: clamp(.72rem, 2.8dvh, .9rem); }
+  .choice-overlay .choice-item .hand-card { touch-action: pan-x; }
+  .choice-overlay .choice-hand .hand-card { width: 2.3rem; flex-basis: 2.3rem; }
 }
 .placement-choices {
   position: absolute;
@@ -140,25 +332,6 @@
 }
 
 .leader-placeholder { color: var(--faction-edge, #a9bbc9); font-size: 1.14rem; }
-
-.pile-offer {
-  max-height: 88dvh;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-}
-.pile-offer .deck-choice-cards {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  justify-items: center;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: .25rem;
-}
-.pile-offer .hand-card {
-  width: 100%;
-  min-width: 0;
-  touch-action: pan-y;
-}
 
 .side[data-psionic-storm] .board-row { border-color: #6199e392; }
 .side[data-psionic-storm] .row-line::before {

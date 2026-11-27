@@ -7,10 +7,10 @@ import { serializeBotPosition } from '../game/bot/bot-position.js';
 import { createBotSearch } from './bot-search.js';
 import { applyAction } from '../game/engine/match.js';
 import { playJournal } from './turn-playback.js';
-import { clearRememberedRects } from './card-motion-core.js';
+import { animateChoiceSelection, clearRememberedRects, rememberChoicePosition, takeRememberedRect } from './card-motion-core.js';
 import { MOTION } from './motion-tokens.js';
 import { describeBotAction, eventText } from './match-log.js';
-import { aimAnchor } from './targeting.js';
+import { aimAnchor, isChoicePending } from './targeting.js';
 
 export function createMatchTurn({
   app, screen, settings, aim, notices, announcement, showNotice, hideNotice,
@@ -120,7 +120,10 @@ export function createMatchTurn({
         if (session === matchSession) replaying = false;
       }
     } else {
-      events.forEach(settings.playSound);
+      for (const event of events) {
+        if (['play', 'hand-return', 'hand-bottom'].includes(event.type)) takeRememberedRect(event.cardId);
+        settings.playSound(event);
+      }
     }
 
     if (session !== matchSession) {
@@ -153,11 +156,16 @@ export function createMatchTurn({
     }
   }
 
+  function canCancelTargeting() {
+    return Boolean(targetAction && match?.pending?.side === 'human' && !replaying && !confirmingTarget);
+  }
+
   function cancelTargeting() {
-    if (!targetAction || !match?.pending || replaying) return false;
+    if (!canCancelTargeting()) return false;
     const { before, rolls, cardId, type } = targetAction;
     retryRolls = [...rolls, ...retryRolls];
     targetAction = undefined;
+    clearRememberedRects();
     match = before;
     onCancelTargeting();
     render();
@@ -170,7 +178,7 @@ export function createMatchTurn({
     return true;
   }
 
-  async function playHuman(action) {
+  async function playHuman(action, choiceNode) {
     if (!match || replaying || confirmingTarget) return;
     const before = match;
     const session = matchSession;
@@ -188,7 +196,15 @@ export function createMatchTurn({
       const point = aimAnchor(node)?.();
       targetAction = { before, rolls, cardId, type, origin: () => point };
     }
-    if (before.pending && aim.showTap()) {
+    if (action.type === 'target' && choiceNode && isChoicePending(before.pending)) {
+      confirmingTarget = true;
+      const animation = animateChoiceSelection(choiceNode, settings.motion());
+      if (animation) await animation;
+      if (session !== matchSession) return;
+      confirmingTarget = false;
+      if (match !== before) return;
+      rememberChoicePosition(before, next, action.cardId, choiceNode);
+    } else if (before.pending && !isChoicePending(before.pending) && aim.showTap()) {
       confirmingTarget = true;
       await new Promise((resolve) => setTimeout(resolve, settings.motion() ? MOTION.ms.targetConfirm : MOTION.ms.targetConfirmReduced));
       if (session !== matchSession) return;
@@ -204,7 +220,8 @@ export function createMatchTurn({
     get match() { return match; },
     get replaying() { return replaying; },
     get targetAction() { return targetAction; },
+    get confirmingTarget() { return confirmingTarget; },
     setMatch: (next) => { match = next; },
-    reset, warmBot: botSearch.warm, humanCanAct, playHuman, updateMatch, cancelTargeting,
+    reset, warmBot: botSearch.warm, humanCanAct, playHuman, updateMatch, canCancelTargeting, cancelTargeting,
   };
 }

@@ -6,14 +6,17 @@ import { HAND_LIMIT, canEndTurn, canPass } from '../game/engine/match.js';
 import { createFieldChoices } from './field-choices.js';
 import { createFieldPanels } from './field-panels.js';
 import { createFieldRows } from './field-rows.js';
+import { cardArt } from './card-art.js';
+import { isChoicePending } from './targeting.js';
 
 export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, isMulliganFieldVisible, setMulliganField,
-  playHuman, humanCanAct, placeSelected, settingsButton, showDrawer, selectCard, mulliganScreen, getLeagueOpponent, getLeagueSpeech }) {
+  playHuman, humanCanAct, placeSelected, settingsButton, showDrawer, selectCard, mulliganScreen, getLeagueOpponent, getLeagueSpeech,
+  canCancel, cancelTargeting, getTargetAction, choiceLocked, phoneChoice }) {
   const { readyOrderIds, sideView } = createFieldRows({
     getSelectedCardId, humanCanAct, isReplaying, placeSelected, playHuman,
   });
   const { handSummary, leaderView, pileView, scoreView } = createFieldPanels({ humanCanAct, playHuman, showDrawer });
-  const { deckChoice, tributeChoice } = createFieldChoices({ playHuman });
+  const { deckChoice, tributeChoice } = createFieldChoices({ playHuman, canCancel, cancelTargeting, getTargetAction, choiceLocked, phoneChoice });
 
   function battlefield() {
     const match = getMatch();
@@ -26,13 +29,16 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     const center = element('div', 'field-center battlefield');
     const humanOrders = readyOrderIds(match, 'human');
     center.append(sideView(match, 'bot', readyOrderIds(match, 'bot')), sideView(match, 'human', humanOrders));
-    if (!isReplaying() && pending?.side === 'human') {
-      if (['deck-card', 'deck-top', 'hand-bottom', 'hand-return'].includes(pending.kind)) center.append(deckChoice(match));
-      else if (pending.kind === 'tribute') center.append(tributeChoice(pending));
+    let choiceOverlay;
+    if (!replaying && pending?.side === 'human') {
+      if (pending.kind === 'tribute') choiceOverlay = tributeChoice(match);
+      else if (isChoicePending(pending)) choiceOverlay = deckChoice(match);
       else {
         const picked = pending.kind === 'deck-placement' && (pending.cards ?? players.human[pending.pile ?? 'deck']).find(({ id }) => id === pending.cardId);
         const prompt = picked ? picked.definition.name + ' · ' + pending.prompt : pending.prompt;
-        center.append(element('p', 'field-message target-prompt', prompt));
+        const message = element('p', 'field-message target-prompt', prompt);
+        if (picked?.definition.art) message.prepend(cardArt(picked.definition, 'aim-source-art', { staticArt: true }));
+        center.append(message);
       }
     }
     const left = element('div', 'field-rail field-left');
@@ -86,6 +92,10 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       game.append(character, stage);
     }
     stage.append(field);
+    if (choiceOverlay) {
+      field.inert = true;
+      stage.append(choiceOverlay);
+    }
     if (phase === 'mulligan') {
       field.inert = !isMulliganFieldVisible();
       stage.append(isMulliganFieldVisible()

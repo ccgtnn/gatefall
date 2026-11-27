@@ -1,7 +1,7 @@
 import { MOTION, scaleMotion } from './motion-tokens.js';
 import { element } from './dom.js';
 import {
-  VISUAL_EVENTS, animate, cardFlash, floatingNumber, handRects, moveNeighbors, oldHandPosition, pileAnchor, rects, updateScores,
+  VISUAL_EVENTS, animate, cardFlash, center, floatingNumber, handRects, moveNeighbors, oldHandPosition, pileAnchor, rects, takeRememberedRect, updateScores,
 } from './card-motion-core.js';
 import { annihilate, fly, hop, leave, revealOpponentCard, swallow } from './card-motion-card-effects.js';
 import { presentHandEvent } from './card-motion-hand.js';
@@ -91,6 +91,7 @@ export function animateTurnSparks(screen, side, duration, scale = 1) {
 }
 
 export async function presentJournalEvent(screen, event, commit, render, duration) {
+  const playRect = event.type === 'play' ? takeRememberedRect(event.cardId) : undefined;
   if (event.type === 'draw' || event.type === 'hand-return' || event.type === 'hand-bottom') {
     return presentHandEvent(screen, event, commit, render, duration);
   }
@@ -148,7 +149,7 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
   const previous = rects(screen);
   const previousScores = new Map(Array.from(screen.querySelectorAll('[data-score]'),
     (node) => [node.dataset.score, Number(node.textContent)]));
-  let origin = revealOrigin;
+  let origin = playRect ? center(playRect) : revealOrigin;
   if (!origin && event.type === 'play') {
     if (event.from === 'deck' || event.from === 'discard') origin = pileAnchor(screen, event.side, event.from);
     else if (event.side === 'human') origin = oldHandPosition(screen, event.cardId);
