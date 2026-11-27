@@ -29,7 +29,7 @@ const claw = Object.freeze({
   ...hound, id: 'hound-claw', name: 'Коготь', power: 4, provision: 5, rarity: 'bronze',
   art: 'hound-claw.webp',
   shipClass: 'Лёгкий корабль',
-  text: 'В конце твоего хода: усилить себя на 1, если на поле есть «Чёрная гончая» или на твоём поле только карты категории «Гончая».',
+  text: 'В конце твоего хода: усиль себя на 1, если на поле есть «Чёрная гончая» или все твои отряды на поле принадлежат категории «Гончая».',
   keywords: ['Конец хода', 'Усиление'],
   endTurn: ability([{ action: 'boost', target: source, amount: 1,
     when: { targets: { scope: 'field', definitionId: 'black-hound' }, orAlliesCategory: HOUND_CATEGORY } }]),
@@ -39,26 +39,26 @@ const houndCards = [
   {
     id: 'hound-foreman', name: 'Бригадир гончих', power: 3, provision: 5, rarity: 'bronze',
     art: 'hound-foreman.webp', artCrop: 'hound-foreman-crop.webp',
-    text: 'Плата 2: призвать Гончую рядом.', keywords: ['Плата', 'Соседи'],
+    text: 'Плата 2: призови Гончую справа.', keywords: ['Плата', 'Соседи'],
     fee: fee(2, [adjacent()], { needsSourceSpace: true }),
   },
   {
     id: 'hound-captain', name: 'Капитан гончих', power: 4, provision: 8, rarity: 'epic',
     art: 'hound-captain.webp', artCrop: 'hound-captain-crop.webp',
-    text: 'При размещении: усиль всех Гончих на своей стороне на 1.', keywords: ['Усиление'],
+    text: 'При розыгрыше: усиль всех Гончих на своей стороне на 1.', keywords: ['Усиление'],
     deploy: ability([{ action: 'boost', target: { scope: 'ally', type: 'unit', category: HOUND_CATEGORY }, amount: 1 }]),
   },
   {
     id: 'hound-recruiter', name: 'Вербовщик гончих', power: 3, provision: 8, rarity: 'epic',
     art: 'hound-recruiter.webp', artCrop: 'hound-recruiter-crop.webp',
-    text: 'Взнос 3: призвать 2 Гончие рядом. Взнос 6: призвать 4 Гончие рядом.',
+    text: 'Взнос 3: призови 2 Гончие справа. Взнос 6: призови 4 Гончие справа.',
     keywords: ['Взнос', 'Соседи'],
     deploy: ability([{ action: 'choose-tribute', tiers: { 3: 2, 6: 4 }, spawn: adjacent() }]),
   },
   {
     id: 'hound-pack', name: 'Стая', provision: 4, rarity: 'bronze', type: 'effect',
     art: 'hound-pack.webp',
-    text: 'Призвать в выбранный свой ряд 3 Гончие.', keywords: ['Порождение'],
+    text: 'Призови в выбранный свой ряд 3 Гончие.', keywords: ['Порождение'],
     deploy: ability([{ action: 'select-row', ref: 'row', filter: 'space', prompt: 'Выбери свой ряд для трёх Гончих.' },
       { action: 'spawn', rowRef: 'row', amount: 3, card: HOUND }]),
   },
@@ -71,7 +71,7 @@ const houndCards = [
     id: 'black-hound', name: 'Чёрная гончая', power: 6, provision: 12, rarity: 'gold',
     art: 'black-hound.webp', artCrop: 'black-hound-crop.webp',
     shipClass: 'Тяжёлый корабль', shield: true, requiredRow: 'orbit', preferredRow: 'orbit',
-    text: 'Прибыль 6. Орбита. Силовой щит. Плата 4: призвать справа корабль «Коготь».',
+    text: 'Прибыль 6. Орбита. Силовой щит. Плата 4: призови справа корабль «Коготь».',
     keywords: ['Прибыль', 'Орбита', 'Силовой щит', 'Плата', 'Тяжёлый корабль'],
     deploy: profit(6),
     fee: fee(4, [adjacent(claw)], { needsSourceSpace: true }),
@@ -80,13 +80,13 @@ const houndCards = [
   {
     ...fang, id: 'hound-right-fang', name: 'Правый Клык', shipClass: 'Лёгкий корабль',
     art: 'hound-right-fang.webp',
-    text: 'Прибыль 2. Орбита. Приказ: уничтожить свою Гончую, взять карту, затем поместить выбранную карту из руки на дно колоды. Плата 5: восстановить Приказ.',
+    text: 'Прибыль 2. Орбита. Приказ: уничтожь выбранную свою Гончую, возьми карту, затем помести выбранную карту из руки на дно колоды. Плата 5: восстанови Приказ.',
     order: ability([destroyHound, { action: 'draw', amount: 1 }, { action: 'choose-hand-bottom' }], [houndChoice]),
   },
   {
     ...fang, id: 'hound-left-fang', name: 'Левый Клык', shipClass: 'Лёгкий корабль',
     art: 'hound-left-fang.webp',
-    text: 'Прибыль 2. Орбита. Приказ: уничтожить свою Гончую и нанести 1 урон каждому отряду в выбранном ряду противника. Плата 5: восстановить Приказ.',
+    text: 'Прибыль 2. Орбита. Приказ: уничтожь выбранную свою Гончую и нанеси 1 урон каждому отряду в выбранном вражеском ряду. Плата 5: восстанови Приказ.',
     order: ability([destroyHound,
       { action: 'select-row', ref: 'row', filter: 'units', prompt: 'Выбери вражеский ряд для 1 урона каждому отряду.' },
       { action: 'damage', target: { scope: 'enemy', type: 'unit', rowRef: 'row' }, amount: 1 }], [houndChoice]),
@@ -94,7 +94,7 @@ const houndCards = [
   {
     id: 'hound-eyes', name: 'Глаза гончей', power: 6, provision: 10, rarity: 'gold',
     art: 'hound-eyes.webp', artCrop: 'hound-eyes-crop.webp',
-    shipClass: 'Лёгкий корабль', text: 'Прибыль 4. Плата 1: превратить выбранную свою Гончую в Усиленную гончую.',
+    shipClass: 'Лёгкий корабль', text: 'Прибыль 4. Плата 1: преврати выбранную свою Гончую в Усиленную гончую.',
     keywords: ['Прибыль', 'Плата'],
     deploy: profit(4),
     fee: fee(1, [{ action: 'transform', target: victim, card: REINFORCED_HOUND }], { select: [{
@@ -106,7 +106,8 @@ const houndCards = [
 
 export const SKARA_REINHOLD = Object.freeze({
   id: 'skara-reinhold', name: 'Скара Райнхольд', provisionBonus: 15, art: 'skara-reinhold.webp', artFocus: '50% 27%', artZoom: 1.45,
-  text: 'Выбери свой ряд: призови в него 2 Гончие, затем получи 3 боевые монеты.',
+  text: 'Приказ (1 заряд): выбери свой ряд и призови в него 2 Гончие. Прибыль 3.',
+  charges: 1, order: { cooldown: 0, usesCharges: true }, keywords: ['Прибыль'],
   aiHints: { leaderCoinsAtMost: 6, leaderChargeValue: 5 },
   ability: ability([
     { action: 'select-row', ref: 'row', filter: 'space', prompt: 'Выбери свой ряд для Гончих Скары.' },
@@ -143,13 +144,12 @@ export const CAPTAIN_CARDS = Object.freeze([
   {
     id: 'broken-turret', name: 'Сломанная турель', faction: 'captains', type: 'artifact', rarity: 'bronze', provision: 4,
     art: 'broken-turret.webp', artStates: { failing: 'broken-turret-failing.webp' }, timer: 1,
-    text: 'При размещении: 5 раз нанеси 1 урон случайному вражескому отряду. Цели могут повторяться. В начале твоего следующего хода нанеси 1 урон случайному союзному отряду и уничтожь турель.',
-    keywords: ['Урон', 'Уничтожение'],
+    text: 'При розыгрыше: 5 раз нанеси 1 урон случайному вражескому отряду. Цели могут повторяться. В начале твоего следующего хода нанеси 1 урон случайному своему отряду, если он есть. Затем турель ломается и остаётся на поле без эффектов до конца раунда.',
+    keywords: ['Урон'],
     deploy: ability([{ action: 'scatter', amount: 5, visual: 'turret' }]),
-    startTurn: ability([
-      { action: 'art-state', target: source, state: 'failing' },
+    timerNextTurn: ability([
       { action: 'scatter', side: 'ally', amount: 1, visual: 'turret' },
-      { action: 'destroy', target: source },
+      { action: 'art-state', target: source, state: 'failing' },
     ]),
   },
 ].map((card) => Object.freeze(card)));

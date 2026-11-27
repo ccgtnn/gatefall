@@ -5,6 +5,7 @@ import {
   tickInfection, transformUnit, units, weaken,
 } from './board.js';
 import { ROWS } from './card-metadata.js';
+import { canGrantZeal } from './effects.js';
 import { pileOperations } from './effect-piles.js';
 import { chooseSubset, eligibleRows, pauseForChoice, reference, rowSide, SCHEDULED, targets, valueOf } from './effect-queries.js';
 
@@ -257,6 +258,9 @@ export const effectOperations = Object.freeze({
   }),
   armor: applyAmount((match, target, amount, sourceDefinitionId) => applyStatus(match, target, 'armor', amount, { sourceDefinitionId })),
   'infection-tick': applyAmount(tickInfection),
+  'grant-zeal': eachTarget((match, _job, _step, target) => {
+    if (canGrantZeal(target, match.players[target.side].turns)) reduceOrderCooldown(match, target, Infinity);
+  }),
   'ready-order': eachTarget((match, _job, _step, target) => reduceOrderCooldown(match, target, Infinity)),
   'reduce-order-cooldown': applyAmount(reduceOrderCooldown),
   boost: applyAmount(boost),

@@ -60,7 +60,7 @@ test('Resurrection supports the bot and is legal on a full board only with a cas
   assert.equal(applyAction(match, 'bot', choice, { random }).pending.kind, 'enemy-row');
 });
 
-test('Forgotten Gates summons left at placement and right at the second owner turn', () => {
+test('Forgotten Gates summons left on play and right at the end of the second owner turn', () => {
   let match = setup('forgotten-gates');
   const { human, bot } = match.players;
   bot.passed = false;
@@ -72,14 +72,14 @@ test('Forgotten Gates summons left at placement and right at the second owner tu
   const order = () => match.players.human.board.orbit.map(({ id }) => id);
   match = move(match, 'play', 'forgotten-gates');
   assert.deepEqual(order(), ['recon-drone', 'forgotten-gates']);
-  assert.equal(findUnit(match, 'forgotten-gates').card.timer, 2);
+  assert.equal(findUnit(match, 'forgotten-gates').card.timer, 1);
   assert.equal(match.pending, null);
   match = move(match, 'play', 'turn-one', 'surface');
   assert.equal(findUnit(match, 'forgotten-gates').card.timer, 1);
   assert.deepEqual(order(), ['recon-drone', 'forgotten-gates']);
   match = move(match, 'play', 'extra', 'surface');
-  match = move(match, 'play', 'turn-two', 'surface');
   assert.deepEqual(order(), ['recon-drone', 'forgotten-gates', 'smuggler']);
+  match = move(match, 'play', 'turn-two', 'surface');
   assert.equal(findUnit(match, 'forgotten-gates').card.timer, 0);
   assert.equal(findUnit(match, 'smuggler').card.power, 3);
   assert.deepEqual(match.players.human.deck.map(({ id }) => id), ['gate-relic', 'expensive']);
@@ -164,7 +164,7 @@ test('Falura replaces a spent leader permanently, spawns Doomed Shadows and only
   const playback = createPlaybackState(before);
   for (const event of play.log.slice(before.log.length)) applyJournalEvent(playback, event);
   assert.deepEqual(playback.players.human.leader.order, play.players.human.leader.order);
-  assert.equal(before.players.human.leader.order, undefined);
+  assert.equal(before.players.human.leader.order.usesCharges, true);
   const shadows = play.players.human.board.orbit.filter(({ definition }) => definition.id === SHADOW.id);
   assert.equal(shadows.length, 2);
   assert.ok(shadows.every((entry) => entry.power === 2 && statusCount(entry, 'doomed')));

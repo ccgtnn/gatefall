@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCard, findUnit, removeUnit } from '../../docs/game/board.js';
 import { NEUTRAL_CARDS } from '../../docs/game/cards.js';
-import { createMatch } from '../../docs/game/match.js';
+import { applyAction, createMatch } from '../../docs/game/match.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
 import { unit as makeUnit, play as playCard } from '../helpers/battle-helpers.js';
 
@@ -26,17 +26,20 @@ function play(match, cardId, row = 'surface') {
   return playCard(match, cardId, { row, random });
 }
 
-test('Storm Eye hits three times on each new owner turn, retargets deaths and breaks before the final bolt', () => {
+test('Storm Eye ticks on play, pass and the following empty turn, then breaks before its last bolt', () => {
   const before = setup();
-  let match = play(before, 'eye');
-  assert.equal(match.turn, 'bot');
-  assert.equal(findUnit(match, 'eye').card.timer, 3);
-  assert.equal(match.log.filter(lightning).length, 0);
+  let match = before;
+  const ownerTurns = [
+    (state) => play(state, 'eye'),
+    (state) => applyAction(state, 'human', { type: 'pass' }, { random }),
+    (state) => play(state, 'bot-2'),
+  ];
 
   const replay = createPlaybackState(before);
-  for (let turn = 1; turn <= 3; turn += 1) {
+  for (const [index, endOwnerTurn] of ownerTurns.entries()) {
+    const turn = index + 1;
     const start = match.log.length;
-    match = play(match, 'bot-' + turn);
+    match = endOwnerTurn(match);
     const events = match.log.slice(start);
     const bolts = events.filter(lightning);
     assert.equal(bolts.length, turn === 3 ? 4 : 3);
@@ -44,7 +47,11 @@ test('Storm Eye hits three times on each new owner turn, retargets deaths and br
     assert.deepEqual(bolts.map(({ cardId }) => cardId), turn === 1 ? ['fragile', 'fragile', 'next'] : bolts.map(() => 'next'));
     if (turn < 3) {
       assert.equal(findUnit(match, 'eye').card.timer, 3 - turn);
-      match = play(match, 'human-' + turn);
+      if (turn === 1) {
+        const hits = match.log.filter(lightning).length;
+        match = play(match, 'bot-1');
+        assert.equal(match.log.filter(lightning).length, hits);
+      }
     } else {
       const breakIndex = events.findIndex(({ cardId, reason }) => cardId === 'eye' && reason === 'timer');
       assert.equal(events.slice(0, breakIndex).filter(lightning).length, 3);
@@ -62,7 +69,7 @@ test('Removing Storm Eye early stops the storm without a final bolt', () => {
   let match = play(setup(), 'eye');
   removeUnit(match, findUnit(match, 'eye'), 'discard');
   match = play(match, 'bot-1');
-  assert.equal(match.log.some(lightning), false);
+  assert.equal(match.log.filter(lightning).length, 3);
 });
 
 test('Storm Eye also expires if the opposing side has no units', () => {

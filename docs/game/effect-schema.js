@@ -22,7 +22,7 @@ export const EFFECT_SCHEMA = Object.freeze({
     zeal resilience fieldAura sidePowerAura requiredRow preferredRow enemySide stratagem removalReserve
   `, {
     aiHints: 'aiHints', artStates: 'dataMap', growth: 'growth', rowPower: 'rowPower',
-    deploy: 'ability', initiative: 'ability', startTurn: 'ability', startTurnPulse: 'ability',
+    deploy: 'ability', initiative: 'ability', timerPulse: 'ability', timerExpired: 'ability', timerNextTurn: 'ability',
     endTurn: 'ability', deathwish: 'ability', order: 'order', fee: 'fee', counter: 'counter',
     scenario: 'scenario', events: 'events', neighborEvents: 'events',
     fieldEvents: 'fieldEvents', pileEvents: 'pileEvents',
@@ -70,7 +70,7 @@ export const EFFECT_SCHEMA = Object.freeze({
   rowPowerRequirement: shape('field values'),
   aiHints: shape(`
     armorBreakCostsPower boardBonus endTurnNeedsMarkedEnemy handPotential leaderChargeValue leaderCoinsAtMost leaderConsume
-    leaderOffering leaderReadyOrder leaderShield leaderSpawn placement preferRowWith sacrificeBonus
+    leaderOffering leaderZeal leaderShield leaderSpawn placement preferRowWith sacrificeBonus
     spendsRowArmor useOrderWhenReady
   `),
   dataMap: Object.freeze({ '*': null }),

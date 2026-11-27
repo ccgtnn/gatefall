@@ -65,7 +65,7 @@ function playPremium(id, doc) {
   return usesPremiumArt(id) && Boolean(motionDuration(speed, reduced));
 }
 
-function artwork(id, poster, className, size, doc, { animated = playPremium(id, doc), lazyArt = false, focus, zoom } = {}) {
+function artwork(id, poster, className, size, doc, { staticArt = false, animated = !staticArt && playPremium(id, doc), lazyArt = false, focus, zoom } = {}) {
   const node = doc.createElement(animated ? 'video' : 'img');
   node.className = className;
   node.width = 480;
@@ -76,7 +76,7 @@ function artwork(id, poster, className, size, doc, { animated = playPremium(id, 
     node.style.transformOrigin = focus;
     node.style.scale = zoom ?? '1';
   }
-  if (hasPremiumArt(id)) {
+  if (!staticArt && hasPremiumArt(id)) {
     node.dataset.premiumCard = id;
     node.dataset.premiumPoster = poster;
     node.dataset.premiumSize = size;
@@ -100,18 +100,18 @@ function artwork(id, poster, className, size, doc, { animated = playPremium(id, 
   return node;
 }
 
-export function cardArt(definition, className, { fullArt = false, lazyArt = false, doc = document, animated } = {}) {
+export function cardArt(definition, className, { fullArt = false, lazyArt = false, doc = document, animated, staticArt = false } = {}) {
   const art = !fullArt && className === 'card-art-crop' ? definition.artCrop ?? definition.art : definition.art;
   return artwork(definition.id, assetUrl('./art/' + art), className, fullArt ? 'large' : 'small', doc, {
-    animated, lazyArt, focus: fullArt ? undefined : definition.artFocus, zoom: String(definition.artZoom ?? 1),
+    animated, lazyArt, staticArt, focus: fullArt ? undefined : definition.artFocus, zoom: String(definition.artZoom ?? 1),
   });
 }
 
-export function addCardCrop(node, definition, { fullArt = false, lazyArt = false } = {}) {
+export function addCardCrop(node, definition, { fullArt = false, lazyArt = false, staticArt = false } = {}) {
   setCardRarity(node, definition.rarity ?? (definition.token ? 'bronze' : undefined));
   if (!definition.art) return;
   node.classList.add('has-art');
-  node.prepend(cardArt(definition, 'card-art-crop', { fullArt, lazyArt }));
+  node.prepend(cardArt(definition, 'card-art-crop', { fullArt, lazyArt, staticArt }));
 }
 
 export function refreshPremiumArt(root, id) {

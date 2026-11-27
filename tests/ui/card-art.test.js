@@ -216,3 +216,31 @@ test('premium art toggles and media fallback preserve the small-card crop', asyn
     document.body.children.splice(document.body.children.indexOf(wrap), 1);
   }
 });
+
+test('card choice dialogs show static art for premium cards from the hand', async () => {
+  const { setPremiumArtEnabled } = await import('../../docs/ui/card-art.js');
+  const { createFieldChoices } = await import('../../docs/ui/field-choices.js');
+  const ids = ['forbidden-scroll-keeper', 'abyss-shepherd', 'great-sacrifice'];
+  const hand = ids.map((id) => createCard(id, FACTIONS.choir.pool.find((card) => card.id === id)));
+  setPremiumArtEnabled(true);
+  try {
+    for (const card of hand) {
+      const inHand = new TestElement('button');
+      decorateCard(inHand, card, {});
+      assert.ok(byClass(inHand, 'card-art-video'));
+    }
+    const { deckChoice } = createFieldChoices({ playHuman() {} });
+    const panel = deckChoice({ pending: { pile: 'hand', kind: 'hand-return', options: hand.map(({ id }) => id),
+      prompt: 'Верни карту из руки в колоду' }, players: { human: { hand } } });
+    const choices = byClass(panel, 'deck-choice-cards').children;
+    assert.equal(choices.length, ids.length);
+    for (const [index, choice] of choices.entries()) {
+      const art = byClass(choice, 'card-art-crop');
+      const { artCrop, art: full } = hand[index].definition;
+      assert.equal(art.tag, 'img');
+      assert.equal(art.src, './art/' + (artCrop ?? full));
+    }
+  } finally {
+    setPremiumArtEnabled(false);
+  }
+});

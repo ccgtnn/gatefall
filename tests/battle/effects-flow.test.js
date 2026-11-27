@@ -22,7 +22,7 @@ test('each selectable deck has unique instances and legal card quantities', () =
         (definition.rarity === 'bronze' ? 2 : 1));
     }
     assert.equal(match.players.human.leader.name, faction.leader.name);
-    assert.equal(match.players.human.leader.charges, faction.leader.ability ? (faction.leader.charges ?? 2) : 0);
+    assert.equal(match.players.human.leader.charges, faction.leader.ability ? Math.max(2, faction.leader.charges ?? 0) : 0);
     assert.notEqual(match.players.bot.faction, match.players.human.faction);
   }
 });

@@ -21,7 +21,7 @@ export function createFieldChoices({ playHuman }) {
     }
     for (const item of selectable) {
       const card = pile === 'discard' ? restoreCard(item) : item;
-      const node = cardButton(card, () => playHuman({ type: 'target', cardId: card.id }), human);
+      const node = cardButton(card, () => playHuman({ type: 'target', cardId: card.id }), human, false, { staticArt: true });
       node.disabled = !options.has(card.id);
       node.classList.toggle('effect-target', !node.disabled);
       if (!node.disabled) node.dataset.aimTarget = card.id;

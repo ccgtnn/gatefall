@@ -22,7 +22,7 @@ const protectorate = [
   {
     id: 'infantry', name: 'Пехотинец линии', provision: 4, power: 3,
     type: 'unit', rarity: 'bronze', faction: 'protectorate',
-    text: 'Броня 2. При розыгрыше: соседи получают 2 брони.',
+    text: 'Броня 2. При розыгрыше: дай соседям 2 брони.',
     art: 'infantry.webp',
     armor: 2,
     deploy: armorNeighbors(2),
@@ -31,7 +31,7 @@ const protectorate = [
   {
     id: 'engineer', name: 'Инженер укреплений', provision: 4, power: 3,
     type: 'unit', rarity: 'bronze', faction: 'protectorate',
-    text: 'При розыгрыше: дать 3 брони своей карте.',
+    text: 'При розыгрыше: дай 3 брони выбранному своему отряду.',
     art: 'engineer.webp',
     deploy: ability([action('armor', chosen('ally'), 3)],
       [choice('ally', allies, 'Выбери свой отряд для 3 брони.', { kind: 'armor' })]),
@@ -48,7 +48,7 @@ const protectorate = [
   {
     id: 'orbital-shield', name: 'Орбитальный щит', provision: 6, power: 4,
     type: 'unit', rarity: 'bronze', faction: 'protectorate',
-    text: 'Броня 2. В конце хода: дать 1 броню соседям.',
+    text: 'Броня 2. В конце твоего хода: дай соседям 1 броню.',
     art: 'orbital-shield.webp',
     artCrop: 'orbital-shield-crop.webp',
     armor: 2,
@@ -58,7 +58,7 @@ const protectorate = [
   {
     id: 'standard', name: 'Знаменосец', provision: 4, power: 3,
     type: 'unit', rarity: 'bronze', faction: 'protectorate',
-    text: 'При розыгрыше: усилить бронированных соседей на 2.',
+    text: 'При розыгрыше: усиль бронированных соседей на 2.',
     art: 'standard.webp',
     aiHints: { placement: 'armored-neighbors' },
     deploy: ability([action('boost', { ...adjacent, armorAtLeast: 1 }, 2)]),
@@ -67,16 +67,16 @@ const protectorate = [
   {
     id: 'warden', name: 'Страж врат', provision: 5, power: 5,
     type: 'unit', rarity: 'bronze', faction: 'protectorate',
-    text: 'Броня 3. Нельзя сдвинуть.',
+    text: 'Броня 3. Неподвижность.',
     art: 'warden.webp',
     armor: 3,
     immovable: true,
-    keywords: ['Броня'],
+    keywords: ['Броня', 'Неподвижность'],
   },
   {
     id: 'anvil', name: 'Таран «Наковальня»', provision: 8, power: 4,
     type: 'unit', rarity: 'epic', faction: 'protectorate',
-    text: 'При розыгрыше: снять всю броню со своей карты и нанести столько же урона вражеской.',
+    text: 'При розыгрыше: сними всю броню с выбранного своего отряда и нанеси столько же урона выбранному вражескому отряду.',
     art: 'anvil.webp',
     artCrop: 'anvil-crop.webp',
     deploy: ability([
@@ -91,7 +91,7 @@ const protectorate = [
   {
     id: 'smelter', name: 'Переплавщик', provision: 5, power: 2,
     type: 'unit', rarity: 'bronze', faction: 'protectorate',
-    text: 'При розыгрыше: снять броню с соседей и усилить себя на столько же.',
+    text: 'При розыгрыше: сними всю броню с соседей и усиль себя на суммарное число снятых единиц.',
     art: 'smelter.webp',
     deploy: ability([
       { action: 'armor', target: adjacent, amount: { stat: 'armor', scale: -1 }, save: 'armor' },
@@ -109,7 +109,7 @@ const protectorate = [
   {
     id: 'orbital-salvo', name: 'Орбитальный залп', provision: 4,
     type: 'effect', rarity: 'bronze', faction: 'protectorate',
-    text: 'Нанести 3 урона вражескому отряду. Если цель на Поверхности, нанести 5 урона.',
+    text: 'Нанеси выбранному вражескому отряду 5 урона, если он на Поверхности, или 3 урона в ином случае.',
     removalReserve: 4,
     art: 'orbital-salvo.webp',
     deploy: ability([action('damage', chosen('enemy'), salvoDamage)],
@@ -119,7 +119,7 @@ const protectorate = [
   {
     id: 'colonel', name: 'Октавиан Рейн', provision: 10, power: 5,
     type: 'unit', rarity: 'gold', faction: 'protectorate',
-    text: 'При розыгрыше: удвоить броню своих отрядов в этом ряду.',
+    text: 'При розыгрыше: удвой броню своих отрядов в этом ряду.',
     art: 'colonel.webp',
     aiHints: { placement: 'armored-neighbors' },
     deploy: ability([action('armor', allyRow, { stat: 'armor' })]),
@@ -128,7 +128,7 @@ const protectorate = [
   {
     id: 'bastion', name: 'Бастион «Рубеж»', provision: 11, power: 7,
     type: 'unit', rarity: 'gold', faction: 'protectorate',
-    text: 'Броня 6. При розыгрыше: дать 3 брони соседям.',
+    text: 'Броня 6. При розыгрыше: дай соседям 3 брони.',
     art: 'bastion.webp',
     armor: 6,
     deploy: armorNeighbors(3),
@@ -137,7 +137,7 @@ const protectorate = [
   {
     id: 'commander', name: 'Кассия Фульмина', provision: 8, power: 5,
     type: 'unit', rarity: 'epic', faction: 'protectorate',
-    text: 'Приказ: снять 2 брони со своей карты и нанести 3 урона вражеской. Перезарядка: 2 хода.',
+    text: 'Приказ: сними 2 брони с выбранного своего отряда и нанеси 3 урона выбранному вражескому отряду. Перезарядка: 2 хода.',
     art: 'commander.webp',
     order: {
       cooldown: 2,
@@ -248,7 +248,7 @@ const protectorateExtras = [
   {
     id: 'aggressor', name: 'Агрессор', provision: 8, power: 5,
     type: 'unit', rarity: 'epic', faction: 'protectorate',
-    text: 'Силовой щит. Орбита: нанеси 1 урон случайному врагу каждый раз, когда ты играешь Тяжёлый или Лёгкий корабль или ставишь новую метку Цель. Поверхность: только Силовой щит.',
+    text: 'Силовой щит. Орбита: нанеси 1 урон случайному вражескому отряду каждый раз, когда ты играешь Тяжёлый или Лёгкий корабль или ставишь новую метку Цель. Поверхность: только Силовой щит.',
     art: 'aggressor.webp',
     ...ship,
     shield: true,
@@ -283,7 +283,8 @@ const protectorateExtras = [
 
 const protectorateLeaders = Object.freeze([
   {
-    id: 'marshal', provisionBonus: 15, name: 'Маршал Строя', art: 'marshal.webp', text: 'Дать 3 брони выбранному своему отряду и его соседям.',
+    id: 'marshal', provisionBonus: 15, name: 'Маршал Строя', art: 'marshal.webp', text: 'Приказ (1 заряд): дай 3 брони выбранному своему отряду и его соседям.',
+    charges: 1, order: { cooldown: 0, usesCharges: true },
     aiHints: { leaderChargeValue: 3 },
     ability: ability([
       action('armor', chosen('ally'), 3), action('armor', { ...adjacent, of: 'ally' }, 3),
@@ -292,10 +293,10 @@ const protectorateLeaders = Object.freeze([
   {
     id: 'supreme-commander', provisionBonus: 15, name: 'Верховный командор', art: 'supreme-commander.webp',
     text: 'Приказ (2 заряда): усиль выбранную свою карту на 2 и дай ей Рвение.',
-    charges: 2, order: { cooldown: 0, usesCharges: true }, aiHints: { leaderReadyOrder: true, leaderChargeValue: 3 },
+    charges: 2, order: { cooldown: 0, usesCharges: true }, keywords: ['Рвение'], aiHints: { leaderZeal: true, leaderChargeValue: 3 },
     ability: ability([
-      action('boost', chosen('ally'), 2), action('ready-order', chosen('ally')),
-    ], [choice('ally', { scope: 'ally', unitOrOrder: true }, 'Выбери свою карту для усиления и подготовки Приказа.', { kind: 'ready-order' })]),
+      action('boost', chosen('ally'), 2), action('grant-zeal', chosen('ally')),
+    ], [choice('ally', { scope: 'ally' }, 'Выбери свою карту для усиления и Рвения.', { kind: 'zeal' })]),
   },
   {
     id: 'fleet-admiral', provisionBonus: 15, name: 'Адмирал флота', art: 'fleet-admiral.webp',

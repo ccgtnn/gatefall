@@ -6,7 +6,7 @@ import { ROWS } from './card-metadata.js';
 import { cardType, createCard, findUnit, placementSide } from './board.js';
 import { availableFees, availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
-import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, lockPriority, pendingUnitPriority, shouldProtectArmor, tributeOptions } from './bot-effect-value.js';
+import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, holdUntargetedDamage, lockPriority, pendingUnitPriority, shouldProtectArmor, tributeOptions } from './bot-effect-value.js';
 import { cardAbilities } from './events.js';
 import { ROW_LIMIT, applyAction, availableRows, canEndTurn, canPass, playableCards, totalScore } from './match.js';
 
@@ -78,13 +78,13 @@ function placements(state, side, card, rows = ROWS) {
 function plays(state, side) {
   const player = state.players[side];
   const seen = new Set();
-  const legal = playableCards(state, side).filter((card) => {
+  const legal = holdUntargetedDamage(state, side, playableCards(state, side).filter((card) => {
     if (player.handMasked) {
       if (seen.has(card.definition.id)) return false;
       seen.add(card.definition.id);
     }
     return state.round === 3 || player.usedAbility || !(destructionSwing(state, side, card) < 0);
-  });
+  }));
   const context = futureContext(state, side);
   const options = legal.filter((card) => !wantsToHoldInheritance(context, card, legal)).map((card) => {
       const action = { type: 'play', cardId: card.id };
@@ -108,7 +108,7 @@ function targetPriority(state) {
   const { kind, side } = state.pending;
   const leaderPriority = leaderTargetPriority(state, side, kind);
   const priorities = {
-    lock: lockPriority,
+    lock: (unit) => lockPriority(state, side, unit),
     cleanse: cleansePriority,
     armor: (unit) => armorTargetPriority(state, side, unit),
     'leader-offering': (unit) => offeringPriority(state, side, unit, state.pending.amount),
@@ -127,7 +127,8 @@ function choices(state, all = false) {
   if (priority) {
     const ranked = options.map((id) => ({ id, score: priority(findUnit(state, id), side) }))
       .sort((a, b) => b.score - a.score);
-    return ranked.slice(0, all ? Infinity : 3)
+    const eligible = kind === 'lock' ? ranked.filter(({ score }) => score === ranked[0].score) : ranked;
+    return eligible.slice(0, all ? Infinity : 3)
       .map(({ id }) => ({ type: 'target', cardId: id }));
   }
   if (kind === 'deck-placement') {
@@ -397,7 +398,7 @@ export function chooseStrategicTurn(match, level, options) {
   const state = publicMatch(match, level.knowsDeckList);
   const { bot } = state.players;
   const finalRound = state.round === 3;
-  const legal = playableCards(state, 'bot');
+  const legal = holdUntargetedDamage(state, 'bot', playableCards(state, 'bot'));
   const mayPass = canPass(state, 'bot');
   const share = (fraction) => {
     const local = limit(level.budgetMs * fraction);

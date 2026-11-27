@@ -3,7 +3,7 @@ import { ROWS } from './card-metadata.js';
 import { cardType, findUnit, isUnit, neighbors, placementSide, restoreCard, statusCount, units } from './board.js';
 import { availableOrders, canUseLeader } from './effects.js';
 import { rowArmor } from './effect-queries.js';
-import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, lockPriority, pendingUnitPriority, rowDamage, rowEffectValue, rowScatterValue } from './bot-effect-value.js';
+import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionSwing, effectSwing, infectionGain, holdUntargetedDamage, lockPriority, pendingUnitPriority, rowDamage, rowEffectValue, rowScatterValue } from './bot-effect-value.js';
 import { armorBreakSwing, consumeBonus, delayedCardValue, futureContext, inheritancePayoff, remainingTurns, wantsToHoldInheritance } from './bot-future-value.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, availableRows, canEndTurn, canPass, playableCards, totalScore } from './match.js';
 
@@ -20,8 +20,8 @@ export const BOT_DELAY_MS = 700;
 export function createBotView(match) {
   const { human, bot } = match.players;
   const context = futureContext(match, 'bot');
-  const legal = playableCards(match, 'bot')
-    .filter((card) => bot.usedAbility || !(destructionSwing(match, 'bot', card) < 0));
+  const legal = holdUntargetedDamage(match, 'bot', playableCards(match, 'bot')
+    .filter((card) => bot.usedAbility || !(destructionSwing(match, 'bot', card) < 0)));
   return {
     cards: legal.filter((card) => !wantsToHoldInheritance(context, card, legal)).map((card) => {
       if (card.definition.enemySide) {
@@ -226,7 +226,7 @@ export function pickBotTarget(match) {
     'leader-offering': (unit) => offeringPriority(match, match.pending.side, unit, amount),
     sacrifice: ({ card }) => -card.power,
     deathwish: ({ card }) => deathwishDefinitions(card).length * 10 + card.power,
-    lock: (unit) => lockPriority(unit, match.pending.side),
+    lock: (unit) => lockPriority(match, match.pending.side, unit),
     cleanse: (unit) => cleansePriority(unit, match.pending.side),
     armor: (unit) => armorTargetPriority(match, match.pending.side, unit),
     'spend-armor': ({ card }) => (amount ? card.armor : card.armor + card.power * .01) +
@@ -246,7 +246,7 @@ function beneficialLeader(match, view, allies) {
   const preference = preferredLeaderUse(match, 'bot');
   if (preference !== undefined) return preference;
   if (!canUseLeader(match, 'bot')) return false;
-  if (player.leader.order) return units(match, 'human').some(({ card }) => isUnit(card) && (card.armor ?? 0) < 2);
+  if (player.leader.order && !player.leader.order.usesCharges) return units(match, 'human').some(({ card }) => isUnit(card) && (card.armor ?? 0) < 2);
   const kind = player.leader.ability.select?.[0]?.kind;
   if (kind === 'marshal') {
     return !view.opponentPassed && allies.some((unit) => neighbors(match, unit).some(({ card }) => isUnit(card)));

@@ -8,10 +8,15 @@ import { applyAction, ROW_LIMIT } from '../../docs/game/match.js';
 import { drain } from '../helpers/battle-helpers.js';
 import { basic, board, events, fixture, hand, play, target, unit } from '../helpers/effects-fixture.js';
 
-test('leaders spend a configurable charge without ending the turn', () => {
+test('leaders spend configurable charges once per turn without ending it', () => {
   let match = fixture({ charges: 2 });
   board(match, 'human', 'surface', unit('left', 'shieldbearer'), unit('center', 'infantry'), unit('right', 'warden'));
   match = target(applyAction(match, 'human', { type: 'leader' }), 'center');
+  assert.strictEqual(applyAction(match, 'human', { type: 'leader' }), match);
+  assert.equal(match.players.human.leader.charges, 1);
+  hand(match, createCard('plain', basic));
+  match.players.bot.passed = true;
+  match = play(match, 'plain', 0, 'human', 'orbit');
   match = target(applyAction(match, 'human', { type: 'leader' }), 'center');
   assert.deepEqual(match.players.human.board.surface.map(({ armor }) => armor), [8, 8, 9]);
   assert.equal(match.turn, 'human');
@@ -238,7 +243,7 @@ test('Spitter infects on deployment and its reusable Order bypasses armor when i
   assert.ok(applyAction(match, 'human', order).pending);
 });
 
-test('a transformed unit gets normal order delay unless it has Zeal', () => {
+test('a transformed unit gets normal order delay even if it has Zeal', () => {
   for (const zeal of [false, true]) {
     const match = fixture();
     const player = match.players.human;
@@ -246,8 +251,8 @@ test('a transformed unit gets normal order delay unless it has Zeal', () => {
     board(match, 'human', 'surface', unit('changed', 'frigate'));
     const order = { steps: [{ action: 'boost', target: { scope: 'source' }, amount: 1 }] };
     transformUnit(match, findUnit(match, 'changed'), { ...basic, zeal, order });
-    assert.equal(findUnit(match, 'changed').card.readyAt, zeal ? 4 : 5);
-    assert.equal(availableOrders(match, 'human').length, Number(zeal));
+    assert.equal(findUnit(match, 'changed').card.readyAt, 5);
+    assert.equal(availableOrders(match, 'human').length, 0);
     player.turns += 1;
     assert.equal(availableOrders(match, 'human').length, 1);
   }

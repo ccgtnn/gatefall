@@ -4,7 +4,7 @@ import { ROWS } from './card-metadata.js';
 import { feePayoff } from './bot-effect-value.js';
 import { carriedCoins } from './match-setup.js';
 import { EVAL_WEIGHTS as W } from './bot-evaluation.js';
-import { leaderCooldown } from './effects.js';
+import { canGrantZeal, leaderCooldown } from './effects.js';
 import { canStart, matchesPileFilter, stepAllowed, targets, valueOf } from './effect-queries.js';
 import { cardAbilities, deathwishDefinitions, inheritableDeathwishes, isLocked } from './events.js';
 
@@ -205,7 +205,7 @@ function incomingHit(context) {
     const { card } = unit;
     const ability = cardAbilities(card);
     return Math.max(card.readyAt < enemy.turns + turns ? directHit(activeOrder(unit)) : 0,
-      directHit(ability.startTurn), directHit(ability.endTurn), directHit(ability.timer));
+      directHit(ability.timerPulse), directHit(ability.endTurn), directHit(ability.timerExpired));
   });
   if (enemy.leader?.charges > 0 || (enemy.leader?.order && !enemy.leader.order.usesCharges)) {
     options.push(directHit(enemy.leader.ability));
@@ -337,7 +337,9 @@ function endTurnValue(context, card, ability, row, turns) {
     } else if (step.action === 'boost' && step.target?.scope === 'source') {
       const amount = valueOf(match, job, step.amount);
       value += amount * (step.amount?.result ? 1 : turns) * .65;
-    } else if (step.action === 'ready-order' && !passed && card.readyAt > player.turns) {
+    } else if (!passed && card.readyAt > player.turns &&
+      ((step.action === 'ready-order' && card.orderUsedTurn !== player.turns) ||
+        (step.action === 'grant-zeal' && canGrantZeal({ card, row, side }, player.turns)))) {
       const order = activeOrder({ card, row });
       if (order && canStart(match, { ...job, ability: order })) value += W.readyOrder - W.coolingOrder;
     }
