@@ -277,7 +277,7 @@ const plague = [
     categories: ['Гниль'],
     art: 'rot.webp',
     deploy: rotRow,
-    keywords: ['Гниение'],
+    keywords: ['Гниение', 'Погода'],
   },
   {
     id: 'rot-giant', name: 'Гнилой исполин', provision: 11, power: 3,

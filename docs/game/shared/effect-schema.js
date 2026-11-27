@@ -43,7 +43,7 @@ export const EFFECT_SCHEMA = Object.freeze({
     mode multiplier of overflow position preservePower prompt rarity ref requiresResult row rowRef
     save savePosition saveTargets side sourceRow state status type visual
   `, {
-    after: 'step', spawn: 'step', slay: 'ability', when: 'stepCondition',
+    after: 'step', spawn: 'step', slay: 'ability', deathwish: 'ability', when: 'stepCondition',
     target: 'target', receiver: 'target', filter: 'pileFilter',
     amount: 'value', count: 'value', power: 'value',
     card: 'card', replacement: 'card', order: 'replacementOrder', counter: 'counter', tiers: 'dataMap',

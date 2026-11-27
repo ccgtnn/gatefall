@@ -26,10 +26,11 @@ export function projectile(screen, event, entry, duration) {
   const sourceLine = screen.querySelector('[data-side="' + event.attacker + '"] [data-row="' + event.sourceRow + '"]');
   const floor = screen.querySelector('.field-center');
   const source = sourceCard ?? sourceLine ?? floor;
-  if (!source) return Promise.resolve();
-  const from = center(source.getBoundingClientRect());
+  const firestorm = event.visual === 'firestorm';
+  if (!source && !firestorm) return Promise.resolve();
   const to = center(entry.rect);
-  const shot = floatNode(screen, 'motion-projectile', '', from);
+  const from = firestorm ? { x: to.x, y: 0 } : center(source.getBoundingClientRect());
+  const shot = floatNode(screen, firestorm ? 'motion-projectile motion-firestorm-drop' : 'motion-projectile', '', from);
   return animate(shot, [
     { transform: point(0, 0) + ' scale(.65)', opacity: .8 },
     { transform: point(to.x - from.x, to.y - from.y) + ' scale(1.2)', opacity: 1 },
@@ -64,6 +65,10 @@ export function hit(screen, entry, event, duration) {
   if (event.absorbed && !node.querySelector('.armor-stat')) {
     const { x, y } = center(rect);
     burstParticles(screen.ownerDocument, 'shards', x, y, rect.width, duration);
+  }
+  if (event.visual === 'firestorm') {
+    const { x, y } = center(rect);
+    burstParticles(screen.ownerDocument, 'sparks', x, y, rect.width, duration);
   }
   if (event.sourceDefinitionId === 'orbital-salvo') motions.push(orbitalBeam(screen, rect, duration));
   motions.push(...floatingNumber(screen, entry, '−' + event.amount, 'damage', duration));

@@ -113,11 +113,13 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
     }
     return;
   }
-  if (event.type === 'row-effect') {
+  if (event.type === 'row-effect' || event.type === 'inherit-deathwishes') {
     render(commit());
     return;
   }
-  if (duration === 0 || !VISUAL_EVENTS.has(event.type)) {
+  const reduceFirestorm = event.visual === 'firestorm' &&
+    screen.ownerDocument?.defaultView?.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if (duration === 0 || reduceFirestorm || !VISUAL_EVENTS.has(event.type)) {
     commit();
     return;
   }
@@ -133,10 +135,12 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
     commit();
     return;
   }
-  if (event.scattered && (event.visual !== 'lightning' || event.type === 'damage' || event.blockedDamage)) {
+  if (event.scattered && (event.type === 'damage' || event.blockedDamage ||
+      !['firestorm', 'lightning'].includes(event.visual))) {
     const entry = rects(screen).get(event.cardId);
     if (event.visual === 'lightning') await lightning(screen, entry, duration * MOTION.pace.lightning);
-    else await projectile(screen, event, entry, duration * MOTION.pace.projectile);
+    else await projectile(screen, event, entry, duration * (event.visual === 'firestorm'
+      ? MOTION.pace.firestormDrop : MOTION.pace.projectile));
     duration *= MOTION.pace.afterProjectile;
   }
   if (event.type === 'consume' && event.grouped) {
@@ -176,6 +180,9 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
       break;
     case 'status':
       if (event.status === 'shield') motions.push(...shield(screen, entry, duration));
+      if (event.visual === 'firestorm' && event.blockedDamage) {
+        motions.push(...floatingNumber(screen, entry, '−1', 'damage', duration));
+      }
       if (event.status === 'infection') {
         motions.push(...cardFlash(screen, entry, 'motion-infection', [
           { opacity: 0, transform: 'translate(-50%, -50%) scale(.85)' },
@@ -202,6 +209,7 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
       motions.push(...floatingNumber(screen, entry, '−' + event.amount, 'damage', duration));
       break;
     case 'discard':
+    case 'banish':
     case 'death':
     case 'destroy':
       if (event.visual === 'annihilation') {

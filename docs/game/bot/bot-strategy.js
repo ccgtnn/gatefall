@@ -7,7 +7,7 @@ import { ROWS } from '../shared/card-metadata.js';
 import { cardType, createCard, findUnit, placementSide } from '../engine/board.js';
 import { availableFees, availableOrders, canUseLeader } from '../effects/effects.js';
 import { rowArmor } from '../effects/effect-queries.js';
-import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, holdUntargetedDamage, lockPriority, pendingUnitPriority, shouldProtectArmor, tributeOptions } from './bot-effect-value.js';
+import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, holdUntargetedDamage, lockPriority, pendingUnitPriority, shouldProtectArmor, usefulWeatherOrder, tributeOptions } from './bot-effect-value.js';
 import { cardAbilities } from '../engine/events.js';
 import { ROW_LIMIT, applyAction, availableRows, canEndTurn, canPass, playableCards, totalScore } from '../engine/match.js';
 
@@ -99,7 +99,7 @@ function plays(state, side) {
 }
 
 function abilities(state, side) {
-  const actions = availableOrders(state, side).map(({ card }) => ({ type: 'order', cardId: card.id }));
+  const actions = availableOrders(state, side).filter((unit) => usefulWeatherOrder(state, side, unit)).map(({ card }) => ({ type: 'order', cardId: card.id }));
   actions.push(...availableFees(state, side).map(({ card }) => ({ type: 'fee', cardId: card.id })));
   if (canUseLeader(state, side)) actions.push({ type: 'leader' });
   return actions;

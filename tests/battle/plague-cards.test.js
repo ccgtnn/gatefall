@@ -93,7 +93,7 @@ test('Rot Scavenger counts infected enemies and Boil grows only at the end of it
   assert.equal(findUnit(match, 'strong').card.power, 9);
 });
 
-test('Rot targets any enemy row and Pestilence replaces both rows for three turns', () => {
+test('Rot targets any enemy row and Pestilence adds three turns of Rot to both rows', () => {
   let match = fixture('rot', 'pestilence');
   match.players.bot.passed = true;
   match.players.bot.board.orbit = [unit('enemy')];
@@ -105,7 +105,7 @@ test('Rot targets any enemy row and Pestilence replaces both rows for three turn
   assert.equal(match.players.bot.rowEffects.surface.remaining, 2);
   assert.equal(match.players.bot.rowEffects.orbit, undefined);
   match = act(match, 'play', 'pestilence');
-  assert.deepEqual(Object.values(match.players.bot.rowEffects).map((effect) => effect.remaining), [2,2]);
+  assert.deepEqual(Object.values(match.players.bot.rowEffects).map((effect) => effect.remaining), [4,2]);
   assert.deepEqual(Object.values(match.players.bot.rowEffects).map((effect) => effect.sourceDefinitionId), ['pestilence','pestilence']);
   assert.deepEqual(match.players.human.rowEffects, {});
 });

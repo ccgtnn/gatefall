@@ -48,9 +48,9 @@ export function removeUnit(match, unit, reason, consumerId, extra, deathPosition
   const player = match.players[side];
   player.board[row].splice(position, 1);
   const owner = card.owner ?? side;
-  const exile = statusCount(card, 'doomed') > 0;
+  const exile = reason === 'banish' || statusCount(card, 'doomed') > 0;
   discardCard(match, side, card, exile);
-  const death = reason === 'discard' ? undefined : { row, position: deathPosition, refs: { consumer: consumerId } };
+  const death = ['discard', 'banish'].includes(reason) ? undefined : { row, position: deathPosition, refs: { consumer: consumerId } };
   match.effects.unshift(...emit(match, {
     type: death ? 'death' : reason, side,
     ...(owner !== side && { owner }), name: card.definition.name, cardId: card.id, power: card.power,

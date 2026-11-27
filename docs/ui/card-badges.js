@@ -15,6 +15,7 @@ const keywordIcons = {
   'Порождение': '✦',
   'Поглощение': '◉',
   'Завещание': '†',
+  'Огненный шторм': '🔥',
   'Приказ': '⚑',
   'Рвение': 'ϟ',
   'Конец хода': '◷',
@@ -109,6 +110,13 @@ function liveBadges(node, card, { orderOnField, showProvision, orderReady, order
   const infection = statusCount(card, 'infection');
   if (infection) node.append(statBadge('infection', 'Заражение ' + infection, infection));
 
+  const wishes = card.inheritedDeathwishes ?? [];
+  if (wishes.some(({ grantedBy, deathwish }) => grantedBy &&
+      deathwish.steps.some(({ effect }) => effect === 'firestorm'))) {
+    const mark = passiveBadge('Огненный шторм');
+    mark.classList.add('weather-deathwish-mark');
+    node.append(mark);
+  }
   if (statusCount(card, 'lock')) {
     node.append(statBadge('lock', 'Блокировка'));
     return;
@@ -123,7 +131,7 @@ function liveBadges(node, card, { orderOnField, showProvision, orderReady, order
     badges.push(orderBadge(orderReady, orderCooldown, card.orderCharges === undefined
       ? label : label + ' · Осталось зарядов: ' + card.orderCharges, card.orderCharges));
   }
-  if (deathwishDefinitions(card).length) badges.push(passiveBadge('Завещание'));
+  if (deathwishDefinitions(card).some(({ grantedBy }) => !grantedBy)) badges.push(passiveBadge('Завещание'));
   if (card.resilient) badges.push(passiveBadge('Стойкость'));
   if (statusCount(card, 'immune')) badges.push(passiveBadge('Неуязвимость'));
   if (statusCount(card, 'doomed')) badges.push(passiveBadge('Обречённая'));

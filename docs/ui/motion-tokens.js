@@ -12,6 +12,7 @@ export const MOTION = Object.freeze({
     lifeLoss: 1.5,
     score: .88,
     projectile: .43,
+    firestormDrop: .58,
     lightning: .54,
     afterProjectile: .52,
     handStep: 1 / 6,

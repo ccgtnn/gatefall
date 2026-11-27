@@ -391,3 +391,13 @@ test('returning to the bottom uses the saved hand position and slides the remain
   assert.match(neighbor.motion.keyframes[0].transform, /translate3d\(40px/);
   assert.equal(takeRememberedRect(leaving.dataset.cardId), undefined);
 });
+
+test('firestorm strikes respect reduced motion at a manually selected speed', async () => {
+  const { screen, overlays } = scenario();
+  screen.ownerDocument.defaultView.matchMedia = () => ({ matches: true });
+  let committed = false;
+  await presentJournalEvent(screen, { type: 'damage', scattered: true, visual: 'firestorm', amount: 1 },
+    () => { committed = true; }, () => {}, 320);
+  assert.equal(committed, true);
+  assert.deepEqual(overlays, []);
+});

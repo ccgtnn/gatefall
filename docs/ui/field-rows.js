@@ -45,7 +45,7 @@ export function createFieldRows({ getSelectedCardId, humanCanAct, isReplaying, p
       label.setAttribute('aria-label', armorTarget
         ? `Снять броню с ряда «${ROW_LABELS[row]}» · броня ${rowArmor(player, row)}`
         : pending.kind === 'mark-row' ? `Отметить отряды ряда «${ROW_LABELS[row]}»`
-          : pending.kind === 'row-effect' ? `Наложить Гниение на ряд «${ROW_LABELS[row]}»`
+          : pending.kind === 'row-effect' ? `Наложить «${ROW_EFFECTS[pending.rowWeather]?.label ?? 'Погода'}» на ряд «${ROW_LABELS[row]}»`
           : side === 'bot' ? `Нанести урон во вражеском ряду «${ROW_LABELS[row]}»`
             : spawnRowLabel(pending, ROW_LABELS[row]));
     }
@@ -97,7 +97,8 @@ export function createFieldRows({ getSelectedCardId, humanCanAct, isReplaying, p
         face.setAttribute('aria-label', face.getAttribute('aria-label') + ' · Силовой щит активен');
         slot.append(halo);
       }
-      if (activeOrder({ card, row }) || card.orderCharges !== undefined) {
+      if (activeOrder({ card, row }) || (card.orderCharges !== undefined &&
+          (!card.definition.order?.sourceRow || card.definition.order.sourceRow === row))) {
         const state = statusCount(card, 'lock') ? 'заблокирован' : ready ? 'готов'
           : card.orderCharges === 0 ? 'заряды исчерпаны' : cooldown ? 'осталось ходов: ' + cooldown : 'нет цели';
         const charges = card.orderCharges === undefined ? '' : ' · Осталось зарядов: ' + card.orderCharges;

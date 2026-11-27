@@ -101,6 +101,7 @@ export interface EffectStep {
   replacement?: CardDefinition;
   after?: EffectStep;
   slay?: Ability;
+  deathwish?: Ability;
   spawn?: Omit<EffectStep, 'action'>;
   order?: LeaderOrder & { ability: Ability; text?: string };
   counter?: CounterDefinition;
@@ -264,7 +265,7 @@ export interface CardInstance {
   playedEffects?: number;
   resilient?: boolean;
   counter?: number;
-  inheritedDeathwishes?: CardDefinition[];
+  inheritedDeathwishes?: (CardDefinition & { grantedBy?: Side })[];
   artState?: string;
   shipRowBonus?: number;
   lockedAuraPower?: Counts;
@@ -342,6 +343,8 @@ export interface EffectJob {
   ability?: Ability;
   discard?: CardInstance;
   rowTick?: boolean;
+  tickingWeather?: RowEffect;
+  deathSide?: Side;
   scenarioChapter?: boolean;
   timerTick?: boolean;
   cardAbility?: boolean;
@@ -386,6 +389,7 @@ export interface PendingState {
   tiers?: Counts;
   armorStrip?: number;
   scatter?: boolean;
+  rowWeather?: string;
 }
 
 export interface MatchRules {

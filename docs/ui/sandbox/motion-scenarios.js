@@ -104,6 +104,10 @@ export const motionGroups = [
       run: (match) => { damage(match, unit(match), 3); } },
     { id: 'projectile', label: 'Снаряд', run: (match) => { shot(match, 2, 'turret'); } },
     { id: 'lightning', label: 'Молния', run: (match) => { shot(match, 2, 'lightning'); } },
+    { id: 'firestorm-tick', label: 'Огненный шторм (тик)', prepare: realCard('firestorm'), run: (match) => {
+      const cast = resolve(play(match));
+      return cast.turn === match.turn ? resolve(applyMotionAction(cast, { type: 'end-turn' })) : cast;
+    } },
     { id: 'salvo', label: 'Залп', prepare: realCard('orbital-salvo'), run: (match) => resolve(play(match)) },
     { id: 'death', label: 'Гибель', run: (match) => { damage(match, unit(match), 8); } },
     { id: 'annihilation', label: 'Аннигиляция', prepare: realCard('annihilation'), run: play },

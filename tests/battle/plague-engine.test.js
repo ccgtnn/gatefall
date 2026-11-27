@@ -37,7 +37,8 @@ test('categories cover the existing Growth pool and identify the Void neutrals',
     ['genome-keeper', 'infected-carcass']);
   assert.deepEqual(FACTIONS.protectorate.pool.filter((card) => card.categories).map(({ id, categories }) => [id, categories]),
     [['imperial-golem', ['Голем']], ['aggressor', ['Тяжёлый корабль']],
-      ['aurelian', ['Тяжёлый корабль']], ['tiberius', ['Тяжёлый корабль']]]);
+      ['aurelian', ['Тяжёлый корабль']], ['tiberius', ['Тяжёлый корабль']],
+      ['emperors-hand', ['Тяжёлый корабль']], ['brander', ['Лёгкий корабль']]]);
   assert.deepEqual([...NEUTRAL_CARDS, SHADOW].filter((card) => card.categories?.includes('Пустота')).map(({ id, categories }) => [id, categories]),
     [['falura', ['Пустота']], ['shadow', ['Пустота']]]);
 });
@@ -57,7 +58,7 @@ test('damage changes current power; fortify and weaken preserve the offset; heal
   assert.equal(target.card.definition.power, 5);
 });
 
-test('rot replaces the old counter, ticks on the row owner turn and handles both infection and damage', () => {
+test('rot adds to the old counter, ticks on the row owner turn and handles both infection and damage', () => {
   let match = setup();
   const { human, bot } = match.players;
   human.hand.push(unit('next'));
@@ -67,14 +68,14 @@ test('rot replaces the old counter, ticks on the row owner turn and handles both
   setRowEffect(match, 'bot', 'orbit', rot);
   match = step(match, 'human', play('human-spare'));
   assert.equal(statusCount(findUnit(match, 'enemy').card, 'infection'), 2);
-  assert.equal(match.players.bot.rowEffects.orbit.remaining, 2);
+  assert.equal(match.players.bot.rowEffects.orbit.remaining, 3);
   match = step(match, 'bot', play('bot-spare', 2));
-  assert.equal(match.players.bot.rowEffects.orbit.remaining, 2);
+  assert.equal(match.players.bot.rowEffects.orbit.remaining, 3);
   match = step(match, 'human', play('next', 1));
   assert.equal(findUnit(match, 'enemy').card.power, 3);
   assert.equal(findUnit(match, 'enemy').card.armor, 0);
   assert.equal(findUnit(match, 'untouched').card.power, 5);
-  assert.equal(match.players.bot.rowEffects.orbit.remaining, 1);
+  assert.equal(match.players.bot.rowEffects.orbit.remaining, 2);
 });
 
 test('empty rows expire on their owner turn, including when the other side has passed', () => {

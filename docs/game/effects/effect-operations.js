@@ -114,6 +114,15 @@ function inheritDeathwishes(match, job) {
   }
 }
 
+function grantDeathwish(match, job, step, unit) {
+  const source = reference(match, job)?.card.definition;
+  if (!source) return;
+  const wish = { id: source.id, name: source.name, deathwish: step.deathwish, grantedBy: job.side };
+  const inheritedDeathwishes = [...(unit.card.inheritedDeathwishes ?? []), wish];
+  unit.card.inheritedDeathwishes = inheritedDeathwishes;
+  match.log.push({ type: 'inherit-deathwishes', side: unit.side, cardId: unit.card.id, inheritedDeathwishes });
+}
+
 function selectRow(match, job, step) {
   if (!job.refs[step.ref]) {
     const selectionSide = rowSide(job.side, step);
@@ -128,9 +137,10 @@ function selectRow(match, job, step) {
       const scatter = job.ability.steps.find((part) => part.action === 'scatter' && part.rowRef === step.ref);
       const amount = scatter && valueOf(match, job, scatter.amount);
       const prompt = scatter ? `Выбери вражеский ряд · Ударов: ${amount} по 1 урону.` : step.prompt;
+      const weather = kind === 'row-effect' && job.ability.steps.find((part) => part.action === 'row-effect' && part.rowRef === step.ref);
       return pauseForChoice(match, job, kind, step.ref, rows, prompt, {
         selectionSide,
-        ...(kind === 'row-effect' && { amount: job.ability.steps.find((part) => part.action === 'row-effect')?.amount }),
+        ...(weather && { amount: weather.amount, rowWeather: weather.effect }),
         ...(damage && { amount: damage.amount, armorStrip: -(armor?.amount ?? 0) }),
         ...(scatter && { amount, scatter: true }),
       });
@@ -158,15 +168,16 @@ function scatter(match, job, step, random) {
 }
 
 function rowEffect(match, job, step) {
-  const side = rowSide(job.side, step);
+  const side = step.row === 'death' ? job.deathSide : rowSide(job.side, step);
+  if (!side) return;
   const player = match.players[side];
   const score = (row) => player.board[row].reduce((sum, card) => sum + (card.power ?? 0), 0);
   const rows = step.row === 'all' ? ROWS : [step.row === 'strongest'
     ? ROWS.reduce((best, row) => score(row) > score(best) ? row : best)
-    : step.rowRef ? job.refs[step.rowRef] : step.row];
+    : step.row === 'death' ? job.row : step.rowRef ? job.refs[step.rowRef] : step.row];
   for (const row of rows.filter((row) => ROWS.includes(row))) {
     setRowEffect(match, side, row, { type: step.effect, remaining: step.amount,
-      sourceDefinitionId: job.sourceDefinitionId, attacker: job.side });
+      sourceDefinitionId: job.sourceDefinitionId ?? reference(match, job)?.card.definition.id, attacker: job.side });
   }
 }
 
@@ -217,6 +228,7 @@ export const effectOperations = Object.freeze({
   'choose-tribute': chooseTribute,
   'choose-unit': chooseUnit,
   'inherit-deathwishes': inheritDeathwishes,
+  'grant-deathwish': eachTarget(grantDeathwish),
   'select-row': selectRow,
   scatter,
   'row-effect': rowEffect,

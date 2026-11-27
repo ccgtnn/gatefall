@@ -117,7 +117,7 @@ export function applyJournalEvent(state, event) {
     const line = player.board[row];
     const index = line.findIndex(({ id }) => id === cardId);
     if (index === -1) continue;
-    if (type === 'death' || type === 'destroy' || type === 'discard') {
+    if (type === 'death' || type === 'destroy' || type === 'discard' || type === 'banish') {
       const [card] = line.splice(index, 1);
       const pile = event.exile ? 'exile' : 'discard';
       const owner = state.players[event.owner ?? side];
