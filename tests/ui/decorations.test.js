@@ -159,6 +159,8 @@ test('the flagship bridge follows metal and uses its WebP in the preview and on 
 
   const css = readFileSync(new URL('../../docs/decorations.css', import.meta.url), 'utf8');
   assert.match(css, /\[data-battlefield-choice="bridge"\]\) \.match-board \{[^}]+url\('\.\/art\/battlefield-bridge\.webp'\)/);
+  assert.match(css, /\[data-battlefield-choice="bridge"\]\) \.field-right \{[^}]+background: rgb\(8 14 28 \/ 0\.62\);[^}]+backdrop-filter: blur\(4px\);/);
+  assert.match(css, /\[data-battlefield-choice="bridge"\]\) \.field-left \{[^}]+justify-items: center;[^}]+padding-inline: 28% 0;/);
   const art = readFileSync(new URL('../../docs/art/battlefield-bridge.webp', import.meta.url));
   assert.equal(art.toString('ascii', 8, 12), 'WEBP');
   assert.ok(art.length <= 250_000);
