@@ -132,7 +132,8 @@ export function createCloudAuth({ storage, request, location, history, locks, no
 
   async function sendLink(email) {
     try {
-      await request('/auth/v1/otp', { method: 'POST', body: { email, create_user: true } });
+      const redirectTo = encodeURIComponent(location.origin + location.pathname);
+      await request(`/auth/v1/otp?redirect_to=${redirectTo}`, { method: 'POST', body: { email, create_user: true } });
       message = 'Ссылка отправлена на ' + email;
     } catch (error) {
       message = error?.status === 0 ? 'Нет сети. Подключись к интернету и попробуй снова.'
