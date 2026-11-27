@@ -2,6 +2,7 @@ import { CloudError } from './request.js';
 
 // Outside gatefall.* so resetting game data preserves the session.
 export const SESSION_KEY = 'gatefall-cloud.session';
+export const SYNC_META_PREFIX = 'gatefall-cloud.sync.';
 const REFRESH_EARLY_MS = 60_000;
 
 export function readAuthLink(location, history) {
@@ -146,6 +147,16 @@ export function createCloudAuth({ storage, request, location, history, locks, no
   async function signOut() {
     const current = session();
     generation += 1;
+    if (current) {
+      const key = SYNC_META_PREFIX + current.user.id;
+      try {
+        const { version, lastSync } = JSON.parse(storage.getItem(key) ?? '{}') ?? {};
+        if (version !== undefined) storage.setItem(key, JSON.stringify({ version, lastSync }));
+        else storage.removeItem(key);
+      } catch {
+        storage.removeItem(key);
+      }
+    }
     storage?.removeItem(SESSION_KEY);
     message = '';
     scheduleRefresh();

@@ -86,12 +86,11 @@ export function applyAction(match, side, action, { random = Math.random, copy = 
     current.usedAbility = true;
     current.roundActed = true;
     const { leader } = current;
-    if (leader.order) leader.lastUsedTurn = current.turns;
-    const spendsCharge = !leader.order || leader.order.usesCharges;
-    if (spendsCharge) leader.charges -= 1;
-    const sourceDefinitionId = leader.order?.sourceDefinitionId;
+    const { usesCharges, sourceDefinitionId } = leader.order;
+    leader.lastUsedTurn = current.turns;
+    if (usesCharges) leader.charges -= 1;
     next.log.push({ type: 'leader', side, name: leader.name, ...(sourceDefinitionId && { sourceDefinitionId }),
-      ...(leader.order && { lastUsedTurn: leader.lastUsedTurn }), ...(spendsCharge && { charges: leader.charges }) });
+      lastUsedTurn: leader.lastUsedTurn, ...(usesCharges && { charges: leader.charges }) });
     next.effects.push({ ability: leader.ability, side, sourceDefinitionId });
   } else if (type === 'fee') {
     current.usedAbility = true;

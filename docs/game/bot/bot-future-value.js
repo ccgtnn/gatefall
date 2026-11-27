@@ -2,7 +2,7 @@ import { activeOrder, availableRows, cardType, COIN_LIMIT, infectionDamage, isUn
 import { handCount } from './bot-hand.js';
 import { ROWS } from '../shared/card-metadata.js';
 import { feePayoff } from './bot-effect-value.js';
-import { carriedCoins } from '../engine/match-setup.js';
+import { carriedCoins } from '../engine/match.js';
 import { EVAL_WEIGHTS as W } from './bot-weights.js';
 import { canGrantZeal, leaderCooldown } from '../effects/effects.js';
 import { canStart, matchesPileFilter, stepAllowed, targets, valueOf } from '../effects/effect-queries.js';
@@ -164,15 +164,18 @@ export function coinValue(context, coins = context.player.coins ?? 0) {
 export function leaderUses(context, future = false) {
   const { match, player, side } = context;
   const leader = player.leader;
-  if (!leader?.ability || (leader.order && !leader.order.usesCharges)) return 0;
-  const turns = future ? handCount(player) + 3 * (3 - match.round) : context.resourceTurns;
-  if (!turns || (!future && turns === 1 && !canStart(match, { side, ability: leader.ability }))) return 0;
-  const cooldown = leader.order ? leaderCooldown(player)
-    : Number(match.turn === side && match.playedCard && handCount(player) > 0);
-  const opportunities = Math.max(0, turns - (future ? 0 : cooldown));
-  const recharge = leader.order && !context.own.some(({ card }) =>
-    !isLocked(card) && card.definition.id === leader.order.quickenedBy) ? leader.order.cooldown + 1 : 1;
-  return Math.min(leader.charges, Math.ceil(opportunities / recharge));
+  const order = leader?.order;
+  if (!leader?.ability || !order) return 0;
+  const futureTurns = 3 * (3 - match.round);
+  const turns = future ? futureTurns + (order.usesCharges ? handCount(player) : 0) : context.resourceTurns;
+  if (turns <= 0 || (!future && turns === 1 && !canStart(match, { side, ability: leader.ability }))) return 0;
+  const cooldown = future ? 0 : leaderCooldown(player);
+  const opportunities = Math.max(0, turns - cooldown);
+  const accelerated = order.quickenedBy && context.own.some(({ card }) =>
+    !isLocked(card) && card.definition.id === order.quickenedBy);
+  const recharge = accelerated ? 1 : order.cooldown + 1;
+  const uses = Math.ceil(opportunities / recharge);
+  return order.usesCharges ? Math.min(leader.charges, uses) : uses;
 }
 
 export function leaderChargeValue({ player }) {
@@ -402,8 +405,11 @@ export function carryoverValue(context, passed) {
       : 0;
     return total + ((card.power ?? 0) + carriedArtifact + protectionValue(context, card)) * W.carriedUnit;
   }, 0);
+  const futureUses = leaderUses(context, true);
   const currentUses = passed ? 0 : leaderUses(context);
-  const carryLeader = Math.min(Math.max(0, (player.leader?.charges ?? 0) - currentUses), leaderUses(context, true));
+  const carryLeader = player.leader?.order?.usesCharges
+    ? Math.min(Math.max(0, player.leader.charges - currentUses), futureUses)
+    : futureUses;
   const carryCoins = passed ? futureCoinValue(context, player.coins ?? 0) : 0;
   return resilience + carryLeader * leaderChargeValue(context) + carryCoins;
 }

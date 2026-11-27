@@ -2,7 +2,6 @@ import { GAME_STORAGE_PREFIX, REWARD_STORAGE_KEY } from '../../game/shared/stora
 
 const DEVICE_SETTINGS = new Set([
   'gatefall.animation-speed',
-  'gatefall.reduced-motion',
   'gatefall.sound-enabled',
   'gatefall.sound-volume',
   'gatefall.bot-thoughts',
@@ -47,6 +46,16 @@ export function exportSnapshot(storage, version = 0) {
   return JSON.stringify({ version, data: readSnapshot(storage) }, null, 2) + '\n';
 }
 
+export function downloadSnapshot(json) {
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'gatefall-progress.json';
+  try { link.click(); }
+  finally { setTimeout(() => URL.revokeObjectURL(url), 1000); }
+}
+
 export function replaceSnapshot(storage, data) {
   const next = validateSnapshot(data);
   const previous = readSnapshot(storage);
@@ -78,7 +87,7 @@ export function progressChangedAt(storage) {
   return storage?.getItem(LAST_CHANGE_KEY);
 }
 
-export function trackProgressWrites(storage, onChanged) {
+export function trackProgressWrites(storage, onChanged, { background = false } = {}) {
   if (!storage) return undefined;
   return {
     getItem: (key) => storage.getItem(key),
@@ -86,7 +95,7 @@ export function trackProgressWrites(storage, onChanged) {
       const changed = isProgressKey(key) && storage.getItem(key) !== String(value);
       storage.setItem(key, value);
       if (changed) {
-        markProgressChange(storage);
+        if (!background) markProgressChange(storage);
         onChanged();
       }
     },

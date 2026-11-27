@@ -4,10 +4,11 @@ import { findUnit } from '../../docs/game/engine/board.js';
 import { chooseBotTurn, chooseEasyTurn, pickBotTarget } from '../../docs/game/bot/bot.js';
 import { evaluatePosition } from '../../docs/game/bot/bot-evaluation.js';
 import { effectSwing } from '../../docs/game/bot/bot-effect-value.js';
-import { carryoverValue, coinValue, delayedCardValue, futureContext, remainingTurns } from '../../docs/game/bot/bot-future-value.js';
+import { carryoverValue, coinValue, delayedCardValue, futureContext, leaderUses, remainingTurns } from '../../docs/game/bot/bot-future-value.js';
 import { visibleSupply } from '../../docs/game/bot/bot-rollouts.js';
 import { botSearchState, publicMatch } from '../../docs/game/bot/bot-strategy.js';
 import { FACTIONS, LARVA } from '../../docs/game/cards/cards.js';
+import { NEUTRAL_CARDS } from '../../docs/game/cards/factions/neutral-cards.js';
 import { SLEEPER, TENTACLE } from '../../docs/game/cards/factions/choir.js';
 import { applyAction } from '../../docs/game/engine/match.js';
 import { plain, position, standard } from '../helpers/bot-strategy.js';
@@ -170,4 +171,30 @@ test('Broodlord chooses the row with larvae of strength 2 and 4 at levels 4 and 
     assert.equal(action.row, 'surface');
     assert.equal(findUnit(applyAction(match, 'bot', action, fixed), 'broodlord').card.power, 16);
   }
+});
+
+test('Falura adds value through immediate and future uses of the repeatable leader Order', () => {
+  const match = position();
+  const falura = standard('falura', NEUTRAL_CARDS.find(({ id }) => id === 'falura'));
+  match.players.bot.hand = [falura, plain('one', 4), plain('two', 4), plain('three', 4)];
+  match.players.human.board.surface = [plain('enemy', 8)];
+  const next = applyAction(match, 'bot', { type: 'play', cardId: falura.id, row: 'orbit', position: 0 }, fixed);
+  const { bot } = next.players;
+  const leader = bot.leader;
+  assert.equal(leader.order.sourceDefinitionId, 'falura');
+  assert.equal(bot.board.orbit.filter(({ definition }) => definition.id === 'shadow').length, 2);
+
+  next.round = 3;
+  const ready = evaluatePosition(next, 'bot');
+  bot.leader = undefined;
+  assert.ok(ready > evaluatePosition(next, 'bot'));
+
+  next.round = 1;
+  bot.leader = leader;
+  const accelerated = leaderUses(futureContext(next, 'bot'));
+  for (const shadow of bot.board.orbit.filter(({ definition }) => definition.id === 'shadow')) {
+    shadow.statuses = { lock: 1 };
+  }
+  assert.ok(accelerated > leaderUses(futureContext(next, 'bot')));
+  assert.ok(carryoverValue(futureContext(next, 'bot'), true) > 0);
 });

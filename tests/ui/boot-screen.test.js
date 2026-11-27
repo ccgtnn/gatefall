@@ -16,7 +16,7 @@ test('boot overlay is the first body element, has critical styles and receives t
   const css = html.match(/<style>([\s\S]*?)<\/style>/)[1];
   assert.match(css, /#boot-screen\s*\{[^}]*position: fixed;[^}]*inset: 0;[^}]*background: #05060a;/);
   assert.ok(html.indexOf('</style>') < html.indexOf('href="./style.css"'));
-  assert.match(app, /^render\(\);\s*window\.gatefallBootReady\?\.\(\);\s*\/\/[^\n]*\nvoid cloud\.start\(/m);
+  assert.match(app, /^render\(\);\s*window\.gatefallBootReady\?\.\(\);/m);
 });
 
 test('all six WebP assets exist and their literal URLs are versioned by the Pages build', () => {
@@ -46,7 +46,10 @@ function startBoot({ osReduced = false, preference = null, styles = [] } = {}) {
   const retry = new TestNode('button');
   retry.className = 'boot-retry';
   retry.hidden = true;
-  screen.append(art, track, hint, retry);
+  const backup = new TestNode('button');
+  backup.className = 'boot-retry boot-export';
+  backup.hidden = true;
+  screen.append(art, track, hint, retry, backup);
   screen.style.getPropertyValue = (key) => screen.style[key];
   screen.remove = () => { screen.removed = true; };
   const moduleScript = new EventTarget();
@@ -79,10 +82,13 @@ function startBoot({ osReduced = false, preference = null, styles = [] } = {}) {
     },
     window, AbortController, setTimeout, clearTimeout: (id) => timers.delete(id),
     performance: { now: () => now }, requestAnimationFrame: (callback) => setTimeout(callback, 16),
-    matchMedia: () => ({ matches: osReduced }), localStorage: { getItem: () => preference },
+    matchMedia: () => ({ matches: osReduced }), localStorage: { getItem(key) {
+      assert.equal(key, 'gatefall.animation-speed');
+      return preference;
+    } },
     location: { reload: () => { reloads += 1; } },
   });
-  return { art, track, hint, retry, screen, window, moduleScript, advanceTo, reloads: () => reloads };
+  return { art, track, hint, retry, backup, screen, window, moduleScript, advanceTo, reloads: () => reloads };
 }
 
 test('boot waits for the stylesheet and minimum time, then completes progress and fades out', () => {
@@ -105,16 +111,22 @@ test('boot waits for the stylesheet and minimum time, then completes progress an
   assert.equal(boot.screen.removed, true);
 });
 
-test('system and saved reduced-motion preferences remove the screen as soon as the game is ready', () => {
-  for (const settings of [{ osReduced: true }, { preference: 'on' }]) {
+test('boot follows the system motion preference unless the player selected an animation speed', () => {
+  for (const settings of [{ osReduced: true }, { osReduced: true, preference: 'system' }]) {
     const boot = startBoot(settings);
     assert.ok(boot.screen.classList.contains('boot-still'));
     boot.window.gatefallBootReady();
     assert.equal(boot.screen.removed, true);
   }
+  for (const preference of ['normal', 'fast']) {
+    const boot = startBoot({ osReduced: true, preference });
+    assert.equal(boot.screen.classList.contains('boot-still'), false);
+    boot.window.gatefallBootReady();
+    assert.equal(boot.screen.removed, undefined);
+  }
 });
 
-test('startup errors and timeout keep the overlay and offer a working reload button', () => {
+test('startup errors and timeout offer reload and backup while awaiting a late render signal', () => {
   const failures = [
     (boot) => boot.advanceTo(15000),
     (boot) => boot.window.dispatchEvent(new Event('error')),
@@ -127,10 +139,21 @@ test('startup errors and timeout keep the overlay and offer a working reload but
     assert.equal(boot.hint.textContent, 'Не удалось загрузить игру. Обнови страницу');
     assert.ok(boot.track.hidden);
     assert.equal(boot.retry.hidden, false);
-    boot.window.gatefallBootReady?.();
-    boot.advanceTo(20000);
+    assert.equal(boot.backup.hidden, false);
     assert.equal(boot.screen.removed, undefined);
     boot.retry.dispatchEvent(new Event('click'));
     assert.equal(boot.reloads(), 1);
+    boot.window.gatefallBootReady();
+    assert.equal(boot.screen.removed, true);
   }
+});
+
+test('a late render after timeout reveals the game even with a stylesheet still pending', () => {
+  const style = new EventTarget();
+  const boot = startBoot({ styles: [style] });
+  boot.advanceTo(15000);
+  boot.window.gatefallBootReady();
+  assert.equal(boot.screen.removed, true);
+  style.dispatchEvent(new Event('load'));
+  assert.equal(style.media, 'all');
 });

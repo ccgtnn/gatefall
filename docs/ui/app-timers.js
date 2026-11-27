@@ -1,7 +1,7 @@
 const TICK_MS = 1000;
 const RETRY_MS = 15000;
 
-export function createAppTimers(progress, onLeagueTick) {
+export function createAppTimers(progress, onLeagueTick, checkpoints = progress) {
   let interval;
   let unsubscribe;
   let tavernResetAt;
@@ -20,7 +20,7 @@ export function createAppTimers(progress, onLeagueTick) {
     if (checkingTavern) return;
     checkingTavern = true;
     try {
-      const outcome = await progress.checkpointTavern();
+      const outcome = await checkpoints.checkpointTavern();
       retryTavernAt = outcome === 'unavailable' ? Date.now() + RETRY_MS : 0;
     } finally {
       checkingTavern = false;
@@ -31,7 +31,7 @@ export function createAppTimers(progress, onLeagueTick) {
     if (checkingRanks) return;
     checkingRanks = true;
     try {
-      const outcome = await progress.checkpointRanks();
+      const outcome = await checkpoints.checkpointRanks();
       retryRanksAt = outcome === 'done' ? 0 : Date.now() + RETRY_MS;
     } finally {
       checkingRanks = false;
@@ -48,7 +48,8 @@ export function createAppTimers(progress, onLeagueTick) {
   function start() {
     if (interval !== undefined) return;
     interval = setInterval(tick, TICK_MS);
-    if (progress.league()) void progress.checkpointLeague();
+    void checkpoints.checkpointProduction?.();
+    if (progress.league()) void checkpoints.checkpointLeague();
     unsubscribe = progress.subscribe(readResetTimes);
     readResetTimes();
     void checkpointTavern();

@@ -1,8 +1,28 @@
+import { createRewardProgress } from '../../game/meta/rewards.js';
+import { REWARD_STORAGE_KEY } from '../../game/shared/storage-keys.js';
+import { downloadSnapshot } from './snapshot.js';
+import { progressActivity } from './sync.js';
 import { button, element } from '../dom.js';
 
 function dateLabel(value) {
   const date = new Date(value);
   return !value || Number.isNaN(date.getTime()) ? 'дата неизвестна' : date.toLocaleString('ru-RU');
+}
+
+function progressLabel(data) {
+  const { decks, matches } = progressActivity(data);
+  const details = [];
+  if (data[REWARD_STORAGE_KEY] && data[REWARD_STORAGE_KEY] !== 'null') {
+    try {
+      JSON.parse(data[REWARD_STORAGE_KEY]);
+      const { gold, owned } = createRewardProgress({ getItem: (key) => data[key] }).inventory();
+      const cards = Object.values(owned).reduce((sum, count) => sum + count, 0);
+      details.push('Золото: ' + gold, 'Карт: ' + cards);
+    } catch {}
+  }
+  if (decks !== undefined) details.push('Свои колоды: ' + decks);
+  if (matches !== undefined) details.push('Матчи: ' + matches);
+  return details.length ? ' · ' + details.join(' · ') : '';
 }
 
 export function createConflictDialog() {
@@ -13,18 +33,25 @@ export function createConflictDialog() {
   const local = element('p');
   const cloud = element('p');
   const actions = element('div', 'settings-actions');
+  const keepCloud = button('Оставить облачный', () => dialog.close('cloud'));
+  const keepLocal = button('Оставить этот', () => dialog.close('local'));
   actions.append(
-    button('Оставить облачный', () => dialog.close('cloud')),
-    button('Оставить этот', () => dialog.close('local'), 'button primary'),
+    keepCloud,
+    keepLocal,
     button('Решить позже', () => dialog.close('')),
   );
   dialog.append(title, local, cloud, actions);
   document.body.append(dialog);
   return {
     close() { if (dialog.open) dialog.close(''); },
-    choose({ localAt, remote }) {
-      local.textContent = 'На этом устройстве · ' + dateLabel(localAt);
-      cloud.textContent = 'В облаке · ' + dateLabel(remote.updated_at) + (remote.device ? ' · ' + remote.device : '');
+    choose({ local: localData, localAt, remote, hasBaseline }) {
+      local.textContent = 'На этом устройстве · ' + dateLabel(localAt) + progressLabel(localData);
+      cloud.textContent = 'В облаке · ' + dateLabel(remote.updated_at) + (remote.device ? ' · ' + remote.device : '') +
+        progressLabel(remote.data);
+      keepCloud.classList.toggle('primary', !hasBaseline);
+      keepLocal.classList.toggle('primary', hasBaseline);
+      (hasBaseline ? keepLocal : keepCloud).setAttribute('autofocus', '');
+      (hasBaseline ? keepCloud : keepLocal).removeAttribute('autofocus');
       dialog.returnValue = '';
       dialog.showModal();
       return new Promise((resolve) => {
@@ -81,13 +108,7 @@ export function mountCloudSettings(settings, appCloud) {
   transferStatus.setAttribute('role', 'status');
   const download = button('Экспорт прогресса', () => {
     try {
-      const blob = new Blob([appCloud.exportProgress()], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = element('a');
-      link.href = url;
-      link.download = 'gatefall-progress.json';
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      downloadSnapshot(appCloud.exportProgress());
       transferStatus.textContent = '';
     } catch {
       transferStatus.textContent = 'Не удалось экспортировать прогресс.';

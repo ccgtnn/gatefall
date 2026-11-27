@@ -18,6 +18,11 @@ export function createAppCloud(storage, inMatch) {
     deviceName: matchMedia('(pointer: coarse)').matches ? 'Сенсорное устройство' : 'Компьютер',
   });
   const trackedStorage = trackProgressWrites(storage, sync.schedule);
+  const backgroundStorage = trackProgressWrites(storage, sync.schedule, { background: true });
+  const onVisibilityChange = () => {
+    if (document.hidden) sync.saveOnHide();
+    else void sync.run();
+  };
 
   async function start() {
     await auth.initialize();
@@ -35,16 +40,14 @@ export function createAppCloud(storage, inMatch) {
       if (event.key === SESSION_KEY || event.key === null) auth.storageChanged();
       if (isProgressKey(event.key)) sync.schedule();
     });
-    document.addEventListener('visibilitychange', () => {
-      void sync.run({ keepalive: document.hidden });
-    });
+    document.addEventListener('visibilitychange', onVisibilityChange);
     window.addEventListener('online', () => { void sync.run(); });
     window.addEventListener('pageshow', (event) => { if (event.persisted) void sync.run(); });
     await sync.run();
   }
 
   return {
-    auth, sync, start, storage: trackedStorage, inMatch,
+    auth, sync, start, storage: trackedStorage, backgroundStorage, inMatch,
     exportProgress: () => exportSnapshot(storage, sync.version()),
     async importProgress(data) {
       if (inMatch()) throw new Error('Импорт доступен после выхода из матча.');

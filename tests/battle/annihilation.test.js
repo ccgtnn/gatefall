@@ -76,7 +76,7 @@ test('a leader or Order consumes Initiative, and the next round resets it', () =
   for (const action of [{ type: 'leader' }, { type: 'order', cardId: 'order' }]) {
     const match = fixture();
     const noop = { steps: [] };
-    match.players.human.leader = { name: 'Leader', charges: 1, ability: noop };
+    match.players.human.leader = { name: 'Leader', charges: 1, order: { cooldown: 0, usesCharges: true }, ability: noop };
     match.players.human.board.orbit = [unit('order', 8, { order: noop })];
     match.players.bot.board.orbit = [unit('enemy', 8)];
     const activated = applyAction(match, 'human', action);
