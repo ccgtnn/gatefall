@@ -166,10 +166,10 @@ export function applyJournalEvent(state, event) {
 // The next actor may move only after this promise resolves.
 export async function playJournal(previous, events, present) {
   const state = createPlaybackState(previous);
-  for (const event of events) {
+  for (const [index, event] of events.entries()) {
     await present(event, () => {
       applyJournalEvent(state, event);
       return state;
-    }, state);
+    }, state, events[index + 1], events[index - 1]);
   }
 }

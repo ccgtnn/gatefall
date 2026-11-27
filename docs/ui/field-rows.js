@@ -150,6 +150,7 @@ export function createFieldRows({ getSelectedCardId, humanCanAct, isReplaying, p
     const player = match.players[side];
     const section = element('section', 'side');
     section.dataset.side = side;
+    if (match.phase === 'playing') section.dataset.turnState = match.turn === side ? 'active' : 'inactive';
     section.dataset.faction = player.factionId ?? '';
     const underStorm = ROWS.some((row) => match.players[opponent(side)].board[row]
       .some(({ definition }) => definition.fieldAura === 'psionic-storm'));
@@ -158,7 +159,11 @@ export function createFieldRows({ getSelectedCardId, humanCanAct, isReplaying, p
     const rows = side === 'bot' ? ROWS : [...ROWS].reverse();
     const readyFees = new Set(availableFees(match, side).map(({ card }) => card.id));
     section.append(...rows.map((row) => rowView(match, side, player, row, readyOrders, readyFees)));
-    if (side === 'bot' && player.passed) section.append(element('p', 'opponent-passed', 'ПАС'));
+    if (side === 'bot' && player.passed) {
+      const passed = element('p', 'opponent-passed', 'ПАС');
+      passed.dataset.passedSide = side;
+      section.append(passed);
+    }
     return section;
   }
 

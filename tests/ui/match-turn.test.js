@@ -17,7 +17,7 @@ function controller(options = {}) {
     settings: { motion: () => 0, showBotThoughts: () => false, playSound() {} },
     aim: { update() {}, showTap: () => false },
     notices: {}, announcement: {}, showNotice() {}, hideNotice() {}, render() {}, recordJournal() {},
-    onMatchChanged() {}, onCancelTargeting() {}, difficulty: () => 2, battlefieldStyle: () => 'standard',
+    onMatchChanged() {}, onCancelTargeting() {}, difficulty: () => 2,
     ...options,
   });
 }
@@ -63,6 +63,38 @@ test('the bot waits for playback and a reset cancels its scheduled turn', async 
   assert.equal(requestedBotTurn, 0);
   t.mock.timers.tick(1);
   assert.equal(requestedBotTurn, 1);
+});
+
+test('the old turn notice appears only when the journal did not show a banner', async () => {
+  const notices = [];
+  let duration = 320;
+  const doc = {
+    body: { append() {} },
+    createElement: () => ({
+      ownerDocument: doc, style: {}, dataset: {}, append() {}, setAttribute() {}, remove() {},
+      animate: () => ({ finished: Promise.resolve(), cancel() {} }),
+    }),
+  };
+  const field = {
+    getBoundingClientRect: () => ({ left: 10, top: 10, width: 500, height: 150 }),
+    animate: () => ({ finished: Promise.resolve(), cancel() {} }),
+  };
+  const turns = controller({
+    screen: {
+      ownerDocument: doc, classList: { add() {} }, querySelector: (selector) =>
+        selector.startsWith('.field-center') ? field : null,
+      querySelectorAll: () => [],
+    },
+    settings: { motion: () => duration, playSound() {} },
+    showNotice: (_, text) => notices.push(text),
+  });
+
+  for (duration of [320, 0]) {
+    turns.reset(readyMatch());
+    await turns.playHuman({ type: 'pass' });
+    assert.deepEqual(notices, duration ? [] : ['Ход противника']);
+  }
+  turns.reset();
 });
 
 test('a target confirmation from the previous match cannot change the next match', async (t) => {

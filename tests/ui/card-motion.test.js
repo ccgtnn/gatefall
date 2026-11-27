@@ -3,14 +3,17 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { clearRememberedRects, ghostCard, pileAnchor, rememberRect, takeRememberedRect } from '../../docs/ui/card-motion-core.js';
 import { motionDuration } from '../../docs/ui/motion-tokens.js';
-import { animateHandTurn, animateTurnSparks, presentJournalEvent } from '../../docs/ui/card-motion.js';
+import { animateHandTurn, presentJournalEvent } from '../../docs/ui/card-motion.js';
 
-function scenario() {
+import { playJournal } from '../../docs/ui/turn-playback.js';
+
+function scenario(turnFinished, entranceFinished) {
   const trace = [];
   const overlays = [];
   let finishReveal;
   const revealed = new Promise((resolve) => { finishReveal = resolve; });
   const field = {
+    animate() {},
     isConnected: true,
     dataset: { faction: 'growth' },
     getBoundingClientRect: () => ({ right: 648, top: 50, height: 200, left: 80, width: 568 }),
@@ -19,6 +22,8 @@ function scenario() {
     defaultView: { getComputedStyle: () => ({ visibility: 'visible' }), innerHeight: 740 },
     body: { append: (node) => overlays.push(node) },
     createElement: () => ({
+      ownerDocument: document,
+      className: '',
       dataset: {},
       offsetWidth: 100,
       style: {},
@@ -35,7 +40,9 @@ function scenario() {
         this.motion = { keyframes, options };
         trace.push(this.className + ':start');
         return {
-          finished: this.className.endsWith('motion-opponent-reveal') ? revealed : Promise.resolve(),
+          finished: this.className.endsWith('motion-opponent-reveal') ? revealed
+            : (this.className.includes('motion-overlay turn-banner') ? turnFinished
+              : this.className === 'turn-banner-label' ? entranceFinished : undefined) ?? Promise.resolve(),
           cancel() {},
         };
       },
@@ -44,7 +51,7 @@ function scenario() {
   const screen = {
     ownerDocument: document,
     querySelectorAll: () => [],
-    querySelector: (selector) => selector.startsWith('.side') || selector === '.field-center' ? field : null,
+    querySelector: (selector) => selector.startsWith('.side') || selector.startsWith('.field-center') ? field : null,
   };
   const play = {
     type: 'play', side: 'bot', cardId: 'gates', name: 'Врата Миров',
@@ -102,19 +109,81 @@ test('the turn cue sweeps the hand in order and respects reduced motion', () => 
   assert.deepEqual(pulses, cards.map((_, index) => ({ index, delay: 53 * index, duration: 106 })));
 });
 
-test('turn sparks run on both rows of the active side and clean up after the flight', async () => {
-  const { screen } = scenario();
-  const rows = [[], []];
-  screen.querySelectorAll = (selector) => {
-    assert.equal(selector, '.field-center > .side[data-side="bot"] > .board-row');
-    return rows.map((sparks) => ({ append: (spark) => sparks.push(spark) }));
-  };
-  animateTurnSparks(screen, 'bot', 0);
-  assert.deepEqual(rows, [[], []]);
-  animateTurnSparks(screen, 'bot', 320);
-  assert.deepEqual(rows.map((sparks) => sparks.map(({ motion }) => motion.options.delay)), [[0, 35, 70], [35, 70, 105]]);
-  await Promise.resolve();
-  assert.ok(rows.flat().every((spark) => !spark.isConnected));
+const turnState = () => ({
+  log: [], turn: 'bot',
+  players: {
+    human: { hand: [], board: { orbit: [], surface: [] } },
+    bot: { hand: [], board: { orbit: [], surface: [] }, passed: true },
+  },
+});
+const humanTurn = { type: 'turn-start', side: 'human', empty: false };
+
+test('a turn banner waits for the entrance and stays until its animation finishes', async () => {
+  const end = Promise.withResolvers();
+  const entrance = Promise.withResolvers();
+  const { screen, overlays } = scenario(end.promise, entrance.promise);
+  const state = turnState();
+  state.players.bot.passed = false;
+  let shown;
+  const presentation = presentJournalEvent(screen, humanTurn, () => state, () => {}, 320)
+    .then((result) => { shown = result; });
+  await new Promise(setImmediate);
+  assert.equal(shown, undefined);
+  entrance.resolve();
+  await presentation;
+  assert.equal(shown, true);
+  const [banner] = overlays;
+  assert.equal(banner.dataset.side, 'human');
+  assert.equal(banner.children[1].textContent, 'ТВОЙ ХОД');
+  assert.equal(banner.motion.options.duration, 1088);
+  assert.equal(banner.children[1].motion.options.duration, 1088 * .3);
+  assert.equal(banner.isConnected, true);
+  end.resolve();
+  await new Promise(setImmediate);
+  assert.equal(banner.isConnected, false);
+});
+
+test('speed off still renders a turn change and creates no banner or pass overlay', async () => {
+  const { screen, overlays } = scenario();
+  let renders = 0;
+  for (const event of [humanTurn, { type: 'pass', side: 'human', reason: 'manual' }]) {
+    await presentJournalEvent(screen, event, turnState, () => { renders++; }, 0);
+  }
+  assert.equal(renders, 2);
+  assert.deepEqual(overlays, []);
+});
+
+test('an empty turn and the following active turn share one banner', async () => {
+  const { screen, overlays } = scenario();
+  const skipped = { type: 'turn-start', side: 'bot', empty: true };
+  const rendered = [];
+  await playJournal(turnState(), [skipped, humanTurn], (event, commit, _, next, previous) =>
+    presentJournalEvent(screen, event, commit, (state) => rendered.push(state.turn), 320, { next, previous }));
+  assert.deepEqual(rendered, ['human']);
+  assert.equal(overlays.length, 1);
+  assert.equal(overlays[0].children[1].textContent, 'ПРОТИВНИК СПАСОВАЛ · СНОВА ТВОЙ ХОД');
+  assert.match(overlays[0].className, /is-compact/);
+});
+
+test('an isolated empty turn pulses the pass indicator on its own half', async () => {
+  const { screen, overlays } = scenario();
+  const indicator = screen.ownerDocument.createElement('span');
+  const select = screen.querySelector;
+  screen.querySelector = (selector) => selector === '[data-passed-side="bot"]' ? indicator : select(selector);
+  await presentJournalEvent(screen, { type: 'turn-start', side: 'bot', empty: true },
+    turnState, () => {}, 320);
+  assert.equal(overlays[0].dataset.side, 'bot');
+  assert.equal(overlays[0].children[1].textContent, 'ход пропущен');
+  assert.equal(indicator.motion.keyframes[1].transform, 'translateY(-50%) scale(1.2)');
+});
+
+test('a phone banner plays for at most 700ms', async () => {
+  const { screen, overlays } = scenario();
+  screen.ownerDocument.defaultView.matchMedia = () => ({ matches: true });
+  const state = turnState();
+  state.players.bot.passed = false;
+  await presentJournalEvent(screen, humanTurn, () => state, () => {}, 320);
+  assert.equal(overlays[0].motion.options.duration, 700);
 });
 
 test('a row effect updates the field immediately on application and expiry', async () => {
