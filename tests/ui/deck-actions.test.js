@@ -260,11 +260,10 @@ test('the deck toolbar puts transfers in a keyboard-friendly menu', (t) => {
   assert.equal(document.activeElement, filledTrigger);
 });
 
-test('editor deletion returns to the list and is not undone by autosave', async (t) => {
+test('editor has no deck deletion action and autosave still flushes changes', async (t) => {
   const { deckEditor } = await import('../../docs/ui/deck-editor.js');
   const scope = new AbortController();
   t.after(() => scope.abort());
-  document.body.replaceChildren();
   const values = new Map();
   const storage = {
     getItem: (key) => values.get(key) ?? null,
@@ -272,33 +271,23 @@ test('editor deletion returns to the list and is not undone by autosave', async 
     removeItem: (key) => values.delete(key),
   };
   const store = createDeckStorage(storage);
-  const deck = { ...PRESETS[0], id: 'editor-deck', name: 'Удаляемая' };
+  const deck = { ...PRESETS[0], id: 'editor-deck', name: 'Черновик' };
   store.save(deck);
-  let returned = false;
   const owned = Object.fromEntries(deck.cardIds.map((id) => [id, 99]));
   const screen = deckEditor(new Node('p'), deck, {
     save: store.save,
     play() {},
-    back: () => { returned = true; },
-    remove: (value) => store.remove(value.id),
+    back() {},
     inventory: () => ({ owned }),
     notice: '',
     signal: scope.signal,
   });
+  assert.equal(menuButton(screen, 'Удалить колоду'), undefined);
   const name = tree(screen).find((node) => node.tag === 'input' && node.type === 'text');
   name.value = 'Черновик названия';
   name.dispatchEvent(new Event('input'));
-  press(menuButton(screen, 'Удалить колоду'));
-  press(menuButton(byClass(document.body, 'deck-delete-dialog'), 'Отмена'));
-  assert.equal(returned, false);
-  assert.equal(store.get(deck.id).id, deck.id);
-
-  press(menuButton(screen, 'Удалить колоду'));
-  press(menuButton(byClass(document.body, 'deck-delete-dialog'), 'Удалить'));
-  assert.equal(returned, true);
-  assert.equal(store.get(deck.id), undefined);
   scope.abort();
-  assert.deepEqual(createDeckStorage(storage).list(), []);
+  assert.equal(store.get(deck.id).name, 'Черновик названия');
 });
 
 test('League selects the first primary deck by default and still accepts a manual choice', () => {

@@ -350,7 +350,6 @@ function render({ deckListNotice } = {}) {
         editNotices.delete(editedDeck.id);
         content = deckEditor(phaseLabel, editedDeck, {
           back, notice, signal, inventory: progress.inventory, save: deckStore.save, play: session.start,
-          remove: deleteDeck,
         });
         break;
       }

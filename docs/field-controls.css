@@ -218,7 +218,6 @@
   transform: translateX(-50%);
   border-radius: 50%;
 }
-.card-state.unit-order { z-index: 4; }
 button.unit-order:not(:disabled)::before {
   content: '';
   position: absolute;
