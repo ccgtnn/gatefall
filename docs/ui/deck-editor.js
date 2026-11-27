@@ -4,7 +4,7 @@ import { NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/shared/card-metadata
 import { createCard } from '../game/engine/board.js';
 import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS } from '../game/cards/decks.js';
 import { addCardCrop, cardButton } from './cards.js';
-import { button, confirmDeckDeletion, element, selectField } from './dom.js';
+import { button, element, selectField } from './dom.js';
 import { factionFilters } from './faction-filters.js';
 import { availabilityOptions, matchesAvailability, normalizeCardSearch } from './catalog-cards.js';
 import { deckAutosave } from './deck-storage.js';
@@ -12,7 +12,7 @@ import { exportDeckJson } from './deck-transfer.js';
 import { sectionBack } from './resources.js';
 import { byProvision, violations } from './deck-shared.js';
 
-export function deckEditor(phaseLabel, deck, { save, play, back, remove, inventory, notice, signal }) {
+export function deckEditor(phaseLabel, deck, { save, play, back, inventory, notice, signal }) {
   phaseLabel.textContent = '';
   const screen = element('section', 'deck-editor');
   screen.setAttribute('aria-label', 'Редактор колоды');
@@ -42,8 +42,7 @@ export function deckEditor(phaseLabel, deck, { save, play, back, remove, invento
     autosave.save();
     play(deck);
   }, 'button primary');
-  let deleted = false;
-  const autosave = deckAutosave(deck, (value) => deleted || save(value));
+  const autosave = deckAutosave(deck, save);
   signal.addEventListener('abort', autosave.flush, { once: true });
   window.addEventListener('pagehide', autosave.flush, { signal });
   const saveButton = button('Сохранить', () => {
@@ -51,18 +50,6 @@ export function deckEditor(phaseLabel, deck, { save, play, back, remove, invento
   });
   const backButton = sectionBack(back);
   actions.append(saveButton, playButton, button('Экспорт JSON', () => exportDeckJson(deck, status)));
-  if (remove && !deck.id.startsWith('preset-')) {
-    actions.append(button('Удалить колоду', () => {
-      confirmDeckDeletion(deck.name.trim() || 'Без названия', () => {
-        deleted = true;
-        if (remove(deck)) back();
-        else {
-          deleted = false;
-          status.textContent = 'Браузер не сохранил удаление колоды.';
-        }
-      });
-    }, 'button deck-danger'));
-  }
   left.append(nameField, leader.field, actions, status, totals, errors, owned);
   columns.append(left, right);
   screen.append(backButton, columns);
