@@ -76,7 +76,8 @@ test('every animation scenario runs at zero duration for each playable faction w
   body.append(root);
   const { builders: { motion } } = createSandboxPage(root);
   const cases = motionGroups.flatMap(([, items]) => items);
-  const choiceCounts = { 'offer-three': 3, 'offer-all': 10, 'offer-discard': 3 };
+  const choiceCounts = { 'offer-three': 3, 'offer-all': 10, 'offer-all-phone': 10, 'offer-discard': 3 };
+  const otherChoices = { 'offer-hand-return': 'hand-return', 'offer-deck-top': 'deck-top', 'offer-tribute': 'tribute' };
   const mulliganCases = new Set(['deal-round-one', 'deal-round-two', 'mulligan-swap']);
   const roundWinners = { 'round-win': 'human', 'round-loss': 'bot', 'round-draw': null };
   motion.speed.value = 'off';
@@ -97,7 +98,11 @@ test('every animation scenario runs at zero duration for each playable faction w
       if (scenario.id === 'hand-bottom') assert.ok(state.log.some(({ type }) => type === 'hand-bottom'), label);
       if (scenario.id in choiceCounts) {
         assert.equal(state.pending?.options.length, choiceCounts[scenario.id], label);
-        assert.ok(motion.section.querySelector('.deck-offer'), label);
+        assert.ok(motion.section.querySelector('.choice-overlay'), label);
+      }
+      if (scenario.id in otherChoices) {
+        assert.equal(state.pending?.kind, otherChoices[scenario.id], label);
+        assert.ok(motion.section.querySelector('.choice-overlay'), label);
       }
       if (scenario.id in roundWinners) {
         assert.equal(state.log.find(({ type }) => type === 'round-end')?.winner, roundWinners[scenario.id], label);
@@ -106,6 +111,16 @@ test('every animation scenario runs at zero duration for each playable faction w
     }
   }
   await motion.runAll(async () => {});
+  await motion.run(cases.find(({ id }) => id === 'offer-all-phone'), async () => {});
+  const touch = motion.section.querySelector('.choice-overlay');
+  assert.equal(touch.dataset.choicePhone, 'true');
+  const option = touch.querySelector('.effect-target');
+  option.dispatchEvent(new Event('click'));
+  assert.equal(motion.state().pending?.kind, 'deck-card');
+  option.dispatchEvent(new Event('click'));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.notEqual(motion.state().pending?.kind, 'deck-card');
+  await motion.run(cases.find(({ id }) => id === 'offer-discard'), async () => {});
   assert.equal(motion.state().pending?.pile, 'discard');
   motion.section.querySelector('.deck-offer').querySelector('.effect-target').dispatchEvent(new Event('click'));
   await new Promise((resolve) => setImmediate(resolve));

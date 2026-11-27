@@ -209,6 +209,10 @@ const battlefield = createBattlefield({
   getSelectedCardId: () => selectedCardId,
   isMulliganFieldVisible: () => session.mulliganFieldVisible,
   setMulliganField: session.setMulliganField, playHuman, humanCanAct, placeSelected, settingsButton,
+  canCancel: turns.canCancelTargeting,
+  cancelTargeting: turns.cancelTargeting,
+  getTargetAction: () => turns.targetAction,
+  choiceLocked: () => turns.confirmingTarget,
   showDrawer: menu.showDrawer,
   selectCard: (id) => {
     selectedCardId = selectedCardId === id ? undefined : id;

@@ -33,8 +33,42 @@ export function clearRememberedRects() {
   rememberedRects.clear();
 }
 
+export function rememberChoicePosition(before, next, cardId, node) {
+  const placing = next.pending?.kind === 'deck-placement' && next.pending.cardId === cardId;
+  const moving = next.log.slice(before.log.length).some((event) => event.cardId === cardId &&
+    ['play', 'hand-return', 'hand-bottom'].includes(event.type));
+  const rect = (placing || moving) && visibleRect(node);
+  if (rect) rememberRect(cardId, rect);
+}
+
+export function animateChoiceSelection(node, duration) {
+  const overlay = node.closest?.('.choice-overlay');
+  if (!overlay) return;
+  overlay.inert = true;
+  overlay.classList.remove('choice-enter');
+  if (!duration || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches || !node.animate) return;
+
+  node.classList.add('choice-confirming-card');
+  const total = duration * MOTION.pace.choiceConfirm;
+  // The CSS classes hold the final pose until playback replaces the overlay.
+  const options = { duration: total, easing: MOTION.ease.out, fill: 'backwards' };
+  const motions = [node.animate([
+    { transform: 'translateY(0) scale(1)' }, { transform: 'translateY(-6%) scale(1.1)' },
+  ], options)];
+  const selected = node.closest('.choice-item') ?? node;
+  let index = 0;
+  for (const item of overlay.querySelectorAll('.choice-item, .tribute-option')) {
+    if (item === selected) continue;
+    item.classList.add('choice-dismissing');
+    motions.push(item.animate([
+      { opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.94)' },
+    ], { ...options, delay: index++ * MOTION.ms.choiceConfirmStep }));
+  }
+  return Promise.all(motions.map(({ finished }) => finished.catch(() => {})));
+}
+
 export function visibleRect(node) {
-  const rect = node?.getBoundingClientRect();
+  const rect = node?.getBoundingClientRect?.();
   return rect?.width > 0 && rect.height > 0 ? rect : undefined;
 }
 

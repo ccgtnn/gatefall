@@ -10,7 +10,9 @@ export function cardInspection(node, card, placement = false, show = () => showC
     clearTimeout(holdTimer);
     if (node.isConnected) show();
   }
-  node.addEventListener('dblclick', inspect);
+  node.addEventListener('dblclick', (event) => {
+    if (node.dataset.choiceCard === undefined) inspect(event);
+  });
   node.addEventListener('contextmenu', (event) => {
     event.preventDefault();
     if (event.pointerType !== 'touch' && !event.sourceCapabilities?.firesTouchEvents) inspect(event);
@@ -43,7 +45,7 @@ export function cardInspection(node, card, placement = false, show = () => showC
       delete node.dataset.suppressClick;
       return;
     }
-    if (event.detail > 1) {
+    if (event.detail > 1 && node.dataset.choiceCard === undefined) {
       event.stopImmediatePropagation();
     }
   }, { capture: true });
