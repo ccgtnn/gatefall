@@ -23,6 +23,11 @@ const clips = new Map([
   ['ulmarin-tentacle', { small: 'ulmarin-tentacle-card.mp4', large: 'ulmarin-tentacle-preview.mp4' }],
   ['ulmarin-fanatic', { small: 'ulmarin-fanatic-card.mp4', large: 'ulmarin-fanatic-preview.mp4' }],
   ['cult-dreamer', { small: 'cult-dreamer-card.mp4', large: 'cult-dreamer-preview.mp4' }],
+  ['depth-neophyte', { small: 'depth-neophyte-card.mp4', large: 'depth-neophyte-preview.mp4' }],
+  ['alien-dream', { small: 'alien-dream-card.mp4', large: 'alien-dream-preview.mp4' }],
+  ['sleeper-revelation', { small: 'sleeper-revelation-card.mp4', large: 'sleeper-revelation-preview.mp4' }],
+  ['minor-offering', { small: 'minor-offering-card.mp4', large: 'minor-offering-preview.mp4' }],
+  ['sleeper-litany', { small: 'sleeper-litany-card.mp4', large: 'sleeper-litany-preview.mp4' }],
   ['mind-strike', { small: 'mind-strike-card.mp4', large: 'mind-strike-preview.mp4' }],
 ]);
 let premiumEnabled = false;
