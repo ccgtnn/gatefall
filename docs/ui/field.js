@@ -34,10 +34,12 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       if (pending.kind === 'tribute') choiceOverlay = tributeChoice(match);
       else if (isChoicePending(pending)) choiceOverlay = deckChoice(match);
       else {
-        const picked = pending.kind === 'deck-placement' && (pending.cards ?? players.human[pending.pile ?? 'deck']).find(({ id }) => id === pending.cardId);
+        const picked = pending.kind === 'deck-placement'
+          ? (pending.cards ?? players.human[pending.pile ?? 'deck']).find(({ id }) => id === pending.cardId)
+          : undefined;
         const prompt = picked ? picked.definition.name + ' · ' + pending.prompt : pending.prompt;
         const message = element('p', 'field-message target-prompt', prompt);
-        if (picked?.definition.art) message.prepend(cardArt(picked.definition, 'aim-source-art', { staticArt: true }));
+        if (picked?.definition?.art) message.prepend(cardArt(picked.definition, 'aim-source-art', { staticArt: true }));
         center.append(message);
       }
     }
