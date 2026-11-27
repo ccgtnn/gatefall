@@ -36,11 +36,13 @@ function fetchMock(respond) {
   return { request, calls };
 }
 
-test('magic link request sends the email with the public API key', async () => {
+test('magic link request sends the email, redirect URL and public API key', async () => {
   const { request, calls } = fetchMock(() => Response.json({}));
-  const auth = createCloudAuth({ request });
+  const location = new URL('https://ccgtnn.github.io/gatefall/?source=game#menu');
+  const auth = createCloudAuth({ request, location });
   await auth.sendLink(USER.email);
   assert.equal(calls[0].url.pathname, '/auth/v1/otp');
+  assert.equal(calls[0].url.searchParams.get('redirect_to'), location.origin + location.pathname);
   assert.equal(calls[0].method, 'POST');
   assert.equal(calls[0].headers.apikey, SUPABASE_KEY);
   assert.deepEqual(calls[0].body, { email: USER.email, create_user: true });
