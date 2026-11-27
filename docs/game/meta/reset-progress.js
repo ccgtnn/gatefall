@@ -5,6 +5,7 @@ export async function resetProgress(storage, locks) {
     if (!storage) return;
     const keys = Array.from({ length: storage.length }, (_, index) => storage.key(index));
     for (const key of keys) {
+      // The cloud session and sync metadata live outside the game data namespace.
       if (key?.startsWith(GAME_STORAGE_PREFIX)) storage.removeItem(key);
     }
   }

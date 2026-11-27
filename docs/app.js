@@ -18,6 +18,7 @@ import { createMatchMenu } from './ui/menu.js';
 import { finishedScreen, leaderScreen } from './ui/screens.js';
 import { BOT_DIFFICULTY_KEY, createBotDifficulty } from './ui/bot-difficulty.js';
 import { createSettings } from './ui/settings.js';
+import { createAppCloud } from './ui/cloud/app-cloud.js';
 
 import { createFactionStats, FACTION_STATS_KEY } from './ui/stats.js';
 import { createRewardProgress, REWARD_STORAGE_KEY } from './game/meta/rewards.js';
@@ -48,17 +49,21 @@ let screenEvents;
 let selectedCardId;
 let reloadOnMatchExit = false;
 const aim = bindTargeting(screen, () => turns.cancelTargeting());
-let storage;
-try { storage = window.localStorage; } catch {}
+let localStorage;
+try { localStorage = window.localStorage; } catch {}
+const cloud = createAppCloud(localStorage, () => Boolean(turns.match));
+const { storage } = cloud;
 const deckStore = createDeckStorage(storage);
 const framePreferences = createFramePreferences(storage, document.documentElement);
 const battlefieldPreferences = createBattlefieldPreferences(storage, document.documentElement);
 const stats = createFactionStats(Object.keys(FACTIONS), storage);
 const botDifficulty = createBotDifficulty(storage);
 const settings = createSettings(app, (surrender) => session.leave(surrender), async () => {
-  await resetProgress(storage, navigator.locks);
+  const overwrite = Boolean(cloud.auth.session()) &&
+    window.confirm('Перезаписать облачную копию после сброса прогресса?');
+  await cloud.sync.reset(() => resetProgress(localStorage, navigator.locks), overwrite);
   window.location.reload();
-}, botDifficulty);
+}, botDifficulty, cloud);
 const turns = createMatchTurn({
   app, screen, settings, aim, notices: { turnNotice, coinNotice, roundNotice }, announcement,
   showNotice, hideNotice, render,
@@ -88,6 +93,7 @@ const session = createMatchSession({
       navigation.replace(view);
     }
     if (reloadOnMatchExit) window.location.reload();
+    else void cloud.sync.run();
   },
 });
 const navigation = createAppHistory({
@@ -110,7 +116,6 @@ const rewardReveal = createRewardReveal({
   canShow: session.canShowRewards,
   showEssence: showEssenceGain,
 });
-void progress.checkpointProduction();
 const base = sectionDialog('base-screen', 'База', 'base-screen');
 const prepareBase = prepareLazySection(base.dialog, base.shell, async () => {
   const { mountBaseScreen } = await import('./ui/base-screen.js');
@@ -149,7 +154,7 @@ const openResources = createResourceBar(app.querySelector('.masthead'), document
 progress.subscribe(() => emit('collection-change'));
 const reloadKeys = new Set([REWARD_STORAGE_KEY, DECK_STORAGE_KEY, RECENT_DECKS_KEY, FACTION_STATS_KEY]);
 window.addEventListener('storage', (event) => {
-  if (event.storageArea !== storage) return;
+  if (event.storageArea !== localStorage) return;
   if (event.key === BOT_DIFFICULTY_KEY) botDifficulty.refresh();
   const decorationKeys = [FRAME_STORAGE_KEY, BATTLEFIELD_STORAGE_KEY];
   if (decorationKeys.includes(event.key) || event.key === null) {
@@ -171,8 +176,7 @@ window.addEventListener('storage', (event) => {
 });
 const timers = createAppTimers(progress, () => emit('league-tick'));
 window.addEventListener('pagehide', timers.stop);
-window.addEventListener('pageshow', timers.start);
-timers.start();
+window.addEventListener('pageshow', (event) => { if (event.persisted) timers.start(); });
 
 const { humanCanAct, playHuman, updateMatch } = turns;
 const hand = {
@@ -373,3 +377,10 @@ function render({ deckListNotice } = {}) {
 }
 
 render();
+
+// Reconcile an existing cloud copy before background checkpoints create local progress.
+void cloud.start().finally(() => {
+  if (cloud.sync.reloading()) return;
+  void progress.checkpointProduction();
+  timers.start();
+});

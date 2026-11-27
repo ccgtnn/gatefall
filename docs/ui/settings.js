@@ -1,3 +1,4 @@
+import { mountCloudSettings } from './cloud/settings-panel.js';
 import { refreshPremiumArt, premiumArtEnabled, setPremiumArtEnabled } from './card-art.js';
 import { button, element } from './dom.js';
 import { dialogClose } from './resources.js';
@@ -5,8 +6,9 @@ import { bindRulesMenu } from './rules.js';
 import { createSoundEffects, DEFAULT_VOLUME } from './sound.js';
 import { motionDuration } from './turn-playback.js';
 
-export function createSettings(app, onLeave, onReset, difficulty) {
+export function createSettings(app, onLeave, onReset, difficulty, cloud) {
   const settings = document.querySelector('#settings');
+  const refreshCloud = mountCloudSettings(settings, cloud);
   const matchMenu = document.querySelector('#match-menu');
   const leaveDialog = document.querySelector('#leave-match');
   const resetDialog = document.querySelector('#reset-progress-dialog');
@@ -149,6 +151,7 @@ export function createSettings(app, onLeave, onReset, difficulty) {
     fullscreenStatus.textContent = document.fullscreenEnabled || fullscreenMode.matches
       ? '' : 'Браузер не поддерживает полноэкранный режим. Попробуй установить игру через меню браузера.';
     syncFullscreen();
+    refreshCloud();
     settings.showModal();
   }
 
