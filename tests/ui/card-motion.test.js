@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
+import { clearRememberedRects, ghostCard, pileAnchor, rememberRect, takeRememberedRect } from '../../docs/ui/card-motion-core.js';
+import { motionDuration } from '../../docs/ui/motion-tokens.js';
 import { animateHandTurn, animateTurnSparks, presentJournalEvent } from '../../docs/ui/card-motion.js';
 
 function scenario() {
@@ -17,6 +20,7 @@ function scenario() {
     body: { append: (node) => overlays.push(node) },
     createElement: () => ({
       dataset: {},
+      offsetWidth: 100,
       style: {},
       children: [],
       classList: { add() {} },
@@ -65,6 +69,7 @@ test('an opponent effect is readable before it resolves, then the existing fligh
   finishReveal();
   await present;
   assert.deepEqual(trace, [reveal + ':start', reveal + ':end', 'commit', 'render', flight + ':start', flight + ':end']);
+  assert.match(overlays[1].motion.keyframes[0].transform, /translate3d\(226px, 0px, 0\)/);
 });
 
 test('a local play or reduced motion skips the opponent reveal', async () => {
@@ -144,4 +149,66 @@ test('turret playback waits for its alternate art before the shot, with no wait 
   trace.length = 0;
   await presentJournalEvent(screen, artSwap, commit, render, 0);
   assert.deepEqual(trace, ['commit']);
+});
+
+
+test('a hidden deck uses its side’s hand stack, then the count and the half of the field', () => {
+  const node = (left, top, width, height) => ({ getBoundingClientRect: () => ({ left, top, width, height }) });
+  const fallback = new Map([
+    ['.field-hand-stack[data-hand-side="human"]', node(100, 120, 40, 30)],
+    ['.field-corner .field-hand-count', node(160, 180, 30, 20)],
+    ['.side[data-side="human"]', node(20, 80, 240, 90)],
+  ]);
+  let piles = [node(0, 0, 0, 0)];
+  const screen = { querySelectorAll: () => piles, querySelector: (key) => fallback.get(key) };
+  assert.deepEqual(pileAnchor(screen, 'human', 'deck'), { x: 120, y: 135 });
+  fallback.delete('.field-hand-stack[data-hand-side="human"]');
+  assert.deepEqual(pileAnchor(screen, 'human', 'deck'), { x: 175, y: 190 });
+  fallback.delete('.field-corner .field-hand-count');
+  assert.deepEqual(pileAnchor(screen, 'human', 'deck'), { x: 140, y: 125 });
+  piles.push(node(300, 230, 30, 30));
+  assert.deepEqual(pileAnchor(screen, 'human', 'deck'), { x: 315, y: 245 });
+});
+
+test('remembered card positions are independent, one-shot and clearable when the match changes', () => {
+  const first = { left: 15, top: 30 };
+  const second = { left: 35, top: 60 };
+  rememberRect('first', first);
+  rememberRect('second', second);
+  assert.equal(takeRememberedRect('first'), first);
+  assert.equal(takeRememberedRect('first'), undefined);
+  assert.equal(takeRememberedRect('second'), second);
+  rememberRect('second', second);
+  clearRememberedRects();
+  assert.equal(takeRememberedRect('second'), undefined);
+});
+
+test('departure clones replace premium video with its poster before insertion', () => {
+  let replaced;
+  const video = {
+    className: 'card-art-crop card-art-video', poster: './art/poster.webp',
+    style: { cssText: 'object-position: 40% 40%;' },
+    replaceWith(image) { replaced = image; },
+  };
+  const clone = { querySelectorAll: () => [video], style: {}, classList: { add() {} }, setAttribute() {} };
+  const screen = { ownerDocument: {
+    createElement: (tag) => ({ tag, style: {}, classList: { remove() {} } }),
+    body: { append: (node) => { assert.equal(node, clone); assert.equal(replaced?.src, video.poster); } },
+  } };
+  const entry = { node: { cloneNode: () => clone }, rect: { left: 1, top: 2, width: 3, height: 4 } };
+  assert.equal(ghostCard(screen, entry), clone);
+  assert.equal(replaced.tag, 'img');
+  assert.equal(replaced.style.cssText, video.style.cssText);
+});
+
+test('card motion durations use named tokens and the sandbox scale has no global state', () => {
+  for (const file of ['card-motion.js', 'card-motion-core.js', 'card-motion-card-effects.js', 'card-motion-hit-effects.js']) {
+    const source = readFileSync(new URL('../../docs/ui/' + file, import.meta.url), 'utf8');
+    assert.doesNotMatch(source, /\bduration\s*(?:\*=|\*|\/)\s*(?:\d|\.\d)/, file);
+  }
+  assert.equal(motionDuration('normal', true, 4), 1280);
+  assert.equal(motionDuration('normal', true), 320);
+  assert.equal(motionDuration('fast', false), 200);
+  assert.equal(motionDuration('system', true), 0);
+  assert.equal(motionDuration('off', false, 4), 0);
 });

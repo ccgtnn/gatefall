@@ -92,6 +92,7 @@ export function createFieldPanels({ humanCanAct, playHuman, showDrawer }) {
     const stack = human
       ? button(undefined, () => showDrawer({ side, pile: 'deck' }), 'field-hand-stack')
       : element('div', 'field-hand-stack');
+    stack.dataset.handSide = side;
     const counts = `В руке: ${player.hand.length} · В колоде: ${player.deck.length}`;
     if (human) {
       stack.setAttribute('aria-label', 'Открыть свою колоду. ' + counts);

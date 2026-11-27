@@ -87,7 +87,9 @@ export function createSettings(app, onLeave, onReset, difficulty, cloud) {
   } catch {}
   function syncAnimationSpeed() {
     app.dataset.animationSpeed = speedSetting.value;
-    app.dataset.reducedMotion = String(motionDuration(speedSetting.value, reducedMotion.matches) === 0);
+    const duration = motionDuration(speedSetting.value, reducedMotion.matches);
+    app.dataset.reducedMotion = String(duration === 0);
+    app.style.setProperty('--motion-base', duration + 'ms');
     systemSpeed.textContent = reducedMotion.matches ? 'По системе (выключены)' : 'По системе (обычная)';
   }
 

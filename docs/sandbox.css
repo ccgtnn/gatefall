@@ -95,3 +95,24 @@
   .sandbox-card-states { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
   .sandbox-card-state > .hand-card, .sandbox-card-state > .slot { height: 13rem; }
 }
+
+#sandbox .sandbox-motion-stage {
+  --field-gap: clamp(2px, .65dvh, 8px);
+  --field-paper: #c5d5df;
+  --field-edge: #354754;
+  position: relative;
+  width: 100%;
+  padding: 0;
+  color: var(--field-paper);
+}
+
+.sandbox-motion-stage #screen {
+  height: clamp(23rem, 65dvh, 45rem);
+  min-width: 0;
+}
+
+.sandbox-motion-stage :is(.round-transition, #coin-notice) { position: absolute; }
+.sandbox-motion-controls { align-items: center; }
+.sandbox-slow, .sandbox-motion-choices { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; }
+.sandbox-motion-scenarios { display: grid; gap: .7rem; margin-block-end: .7rem; }
+.sandbox-motion-scenarios h3 { margin: 0 0 .35rem; font-size: 1rem; }

@@ -1,4 +1,5 @@
 import { animateCoin } from './card-motion.js';
+import { coinTimings } from './motion-tokens.js';
 import { clearParticles } from './particles.js';
 import { inspectDeck } from '../game/cards/decks.js';
 import { createDeckMatch } from '../game/engine/match.js';
@@ -78,8 +79,7 @@ export function createMatchSession({
     const label = element('span', 'coin-result', 'Монетка: ты ходишь ' + (first ? 'первым' : 'вторым'));
     const coin = element('span', 'tossed-coin ' + (first ? 'coin-first' : 'coin-second'), first ? '✦' : '◈');
     coin.setAttribute('aria-hidden', 'true');
-    const coinDuration = settings.motion() * 3.6;
-    const noticeDuration = Math.max(1500, coinDuration + 1000);
+    const { toss: coinDuration, notice: noticeDuration } = coinTimings(settings.motion());
     showNotice(coinNotice, '', noticeDuration);
     coinNotice.append(coin, label);
     if (coinDuration) {

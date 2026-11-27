@@ -86,3 +86,26 @@ export function fillRowFixture(factionId) {
   player.passed = true;
   return { match, player };
 }
+
+export function motionFixture(factionId) {
+  const { match } = fixtureMatch(factionId);
+  for (const [side, player] of Object.entries(match.players)) {
+    const definitions = factionCards(player.factionId).filter(({ type }) => !type || type === 'unit');
+    // Keep the faction's art and identity, with predictable units for each demonstration.
+    const unit = (zone, index, power) => {
+      const { id, name, art, artCrop, rarity, faction } = definitions[index % definitions.length];
+      return createCard(`motion-${side}-${zone}-${index}`, {
+        id, name, art, artCrop, rarity, faction, power, provision: 4, type: 'unit',
+      });
+    };
+    player.board = {
+      orbit: [unit('orbit', 0, 8), unit('orbit', 1, 5)],
+      surface: [unit('surface', 2, 6), unit('surface', 3, 4)],
+    };
+    player.hand = Array.from({ length: 6 }, (_, index) => unit('hand', index, 5));
+    player.deck = Array.from({ length: 10 }, (_, index) => unit('deck', index, 5));
+    player.discard = Array.from({ length: 3 }, (_, index) => unit('discard', index, 5));
+    player.coins = 3;
+  }
+  return match;
+}

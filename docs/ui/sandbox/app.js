@@ -3,6 +3,7 @@ import { button, element, selectField } from '../dom.js';
 import { createCardSection } from './card-section.js';
 import { defaultCardId, factionCards, factionOptions } from './fixtures.js';
 import { createGridSection } from './grid-section.js';
+import { createMotionSection } from './motion-section.js';
 import { createRewardsSection } from './rewards-section.js';
 import { createRowSection } from './row-section.js';
 
@@ -11,6 +12,7 @@ const tabs = [
   ['row', 'Ряд'],
   ['rewards', 'Награды'],
   ['grid', 'Все карты фракции'],
+  ['motion', 'Анимации'],
 ];
 
 export function createSandboxPage(root) {
@@ -24,6 +26,7 @@ export function createSandboxPage(root) {
     row: createRowSection(),
     rewards: createRewardsSection(),
     grid: createGridSection(),
+    motion: createMotionSection(),
   };
   const navigation = element('nav', 'sandbox-tabs');
   navigation.setAttribute('aria-label', 'Разделы песочницы');
@@ -59,6 +62,7 @@ export function createSandboxPage(root) {
     builders.row.update(factionId);
     builders.rewards.update(factionId);
     builders.grid.update(factionId);
+    builders.motion.update(factionId);
   }
   faction.input.addEventListener('change', () => {
     factionId = faction.input.value;

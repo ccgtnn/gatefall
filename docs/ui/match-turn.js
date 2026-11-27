@@ -1,14 +1,16 @@
-import { animateHandTurn, animateLifeLoss, animateTurnSparks, presentJournalEvent } from './card-motion.js';
+import {
+  animateHandTurn, animateLifeLoss, animateTurnSparks, dismissRoundTransition, presentJournalEvent,
+  roundResultLabel, showRoundTransition,
+} from './card-motion.js';
 import { BOT_DELAY_MS } from '../game/bot/bot.js';
 import { serializeBotPosition } from '../game/bot/bot-position.js';
 import { createBotSearch } from './bot-search.js';
 import { applyAction } from '../game/engine/match.js';
 import { playJournal } from './turn-playback.js';
-import { element } from './dom.js';
+import { clearRememberedRects } from './card-motion-core.js';
+import { MOTION } from './motion-tokens.js';
 import { describeBotAction, eventText } from './match-log.js';
 import { aimAnchor } from './targeting.js';
-
-const ROUND_RESULT_MS = 1500;
 
 export function createMatchTurn({
   app, screen, settings, aim, notices, announcement, showNotice, hideNotice,
@@ -28,6 +30,7 @@ export function createMatchTurn({
 
   function reset(next) {
     matchSession += 1;
+    clearRememberedRects();
     clearTimeout(timer);
     botSearch.cancel();
     match = next;
@@ -47,26 +50,12 @@ export function createMatchTurn({
   }
 
   async function showRoundResult(event, state, duration) {
-    const { scores, winner } = event;
-    const result = winner === 'human' ? 'Раунд за тобой' : winner === 'bot' ? 'Раунд за противником' : 'Раунд: ничья';
     hideNotice(coinNotice);
     hideNotice(turnNotice);
     renderPlayback(state);
-    animateLifeLoss(screen, winner, duration * 1.5);
-    showNotice(roundNotice, `${result} · ${scores.human} : ${scores.bot}`, ROUND_RESULT_MS);
-    await new Promise((resolve) => setTimeout(resolve, ROUND_RESULT_MS));
-  }
-
-  async function showRoundTransition(round, duration) {
-    const overlay = element('div', 'motion-overlay round-transition');
-    overlay.setAttribute('role', 'status');
-    overlay.append(element('span', 'round-transition-title', `Раунд ${round}`));
-    app.append(overlay);
-    if (duration) {
-      await overlay.animate([{ opacity: 0 }, { opacity: 1 }], { duration, easing: 'ease-out' }).finished;
-    }
-    await new Promise((resolve) => setTimeout(resolve, duration ? 360 : 600));
-    return overlay;
+    animateLifeLoss(screen, event.winner, duration * MOTION.pace.lifeLoss);
+    showNotice(roundNotice, roundResultLabel(event), MOTION.ms.roundResult);
+    await new Promise((resolve) => setTimeout(resolve, MOTION.ms.roundResult));
   }
 
   async function playBotTurn() {
@@ -123,7 +112,7 @@ export function createMatchTurn({
           }, duration);
         });
         if (session === matchSession && next.phase === 'mulligan' && next.round > before.round) {
-          roundTransition = await showRoundTransition(next.round, duration);
+          roundTransition = await showRoundTransition(app, next.round, duration);
         }
       } catch (error) {
         console.warn('Playback stopped early', error);
@@ -141,16 +130,7 @@ export function createMatchTurn({
     match = next;
     onMatchChanged(before, match, speech);
     render();
-    if (roundTransition) {
-      if (duration) {
-        const fade = roundTransition.animate([{ opacity: 1 }, { opacity: 0 }], {
-          duration, easing: 'ease-in', fill: 'forwards',
-        });
-        void fade.finished.then(() => roundTransition.remove(), () => roundTransition.remove());
-      } else {
-        roundTransition.remove();
-      }
-    }
+    if (roundTransition) void dismissRoundTransition(roundTransition, duration);
     const changedTurn = match.phase === 'playing' && match.turn !== before.turn;
     const turnStarted = match.phase === 'playing' && (before.phase !== 'playing' || changedTurn ||
       match.players[match.turn].turns !== before.players[match.turn].turns);
@@ -158,7 +138,7 @@ export function createMatchTurn({
       (changedTurn || match.players.human.turns !== before.players.human.turns);
     if (turnStarted && battlefieldStyle() === 'standard') animateTurnSparks(screen, match.turn, duration);
     if (humanTurnStarted) animateHandTurn(screen, duration);
-    if (changedTurn || humanTurnStarted) showNotice(turnNotice, match.turn === 'human' ? 'Твой ход' : 'Ход противника', 1000);
+    if (changedTurn || humanTurnStarted) showNotice(turnNotice, match.turn === 'human' ? 'Твой ход' : 'Ход противника', MOTION.ms.turnNotice);
     else if (match.phase !== 'playing') hideNotice(turnNotice);
     announcement.textContent = events.map(eventText).join(' ');
     if (match.phase === 'finished' || match.phase === 'mulligan') screen.querySelector('h2')?.focus({ preventScroll: true });
@@ -166,7 +146,7 @@ export function createMatchTurn({
       const target = screen.querySelector('.effect-target');
       target?.focus({ preventScroll: true });
     } else if ((match.pending?.side ?? match.turn) === 'bot') {
-      const delay = changedTurn ? Math.max(BOT_DELAY_MS, 1000) : BOT_DELAY_MS;
+      const delay = changedTurn ? Math.max(BOT_DELAY_MS, MOTION.ms.botNoticeDelay) : BOT_DELAY_MS;
       timer = setTimeout(playBotTurn, delay);
     } else if (before.phase === 'mulligan') {
       screen.querySelector('#pass-button:enabled')?.focus({ preventScroll: true });
@@ -210,7 +190,7 @@ export function createMatchTurn({
     }
     if (before.pending && aim.showTap()) {
       confirmingTarget = true;
-      await new Promise((resolve) => setTimeout(resolve, settings.motion() ? 180 : 90));
+      await new Promise((resolve) => setTimeout(resolve, settings.motion() ? MOTION.ms.targetConfirm : MOTION.ms.targetConfirmReduced));
       if (session !== matchSession) return;
       confirmingTarget = false;
       if (match !== before) return;
