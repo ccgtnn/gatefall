@@ -165,6 +165,9 @@ test('Falura replaces a spent leader permanently, spawns Doomed Shadows and only
   for (const event of play.log.slice(before.log.length)) applyJournalEvent(playback, event);
   assert.deepEqual(playback.players.human.leader.order, play.players.human.leader.order);
   assert.equal(before.players.human.leader.order.usesCharges, true);
+  for (const prop of ['name', 'art', 'charges']) {
+    assert.equal(play.players.human.leader[prop], before.players.human.leader[prop]);
+  }
   const shadows = play.players.human.board.orbit.filter(({ definition }) => definition.id === SHADOW.id);
   assert.equal(shadows.length, 2);
   assert.ok(shadows.every((entry) => entry.power === 2 && statusCount(entry, 'doomed')));

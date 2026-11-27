@@ -1,6 +1,6 @@
 import { dialogClose } from './resources.js';
 import { button, element } from './dom.js';
-import { cardButton, showCard } from './cards.js';
+import { cardArt, cardButton, showCard } from './cards.js';
 import { eventText } from './match-log.js';
 
 const CHANGE_LABELS = Object.freeze({
@@ -46,7 +46,15 @@ export function logView(match, showThoughts = false) {
       if (showThoughts) list.append(botThought(event));
     } else {
       const text = eventText(event);
-      if (text) list.append(element('li', event.telepathic ? 'league-telepathy' : null, text));
+      if (!text) continue;
+      const entry = element('li', event.telepathic ? 'league-telepathy' : null, text);
+      if (event.type === 'leader-replaced' && event.identityChanged && event.leader.art) {
+        const portrait = cardArt(event.leader, 'log-leader-portrait', { staticArt: true, lazyArt: true });
+        portrait.width = 26;
+        portrait.height = 39;
+        entry.prepend(portrait, ' ');
+      }
+      list.append(entry);
     }
   }
   log.append(element('h2', null, 'Журнал ходов'), list);

@@ -34,6 +34,14 @@ const faluraOrder = {
   ability: ability([action('damage', chosen('enemy'), 2)], [enemyChoice(2)]),
 };
 
+const firestormBothRows = (amount) => ({ action: 'row-effect', effect: 'firestorm', side: 'enemy', row: 'all', amount });
+
+const salfurionOrder = {
+  text: 'Приказ — наложи Огненный шторм на 1 ход на оба вражеских ряда. Перезарядка: 3 хода.',
+  cooldown: 3,
+  ability: ability([firestormBothRows(1)]),
+};
+
 export const NEUTRAL_CARDS = Object.freeze([
   ANNIHILATION,
   ...[
@@ -193,6 +201,14 @@ export const NEUTRAL_CARDS = Object.freeze([
   ].map(([id, name, rarity, provision, power, text, rules]) => Object.freeze({
     id, name, rarity, faction: NEUTRAL, provision, type: 'unit', ...(power === null ? {} : { power }), text, ...rules,
   })),
+  Object.freeze({
+    id: 'salfurion', name: 'Салфурион', faction: NEUTRAL, type: 'effect', rarity: 'gold', provision: 18,
+    text: 'Наложи Огненный шторм на 2 хода на оба вражеских ряда. Салфурион заменяет твоего лидера до конца матча: ' + salfurionOrder.text,
+    art: 'salfurion.webp', artCrop: 'salfurion-crop.webp',
+    deploy: ability([firestormBothRows(2),
+      { action: 'replace-leader', name: 'Салфурион', portrait: 'salfurion-portrait.webp', order: salfurionOrder }]),
+    keywords: ['Огненный шторм', 'Приказ', 'Перезарядка'],
+  }),
   Object.freeze({
     id: 'firestorm', name: 'Огненный шторм', faction: NEUTRAL, type: 'effect', rarity: 'epic', provision: 7,
     text: 'Наложи Огненный шторм на выбранный вражеский ряд на 3 хода. В начале хода владельца ряда: 3 раза нанеси 1 урон случайному отряду в этом ряду.',

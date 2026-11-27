@@ -40,11 +40,12 @@ test('catalog searches both name and card text, ignoring case and ё spelling', 
 });
 
 test('all collectible gold cards are included and catalog filters combine across factions', () => {
-  assert.equal(ids({ rarity: 'gold' }).length, 33);
+  assert.equal(ids({ rarity: 'gold' }).length, 34);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'artifact', category: 'Пустота', provision: '19' }),
     ['falura']);
   assert.deepEqual(ids({ faction: 'growth', rarity: 'gold', type: 'artifact', category: 'Пустота', provision: '19' }), []);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'effect', provision: '11' }), ['world-gates']);
+  assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'effect', provision: '18' }), ['salfurion']);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'effect', provision: '9' }), ['resurrection']);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'artifact', provision: '10' }), ['forgotten-gates']);
   assert.equal(cards.find(({ id }) => id === 'world-gates').name, 'Врата Миров');

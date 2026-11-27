@@ -15,10 +15,12 @@ export { canCast, playTiming, rowArmor } from './effect-queries.js';
 
 export function leaderCooldown(player) {
   const { leader } = player;
-  if (!leader?.order || leader.lastUsedTurn === undefined) return 0;
+  if (!leader?.order) return 0;
+  const initialWait = Math.max(0, (leader.readyAtTurn ?? player.turns) - player.turns);
+  if (leader.lastUsedTurn === undefined) return initialWait;
   const accelerated = ROWS.some((row) => player.board[row].some((card) => !isLocked(card) && card.definition.id === leader.order.quickenedBy));
   const recharge = accelerated ? 0 : leader.order.cooldown;
-  return Math.max(0, leader.lastUsedTurn + recharge + 1 - player.turns);
+  return Math.max(initialWait, leader.lastUsedTurn + recharge + 1 - player.turns);
 }
 
 export function canUseLeader(match, side) {

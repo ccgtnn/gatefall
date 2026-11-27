@@ -1,7 +1,7 @@
 import { activeOrder, availableRows, cardType, COIN_LIMIT, infectionDamage, isUnit, opponent, placementSide, ROW_LIMIT, statusCount, units } from '../engine/board.js';
 import { handCount } from './bot-hand.js';
 import { ROWS } from '../shared/card-metadata.js';
-import { feePayoff } from './bot-effect-value.js';
+import { feePayoff, leaderFirestormStep, leaderFirestormValue } from './bot-effect-value.js';
 import { carriedCoins } from '../engine/match.js';
 import { EVAL_WEIGHTS as W } from './bot-weights.js';
 import { canGrantZeal, leaderCooldown } from '../effects/effects.js';
@@ -178,9 +178,14 @@ export function leaderUses(context, future = false) {
   return order.usesCharges ? Math.min(leader.charges, uses) : uses;
 }
 
-export function leaderChargeValue({ player }) {
+export function leaderChargeValue({ match, side, player }, future = false) {
   const leader = player.leader;
   if (!leader?.ability) return 0;
+  const weather = leaderFirestormStep(leader.ability);
+  if (weather) {
+    // The next round starts with cleared rows. Assume one point per row tick against new targets.
+    return future ? ROWS.length * weather.amount : Math.max(0, leaderFirestormValue(match, side, weather));
+  }
   const printed = leader.ability.steps.reduce((points, step) => {
     if (step.action === 'spawn') return points + (step.card.power ?? 0) * (step.amount ?? 1);
     if (['boost', 'damage'].includes(step.action) && typeof step.amount === 'number') return points + step.amount;
@@ -460,5 +465,5 @@ export function carryoverValue(context, passed) {
     ? Math.min(Math.max(0, player.leader.charges - currentUses), futureUses)
     : futureUses;
   const carryCoins = passed ? futureCoinValue(context, player.coins ?? 0) : 0;
-  return resilience + carryLeader * leaderChargeValue(context) + carryCoins;
+  return resilience + carryLeader * leaderChargeValue(context, true) + carryCoins;
 }

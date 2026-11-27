@@ -87,6 +87,9 @@ interface StepCondition {
 
 export interface EffectStep {
   action: string;
+  name?: string;
+  art?: string;
+  portrait?: string;
   target?: TargetQuery;
   receiver?: TargetQuery;
   amount?: EffectValue;
@@ -302,6 +305,7 @@ export interface LeaderDefinition {
 interface LeaderState extends LeaderDefinition {
   charges: number;
   lastUsedTurn?: number;
+  readyAtTurn?: number;
 }
 
 interface RowEffect {

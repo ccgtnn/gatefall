@@ -15,7 +15,7 @@ export function createFieldPanels({ humanCanAct, playHuman, showDrawer }) {
     portrait.dataset.aimLeader = side;
     portrait.setAttribute('aria-label', 'Лидер · ' + leader.name);
     portrait.title = leader.name;
-    if (leader.art) portrait.append(cardArt(leader, 'leader-image'));
+    if (leader.art) portrait.append(cardArt(leader, 'leader-image', { staticArt: true }));
     else portrait.append(element('span', 'leader-placeholder', '♜'));
     cardInspection(portrait, { definition: leader }, false, () => showCard({ definition: leader }, { leader: true }));
     panel.append(portrait);

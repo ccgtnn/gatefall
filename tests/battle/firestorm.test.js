@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { findCardDefinition } from '../../docs/game/cards/card-registry.js';
 import { cleanse, createCard, damage, findUnit, removeUnit, setRowEffect, statusCount } from '../../docs/game/engine/board.js';
-import { applyAction, createMatch } from '../../docs/game/engine/match.js';
+import { applyAction, confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
 import { progress } from '../../docs/game/engine/match-rounds.js';
-import { availableOrders, enqueueStartTurn, runEffect } from '../../docs/game/effects/effects.js';
+import { availableOrders, canUseLeader, enqueueStartTurn, leaderCooldown, runEffect } from '../../docs/game/effects/effects.js';
+import { eventText } from '../../docs/ui/match-log.js';
+import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
 import { unit } from '../helpers/battle-helpers.js';
 
 const rng = () => 0;
@@ -188,4 +190,58 @@ test('surface Brander has same-turn Zeal, spends one charge and triggers Aggress
   assert.deepEqual(availableOrders(nextHumanTurn(match), 'human'), []);
   const orbit = step(setup('brander'), play('brander'));
   assert.deepEqual(availableOrders(nextHumanTurn(orbit), 'human'), []);
+});
+
+
+test('Salfurion casts on both rows, replaces the leader, and keeps its order across rounds', () => {
+  const match = setup('salfurion');
+  match.players.human.leader = createMatch({ humanLeader: 'fleet-admiral', random: rng }).players.human.leader;
+  match.players.human.leader.lastUsedTurn = match.players.human.turns;
+  assert.equal(match.players.human.leader.charges, 3);
+  setRowEffect(match, 'bot', 'orbit', weather('firestorm', 2));
+  setRowEffect(match, 'bot', 'surface', weather('rot', 6));
+  const cast = step(match, play('salfurion'));
+  const events = cast.log.slice(match.log.length);
+  assert.deepEqual(events.filter(({ type }) => type === 'row-effect').slice(0, 2)
+    .map(({ row, effect }) => [row, effect.type, effect.remaining]), [
+    ['orbit', 'firestorm', 4], ['surface', 'firestorm', 2],
+  ]);
+  assert.equal(cast.players.human.discard.at(-1).definition.id, 'salfurion');
+  assert.deepEqual(cast.players.human.board, { orbit: [], surface: [] });
+  const { leader } = cast.players.human;
+  assert.deepEqual([leader.id, leader.name, leader.art, leader.charges, leader.lastUsedTurn],
+    ['salfurion', 'Салфурион', 'salfurion-portrait.webp', 0, undefined]);
+  assert.equal(leader.order.cooldown, 3);
+  assert.equal(leader.order.usesCharges, undefined);
+  const journal = events.find(({ type }) => type === 'leader-replaced');
+  assert.equal(eventText(journal), 'Ты: Салфурион занимает место лидера.');
+  const playback = createPlaybackState(match);
+  applyJournalEvent(playback, journal);
+  assert.deepEqual(playback.players.human.leader, leader);
+  assert.equal(canUseLeader(playback, 'human'), false);
+  assert.equal(applyAction(cast, 'human', { type: 'leader' }, { random: rng }), cast);
+
+  const next = nextHumanTurn(cast);
+  assert.equal(next.players.human.turns, match.players.human.turns + 1);
+  assert.equal(canUseLeader(next, 'human'), true);
+  const ordered = step(next, { type: 'leader' });
+  assert.equal(ordered.players.bot.rowEffects.orbit.remaining, 4);
+  assert.equal(ordered.players.bot.rowEffects.surface.remaining, 2);
+  assert.equal(leaderCooldown(ordered.players.human), 4);
+  assert.equal(step(ordered, { type: 'leader' }), ordered);
+
+  let after = ordered;
+  for (let turn = 0; turn < 3; turn += 1) {
+    after = nextHumanTurn(step(after, play('human-spare-' + turn, 'orbit', turn)));
+    assert.equal(leaderCooldown(after.players.human), 3 - turn);
+    assert.equal(canUseLeader(after, 'human'), false);
+  }
+  after = nextHumanTurn(step(after, play('human-spare-3', 'orbit', 3)));
+  assert.equal(canUseLeader(after, 'human'), true);
+  after = step(step(after, { type: 'pass' }), { type: 'pass' });
+  assert.equal(after.round, 2);
+  assert.deepEqual(after.players.bot.rowEffects, {});
+  const roundTwo = confirmMulligan(after, [], { random: rng });
+  assert.deepEqual(roundTwo.players.human.leader, after.players.human.leader);
+  assert.equal(canUseLeader(roundTwo, 'human'), true);
 });

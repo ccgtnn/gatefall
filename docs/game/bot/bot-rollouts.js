@@ -6,10 +6,10 @@ import { shuffle } from '../shared/score.js';
 import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from '../engine/board.js';
 import { collection, copyLimit } from '../cards/decks.js';
 import { applyAction, canEndTurn, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from '../engine/match.js';
-import { availableOrders, canUseLeader } from '../effects/effects.js';
+import { availableOrders } from '../effects/effects.js';
 import { rowArmor } from '../effects/effect-queries.js';
 import { handCount } from './bot-hand.js';
-import { preferredLeaderUse } from './bot-leaders.js';
+import { canUseBotLeader, preferredLeaderUse } from './bot-leaders.js';
 import { beneficialFee, effectSwing, immediateWeatherOrder, immediateWeatherValue, infectionGain, shouldProtectArmor, tributeTarget, usefulWeatherOrder } from './bot-effect-value.js';
 
 import { armorBreakSwing, delayedCardValue, futureContext, wantsToHoldInheritance } from './bot-future-value.js';
@@ -179,7 +179,7 @@ function quickAction(match, side, pickTarget) {
   const lead = totalScore(player) - totalScore(enemy);
   const leaderPreference = preferredLeaderUse(match, side);
   if (!(enemy.passed && lead > 0) && (leaderPreference ??
-      (player.leader?.order && canUseLeader(match, side) && unitsCanTakeLeaderDamage(enemy)))) {
+      (player.leader?.order && canUseBotLeader(match, side) && unitsCanTakeLeaderDamage(enemy)))) {
     return { type: 'leader' };
   }
   if (match.playedCard) {
@@ -194,7 +194,7 @@ function quickAction(match, side, pickTarget) {
   const legalPass = canPass(match, side);
   const plays = fastPlays(match, side);
   if (!plays.length) {
-    if (canUseLeader(match, side)) return { type: 'leader' };
+    if (canUseBotLeader(match, side)) return { type: 'leader' };
     const order = availableOrders(match, side).find((unit) => usefulWeatherOrder(match, side, unit));
     return order ? { type: 'order', cardId: order.card.id }
       : beneficialFee(match, side) ?? (canEndTurn(match, side) ? END : PASS);
@@ -212,7 +212,7 @@ function quickAction(match, side, pickTarget) {
     }
     if (evaluatePosition(match, side, PASS) >= rating(best)) return PASS;
   }
-  if (!enemy.passed && (match.round === 3 || (match.round === 2 && player.lives === 1)) && leaderPreference === undefined && canUseLeader(match, side) &&
+  if (!enemy.passed && (match.round === 3 || (match.round === 2 && player.lives === 1)) && leaderPreference === undefined && canUseBotLeader(match, side) &&
       (player.leader.ability.select?.[0]?.kind !== 'marshal' || ROWS.some((row) => player.board[row].length > 1))) {
     return { type: 'leader' };
   }

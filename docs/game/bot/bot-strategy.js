@@ -1,11 +1,11 @@
 import { handCount } from './bot-hand.js';
-import { leaderTargetPriority, offeringPriority } from './bot-leaders.js';
+import { canUseBotLeader, leaderTargetPriority, offeringPriority } from './bot-leaders.js';
 import { cardPotential, evaluateBreakdown, evaluatePosition, positionStrength } from './bot-evaluation.js';
 import { EVAL_WEIGHTS as W } from './bot-weights.js';
 import { compareRollouts, visibleSupply } from './bot-rollouts.js';
 import { ROWS } from '../shared/card-metadata.js';
 import { cardType, createCard, findUnit, placementSide } from '../engine/board.js';
-import { availableFees, availableOrders, canUseLeader } from '../effects/effects.js';
+import { availableFees, availableOrders } from '../effects/effects.js';
 import { rowArmor } from '../effects/effect-queries.js';
 import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, holdUntargetedDamage, lockPriority, pendingUnitPriority, shouldProtectArmor, usefulWeatherOrder, tributeOptions } from './bot-effect-value.js';
 import { cardAbilities } from '../engine/events.js';
@@ -101,7 +101,7 @@ function plays(state, side) {
 function abilities(state, side) {
   const actions = availableOrders(state, side).filter((unit) => usefulWeatherOrder(state, side, unit)).map(({ card }) => ({ type: 'order', cardId: card.id }));
   actions.push(...availableFees(state, side).map(({ card }) => ({ type: 'fee', cardId: card.id })));
-  if (canUseLeader(state, side)) actions.push({ type: 'leader' });
+  if (canUseBotLeader(state, side)) actions.push({ type: 'leader' });
   return actions;
 }
 

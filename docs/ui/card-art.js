@@ -4,6 +4,7 @@ import { setCardRarity } from './dom.js';
 
 export const PREMIUM_ART_KEY = 'gatefall.premium-card-art';
 const clips = new Map([
+  ['salfurion', { small: 'salfurion-card.mp4', large: 'salfurion-preview.mp4' }],
   ['firestorm', { small: 'firestorm-card.mp4', large: 'firestorm-preview.mp4' }],
   ['emperors-hand', { small: 'emperors-hand-card.mp4', large: 'emperors-hand-preview.mp4' }],
   ['brander', { small: 'brander-card.mp4', large: 'brander-preview.mp4' }],

@@ -113,6 +113,18 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
     }
     return;
   }
+  if (event.type === 'leader-replaced' && event.identityChanged) {
+    render(commit());
+    const reduced = screen.ownerDocument?.defaultView?.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (!duration || reduced) return;
+    const portrait = screen.querySelector(`[data-aim-leader="${event.side}"]`);
+    await animate(portrait, [
+      { opacity: .4, filter: 'brightness(2.6) drop-shadow(0 0 8px #ff6424)' },
+      { opacity: 1, filter: 'brightness(1.5) drop-shadow(0 0 4px #ff9d42)', offset: .35 },
+      { opacity: 1, filter: 'brightness(1)' },
+    ], duration);
+    return;
+  }
   if (event.type === 'row-effect' || event.type === 'inherit-deathwishes') {
     render(commit());
     return;
