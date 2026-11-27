@@ -1,4 +1,4 @@
-import { chooseBotTurn } from '../game/bot.js';
+import { chooseBotTurn } from '../game/bot/bot.js';
 
 globalThis.addEventListener('message', ({ data: { match, level, withTrace } }) => {
   try {

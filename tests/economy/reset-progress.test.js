@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createRewardProgress, REWARD_STORAGE_KEY } from '../../docs/game/rewards.js';
-import { resetProgress } from '../../docs/game/reset-progress.js';
+import { createRewardProgress, REWARD_STORAGE_KEY } from '../../docs/game/meta/rewards.js';
+import { resetProgress } from '../../docs/game/meta/reset-progress.js';
 import { createDeckStorage } from '../../docs/ui/deck-storage.js';
 import { createFactionStats } from '../../docs/ui/stats.js';
 

@@ -1,8 +1,8 @@
 import { on } from './app-events.js';
-import { LEAGUE_RULES, leagueOpponent, leagueTable } from '../game/league.js';
-import { createLeagueDialogue } from '../game/league-dialogue.js';
-import { MONTHLY_RANKS, rankStanding } from '../game/ranks.js';
-import { tavernRewardCount } from '../game/tavern.js';
+import { LEAGUE_RULES, leagueOpponent, leagueTable } from '../game/meta/league.js';
+import { createLeagueDialogue } from '../game/meta/league-dialogue.js';
+import { MONTHLY_RANKS, rankStanding } from '../game/meta/ranks.js';
+import { tavernRewardCount } from '../game/meta/tavern.js';
 import { button, element } from './dom.js';
 import { leagueAvatar } from './league-character.js';
 import { resourceGlyph, resourceLabel } from './resources.js';

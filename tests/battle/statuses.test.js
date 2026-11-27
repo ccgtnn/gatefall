@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyStatus, findUnit, removeUnit, statusCount } from '../../docs/game/board.js';
-import { infectionGain } from '../../docs/game/bot-effect-value.js';
-import { applyAction, confirmMulligan, createMatch } from '../../docs/game/match.js';
+import { applyStatus, findUnit, removeUnit, statusCount } from '../../docs/game/engine/board.js';
+import { infectionGain } from '../../docs/game/bot/bot-effect-value.js';
+import { applyAction, confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
 import { unit as makeUnit } from '../helpers/battle-helpers.js';
 
 const unit = (id, power = 4) => makeUnit(id, power, { type: 'unit', armor: 3 });

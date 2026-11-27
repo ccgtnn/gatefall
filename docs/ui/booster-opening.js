@@ -1,7 +1,7 @@
 import { cardBack } from './card-back.js';
-import { createCard } from '../game/board.js';
-import { findCardDefinition } from '../game/card-registry.js';
-import { BOOSTER_FACTIONS } from '../game/collection-economy.js';
+import { createCard } from '../game/engine/board.js';
+import { findCardDefinition } from '../game/cards/card-registry.js';
+import { BOOSTER_FACTIONS } from '../game/meta/collection-economy.js';
 import { cardButton, showCard } from './cards.js';
 import { capsule, economyDialog, liveStatus, packOptions } from './booster-shared.js';
 import { button, createBusyGuard, element } from './dom.js';

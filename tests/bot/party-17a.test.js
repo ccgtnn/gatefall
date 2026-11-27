@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { CAPTAIN_CARDS, SKARA_REINHOLD } from '../../docs/game/captains.js';
-import { FACTIONS, NEUTRAL_CARDS } from '../../docs/game/cards.js';
-import { beneficialFee, effectSwing } from '../../docs/game/bot-effect-value.js';
-import { chooseEasyTurn } from '../../docs/game/bot.js';
-import { evaluatePosition } from '../../docs/game/bot-evaluation.js';
-import { remainingTurns } from '../../docs/game/bot-future-value.js';
-import { publicMatch } from '../../docs/game/bot-strategy.js';
-import { applyAction } from '../../docs/game/match.js';
+import { CAPTAIN_CARDS, SKARA_REINHOLD } from '../../docs/game/cards/factions/captains.js';
+import { FACTIONS, NEUTRAL_CARDS } from '../../docs/game/cards/cards.js';
+import { beneficialFee, effectSwing } from '../../docs/game/bot/bot-effect-value.js';
+import { chooseEasyTurn } from '../../docs/game/bot/bot.js';
+import { evaluatePosition } from '../../docs/game/bot/bot-evaluation.js';
+import { remainingTurns } from '../../docs/game/bot/bot-future-value.js';
+import { publicMatch } from '../../docs/game/bot/bot-strategy.js';
+import { applyAction } from '../../docs/game/engine/match.js';
 import { chooseBestBotTurn } from '../helpers/bot-choice.js';
 import { pass, plain, position, standard } from '../helpers/bot-strategy.js';
 

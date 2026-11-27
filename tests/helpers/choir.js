@@ -1,6 +1,6 @@
-import { createCard, damage, findUnit } from '../../docs/game/board.js';
-import { CHOIR_CARDS, PSIONICS } from '../../docs/game/choir.js';
-import { applyAction, createMatch } from '../../docs/game/match.js';
+import { createCard, damage, findUnit } from '../../docs/game/engine/board.js';
+import { CHOIR_CARDS, PSIONICS } from '../../docs/game/cards/factions/choir.js';
+import { applyAction, createMatch } from '../../docs/game/engine/match.js';
 import { drain as drainEffects, pick as pickTarget, play as playCard } from './battle-helpers.js';
 
 export const cards = new Map(CHOIR_CARDS.map((definition) => [definition.id, definition]));

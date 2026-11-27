@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import { createCard } from '../../docs/game/board.js';
-import { FACTIONS, FIRST_SIGNAL } from '../../docs/game/cards.js';
-import { confirmMulligan, createMatch } from '../../docs/game/match.js';
+import { createCard } from '../../docs/game/engine/board.js';
+import { FACTIONS, FIRST_SIGNAL } from '../../docs/game/cards/cards.js';
+import { confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
 import { pick, play as playCard } from './battle-helpers.js';
 
 const definitions = new Map(Object.values(FACTIONS).flatMap(({ deck }) => deck.map((card) => [card.id, card])));

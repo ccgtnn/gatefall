@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyStatus, basePower, createCard, damage, findUnit, statusCount } from '../../docs/game/board.js';
-import { pickBotTarget } from '../../docs/game/bot.js';
+import { applyStatus, basePower, createCard, damage, findUnit, statusCount } from '../../docs/game/engine/board.js';
+import { pickBotTarget } from '../../docs/game/bot/bot.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
-import { FACTIONS, NEUTRAL_CARDS } from '../../docs/game/cards.js';
-import { inspectDeck, PRESETS } from '../../docs/game/decks.js';
-import { applyAction, createDeckMatch, createMatch } from '../../docs/game/match.js';
+import { FACTIONS, NEUTRAL_CARDS } from '../../docs/game/cards/cards.js';
+import { inspectDeck, PRESETS } from '../../docs/game/cards/decks.js';
+import { applyAction, createDeckMatch, createMatch } from '../../docs/game/engine/match.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
 import { unit as makeUnit, drain } from '../helpers/battle-helpers.js';
 

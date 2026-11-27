@@ -1,6 +1,6 @@
-import { createCard } from '../../docs/game/board.js';
-import { FACTIONS, NEUTRAL_CARDS } from '../../docs/game/cards.js';
-import { CAPTAIN_CARDS } from '../../docs/game/captains.js';
+import { createCard } from '../../docs/game/engine/board.js';
+import { FACTIONS, NEUTRAL_CARDS } from '../../docs/game/cards/cards.js';
+import { CAPTAIN_CARDS } from '../../docs/game/cards/factions/captains.js';
 
 export class TestElement {
   constructor(tag) {

@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DECKS } from '../helpers/prototype-decks.js';
-import { BOT_RULES, chooseBotAction, createBotView } from '../../docs/game/bot.js';
+import { BOT_RULES, chooseBotAction, createBotView } from '../../docs/game/bot/bot.js';
 import {
   ROW_LIMIT, applyAction, confirmMulligan, createMatch,
-} from '../../docs/game/match.js';
+} from '../../docs/game/engine/match.js';
 
 function card(power, id = String(power)) {
   return { id, power, definition: { name: id } };

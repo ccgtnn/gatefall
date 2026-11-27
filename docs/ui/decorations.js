@@ -1,7 +1,7 @@
 import { on } from './app-events.js';
 import { assetUrl } from './asset-url.js';
-import { FACTIONS } from '../game/cards.js';
-import { createCard } from '../game/board.js';
+import { FACTIONS } from '../game/cards/cards.js';
+import { createCard } from '../game/engine/board.js';
 import { decorateCard } from './cards.js';
 import { button, element } from './dom.js';
 import { sectionBack } from './resources.js';

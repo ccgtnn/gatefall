@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createRewardProgress, REWARD_STORAGE_KEY } from '../../docs/game/rewards.js';
-import { resetProgress } from '../../docs/game/reset-progress.js';
-import { FACTIONS, LARVA, NEUTRAL_CARDS } from '../../docs/game/cards.js';
-import { announcePlay, applyStatus, createCard, damage, spawnCards, tickInfection } from '../../docs/game/board.js';
-import { createMatch } from '../../docs/game/match.js';
-import { leagueTicket } from '../../docs/game/league.js';
-import { PRESETS } from '../../docs/game/decks.js';
-import { TAVERN_QUESTS, tavernEventAmounts, tavernRewardCount } from '../../docs/game/tavern.js';
+import { createRewardProgress, REWARD_STORAGE_KEY } from '../../docs/game/meta/rewards.js';
+import { resetProgress } from '../../docs/game/meta/reset-progress.js';
+import { FACTIONS, LARVA, NEUTRAL_CARDS } from '../../docs/game/cards/cards.js';
+import { announcePlay, applyStatus, createCard, damage, spawnCards, tickInfection } from '../../docs/game/engine/board.js';
+import { createMatch } from '../../docs/game/engine/match.js';
+import { leagueTicket } from '../../docs/game/meta/league.js';
+import { PRESETS } from '../../docs/game/cards/decks.js';
+import { TAVERN_QUESTS, tavernEventAmounts, tavernRewardCount } from '../../docs/game/meta/tavern.js';
 
 const nextDay = Date.UTC(2026, 10, 24, 12);
 const previousDay = Date.UTC(2026, 10, 23, 12);

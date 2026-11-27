@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { chooseBotTurn } from '../../docs/game/bot.js';
-import { capture, createCard, damage, findUnit, removeUnit, cardType, placementSide } from '../../docs/game/board.js';
-import { FACTIONS, NEUTRAL, NEUTRAL_CARDS, LARVA } from '../../docs/game/cards.js';
-import { applyAction, availableRows, canEndTurn, confirmMulligan, createMatch, playableCards, ROW_LIMIT } from '../../docs/game/match.js';
+import { chooseBotTurn } from '../../docs/game/bot/bot.js';
+import { capture, createCard, damage, findUnit, removeUnit, cardType, placementSide } from '../../docs/game/engine/board.js';
+import { FACTIONS, NEUTRAL, NEUTRAL_CARDS, LARVA } from '../../docs/game/cards/cards.js';
+import { applyAction, availableRows, canEndTurn, confirmMulligan, createMatch, playableCards, ROW_LIMIT } from '../../docs/game/engine/match.js';
 import { drain } from '../helpers/battle-helpers.js';
 import { board, events, fixture, hand, play, target, unit } from '../helpers/effects-fixture.js';
 

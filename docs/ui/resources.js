@@ -1,6 +1,6 @@
 import { button, element, iconButton } from './dom.js';
 import { resourceIcon } from './resource-icon.js';
-import { MATERIALS } from '../game/base.js';
+import { MATERIALS } from '../game/meta/base.js';
 
 const resources = [
   ['keys', 'key', 'Ключи', 'Книга наград'],

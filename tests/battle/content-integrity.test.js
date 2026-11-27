@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { CARD_DEFINITIONS } from '../../docs/game/card-registry.js';
-import { FACTIONS } from '../../docs/game/cards.js';
-import { inspectDeck, PRESETS } from '../../docs/game/decks.js';
-import { effectOperations } from '../../docs/game/effect-operations.js';
-import { EFFECT_SCHEMA } from '../../docs/game/effect-schema.js';
-import { LEAGUE_BOTS } from '../../docs/game/league.js';
+import { CARD_DEFINITIONS } from '../../docs/game/cards/card-registry.js';
+import { FACTIONS } from '../../docs/game/cards/cards.js';
+import { inspectDeck, PRESETS } from '../../docs/game/cards/decks.js';
+import { effectOperations } from '../../docs/game/effects/effect-operations.js';
+import { EFFECT_SCHEMA } from '../../docs/game/shared/effect-schema.js';
+import { LEAGUE_BOTS } from '../../docs/game/meta/league.js';
 import { visitDefinitions } from '../helpers/effect-definitions.js';
 
 const leaders = Object.values(FACTIONS).flatMap((faction) => faction.leaders);

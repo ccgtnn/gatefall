@@ -1,4 +1,4 @@
-import { DIAMOND, LEAGUE_BOTS, LEAGUES, LEAGUE_RULES, leagueTable } from '../game/league.js';
+import { DIAMOND, LEAGUE_BOTS, LEAGUES, LEAGUE_RULES, leagueTable } from '../game/meta/league.js';
 import { leagueAvatar, LORE_FACTIONS } from './league-character.js';
 import { leagueRecord, leagueRoundRecord } from './league-profile.js';
 import { button, element } from './dom.js';

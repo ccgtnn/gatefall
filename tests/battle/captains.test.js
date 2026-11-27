@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
 import test from 'node:test';
-import { applyStatus, cleanse, consume, createCard, findUnit, removeUnit, spawnCards, statusCount, transformUnit } from '../../docs/game/board.js';
-import { CAPTAIN_CARDS, HOUND, HOUND_CATEGORY, REINFORCED_HOUND } from '../../docs/game/captains.js';
-import { KEYWORDS, NEUTRAL_CARDS } from '../../docs/game/cards.js';
-import { PRESETS } from '../../docs/game/decks.js';
-import { availableFees, availableOrders } from '../../docs/game/effects.js';
-import { applyAction, createDeckMatch, createMatch } from '../../docs/game/match.js';
-import { createRewardProgress } from '../../docs/game/rewards.js';
+import { applyStatus, cleanse, consume, createCard, findUnit, removeUnit, spawnCards, statusCount, transformUnit } from '../../docs/game/engine/board.js';
+import { CAPTAIN_CARDS, HOUND, HOUND_CATEGORY, REINFORCED_HOUND } from '../../docs/game/cards/factions/captains.js';
+import { KEYWORDS, NEUTRAL_CARDS } from '../../docs/game/cards/cards.js';
+import { PRESETS } from '../../docs/game/cards/decks.js';
+import { availableFees, availableOrders } from '../../docs/game/effects/effects.js';
+import { applyAction, createDeckMatch, createMatch } from '../../docs/game/engine/match.js';
+import { createRewardProgress } from '../../docs/game/meta/rewards.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
 
 const byId = new Map(CAPTAIN_CARDS.map((card) => [card.id, card]));

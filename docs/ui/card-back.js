@@ -1,4 +1,4 @@
-import { FACTIONS } from '../game/cards.js';
+import { FACTIONS } from '../game/cards/cards.js';
 import { assetUrl } from './asset-url.js';
 import { element } from './dom.js';
 

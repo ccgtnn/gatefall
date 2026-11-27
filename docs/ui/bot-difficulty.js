@@ -1,4 +1,4 @@
-import { BOT_LEVELS, botLevelLabel, readBotLevel } from '../game/bot-levels.js';
+import { BOT_LEVELS, botLevelLabel, readBotLevel } from '../game/bot/bot-levels.js';
 import { element } from './dom.js';
 
 export const BOT_DIFFICULTY_KEY = 'gatefall.bot-difficulty';

@@ -1,14 +1,14 @@
 import { refreshPremiumArt, resumeCardVideos } from './card-art.js';
 import { button, createBusyGuard, element, selectField } from './dom.js';
-import { createCard } from '../game/board.js';
-import { CARD_TYPES, NEUTRAL, RARITY_LABELS } from '../game/card-metadata.js';
-import { CATALOG_CARDS } from '../game/card-registry.js';
-import { FACTION_CATALOG } from '../game/faction-catalog.js';
+import { createCard } from '../game/engine/board.js';
+import { CARD_TYPES, NEUTRAL, RARITY_LABELS } from '../game/shared/card-metadata.js';
+import { CATALOG_CARDS } from '../game/cards/card-registry.js';
+import { FACTION_CATALOG } from '../game/cards/faction-catalog.js';
 import { cardButton, showCard } from './cards.js';
 import { availabilityOptions, filterCatalog } from './catalog-cards.js';
 import { factionFilters } from './faction-filters.js';
-import { copyLimit } from '../game/decks.js';
-import { craftPrice, dismantleValue } from '../game/collection-economy.js';
+import { copyLimit } from '../game/cards/decks.js';
+import { craftPrice, dismantleValue } from '../game/meta/collection-economy.js';
 import { resourceIcon } from './resource-icon.js';
 
 const catalogFactions = [['', 'Все фракции'], [NEUTRAL, 'Нейтральные'],

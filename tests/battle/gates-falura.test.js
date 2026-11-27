@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createCard, damage, findUnit, removeUnit, statusCount } from '../../docs/game/board.js';
+import { createCard, damage, findUnit, removeUnit, statusCount } from '../../docs/game/engine/board.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
-import { NEUTRAL_CARDS, SHADOW } from '../../docs/game/cards.js';
-import { canUseLeader, leaderCooldown } from '../../docs/game/effects.js';
-import { applyAction, canPlayCard, confirmMulligan, createMatch } from '../../docs/game/match.js';
+import { NEUTRAL_CARDS, SHADOW } from '../../docs/game/cards/cards.js';
+import { canUseLeader, leaderCooldown } from '../../docs/game/effects/effects.js';
+import { applyAction, canPlayCard, confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
 import { unit as makeUnit } from '../helpers/battle-helpers.js';
 

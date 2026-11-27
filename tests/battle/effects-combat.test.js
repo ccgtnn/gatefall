@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
-import { createCard, damage, findUnit, restoreCard, transformUnit } from '../../docs/game/board.js';
-import { LARVA } from '../../docs/game/cards.js';
-import { availableOrders, runEffect } from '../../docs/game/effects.js';
-import { applyAction, ROW_LIMIT } from '../../docs/game/match.js';
+import { createCard, damage, findUnit, restoreCard, transformUnit } from '../../docs/game/engine/board.js';
+import { LARVA } from '../../docs/game/cards/cards.js';
+import { availableOrders, runEffect } from '../../docs/game/effects/effects.js';
+import { applyAction, ROW_LIMIT } from '../../docs/game/engine/match.js';
 import { drain } from '../helpers/battle-helpers.js';
 import { basic, board, events, fixture, hand, play, target, unit } from '../helpers/effects-fixture.js';
 

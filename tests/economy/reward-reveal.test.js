@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createRewardProgress, REWARD_STORAGE_KEY } from '../../docs/game/rewards.js';
+import { createRewardProgress, REWARD_STORAGE_KEY } from '../../docs/game/meta/rewards.js';
 import { createRewardQueue, createRewardReveal, enqueueReward } from '../../docs/ui/reward-reveal.js';
 
 function entry(source, reward) {

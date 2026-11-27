@@ -1,11 +1,11 @@
 import { dialogClose } from './resources.js';
 import { button, element, setCardRarity } from './dom.js';
-import { KEYWORDS } from '../game/card-keywords.js';
-import { CARD_TYPES, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/card-metadata.js';
-import { FACTION_CATALOG } from '../game/faction-catalog.js';
-import { basePower, cardType, createCard, isUnit, statusCount } from '../game/board.js';
-import { relatedEffectCards } from '../game/effect-piles.js';
-import { deathwishDefinitions } from '../game/events.js';
+import { KEYWORDS } from '../game/shared/card-keywords.js';
+import { CARD_TYPES, NEUTRAL, RARITY_LABELS, ROW_LABELS } from '../game/shared/card-metadata.js';
+import { FACTION_CATALOG } from '../game/cards/faction-catalog.js';
+import { basePower, cardType, createCard, isUnit, statusCount } from '../game/engine/board.js';
+import { relatedEffectCards } from '../game/cards/related-cards.js';
+import { deathwishDefinitions } from '../game/engine/events.js';
 import { cardArt, hasPremiumArt, selectPremiumArt, usesPremiumArt } from './card-art.js';
 import { decorateCard, growthValue, psionicCountLabel } from './card-badges.js';
 

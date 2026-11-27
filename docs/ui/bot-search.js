@@ -1,6 +1,6 @@
-import { chooseEasyTurn } from '../game/bot.js';
-import { BOT_LEVELS, readBotLevel } from '../game/bot-levels.js';
-import { botSearchState } from '../game/bot-strategy.js';
+import { chooseEasyTurn } from '../game/bot/bot.js';
+import { BOT_LEVELS, readBotLevel } from '../game/bot/bot-levels.js';
+import { botSearchState } from '../game/bot/bot-strategy.js';
 
 export function botSearchTimeoutMs(level) {
   return Math.max(3500, BOT_LEVELS[readBotLevel(level)].budgetMs + 1500);

@@ -1,6 +1,6 @@
-import { createCard } from '../../docs/game/board.js';
-import { FACTIONS } from '../../docs/game/cards.js';
-import { confirmMulligan, createMatch } from '../../docs/game/match.js';
+import { createCard } from '../../docs/game/engine/board.js';
+import { FACTIONS } from '../../docs/game/cards/cards.js';
+import { confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
 
 export const standard = (id, definition) => createCard(id, definition);
 export const plain = (id, power) => standard(id, { id, name: id, type: 'unit', power });

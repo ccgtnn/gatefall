@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createCard, findUnit } from '../../docs/game/board.js';
+import { createCard, findUnit } from '../../docs/game/engine/board.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
-import { FACTIONS, NEUTRAL_CARDS } from '../../docs/game/cards.js';
-import { applyAction, confirmMulligan, createMatch } from '../../docs/game/match.js';
+import { FACTIONS, NEUTRAL_CARDS } from '../../docs/game/cards/cards.js';
+import { applyAction, confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
 import { unit, pick as pickTarget, play as playCard } from '../helpers/battle-helpers.js';
 
 const cards = [...FACTIONS.growth.pool, ...NEUTRAL_CARDS];

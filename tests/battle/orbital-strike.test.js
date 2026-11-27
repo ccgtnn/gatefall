@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyStatus, cleanse, createCard, findUnit, statusCount } from '../../docs/game/board.js';
-import { pickBotTarget } from '../../docs/game/bot.js';
+import { applyStatus, cleanse, createCard, findUnit, statusCount } from '../../docs/game/engine/board.js';
+import { pickBotTarget } from '../../docs/game/bot/bot.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
-import { FACTIONS } from '../../docs/game/cards.js';
-import { ORBITAL_STRIKE_PRESET, PRESETS, inspectDeck } from '../../docs/game/decks.js';
-import { availableOrders } from '../../docs/game/effects.js';
-import { applyAction, confirmMulligan, createDeckMatch, createMatch } from '../../docs/game/match.js';
+import { FACTIONS } from '../../docs/game/cards/cards.js';
+import { ORBITAL_STRIKE_PRESET, PRESETS, inspectDeck } from '../../docs/game/cards/decks.js';
+import { availableOrders } from '../../docs/game/effects/effects.js';
+import { applyAction, confirmMulligan, createDeckMatch, createMatch } from '../../docs/game/engine/match.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
 
 const unit = { id: 'test-unit', name: 'Тестовый отряд', power: 20 };

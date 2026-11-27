@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { findUnit } from '../../docs/game/board.js';
-import { chooseBotTurn, chooseEasyTurn, pickBotTarget } from '../../docs/game/bot.js';
-import { evaluatePosition } from '../../docs/game/bot-evaluation.js';
-import { effectSwing } from '../../docs/game/bot-effect-value.js';
-import { carryoverValue, coinValue, delayedCardValue, futureContext, remainingTurns } from '../../docs/game/bot-future-value.js';
-import { visibleSupply } from '../../docs/game/bot-rollouts.js';
-import { botSearchState, publicMatch } from '../../docs/game/bot-strategy.js';
-import { FACTIONS, LARVA } from '../../docs/game/cards.js';
-import { SLEEPER, TENTACLE } from '../../docs/game/choir.js';
-import { applyAction } from '../../docs/game/match.js';
+import { findUnit } from '../../docs/game/engine/board.js';
+import { chooseBotTurn, chooseEasyTurn, pickBotTarget } from '../../docs/game/bot/bot.js';
+import { evaluatePosition } from '../../docs/game/bot/bot-evaluation.js';
+import { effectSwing } from '../../docs/game/bot/bot-effect-value.js';
+import { carryoverValue, coinValue, delayedCardValue, futureContext, remainingTurns } from '../../docs/game/bot/bot-future-value.js';
+import { visibleSupply } from '../../docs/game/bot/bot-rollouts.js';
+import { botSearchState, publicMatch } from '../../docs/game/bot/bot-strategy.js';
+import { FACTIONS, LARVA } from '../../docs/game/cards/cards.js';
+import { SLEEPER, TENTACLE } from '../../docs/game/cards/factions/choir.js';
+import { applyAction } from '../../docs/game/engine/match.js';
 import { plain, position, standard } from '../helpers/bot-strategy.js';
 
 const card = (id, faction) => standard(id, FACTIONS[faction].pool.find((def) => def.id === id));

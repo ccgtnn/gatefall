@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { CAPTAIN_CARDS, HOUND } from '../../docs/game/captains.js';
-import { chooseBotTurn } from '../../docs/game/bot.js';
-import { evaluatePosition } from '../../docs/game/bot-evaluation.js';
-import { coinValue, futureContext } from '../../docs/game/bot-future-value.js';
-import { samplePosition, visibleSupply } from '../../docs/game/bot-rollouts.js';
-import { publicMatch } from '../../docs/game/bot-strategy.js';
-import { applyAction, confirmMulligan, createMatch } from '../../docs/game/match.js';
+import { CAPTAIN_CARDS, HOUND } from '../../docs/game/cards/factions/captains.js';
+import { chooseBotTurn } from '../../docs/game/bot/bot.js';
+import { evaluatePosition } from '../../docs/game/bot/bot-evaluation.js';
+import { coinValue, futureContext } from '../../docs/game/bot/bot-future-value.js';
+import { samplePosition, visibleSupply } from '../../docs/game/bot/bot-rollouts.js';
+import { publicMatch } from '../../docs/game/bot/bot-strategy.js';
+import { applyAction, confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
 import { plain, position, standard } from '../helpers/bot-strategy.js';
 
 const eyes = () => standard('eyes', CAPTAIN_CARDS.find(({ id }) => id === 'hound-eyes'));

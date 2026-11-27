@@ -1,5 +1,5 @@
-import { FACTIONS } from '../game/cards.js';
-import { UPCOMING_FACTIONS } from '../game/faction-catalog.js';
+import { FACTIONS } from '../game/cards/cards.js';
+import { UPCOMING_FACTIONS } from '../game/cards/faction-catalog.js';
 import { addCardCrop } from './cards.js';
 import { button, element } from './dom.js';
 import { resourceIcon } from './resource-icon.js';

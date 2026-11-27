@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createCard } from '../../docs/game/board.js';
-import { pendingEffectSource } from '../../docs/game/effect-queries.js';
-import { applyAction, playableCards, ROW_LIMIT } from '../../docs/game/match.js';
+import { createCard } from '../../docs/game/engine/board.js';
+import { pendingEffectSource } from '../../docs/game/effects/effect-queries.js';
+import { applyAction, playableCards, ROW_LIMIT } from '../../docs/game/engine/match.js';
 import { board, events, fixture, hand, play, target, unit } from '../helpers/effects-fixture.js';
 
 test('Reinforcements offers random eligible physical copies, then plays one in the chosen position with deploy', () => {

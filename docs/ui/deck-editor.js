@@ -1,8 +1,8 @@
 import { on } from './app-events.js';
-import { FACTIONS } from '../game/cards.js';
-import { NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/card-metadata.js';
-import { createCard } from '../game/board.js';
-import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS } from '../game/decks.js';
+import { FACTIONS } from '../game/cards/cards.js';
+import { NEUTRAL, CARD_TYPES, RARITY_LABELS } from '../game/shared/card-metadata.js';
+import { createCard } from '../game/engine/board.js';
+import { collection, copyLimit, inspectDeck, MIN_CARDS, MIN_UNITS } from '../game/cards/decks.js';
 import { addCardCrop, cardButton } from './cards.js';
 import { button, element, selectField } from './dom.js';
 import { factionFilters } from './faction-filters.js';

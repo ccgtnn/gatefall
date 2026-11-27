@@ -1,5 +1,5 @@
-import { recordCardPlay, spendResilience } from '../game/board.js';
-import { ROWS } from '../game/card-metadata.js';
+import { recordCardPlay, spendResilience } from '../game/engine/board.js';
+import { ROWS } from '../game/shared/card-metadata.js';
 
 export function motionDuration(speed, reduced) {
   if (speed === 'system' && reduced) return 0;

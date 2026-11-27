@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { FACTIONS } from '../../docs/game/cards.js';
-import { collection, inspectDeck, PRESETS, REBIRTH_PRESET } from '../../docs/game/decks.js';
-import { createDeckMatch } from '../../docs/game/match.js';
+import { FACTIONS } from '../../docs/game/cards/cards.js';
+import { collection, inspectDeck, PRESETS, REBIRTH_PRESET } from '../../docs/game/cards/decks.js';
+import { createDeckMatch } from '../../docs/game/engine/match.js';
 
 const [protectorate, growth] = PRESETS;
 const shortDeck = { ...protectorate, cardIds: [] };

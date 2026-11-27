@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createCard, findUnit, statusCount } from '../../docs/game/board.js';
+import { createCard, findUnit, statusCount } from '../../docs/game/engine/board.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
-import { DEVOURER_SPAWN } from '../../docs/game/growth.js';
-import { findCardDefinition } from '../../docs/game/card-registry.js';
-import { FACTIONS } from '../../docs/game/cards.js';
-import { availableOrders, canUseLeader } from '../../docs/game/effects.js';
-import { applyAction, confirmMulligan, createMatch } from '../../docs/game/match.js';
+import { DEVOURER_SPAWN } from '../../docs/game/cards/factions/growth.js';
+import { findCardDefinition } from '../../docs/game/cards/card-registry.js';
+import { FACTIONS } from '../../docs/game/cards/cards.js';
+import { availableOrders, canUseLeader } from '../../docs/game/effects/effects.js';
+import { applyAction, confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
 import { unit as makeUnit } from '../helpers/battle-helpers.js';
 
 const unit = (id, power = 7) => makeUnit(id, power, { type: 'unit' });

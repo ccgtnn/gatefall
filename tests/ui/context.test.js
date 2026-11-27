@@ -12,7 +12,7 @@ const run = (...args) => promisify(execFile)(process.execPath, [tool, ...args], 
 
 test('all context packs include their contracts and keep broad content out by default', async () => {
   const expected = {
-    engine: 'docs/game/effects.js', bot: 'docs/game/bot-strategy.js', economy: 'docs/game/rewards.js',
+    engine: 'docs/game/effects/effects.js', bot: 'docs/game/bot/bot-strategy.js', economy: 'docs/game/meta/rewards.js',
     ui: 'docs/app.js', 'ui:battle': 'docs/ui/field.js', 'ui:catalog': 'docs/ui/catalog-screen.js',
     'ui:base': 'docs/ui/base-screen.js', 'ui:rewards': 'docs/ui/reward-book.js',
   };
@@ -33,7 +33,7 @@ test('extra files are included once, and a missing profile writes no partial pac
 
 test('work context excludes general documentation, analysis and league data even among extra files', async () => {
   const { stdout } = await run('engine', 'ART_STYLE.md', 'README.md', 'CHANGELOG.md',
-    'tools/analysis/arena-step-19.md', 'docs/game/data/league-characters.js', 'docs/game/data/league-context-lines.js');
+    'tools/analysis/arena-step-19.md', 'docs/game/meta/data/league-characters.js', 'docs/game/meta/data/league-context-lines.js');
   const files = stdout.split('\n').filter((line) => line.startsWith('## '));
   assert.ok(!files.some((line) => /^## (ART_STYLE|README|CHANGELOG)\.md$|^## (tools\/analysis|docs\/game\/data)\//.test(line)));
 });

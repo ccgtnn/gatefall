@@ -1,7 +1,7 @@
 import { placementEffectRows } from './card-placement.js';
 import { button, element } from './dom.js';
-import { availableRows, cardType, placementSide } from '../game/board.js';
-import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/match.js';
+import { availableRows, cardType, placementSide } from '../game/engine/board.js';
+import { canPlayCard, confirmMulligan, mulliganRemaining, replaceMulliganCard } from '../game/engine/match.js';
 import { cardButton, showCard } from './cards.js';
 
 export function updatePlacementSelection(screen, match, selectedCardId) {

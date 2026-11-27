@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { MONTHLY_RANKS, rankRewards, rankStanding, wonRounds } from '../../docs/game/ranks.js';
-import { createRewardProgress, REWARD_STORAGE_KEY } from '../../docs/game/rewards.js';
-import { resetProgress } from '../../docs/game/reset-progress.js';
-import { leagueTicket } from '../../docs/game/league.js';
-import { PRESETS } from '../../docs/game/decks.js';
+import { MONTHLY_RANKS, rankRewards, rankStanding, wonRounds } from '../../docs/game/meta/ranks.js';
+import { createRewardProgress, REWARD_STORAGE_KEY } from '../../docs/game/meta/rewards.js';
+import { resetProgress } from '../../docs/game/meta/reset-progress.js';
+import { leagueTicket } from '../../docs/game/meta/league.js';
+import { PRESETS } from '../../docs/game/cards/decks.js';
 
 const december = Date.UTC(2026, 11, 1, 12);
 const november = Date.UTC(2026, 10, 30, 12);

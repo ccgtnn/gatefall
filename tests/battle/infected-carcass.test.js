@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
 import test from 'node:test';
-import { consume, createCard, damage, findUnit, statusCount } from '../../docs/game/board.js';
-import { findCardDefinition } from '../../docs/game/card-registry.js';
-import { PRESETS } from '../../docs/game/decks.js';
+import { consume, createCard, damage, findUnit, statusCount } from '../../docs/game/engine/board.js';
+import { findCardDefinition } from '../../docs/game/cards/card-registry.js';
+import { PRESETS } from '../../docs/game/cards/decks.js';
 import { drain, emptyPlayingMatch, unit } from '../helpers/battle-helpers.js';
 
 const definition = findCardDefinition('infected-carcass');

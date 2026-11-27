@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { botLevelLabel } from '../../docs/game/bot-levels.js';
-import { PRESETS } from '../../docs/game/decks.js';
-import { createLeague, leagueOpponent, leagueTable } from '../../docs/game/league.js';
+import { botLevelLabel } from '../../docs/game/bot/bot-levels.js';
+import { PRESETS } from '../../docs/game/cards/decks.js';
+import { createLeague, leagueOpponent, leagueTable } from '../../docs/game/meta/league.js';
 import { emit } from '../../docs/ui/app-events.js';
 import { BOT_DIFFICULTY_KEY, createBotDifficulty } from '../../docs/ui/bot-difficulty.js';
 import { deckHomeScreen } from '../../docs/ui/deck-list.js';

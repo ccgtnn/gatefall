@@ -1,7 +1,7 @@
-import { basePower, createCard, isUnit, ROW_LIMIT } from '../../game/board.js';
-import { cardsForFaction } from '../../game/card-registry.js';
-import { FACTIONS, NEUTRAL } from '../../game/cards.js';
-import { createMatch } from '../../game/match.js';
+import { basePower, createCard, isUnit, ROW_LIMIT } from '../../game/engine/board.js';
+import { cardsForFaction } from '../../game/cards/card-registry.js';
+import { FACTIONS, NEUTRAL } from '../../game/cards/cards.js';
+import { createMatch } from '../../game/engine/match.js';
 import { createFieldRows } from '../field-rows.js';
 
 export const factionOptions = [

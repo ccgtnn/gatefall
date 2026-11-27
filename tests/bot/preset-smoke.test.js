@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { BOT_LEVELS, pickBotTarget } from '../../docs/game/bot.js';
-import { chooseStrategicTarget, chooseStrategicTurn } from '../../docs/game/bot-strategy.js';
-import { PRESETS } from '../../docs/game/decks.js';
-import { applyAction, confirmMulligan, createDeckMatch } from '../../docs/game/match.js';
+import { BOT_LEVELS, pickBotTarget } from '../../docs/game/bot/bot.js';
+import { chooseStrategicTarget, chooseStrategicTurn } from '../../docs/game/bot/bot-strategy.js';
+import { PRESETS } from '../../docs/game/cards/decks.js';
+import { applyAction, confirmMulligan, createDeckMatch } from '../../docs/game/engine/match.js';
 import { mirrorMatch } from '../../tools/arena-position.mjs';
 
 function seeded(seed) {

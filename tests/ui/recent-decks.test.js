@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PRESETS } from '../../docs/game/decks.js';
-import { createRewardProgress } from '../../docs/game/rewards.js';
+import { PRESETS } from '../../docs/game/cards/decks.js';
+import { createRewardProgress } from '../../docs/game/meta/rewards.js';
 import { createDeckStorage } from '../../docs/ui/deck-storage.js';
 
 test('home shows up to four playable decks in last-played order across reloads', () => {

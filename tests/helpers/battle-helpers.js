@@ -1,6 +1,6 @@
-import { createCard } from '../../docs/game/board.js';
-import { runEffect } from '../../docs/game/effects.js';
-import { applyAction, createMatch } from '../../docs/game/match.js';
+import { createCard } from '../../docs/game/engine/board.js';
+import { runEffect } from '../../docs/game/effects/effects.js';
+import { applyAction, createMatch } from '../../docs/game/engine/match.js';
 
 export function unit(id, power, traits = {}) {
   return createCard(id, { id, name: id, power, ...traits });

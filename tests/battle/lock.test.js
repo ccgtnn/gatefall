@@ -2,15 +2,15 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   applyStatus, consume, createCard, findUnit, refreshSidePower, removeUnit, restoreCard, spendResilience, statusCount,
-} from '../../docs/game/board.js';
+} from '../../docs/game/engine/board.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
-import { CAPTAIN_CARDS } from '../../docs/game/captains.js';
-import { AWAKENING } from '../../docs/game/choir.js';
-import { KEYWORDS, NEUTRAL_CARDS } from '../../docs/game/cards.js';
-import { availableFees, availableOrders, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn } from '../../docs/game/effects.js';
-import { emit } from '../../docs/game/events.js';
-import { applyAction } from '../../docs/game/match.js';
-import { createRewardProgress } from '../../docs/game/rewards.js';
+import { CAPTAIN_CARDS } from '../../docs/game/cards/factions/captains.js';
+import { AWAKENING } from '../../docs/game/cards/factions/choir.js';
+import { KEYWORDS, NEUTRAL_CARDS } from '../../docs/game/cards/cards.js';
+import { availableFees, availableOrders, enqueueCardEffect, enqueueEndTurn, enqueueStartTurn } from '../../docs/game/effects/effects.js';
+import { emit } from '../../docs/game/engine/events.js';
+import { applyAction } from '../../docs/game/engine/match.js';
+import { createRewardProgress } from '../../docs/game/meta/rewards.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
 import { drain, emptyPlayingMatch, play as playCard, unit } from '../helpers/battle-helpers.js';
 

@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyStatus, createCard, findUnit, statusCount } from '../../docs/game/board.js';
+import { applyStatus, createCard, findUnit, statusCount } from '../../docs/game/engine/board.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
-import { FACTIONS, FIRST_SIGNAL, NEUTRAL_CARDS } from '../../docs/game/cards.js';
-import { availableOrders } from '../../docs/game/effects.js';
-import { applyAction, confirmMulligan, createMatch } from '../../docs/game/match.js';
+import { FACTIONS, FIRST_SIGNAL, NEUTRAL_CARDS } from '../../docs/game/cards/cards.js';
+import { availableOrders } from '../../docs/game/effects/effects.js';
+import { applyAction, confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
 import { unit as makeUnit } from '../helpers/battle-helpers.js';
 
 const card = (id) => createCard(id, NEUTRAL_CARDS.find((definition) => definition.id === id));

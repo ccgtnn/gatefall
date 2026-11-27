@@ -1,5 +1,5 @@
 import { mirrorMatch, other } from './arena-position.mjs';
-import { BOT_LEVELS, readBotLevel } from '../docs/game/bot-levels.js';
+import { BOT_LEVELS, readBotLevel } from '../docs/game/bot/bot-levels.js';
 import { availableParallelism } from 'node:os';
 import { writeFileSync } from 'node:fs';
 import { summarizeCards, summarizeOverload, summarizePlagueEvents, summarizeNewNeutrals } from './arena-cards.mjs';
@@ -11,10 +11,10 @@ function randomFrom(seed) {
 }
 
 async function run({ root, trials, rolloutSamples, trace, collectCards, progress, newNeutrals }) {
-  const { applyAction, confirmMulligan, createMatch, mulliganLimit, totalScore } = await import(root + '/docs/game/match.js');
-  const { FACTIONS, NEUTRAL_CARDS } = await import(root + '/docs/game/cards.js');
-  const { PRESETS, inspectDeck } = await import(root + '/docs/game/decks.js');
-  const { chooseBotTurn, BOT_LEVELS: levelsSupported } = await import(root + '/docs/game/bot.js');
+  const { applyAction, confirmMulligan, createMatch, mulliganLimit, totalScore } = await import(root + '/docs/game/engine/match.js');
+  const { FACTIONS, NEUTRAL_CARDS } = await import(root + '/docs/game/cards/cards.js');
+  const { PRESETS, inspectDeck } = await import(root + '/docs/game/cards/decks.js');
+  const { chooseBotTurn, BOT_LEVELS: levelsSupported } = await import(root + '/docs/game/bot/bot.js');
   const results = [];
   const additions = newNeutrals ? NEUTRAL_CARDS.filter(({ id }) => id === 'world-gates' || id === 'falura') : [];
   for (const { levels, faction, seed, starter, group, leaderPair, growth } of trials) {

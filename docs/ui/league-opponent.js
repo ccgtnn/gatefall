@@ -1,5 +1,5 @@
-import { botLevelLabel } from '../game/bot-levels.js';
-import { leagueStake } from '../game/league.js';
+import { botLevelLabel } from '../game/bot/bot-levels.js';
+import { leagueStake } from '../game/meta/league.js';
 import { leagueAvatar, setLeagueSpeech } from './league-character.js';
 import { leagueIdentity } from './league-standings.js';
 import { button, element, selectField } from './dom.js';

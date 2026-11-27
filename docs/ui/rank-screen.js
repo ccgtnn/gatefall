@@ -1,5 +1,5 @@
 import { on } from './app-events.js';
-import { MONTHLY_RANKS, rankStanding } from '../game/ranks.js';
+import { MONTHLY_RANKS, rankStanding } from '../game/meta/ranks.js';
 import { element } from './dom.js';
 import { sectionBack } from './resources.js';
 
