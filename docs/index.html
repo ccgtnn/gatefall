@@ -6,31 +6,274 @@
   <meta name="theme-color" content="#181818">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>Gatefall — Угасшие врата</title>
+  <style>
+    #boot-screen {
+      --boot-accent: #5fd8ff;
+      --boot-position: 50%;
+      --boot-progress: 0;
+      --boot-progress-time: 1.5s;
+      position: fixed;
+      inset: 0;
+      z-index: 2147483647;
+      isolation: isolate;
+      overflow: hidden;
+      background: #05060a;
+      color: #f0f3fa;
+      font-family: system-ui, sans-serif;
+      text-align: center;
+      transition: opacity 400ms ease;
+    }
+    #boot-screen:not(.boot-leaving) ~ #app,
+    #boot-screen:not(.boot-leaving) ~ dialog,
+    #boot-screen:not(.boot-leaving) ~ dialog::backdrop { visibility: hidden; }
+    #boot-screen .boot-art, #boot-screen .boot-shade {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    #boot-screen .boot-art {
+      object-fit: cover;
+      object-position: var(--boot-position) center;
+      opacity: 0;
+      transition: opacity 350ms ease;
+    }
+    #boot-screen .boot-art.is-loaded { opacity: 1; }
+    #boot-screen .boot-shade {
+      background: radial-gradient(ellipse at 50% 44%, transparent 25%, #05060a75 100%),
+        linear-gradient(0deg, #05060af0 0%, #05060a35 42%, transparent 60%);
+    }
+    #boot-screen .boot-brand {
+      position: absolute;
+      inset: 0 0 auto;
+      width: min(78vw, 820px);
+      height: 54%;
+      margin-inline: auto;
+      padding-top: env(safe-area-inset-top);
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      background: radial-gradient(ellipse at center, #05060ae8 0%, #05060a85 48%, transparent 72%);
+    }
+    #boot-screen .boot-brand::before {
+      content: "";
+      position: absolute;
+      inset: 15% 3% 12%;
+      background: radial-gradient(ellipse, color-mix(in srgb, var(--boot-accent) 28%, transparent), transparent 69%);
+      pointer-events: none;
+    }
+    #boot-screen .boot-logo {
+      position: relative;
+      display: block;
+      width: 100%;
+      max-height: 38vh;
+      object-fit: contain;
+      mix-blend-mode: screen;
+    }
+    #boot-screen .boot-subtitle {
+      position: relative;
+      margin: clamp(-4.3rem, -8vmin, -1rem) 0 0;
+      font-size: clamp(.78rem, 2.5vw, 1.2rem);
+      font-weight: 600;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      text-shadow: 0 2px 8px #000;
+    }
+    #boot-screen .boot-footer {
+      position: absolute;
+      inset: auto max(1.25rem, env(safe-area-inset-right))
+        calc(clamp(1.25rem, 6vh, 4rem) + env(safe-area-inset-bottom))
+        max(1.25rem, env(safe-area-inset-left));
+      max-width: 34rem;
+      margin-inline: auto;
+    }
+    #boot-screen .boot-track {
+      height: 3px;
+      border-radius: 3px;
+      background: #ffffff29;
+    }
+    #boot-screen .boot-bar {
+      height: 100%;
+      border-radius: inherit;
+      background: var(--boot-accent);
+      box-shadow: 0 0 .8rem var(--boot-accent);
+      transform: scaleX(var(--boot-progress));
+      transform-origin: left;
+      transition: transform var(--boot-progress-time) ease-out;
+    }
+    #boot-screen .boot-hint { margin: .85rem 0 0; line-height: 1.45; overflow-wrap: anywhere; }
+    #boot-screen .boot-retry {
+      margin-top: .75rem;
+      padding: .55rem 1.1rem;
+      border: 1px solid var(--boot-accent);
+      border-radius: .35rem;
+      background: #05060a;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+    }
+    #boot-screen.boot-leaving { opacity: 0; pointer-events: none; }
+    #boot-screen.boot-still, #boot-screen.boot-still * { transition: none; }
+    @media (orientation: portrait) {
+      #boot-screen .boot-brand { height: 40%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #boot-screen, #boot-screen * { transition: none; }
+    }
+  </style>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./style.css">
-  <link rel="stylesheet" href="./cards.css">
-  <link rel="stylesheet" href="./card-motion.css">
-  <link rel="stylesheet" href="./deck-screens.css">
-  <link rel="stylesheet" href="./card-frames.css">
-  <link rel="stylesheet" href="./field.css">
-  <link rel="stylesheet" href="./field-controls.css">
-  <link rel="stylesheet" href="./match-dialogs.css">
-  <link rel="stylesheet" href="./field-effects.css">
-  <link rel="stylesheet" href="./live-badges-home.css">
-  <link rel="stylesheet" href="./reward-book.css">
-  <link rel="stylesheet" href="./economy.css">
-  <link rel="stylesheet" href="./base.css">
-  <link rel="stylesheet" href="./action-buttons.css">
-  <link rel="stylesheet" href="./league.css">
-  <link rel="stylesheet" href="./tavern.css">
-  <link rel="stylesheet" href="./card-preview.css">
-  <link rel="stylesheet" href="./ranks.css">
-  <link rel="stylesheet" href="./decorations.css">
-  <link rel="stylesheet" href="./reward-reveal.css">
+  <link rel="stylesheet" media="print" href="./style.css">
+  <link rel="stylesheet" media="print" href="./cards.css">
+  <link rel="stylesheet" media="print" href="./card-motion.css">
+  <link rel="stylesheet" media="print" href="./deck-screens.css">
+  <link rel="stylesheet" media="print" href="./card-frames.css">
+  <link rel="stylesheet" media="print" href="./field.css">
+  <link rel="stylesheet" media="print" href="./field-controls.css">
+  <link rel="stylesheet" media="print" href="./match-dialogs.css">
+  <link rel="stylesheet" media="print" href="./field-effects.css">
+  <link rel="stylesheet" media="print" href="./live-badges-home.css">
+  <link rel="stylesheet" media="print" href="./reward-book.css">
+  <link rel="stylesheet" media="print" href="./economy.css">
+  <link rel="stylesheet" media="print" href="./base.css">
+  <link rel="stylesheet" media="print" href="./action-buttons.css">
+  <link rel="stylesheet" media="print" href="./league.css">
+  <link rel="stylesheet" media="print" href="./tavern.css">
+  <link rel="stylesheet" media="print" href="./card-preview.css">
+  <link rel="stylesheet" media="print" href="./ranks.css">
+  <link rel="stylesheet" media="print" href="./decorations.css">
+  <link rel="stylesheet" media="print" href="./reward-reveal.css">
   <script type="module" src="./app.js"></script>
 </head>
 <body>
+  <div id="boot-screen">
+    <img class="boot-art" alt="" decoding="async">
+    <div class="boot-shade"></div>
+    <div class="boot-brand">
+      <img class="boot-logo" src="./art/loading/logo.webp" alt="Gatefall" width="1600" height="893">
+      <p class="boot-subtitle">Угасшие врата</p>
+    </div>
+    <div class="boot-footer">
+      <div class="boot-track" aria-hidden="true"><div class="boot-bar"></div></div>
+      <p class="boot-hint" role="status">Загрузка игры…</p>
+      <button class="boot-retry" type="button" hidden>Обновить</button>
+      <noscript>Для запуска игры нужен JavaScript.</noscript>
+    </div>
+  </div>
+  <script>
+    (() => {
+      const screen = document.getElementById('boot-screen');
+      const art = screen.querySelector('.boot-art');
+      const track = screen.querySelector('.boot-track');
+      const hint = screen.querySelector('.boot-hint');
+      const retry = screen.querySelector('.boot-retry');
+      const artworks = [
+        ['./art/loading/gate.webp', '70%', '#5fd8ff'],
+        ['./art/loading/protectorate.webp', '60%', '#8fb8ff'],
+        ['./art/loading/growth.webp', '60%', '#8fe36a'],
+        ['./art/loading/choir.webp', '50%', '#b07cff'],
+        ['./art/loading/captains.webp', '50%', '#ffb347'],
+      ];
+      const tips = [
+        'Между раундами переходит только половина монет, с округлением вниз.',
+        'Спасовав, ты не выпадаешь из партии: эффекты начала и конца хода твоих карт продолжают срабатывать.',
+        'Захваченный отряд с готовым Приказом можно использовать в тот же ход.',
+        'Рвение делает Приказ только что сыгранной карты готовым сразу.',
+        'Таймеры отсчитываются в конце хода.',
+        'При муллигане карта уходит в случайное место колоды.',
+        'Сценарии и артефакты нельзя заблокировать.',
+        'Лидер с «Приказ (1 заряд)» срабатывает один раз за партию — выбирай момент.',
+        'Основную колоду можно назначить в меню ⋯ на карточке колоды.',
+        'Прогресс можно сохранить в облаке — смотри настройки.',
+      ];
+      const pick = (items) => items[Math.floor(Math.random() * items.length)];
+      const [src, position, accent] = pick(artworks);
+      const started = performance.now();
+      const motion = matchMedia('(prefers-reduced-motion: reduce)');
+      let reduced = false;
+      try {
+        reduced = ['on', 'true', '1'].includes(localStorage.getItem('gatefall.reduced-motion'));
+      } catch {}
+      screen.classList.toggle('boot-still', reduced || motion.matches);
+      screen.style.setProperty('--boot-accent', accent);
+      screen.style.setProperty('--boot-position', position);
+      hint.textContent = pick(tips);
+      art.addEventListener('load', () => art.classList.add('is-loaded'), { once: true });
+      art.src = src;
+      retry.addEventListener('click', () => location.reload());
+
+      // Keep app styles from blocking the first paint, then activate each once loaded.
+      const styles = document.querySelectorAll('link[rel="stylesheet"][media="print"]');
+      const listeners = new AbortController();
+      const { signal } = listeners;
+      let pendingStyles = styles.length;
+      let appReady = false;
+      let settled = false;
+      const watchdog = setTimeout(fail, 15000);
+
+      function settle() {
+        settled = true;
+        clearTimeout(watchdog);
+        listeners.abort();
+        delete window.gatefallBootReady;
+      }
+
+      function fail() {
+        if (settled) return;
+        settle();
+        track.hidden = true;
+        hint.textContent = 'Не удалось загрузить игру. Обнови страницу';
+        retry.hidden = false;
+      }
+
+      function finishIfReady() {
+        if (settled || !appReady || pendingStyles) return;
+        settle();
+        if (reduced || motion.matches) {
+          screen.remove();
+          return;
+        }
+        setTimeout(() => {
+          screen.style.setProperty('--boot-progress-time', '180ms');
+          screen.style.setProperty('--boot-progress', '1');
+          setTimeout(() => {
+            screen.classList.add('boot-leaving');
+            setTimeout(() => screen.remove(), 400);
+          }, 180);
+        }, Math.max(0, 700 - (performance.now() - started)));
+      }
+
+      window.gatefallBootReady = () => {
+        appReady = true;
+        finishIfReady();
+      };
+      function failBeforeRender() {
+        if (!appReady) fail();
+      }
+      window.addEventListener('error', failBeforeRender, { signal });
+      window.addEventListener('unhandledrejection', failBeforeRender, { signal });
+      document.querySelector('script[type="module"]').addEventListener('error', fail, { signal });
+      for (const link of styles) {
+        const enable = () => {
+          link.media = 'all';
+          pendingStyles -= 1;
+          finishIfReady();
+        };
+        if (link.sheet) enable();
+        else {
+          link.addEventListener('load', enable, { once: true, signal });
+          link.addEventListener('error', fail, { once: true, signal });
+        }
+      }
+
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (!track.hidden && screen.style.getPropertyValue('--boot-progress') !== '1') {
+          screen.style.setProperty('--boot-progress', '.9');
+        }
+      }));
+    })();
+  </script>
   <div id="app">
     <header class="masthead">
       <div class="brand">
