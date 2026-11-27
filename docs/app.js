@@ -413,6 +413,7 @@ function render({ deckListNotice } = {}) {
 }
 
 render();
+window.gatefallBootReady?.();
 
 // Reconcile an existing cloud copy before background checkpoints create local progress.
 void cloud.start().finally(() => {
