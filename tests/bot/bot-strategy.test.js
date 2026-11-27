@@ -114,6 +114,40 @@ test('level 6 defends a passed second-round bleed with a cheap win', () => {
   assert.equal(chooseBotTurn(match, 6).cardId, 'cheap');
 });
 
+test('level 6 overtakes a passed opponent with one card and then passes', () => {
+  const match = position(2, 'human');
+  const { bot, human } = match.players;
+  bot.lives = 1;
+  bot.hand = [plain('two', 2), plain('five', 5)];
+  human.hand = human.hand.slice(0, 2);
+  human.board.orbit = [plain('lead', 3)];
+  human.passed = true;
+  const options = { random: () => .99 };
+
+  const play = decideAtLevel(match, 6, options);
+  assert.equal(play.type, 'play');
+  assert.equal(play.cardId, 'five');
+  const afterTurn = applyAction(match, 'bot', play);
+  assert.deepEqual(afterTurn.players.bot.hand.map(({ id }) => id), ['two']);
+
+  const takeRound = decideAtLevel(afterTurn, 6, options);
+  assert.deepEqual(takeRound, pass);
+  const nextRound = applyAction(afterTurn, 'bot', takeRound);
+  assert.equal(nextRound.round, 3);
+  assert.equal(nextRound.players.human.lives, 1);
+});
+
+test('level 6 banks a one-point lead after the opponent passes in round one', () => {
+  const match = position();
+  const { bot, human } = match.players;
+  bot.board.orbit = [plain('ahead', 4)];
+  bot.hand = [plain('spare', 5)];
+  human.board.orbit = [plain('behind', 3)];
+  human.passed = true;
+
+  assert.deepEqual(decideAtLevel(match, 6, { random: () => .99 }), pass);
+});
+
 test('a bot with a winning lead passes before using the Incubator', () => {
   const match = position();
   match.players.bot.board.surface = [member('incubator', 'growth', 'incubator'), plain('lead', 12)];

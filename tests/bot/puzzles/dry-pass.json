@@ -1,0 +1,1130 @@
+{
+  "name": "Сухой пас во втором раунде",
+  "description": "Раунд 2, у бота 1 жизнь, у игрока 2. Игрок спасовал с пустым полем, бот ведёт 16:0, в руке 4 карты, заряды лидера потрачены. Нужно пасовать и забрать раунд, сохранив карты на третий.",
+  "level": 6,
+  "state": {
+    "rules": {
+      "nextStarter": "winner",
+      "leaderCharges": 1,
+      "coinCarryRatio": 0.5
+    },
+    "players": {
+      "bot": {
+        "startingCategories": {
+          "Росток": 12,
+          "Выводок": 6,
+          "Гниль": 4,
+          "Зверь": 1
+        },
+        "lives": 1,
+        "hand": [
+          {
+            "id": "bot-2",
+            "definition": {
+              "$card": "thorn-screecher"
+            },
+            "readyAt": 0,
+            "power": 5,
+            "basePower": 5,
+            "armor": 0
+          },
+          {
+            "id": "bot-8",
+            "definition": {
+              "$card": "bioreactor"
+            },
+            "readyAt": 0,
+            "power": 3,
+            "basePower": 3,
+            "armor": 0
+          },
+          {
+            "id": "bot-25",
+            "definition": {
+              "$card": "carrion-devourer"
+            },
+            "readyAt": 0,
+            "power": 13,
+            "basePower": 13,
+            "armor": 0
+          },
+          {
+            "id": "bot-4",
+            "definition": {
+              "$card": "synaptic-parasite"
+            },
+            "readyAt": 0,
+            "power": 4,
+            "basePower": 4,
+            "armor": 0
+          }
+        ],
+        "deck": [
+          {
+            "id": "bot-1",
+            "definition": {
+              "$card": "thorn-screecher"
+            },
+            "readyAt": 0,
+            "power": 5,
+            "basePower": 5,
+            "armor": 0
+          },
+          {
+            "id": "bot-11",
+            "definition": {
+              "$card": "cocoon"
+            },
+            "readyAt": 0,
+            "power": 3,
+            "basePower": 3,
+            "armor": 0
+          },
+          {
+            "id": "bot-13",
+            "definition": {
+              "$card": "vine"
+            },
+            "readyAt": 0,
+            "power": 2,
+            "basePower": 2,
+            "armor": 0,
+            "growth": 0
+          },
+          {
+            "id": "bot-14",
+            "definition": {
+              "$card": "spore-sac"
+            },
+            "readyAt": 0,
+            "power": 1,
+            "basePower": 1,
+            "armor": 1,
+            "growth": 0
+          },
+          {
+            "id": "bot-16",
+            "definition": {
+              "$card": "acid-gland"
+            },
+            "readyAt": 0,
+            "power": 2,
+            "basePower": 2,
+            "armor": 0
+          },
+          {
+            "id": "bot-17",
+            "definition": {
+              "$card": "acid-gland"
+            },
+            "readyAt": 0,
+            "power": 2,
+            "basePower": 2,
+            "armor": 0
+          },
+          {
+            "id": "bot-18",
+            "definition": {
+              "$card": "spitter"
+            },
+            "readyAt": 0,
+            "power": 3,
+            "basePower": 3,
+            "armor": 0
+          },
+          {
+            "id": "bot-19",
+            "definition": {
+              "$card": "spitter"
+            },
+            "readyAt": 0,
+            "power": 3,
+            "basePower": 3,
+            "armor": 0
+          },
+          {
+            "id": "bot-22",
+            "definition": {
+              "$card": "colossus"
+            },
+            "readyAt": 0,
+            "power": 5,
+            "basePower": 5,
+            "armor": 0
+          },
+          {
+            "id": "bot-23",
+            "definition": {
+              "$card": "broodlord"
+            },
+            "readyAt": 0,
+            "power": 4,
+            "basePower": 4,
+            "armor": 0
+          },
+          {
+            "id": "bot-24",
+            "definition": {
+              "$card": "annihilation"
+            },
+            "readyAt": 0
+          },
+          {
+            "id": "bot-9",
+            "definition": {
+              "$card": "genome-keeper"
+            },
+            "readyAt": 0,
+            "power": 1,
+            "basePower": 1,
+            "armor": 0
+          }
+        ],
+        "board": {
+          "orbit": [
+            {
+              "id": "bot-3",
+              "definition": {
+                "$card": "synaptic-parasite"
+              },
+              "readyAt": 0,
+              "power": 4,
+              "basePower": 4,
+              "armor": 0
+            },
+            {
+              "id": "bot-7",
+              "definition": {
+                "$card": "xylaris-bloom"
+              },
+              "readyAt": 0,
+              "power": 4,
+              "basePower": 4,
+              "armor": 0
+            },
+            {
+              "id": "token-19",
+              "definition": {
+                "$card": "devourer-spawn"
+              },
+              "readyAt": 0,
+              "power": 1,
+              "basePower": 0,
+              "armor": 0
+            },
+            {
+              "id": "token-20",
+              "definition": {
+                "$card": "larva"
+              },
+              "readyAt": 0,
+              "power": 2,
+              "basePower": 1,
+              "armor": 0
+            },
+            {
+              "id": "token-21",
+              "definition": {
+                "$card": "larva"
+              },
+              "readyAt": 0,
+              "power": 1,
+              "basePower": 1,
+              "armor": 0
+            },
+            {
+              "id": "bot-10",
+              "definition": {
+                "$card": "cocoon"
+              },
+              "readyAt": 0,
+              "power": 3,
+              "basePower": 3,
+              "armor": 0
+            },
+            {
+              "id": "token-22",
+              "definition": {
+                "$card": "larva"
+              },
+              "readyAt": 0,
+              "power": 1,
+              "basePower": 1,
+              "armor": 0
+            }
+          ],
+          "surface": []
+        },
+        "rowEffects": {},
+        "discard": [
+          {
+            "id": "bot-5",
+            "definition": {
+              "$card": "acid-capsule"
+            },
+            "readyAt": 0,
+            "power": 4,
+            "basePower": 4,
+            "armor": 0
+          },
+          {
+            "id": "bot-6",
+            "definition": {
+              "$card": "acid-capsule"
+            },
+            "readyAt": 0,
+            "power": 4,
+            "basePower": 4,
+            "armor": 0
+          },
+          {
+            "id": "bot-20",
+            "definition": {
+              "$card": "ravager"
+            },
+            "readyAt": 0,
+            "power": 1,
+            "basePower": 4,
+            "armor": 0
+          },
+          {
+            "id": "token-4",
+            "definition": {
+              "$card": "devourer-spawn"
+            },
+            "readyAt": 0,
+            "power": 4,
+            "basePower": 0,
+            "armor": 0
+          },
+          {
+            "id": "token-10",
+            "definition": {
+              "$card": "devourer-spawn"
+            },
+            "readyAt": 0,
+            "power": 4,
+            "basePower": 0,
+            "armor": 0
+          },
+          {
+            "id": "bot-21",
+            "definition": {
+              "$card": "nest"
+            },
+            "readyAt": 0,
+            "power": 3,
+            "basePower": 3,
+            "armor": 0
+          },
+          {
+            "id": "bot-12",
+            "definition": {
+              "$card": "vine"
+            },
+            "readyAt": 0,
+            "power": 2,
+            "basePower": 2,
+            "armor": 0,
+            "growth": 1,
+            "statuses": {
+              "lock": 1
+            }
+          },
+          {
+            "id": "bot-15",
+            "definition": {
+              "$card": "spore-sac"
+            },
+            "readyAt": 0,
+            "power": 1,
+            "basePower": 1,
+            "armor": 1,
+            "growth": 1
+          }
+        ],
+        "exile": [
+          {
+            "id": "token-3",
+            "definition": {
+              "$card": "larva"
+            },
+            "readyAt": 0,
+            "power": 0,
+            "basePower": 1,
+            "armor": 0
+          },
+          {
+            "id": "token-2",
+            "definition": {
+              "$card": "larva"
+            },
+            "readyAt": 0,
+            "power": 0,
+            "basePower": 1,
+            "armor": 0
+          },
+          {
+            "id": "token-5",
+            "definition": {
+              "$card": "larva"
+            },
+            "readyAt": 0,
+            "power": 1,
+            "basePower": 1,
+            "armor": 0
+          },
+          {
+            "id": "token-11",
+            "definition": {
+              "$card": "larva"
+            },
+            "readyAt": 0,
+            "power": 1,
+            "basePower": 1,
+            "armor": 0
+          },
+          {
+            "id": "token-13",
+            "definition": {
+              "$card": "larva"
+            },
+            "readyAt": 0,
+            "power": 1,
+            "basePower": 1,
+            "armor": 0
+          },
+          {
+            "id": "token-15",
+            "definition": {
+              "$card": "larva"
+            },
+            "readyAt": 0,
+            "power": 1,
+            "basePower": 1,
+            "armor": 0
+          },
+          {
+            "id": "token-17",
+            "definition": {
+              "$card": "larva"
+            },
+            "readyAt": 0,
+            "power": 1,
+            "basePower": 1,
+            "armor": 0
+          },
+          {
+            "id": "token-18",
+            "definition": {
+              "$card": "larva"
+            },
+            "readyAt": 0,
+            "power": 1,
+            "basePower": 1,
+            "armor": 0
+          },
+          {
+            "id": "token-16",
+            "definition": {
+              "$card": "larva"
+            },
+            "readyAt": 0,
+            "power": 1,
+            "basePower": 1,
+            "armor": 0
+          },
+          {
+            "id": "token-14",
+            "definition": {
+              "$card": "larva"
+            },
+            "readyAt": 0,
+            "power": 1,
+            "basePower": 1,
+            "armor": 0
+          },
+          {
+            "id": "token-12",
+            "definition": {
+              "$card": "larva"
+            },
+            "readyAt": 0,
+            "power": 1,
+            "basePower": 1,
+            "armor": 0
+          },
+          {
+            "id": "token-6",
+            "definition": {
+              "$card": "larva"
+            },
+            "readyAt": 0,
+            "power": 1,
+            "basePower": 1,
+            "armor": 0
+          }
+        ],
+        "turns": 11,
+        "coins": 0,
+        "marksPlaced": 0,
+        "usedAbility": false,
+        "roundActed": true,
+        "extraSwaps": 0,
+        "leader": {
+          "$card": 0
+        },
+        "faction": "Поросль",
+        "factionId": "growth",
+        "passed": false,
+        "categoryPlays": {
+          "Выводок": 3,
+          "Росток": 6
+        }
+      },
+      "human": {
+        "startingCategories": {
+          "Гончая": 14
+        },
+        "lives": 2,
+        "hand": [
+          {
+            "id": "unknown-play-0",
+            "definition": {
+              "$card": 1
+            },
+            "readyAt": 0,
+            "power": 5.5,
+            "basePower": 5.5,
+            "armor": 0
+          },
+          {
+            "id": "unknown-play-1",
+            "definition": {
+              "$card": 1
+            },
+            "readyAt": 0,
+            "power": 5.5,
+            "basePower": 5.5,
+            "armor": 0
+          },
+          {
+            "id": "unknown-play-2",
+            "definition": {
+              "$card": 1
+            },
+            "readyAt": 0,
+            "power": 5.5,
+            "basePower": 5.5,
+            "armor": 0
+          },
+          {
+            "id": "unknown-play-3",
+            "definition": {
+              "$card": 1
+            },
+            "readyAt": 0,
+            "power": 5.5,
+            "basePower": 5.5,
+            "armor": 0
+          },
+          {
+            "id": "unknown-play-4",
+            "definition": {
+              "$card": 1
+            },
+            "readyAt": 0,
+            "power": 5.5,
+            "basePower": 5.5,
+            "armor": 0
+          },
+          {
+            "id": "unknown-play-5",
+            "definition": {
+              "$card": 1
+            },
+            "readyAt": 0,
+            "power": 5.5,
+            "basePower": 5.5,
+            "armor": 0
+          }
+        ],
+        "deck": [],
+        "board": {
+          "orbit": [],
+          "surface": []
+        },
+        "rowEffects": {},
+        "discard": [
+          {
+            "id": "human-8",
+            "definition": {
+              "$card": "hound-good-deal"
+            },
+            "readyAt": 0
+          },
+          {
+            "id": "token-1",
+            "definition": {
+              "$card": "hound"
+            },
+            "readyAt": 0,
+            "power": 0,
+            "basePower": 2,
+            "armor": 0
+          },
+          {
+            "id": "human-6",
+            "definition": {
+              "$card": "hound-pack"
+            },
+            "readyAt": 0
+          },
+          {
+            "id": "token-8",
+            "definition": {
+              "$card": "hound"
+            },
+            "readyAt": 0,
+            "power": 0,
+            "basePower": 2,
+            "armor": 0
+          },
+          {
+            "id": "token-7",
+            "definition": {
+              "$card": "hound"
+            },
+            "readyAt": 0,
+            "power": 2,
+            "basePower": 2,
+            "armor": 0
+          },
+          {
+            "id": "token-9",
+            "definition": {
+              "$card": "hound"
+            },
+            "readyAt": 0,
+            "power": 2,
+            "basePower": 2,
+            "armor": 0
+          },
+          {
+            "id": "human-15",
+            "definition": {
+              "$card": "debtor"
+            },
+            "readyAt": 0,
+            "power": 6,
+            "basePower": 6,
+            "armor": 0
+          },
+          {
+            "id": "human-20",
+            "definition": {
+              "$card": "broken-turret"
+            },
+            "readyAt": 0,
+            "timer": 0,
+            "timerStartResolved": true,
+            "artState": "failing"
+          },
+          {
+            "id": "human-2",
+            "definition": {
+              "$card": "hound-foreman"
+            },
+            "readyAt": 0,
+            "power": 7,
+            "basePower": 3,
+            "armor": 0
+          },
+          {
+            "id": "human-11",
+            "definition": {
+              "$card": "hound-claw"
+            },
+            "readyAt": 0,
+            "power": 4,
+            "basePower": 4,
+            "armor": 0
+          },
+          {
+            "id": "human-21",
+            "definition": {
+              "$card": "suppressor"
+            },
+            "readyAt": 0,
+            "power": 5,
+            "basePower": 5,
+            "armor": 0
+          }
+        ],
+        "exile": [
+          {
+            "id": "first-signal",
+            "definition": {
+              "$card": "first-signal"
+            },
+            "readyAt": 4
+          }
+        ],
+        "turns": 13,
+        "coins": 0,
+        "marksPlaced": 0,
+        "usedAbility": false,
+        "roundActed": false,
+        "extraSwaps": 0,
+        "leader": {
+          "$card": "skara-reinhold"
+        },
+        "faction": "Вольные капитаны",
+        "factionId": "captains",
+        "passed": true,
+        "categoryPlays": {
+          "Гончая": 4
+        },
+        "effectCategoryPlays": {
+          "Гончая": 2
+        },
+        "knownDeck": [
+          {
+            "$card": "annihilation"
+          },
+          {
+            "$card": "armor-piercing-shot"
+          },
+          {
+            "$card": "black-hound"
+          },
+          {
+            "$card": "broken-turret"
+          },
+          {
+            "$card": "debtor"
+          },
+          {
+            "$card": "field-medic"
+          },
+          {
+            "$card": "hound-captain"
+          },
+          {
+            "$card": "hound-claw"
+          },
+          {
+            "$card": "hound-eyes"
+          },
+          {
+            "$card": "hound-foreman"
+          },
+          {
+            "$card": "hound-good-deal"
+          },
+          {
+            "$card": "hound-left-fang"
+          },
+          {
+            "$card": "hound-pack"
+          },
+          {
+            "$card": "hound-recruiter"
+          },
+          {
+            "$card": "hound-right-fang"
+          },
+          {
+            "$card": "resurrection"
+          },
+          {
+            "$card": "scrapped-pilot"
+          },
+          {
+            "$card": "scrapped-pilot"
+          }
+        ],
+        "publicHandSize": 6,
+        "publicDeckSize": 12,
+        "handMasked": true
+      }
+    },
+    "phase": "playing",
+    "mulligan": {
+      "used": 1,
+      "excluded": []
+    },
+    "round": 2,
+    "starter": "human",
+    "turn": "bot",
+    "result": null,
+    "log": [
+      {
+        "type": "play",
+        "side": "human",
+        "name": "Удачное дельце",
+        "cardType": "effect",
+        "cardId": "human-8",
+        "card": {
+          "id": "human-8",
+          "definition": {
+            "$card": "hound-good-deal"
+          },
+          "readyAt": 0
+        }
+      },
+      {
+        "type": "play",
+        "side": "bot",
+        "row": "orbit",
+        "name": "Выводок-разоритель",
+        "power": 4,
+        "cardType": "unit",
+        "cardId": "bot-20",
+        "card": {
+          "id": "bot-20",
+          "definition": {
+            "$card": "ravager"
+          },
+          "readyAt": 0,
+          "power": 4,
+          "basePower": 4,
+          "armor": 0
+        },
+        "position": 0
+      },
+      {
+        "type": "play",
+        "side": "human",
+        "row": "surface",
+        "name": "Бригадир гончих",
+        "power": 3,
+        "cardType": "unit",
+        "cardId": "human-2",
+        "card": {
+          "id": "human-2",
+          "definition": {
+            "$card": "hound-foreman"
+          },
+          "readyAt": 0,
+          "power": 3,
+          "basePower": 3,
+          "armor": 0
+        },
+        "position": 1
+      },
+      {
+        "type": "play",
+        "side": "bot",
+        "row": "surface",
+        "name": "Гнездо-мать",
+        "power": 3,
+        "cardType": "unit",
+        "cardId": "bot-21",
+        "card": {
+          "id": "bot-21",
+          "definition": {
+            "$card": "nest"
+          },
+          "readyAt": 0,
+          "power": 3,
+          "basePower": 3,
+          "armor": 0
+        },
+        "position": 0
+      },
+      {
+        "type": "play",
+        "side": "human",
+        "row": "surface",
+        "name": "Сломанная турель",
+        "cardType": "artifact",
+        "cardId": "human-20",
+        "card": {
+          "id": "human-20",
+          "definition": {
+            "$card": "broken-turret"
+          },
+          "readyAt": 0,
+          "timer": 1
+        },
+        "position": 0
+      },
+      {
+        "type": "play",
+        "side": "bot",
+        "row": "orbit",
+        "name": "Кислотная капсула",
+        "power": 4,
+        "cardType": "unit",
+        "cardId": "bot-5",
+        "card": {
+          "id": "bot-5",
+          "definition": {
+            "$card": "acid-capsule"
+          },
+          "readyAt": 0,
+          "power": 4,
+          "basePower": 4,
+          "armor": 0
+        },
+        "position": 1
+      },
+      {
+        "type": "play",
+        "side": "human",
+        "name": "Стая",
+        "cardType": "effect",
+        "cardId": "human-6",
+        "card": {
+          "id": "human-6",
+          "definition": {
+            "$card": "hound-pack"
+          },
+          "readyAt": 0
+        }
+      },
+      {
+        "type": "play",
+        "side": "bot",
+        "row": "orbit",
+        "name": "Кислотная капсула",
+        "power": 4,
+        "cardType": "unit",
+        "cardId": "bot-6",
+        "card": {
+          "id": "bot-6",
+          "definition": {
+            "$card": "acid-capsule"
+          },
+          "readyAt": 0,
+          "power": 4,
+          "basePower": 4,
+          "armor": 0
+        },
+        "position": 3
+      },
+      {
+        "type": "play",
+        "side": "human",
+        "row": "surface",
+        "name": "Коготь",
+        "power": 4,
+        "cardType": "unit",
+        "cardId": "human-11",
+        "card": {
+          "id": "human-11",
+          "definition": {
+            "$card": "hound-claw"
+          },
+          "readyAt": 0,
+          "power": 4,
+          "basePower": 4,
+          "armor": 0
+        },
+        "position": 2
+      },
+      {
+        "type": "play",
+        "side": "bot",
+        "row": "surface",
+        "name": "Ползучая лоза",
+        "power": 2,
+        "cardType": "unit",
+        "cardId": "bot-12",
+        "card": {
+          "id": "bot-12",
+          "definition": {
+            "$card": "vine"
+          },
+          "readyAt": 0,
+          "power": 2,
+          "basePower": 2,
+          "armor": 0,
+          "growth": 0
+        },
+        "position": 3
+      },
+      {
+        "type": "play",
+        "side": "human",
+        "row": "surface",
+        "name": "Подавитель",
+        "power": 5,
+        "cardType": "unit",
+        "cardId": "human-21",
+        "card": {
+          "id": "human-21",
+          "definition": {
+            "$card": "suppressor"
+          },
+          "readyAt": 0,
+          "power": 5,
+          "basePower": 5,
+          "armor": 0
+        },
+        "position": 3
+      },
+      {
+        "type": "play",
+        "side": "human",
+        "row": "orbit",
+        "name": "Должник",
+        "power": 6,
+        "cardType": "unit",
+        "cardId": "human-15",
+        "card": {
+          "id": "human-15",
+          "definition": {
+            "$card": "debtor"
+          },
+          "readyAt": 0,
+          "power": 6,
+          "basePower": 6,
+          "armor": 0
+        },
+        "position": 2
+      },
+      {
+        "type": "play",
+        "side": "bot",
+        "row": "orbit",
+        "name": "Синаптический паразит",
+        "power": 4,
+        "cardType": "unit",
+        "cardId": "bot-3",
+        "card": {
+          "id": "bot-3",
+          "definition": {
+            "$card": "synaptic-parasite"
+          },
+          "readyAt": 0,
+          "power": 4,
+          "basePower": 4,
+          "armor": 0
+        },
+        "position": 0
+      },
+      {
+        "type": "play",
+        "side": "bot",
+        "row": "orbit",
+        "name": "Цветение Ксилларис",
+        "power": 4,
+        "cardType": "unit",
+        "cardId": "bot-7",
+        "card": {
+          "id": "bot-7",
+          "definition": {
+            "$card": "xylaris-bloom"
+          },
+          "readyAt": 0,
+          "power": 4,
+          "basePower": 4,
+          "armor": 0
+        },
+        "position": 1
+      },
+      {
+        "type": "play",
+        "side": "bot",
+        "row": "orbit",
+        "name": "Споровый мешок",
+        "power": 1,
+        "cardType": "unit",
+        "cardId": "bot-15",
+        "card": {
+          "id": "bot-15",
+          "definition": {
+            "$card": "spore-sac"
+          },
+          "readyAt": 0,
+          "power": 1,
+          "basePower": 1,
+          "armor": 1,
+          "growth": 0
+        },
+        "position": 2
+      },
+      {
+        "type": "play",
+        "side": "bot",
+        "row": "orbit",
+        "name": "Кокон",
+        "power": 3,
+        "cardType": "unit",
+        "cardId": "bot-10",
+        "card": {
+          "id": "bot-10",
+          "definition": {
+            "$card": "cocoon"
+          },
+          "readyAt": 0,
+          "power": 3,
+          "basePower": 3,
+          "armor": 0
+        },
+        "position": 4
+      }
+    ],
+    "tokenCount": 22,
+    "effects": [],
+    "pending": null,
+    "playedCard": false,
+    "ending": null,
+    "startingTurn": false,
+    "$definitions": [
+      {
+        "id": "devourer",
+        "provisionBonus": 15,
+        "name": "Пожиратель",
+        "art": "devourer.webp",
+        "charges": 0,
+        "text": "Приказ (3 заряда): поглоти свой отряд. На его месте призови Порождение пожирателя с силой поглощённого отряда.",
+        "order": {
+          "cooldown": 0,
+          "usesCharges": true
+        },
+        "aiHints": {
+          "leaderConsume": true,
+          "leaderChargeValue": 2
+        },
+        "ability": {
+          "steps": [
+            {
+              "action": "consume",
+              "target": {
+                "scope": "ref",
+                "ref": "victim"
+              },
+              "replacement": {
+                "$card": "devourer-spawn"
+              }
+            }
+          ],
+          "select": [
+            {
+              "ref": "victim",
+              "targets": {
+                "scope": "ally",
+                "type": "unit"
+              },
+              "prompt": "Выбери жертву для Пожирателя.",
+              "kind": "consume"
+            }
+          ]
+        },
+        "lastUsedTurn": 10
+      },
+      {
+        "id": "unknown-play",
+        "name": "Неизвестная карта",
+        "type": "unit",
+        "power": 5.5
+      }
+    ]
+  },
+  "expect": {
+    "type": "pass"
+  }
+}

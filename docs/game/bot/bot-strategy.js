@@ -192,6 +192,43 @@ function choicePreference(state, side, action) {
   return 0;
 }
 
+// After the opponent passes, the round result depends only on our next decisions.
+// Finish it greedily through the engine (pass when ahead, else the cheapest single play
+// that takes the lead, then pass) so every candidate is rated in the next round's terms.
+function resolveTurn(match, side, move) {
+  let next = applyAction(match, side, move, SIMULATION);
+  for (let guard = 0; next !== match && next.pending && guard < 12; guard++) {
+    const [choice] = choices(next);
+    const after = choice && applyAction(next, next.pending.side, choice, SIMULATION);
+    if (!after || after === next) return match;
+    next = after;
+  }
+  if (!next.pending && next.turn === side && canEndTurn(next, side)) next = applyAction(next, side, END, SIMULATION);
+  return next;
+}
+
+function settleWonRound(match, side, round, depth = 0) {
+  const rival = side === 'bot' ? 'human' : 'bot';
+  if (round === 3 || match.phase !== 'playing' || match.round !== round || match.pending || match.turn !== side ||
+      !match.players[rival].passed || !canPass(match, side)) return match;
+  const lead = () => totalScore(match.players[side]) - totalScore(match.players[rival]);
+  if (lead() > 0) {
+    const after = applyAction(match, side, PASS, SIMULATION);
+    return after === match ? match : after;
+  }
+  if (depth >= 1) return match;
+  let best;
+  const tried = new Set();
+  for (const { action, cost } of plays(match, side)) {
+    if (tried.has(action.cardId) || (best && cost >= best.cost)) continue;
+    tried.add(action.cardId);
+    const next = resolveTurn(match, side, action);
+    if (next === match || next.phase !== 'playing' || next.round !== round || next.turn !== side) continue;
+    if (totalScore(next.players[side]) > totalScore(next.players[rival])) best = { next, cost };
+  }
+  return best ? settleWonRound(best.next, side, round, depth + 1) : match;
+}
+
 function evaluateAction(state, side, action, search) {
   const choiceValue = choicePreference(state, side, action);
   const finalRound = state.round === 3;
@@ -200,7 +237,7 @@ function evaluateAction(state, side, action, search) {
     const actor = next.pending?.side ?? next.turn;
     if (depth >= 36 || (!next.pending && (next.phase !== 'playing' || actor !== side ||
         next.players[side].turns !== state.players[side].turns))) {
-      const rating = evaluatePosition(next, 'bot');
+      const rating = evaluatePosition(settleWonRound(next, side, state.round), 'bot');
       const contribution = finalRound ? positionStrength(next, side, state.round) - strength : 0;
       return { next, rating, contribution };
     }
@@ -367,7 +404,8 @@ function forecast(match, ranked, level, search, options) {
   const pass = ranked.find(({ action }) => action.type === 'pass');
   if (pass && !shortlist.includes(pass)) shortlist[shortlist.length - 1] = pass;
   const simulated = shortlist.length > 1 && compareRollouts(match, shortlist, {
-    ...options, expired: search.expired, horizon: level.horizon, memory: level.memory, knowsDeckList: level.knowsDeckList,
+    pickTarget: options.pickTarget,
+    expired: search.expired, horizon: level.horizon, memory: level.memory, knowsDeckList: level.knowsDeckList,
     rolloutSamples: options.rolloutSamples ?? level.samples,
   });
   if (simulated?.length) return simulated;

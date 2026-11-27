@@ -230,7 +230,8 @@ test('Call of the Deep prefers the weakest ally even with a stronger enemy on th
   human.board.surface = [plain('enemy', 15)];
   const pending = applyAction(match, 'bot', { type: 'play', cardId: 'call' });
   for (const difficulty of [2, 4, 6]) {
-    assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'weak-ally' }, difficulty);
+    // Isolate the target preference when both allies give the same turn score.
+    assert.deepEqual(chooseBotTurn(pending, difficulty, { rolloutSamples: 0 }), { type: 'target', cardId: 'weak-ally' }, difficulty);
   }
 });
 
