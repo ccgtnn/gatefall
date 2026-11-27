@@ -327,7 +327,18 @@ export function createCloudSync({
     paused = true;
     epoch += 1;
     try {
-      if (account) saveMeta(account, { ...meta(account), reset: overwrite ? 'overwrite' : 'keep-cloud' });
+      if (account) {
+        saveMeta(account, { ...meta(account), reset: overwrite ? 'overwrite' : 'keep-cloud' });
+      } else {
+        const keys = Array.from({ length: storage?.length ?? 0 }, (_, index) => storage.key(index));
+        for (const key of keys) {
+          if (!key?.startsWith(SYNC_META_PREFIX)) continue;
+          const id = key.slice(SYNC_META_PREFIX.length);
+          const { version, lastSync } = meta(id);
+          if (version === undefined) storage.removeItem(key);
+          else saveMeta(id, { version, lastSync });
+        }
+      }
       await clear();
       markProgressChange(storage);
     } finally {

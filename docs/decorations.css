@@ -121,6 +121,18 @@
   border-radius: inherit;
 }
 
+@media (width > 48rem) {
+  .decoration-preview {
+    min-width: 0;
+  }
+  .decoration-stage {
+    /* Give the aspect ratio a definite width so the minimum height cannot widen the stage. */
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+  }
+}
+
 @media (max-width: 48rem) {
   .decoration-layout { grid-template-columns: minmax(0, 1fr); }
   .decoration-stage { min-height: 0; height: 40dvh; aspect-ratio: auto; }

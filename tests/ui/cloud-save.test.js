@@ -319,6 +319,33 @@ test('signing out before a local reset invalidates the old cloud baseline', asyn
   assert.equal(game.replaced(), 1);
 });
 
+test('reset without a session drops all cached baselines and preserves the cloud on sign-in', async () => {
+  const original = row(5, { [DECKS]: OWN_DECKS });
+  const game = syncFixture(original.data, { remote: original, realAuth: true });
+  await game.sync.run();
+  assert.ok(JSON.parse(game.storage.getItem(META)).fingerprint);
+  const otherMeta = SYNC_META_PREFIX + 'another-account';
+  game.storage.setItem(otherMeta, JSON.stringify({
+    version: 9, fingerprint: 'old', hiddenFingerprint: 'snapshot:{}', lastSync: NOW,
+    pending: { version: 10, fingerprint: 'pending' }, reset: 'overwrite',
+  }));
+  game.storage.setItem(SYNC_META_PREFIX + 'malformed', '{');
+  game.storage.removeItem(SESSION_KEY);
+  assert.equal(game.auth.session(), null);
+
+  await game.sync.reset(() => resetProgress(game.storage), false);
+  assert.deepEqual(JSON.parse(game.storage.getItem(META)), { version: 5, lastSync: NOW });
+  assert.deepEqual(JSON.parse(game.storage.getItem(otherMeta)), { version: 9, lastSync: NOW });
+  assert.equal(game.storage.getItem(SYNC_META_PREFIX + 'malformed'), null);
+  assert.deepEqual(readSnapshot(game.storage), {});
+
+  game.signBackIn();
+  await game.tab().run();
+  assert.deepEqual(game.calls.map(({ method }) => method), ['GET', 'GET']);
+  assert.deepEqual(game.cloud(), original);
+  assert.deepEqual(readSnapshot(game.storage), original.data);
+});
+
 test('first sign-in ignores local progress created only by a background checkpoint', async () => {
   const original = row(5, { [DECKS]: OWN_DECKS, [REWARDS]: '{"startingGold":1000}' });
   const game = syncFixture({ [REWARDS]: '{"ranks":{"resetAt":123}}' }, { remote: original });
