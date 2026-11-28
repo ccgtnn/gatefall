@@ -3,7 +3,8 @@ import test from 'node:test';
 import { applyStatus, basePower, createCard, damage, findUnit, statusCount } from '../../docs/game/engine/board.js';
 import { pickBotTarget } from '../../docs/game/bot/bot.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
-import { FACTIONS, NEUTRAL_CARDS } from '../../docs/game/cards/cards.js';
+import { FACTIONS } from '../../docs/game/cards/cards.js';
+import { findCardDefinition } from '../../docs/game/cards/card-registry.js';
 import { inspectDeck, PRESETS } from '../../docs/game/cards/decks.js';
 import { applyAction, createDeckMatch, createMatch } from '../../docs/game/engine/match.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
@@ -257,7 +258,7 @@ test('Swarm Call can place an enemy-side bronze from the deck and spawns next to
 
 test('reviving a strengthened unit restores modified base power and preserves spent Resilience', () => {
   let match = fixture();
-  const medic = NEUTRAL_CARDS.find(({ id }) => id === 'field-medic');
+  const medic = findCardDefinition('field-medic');
   match.players.human.hand.push(createCard('medic', medic));
   const modified = createCard('modified', { id: 'modified', name: 'modified', power: 3, rarity: 'bronze', resilience: true });
   modified.resilient = false;

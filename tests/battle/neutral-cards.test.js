@@ -3,20 +3,21 @@ import test from 'node:test';
 import { applyStatus, createCard, damage, findUnit, statusCount } from '../../docs/game/engine/board.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
 import { FACTIONS, FIRST_SIGNAL, NEUTRAL_CARDS } from '../../docs/game/cards/cards.js';
+import { findCardDefinition } from '../../docs/game/cards/card-registry.js';
 import { DEVOURER_SPAWN } from '../../docs/game/cards/factions/growth.js';
 import { availableOrders } from '../../docs/game/effects/effects.js';
 import { applyAction, confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
 import { unit as makeUnit } from '../helpers/battle-helpers.js';
 
-const card = (id) => createCard(id, NEUTRAL_CARDS.find((definition) => definition.id === id));
+const card = (id) => createCard(id, findCardDefinition(id));
 const unit = (id, power = 3, extra) => makeUnit(id, power, extra);
 const count = (match, type) => match.log.filter((event) => event.type === type).length;
 const play = (match, cardId, row = 'orbit', position = match.players[match.turn].board[row].length) =>
   applyAction(match, match.turn, { type: 'play', cardId, row, position });
 const pick = (match, cardId) => applyAction(match, match.pending.side, { type: 'target', cardId });
 
-function scenario(id) {
-  const match = confirmMulligan(createMatch({ random: () => 0, rules: { leaderCharges: 0 } }));
+function scenario(id, { humanFaction, botFaction } = {}) {
+  const match = confirmMulligan(createMatch({ humanFaction, botFaction, random: () => 0, rules: { leaderCharges: 0 } }));
   const { human, bot } = match.players;
   human.board.surface = [];
   human.hand = [card(id), unit('spare')];
@@ -24,14 +25,23 @@ function scenario(id) {
   return match;
 }
 
-test('all twenty-seven neutrals are in the catalog and both preset neutral packages are legal', () => {
-  assert.equal(NEUTRAL_CARDS.length, 27);
-  assert.equal(new Set(NEUTRAL_CARDS.map(({ id }) => id)).size, 27);
+test('all twenty-five neutrals are in the catalog and both preset neutral packages are legal', () => {
+  assert.equal(NEUTRAL_CARDS.length, 25);
+  assert.equal(new Set(NEUTRAL_CARDS.map(({ id }) => id)).size, 25);
   const ids = ({ deck }) => deck.filter(({ faction }) => faction === 'neutral').map(({ id }) => id).sort();
   assert.deepEqual(ids(FACTIONS.protectorate),
     ['annihilation', 'gate-guardian', 'gate-relic', 'recon-drone', 'recon-drone', 'smuggler']);
   assert.deepEqual(ids(FACTIONS.growth),
-    ['annihilation', 'field-medic', 'gravity-pulse', 'liaison', 'veteran-mercenary']);
+    ['annihilation', 'gravity-pulse', 'liaison', 'old-golem', 'veteran-mercenary']);
+});
+
+test('Bounty Hunter belongs to Captains and Field Medic belongs to Protectorate', () => {
+  for (const [id, faction] of [['bounty-hunter', 'captains'], ['field-medic', 'protectorate']]) {
+    const definition = findCardDefinition(id);
+    assert.equal(definition.faction, faction);
+    assert.ok(FACTIONS[faction].pool.includes(definition));
+    assert.ok(!NEUTRAL_CARDS.some((card) => card.id === id));
+  }
 });
 
 test('Veteran Mercenary damages a chosen ally and boosts itself, including self-targeting', () => {
@@ -170,21 +180,21 @@ test('Field Medic and Resurrection offer only ordinary cards after Devourer Spaw
 
 test('Field Medic restores a bronze unit from its own discard and resolves its deploy ability', () => {
   const match = scenario('field-medic');
-  const recruit = unit('recruit', 3, { rarity: 'bronze', armor: 2, deploy: {
-    steps: [{ action: 'boost', target: { scope: 'source' }, amount: 2 }],
-  } });
+  assert.equal(match.players.human.factionId, 'protectorate');
+  const recruit = card('infantry');
   Object.assign(recruit, { power: 0, armor: 0, statuses: { infection: 3 } });
+  match.players.human.board.surface = [unit('ally')];
   match.players.human.discard = [recruit, card('gate-guardian'), card('emp-grenade')];
   match.players.bot.discard = [unit('enemy-dead', 3, { rarity: 'bronze' })];
   let pending = play(match, 'field-medic');
-  assert.deepEqual(pending.pending.options, ['recruit']);
+  assert.deepEqual(pending.pending.options, ['infantry']);
   assert.equal(pending.pending.pile, 'discard');
-  pending = pick(pending, 'recruit');
+  pending = pick(pending, 'infantry');
   const next = applyAction(pending, 'human', { type: 'place', row: 'surface', position: 0 });
   assert.deepEqual(next.players.human.board.surface.map(({ id, power, armor, statuses }) =>
-    [id, power, armor, statuses]), [['recruit', 5, 2, undefined]]);
+    [id, power, armor, statuses]), [['infantry', 3, 2, undefined], ['ally', 3, 2, undefined]]);
   assert.deepEqual(next.players.human.discard.map(({ id }) => id), ['gate-guardian', 'emp-grenade']);
-  assert.equal(next.log.find(({ cardId, type }) => type === 'play' && cardId === 'recruit').from, 'discard');
+  assert.equal(next.log.find(({ cardId, type }) => type === 'play' && cardId === 'infantry').from, 'discard');
 
   match.players.human.discard = [];
   assert.equal(play(match, 'field-medic').pending, null);
@@ -210,7 +220,7 @@ test('Gate Relic can boost an allied unit and has two full intervening turns of 
 
 test('Bounty Hunter is rewarded only when its hit kills', () => {
   for (const armor of [0, 2]) {
-    const match = scenario('bounty-hunter');
+    const match = scenario('bounty-hunter', { humanFaction: 'captains' });
     match.players.bot.board.surface = [unit('enemy', 5, { armor })];
     const next = pick(play(match, 'bounty-hunter'), 'enemy');
     assert.equal(next.players.human.board.orbit[0].power, armor ? 4 : 6);
@@ -236,7 +246,7 @@ test('Gate Guardian survives one Gravity Pulse and is discarded when a second st
 });
 
 test('strategic bot sees revived units and can choose an enemy row by simulated damage', () => {
-  const match = scenario('gravity-pulse');
+  const match = scenario('gravity-pulse', { botFaction: 'protectorate' });
   match.round = 3;
   match.turn = 'bot';
   match.players.bot.hand = [card('field-medic'), card('gravity-pulse'), unit('alternate', 5)];

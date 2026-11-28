@@ -705,9 +705,6 @@
             "$card": "debtor"
           },
           {
-            "$card": "field-medic"
-          },
-          {
             "$card": "hound-captain"
           },
           {
@@ -733,6 +730,9 @@
           },
           {
             "$card": "hound-right-fang"
+          },
+          {
+            "$card": "liaison"
           },
           {
             "$card": "resurrection"

@@ -188,6 +188,13 @@ const aggressorFire = ability([randomHit(enemies, 1)]);
 
 const protectorateExtras = [
   {
+    id: 'field-medic', name: 'Полевой реаниматор', faction: 'protectorate', type: 'unit',
+    rarity: 'gold', provision: 9, power: 3,
+    text: 'Сыграй обычный отряд из своего сброса.',
+    art: 'field-medic.webp',
+    deploy: ability([{ action: 'play-from-discard', filter: { rarity: 'bronze' } }]),
+  },
+  {
     id: 'imperial-golem', name: 'Статуя Императора', provision: 10, power: 6,
     type: 'unit', rarity: 'gold', faction: 'protectorate',
     text: 'Броня 2. При розыгрыше: дай каждому соседнему отряду по 1 брони и 1 силы. Увеличь оба бонуса на 1 за каждого Голема, которого ты разыграл ранее в этом матче.',

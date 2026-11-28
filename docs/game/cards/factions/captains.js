@@ -1,3 +1,5 @@
+import { action, chosen, enemyChoice, self } from '../card-abilities.js';
+
 export const HOUND_CATEGORY = 'Гончая';
 
 const hound = { faction: 'captains', type: 'unit', categories: [HOUND_CATEGORY] };
@@ -151,5 +153,17 @@ export const CAPTAIN_CARDS = Object.freeze([
       { action: 'scatter', side: 'ally', amount: 1, visual: 'turret' },
       { action: 'art-state', target: source, state: 'failing' },
     ]),
+  },
+  {
+    id: 'bounty-hunter', name: 'Охотник за головами', faction: 'captains', type: 'unit',
+    rarity: 'gold', provision: 10, power: 4,
+    text: 'Нанеси 6 урона выбранному вражескому отряду. Расправа: усиль себя на 2.',
+    removalReserve: 5,
+    art: 'bounty-hunter.webp',
+    deploy: ability([
+      { ...action('damage', chosen('enemy'), 6), save: 'kill' },
+      action('boost', self, { result: 'kill', scale: 2 }),
+    ], [enemyChoice(6)]),
+    keywords: ['Урон', 'Расправа', 'Усиление'],
   },
 ].map((card) => Object.freeze(card)));

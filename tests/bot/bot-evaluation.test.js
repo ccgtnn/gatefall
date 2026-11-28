@@ -13,6 +13,7 @@ import { publicMatch } from '../../docs/game/bot/bot-strategy.js';
 import { deckCardValue, effectSwing } from '../../docs/game/bot/bot-effect-value.js';
 import { AWAKENING, CHOIR_CARDS, TENTACLE } from '../../docs/game/cards/factions/choir.js';
 import { FACTIONS, LARVA } from '../../docs/game/cards/cards.js';
+import { findCardDefinition } from '../../docs/game/cards/card-registry.js';
 import { applyAction, canEndTurn, canPass, confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
 
 import { member, pass, plain, position, standard } from '../helpers/bot-strategy.js';
@@ -65,7 +66,7 @@ test('discard plays value the best restored legal card once, with or without any
   const target = standard('target', { id: 'target', name: 'Target', rarity: 'bronze', power: 8 });
   target.power = 1;
   match.players.bot.discard = [target];
-  const medic = member('medic', 'captains', 'field-medic');
+  const medic = standard('medic', findCardDefinition('field-medic'));
   const expected = deckCardValue(match, 'bot', { ...target, power: target.basePower });
   assert.equal(effectSwing(match, 'bot', medic), expected);
   const medicine = medic.definition.deploy.steps[0];

@@ -23,7 +23,7 @@ export const FIRST_SIGNAL = Object.freeze({
 
 const presetNeutrals = {
   protectorate: ['recon-drone', 'smuggler', 'gate-relic', 'gate-guardian'],
-  growth: ['veteran-mercenary', 'gravity-pulse', 'liaison', 'field-medic'],
+  growth: ['veteran-mercenary', 'gravity-pulse', 'liaison', 'old-golem'],
 };
 
 const singleBronzes = {
@@ -63,7 +63,7 @@ const captainDeck = Object.freeze([
   'hound-foreman', 'hound-foreman', 'hound-captain', 'hound-recruiter', 'hound-pack', 'hound-pack',
   'hound-good-deal', 'hound-good-deal', 'black-hound', 'hound-claw', 'hound-claw', 'hound-right-fang',
   'hound-left-fang', 'hound-eyes', 'debtor', 'debtor', 'scrapped-pilot', 'scrapped-pilot', 'broken-turret',
-  'broken-turret', 'suppressor', 'armor-piercing-shot', 'field-medic', 'resurrection', 'annihilation',
+  'broken-turret', 'suppressor', 'armor-piercing-shot', 'liaison', 'resurrection', 'annihilation',
 ].map((id) => captainCardsById.get(id)));
 
 export const FACTIONS = Object.freeze({

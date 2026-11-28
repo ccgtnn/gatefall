@@ -39,7 +39,7 @@ const decks = {
   ]),
   falura: leagueDeck('falura', 'protectorate', [
     ['annihilation', 'falura'], ['shield-overload', 'field-medic'], ['gate-guardian', 'imperial-golem'],
-    ['standard', 'spotter'], ['reinforcements', 'spotter'], ['anvil', 'bounty-hunter'],
+    ['standard', 'spotter'], ['reinforcements', 'spotter'], ['anvil', 'tiberius'],
   ]),
 };
 

@@ -39,7 +39,7 @@ const plaguePreset = Object.freeze({
     'rot-midge', 'rot-midge', 'plague-carrier', 'plague-carrier', 'rot-scavenger', 'rot-scavenger',
     'boil', 'boil', 'rot', 'rot', 'rot-giant', 'pestilence', 'plague-burst', 'spore-season',
     'acid-gland', 'acid-gland', 'spitter', 'spitter', 'cocoon', 'colossus', 'gulper', 'nest',
-    'annihilation', 'field-medic', 'veteran-mercenary',
+    'annihilation', 'old-golem', 'veteran-mercenary',
   ]),
 });
 

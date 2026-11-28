@@ -13,7 +13,7 @@ test('each selectable deck has unique instances and legal card quantities', () =
     assert.equal(cards.length, faction.deck.length);
     assert.equal(new Set(cards.map(({ id }) => id)).size, cards.length);
     assert.equal(cards.filter(({ definition }) => definition.faction === NEUTRAL).length, { protectorate: 6, growth: 5, choir: 7, captains: 5 }[key]);
-    assert.equal(cards.filter(({ definition }) => definition.rarity === 'gold').length, key === 'protectorate' ? 6 : 5);
+    assert.equal(cards.filter(({ definition }) => definition.rarity === 'gold').length, { protectorate: 6, growth: 4, choir: 5, captains: 5 }[key]);
     for (const { definition } of cards) {
       assert.equal('row' in definition, false);
       assert.ok(definition.provision >= 4);
