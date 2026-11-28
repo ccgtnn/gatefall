@@ -217,6 +217,7 @@ test('bots use active rows and target the row with the most new marks', () => {
     const match = fixture('bot');
     match.players.bot.hand = [card(id)];
     match.round = 3;
+    match.players.bot.lives = match.players.human.lives = 1;
     match.players.human.board.surface = [dummy('enemy', 2)];
     for (const difficulty of [2, 4, 6]) {
       assert.equal(chooseBotTurn(match, difficulty).row, row, id + ' on ' + difficulty);

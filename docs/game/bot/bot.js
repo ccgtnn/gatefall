@@ -3,11 +3,11 @@ import { ROWS } from '../shared/card-metadata.js';
 import { cardType, findUnit, isUnit, neighbors, placementSide, restoreCard, statusCount, units } from '../engine/board.js';
 import { availableOrders } from '../effects/effects.js';
 import { rowArmor } from '../effects/effect-queries.js';
-import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionSwing, effectSwing, immediateWeatherOrder, immediateWeatherValue, infectionGain, holdUntargetedDamage, lockPriority, pendingUnitPriority, rowDamage, rowScatterValue, rowWeatherPlayValue, usefulWeatherOrder } from './bot-effect-value.js';
+import { armorTargetPriority, beneficialFee, cleansePriority, damagePoints, damageTargetPriority, deckCardValue, destructionSwing, effectSwing, immediateWeatherOrder, immediateWeatherValue, infectionGain, handReturnPriority, holdUntargetedDamage, lethalDamage, lockPriority, pendingUnitPriority, rowDamage, rowScatterValue, rowWeatherPlayValue, usefulWeatherOrder } from './bot-effect-value.js';
 import { armorBreakSwing, consumeBonus, delayedCardValue, futureContext, inheritancePayoff, remainingTurns, wantsToHoldInheritance } from './bot-future-value.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, availableRows, canEndTurn, canPass, playableCards, totalScore } from '../engine/match.js';
 
-import { canUseBotLeader, leaderTargetPriority, offeringPriority, preferredLeaderUse } from './bot-leaders.js';
+import { canUseBotLeader, leaderTargetPriority, offeringPriority, replacementVictims, preferredLeaderUse } from './bot-leaders.js';
 import { deathwishDefinitions } from '../engine/events.js';
 import { BOT_LEVELS, readBotLevel } from './bot-levels.js';
 import { botSearchState, chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js';
@@ -143,10 +143,6 @@ export function chooseBotAction(view, rules = BOT_RULES) {
   return playCard(middle, view);
 }
 
-function lethalDamage(card, amount) {
-  return !statusCount(card, 'shield') && amount >= card.power + (card.armor ?? 0);
-}
-
 function bestTarget(candidates, priority) {
   return candidates.reduce((best, unit) => priority(unit) > priority(best) ? unit : best);
 }
@@ -185,7 +181,7 @@ export function pickBotTarget(match) {
   }
   if (kind === 'hand-return' || kind === 'hand-bottom') {
     const eligible = player.hand.filter(({ id }) => options.includes(id));
-    const card = bestTarget(eligible, (card) => -deckCardValue(match, match.pending.side, card));
+    const card = bestTarget(eligible, (card) => handReturnPriority(match, match.pending.side, card));
     return { type: 'target', cardId: card.id };
   }
   if (kind === 'deck-card' || kind === 'deck-top') {
@@ -212,24 +208,16 @@ export function pickBotTarget(match) {
   const allies = kind === 'transform' ? optionsWithUnits.filter(({ side }) => side === match.pending.side) : [];
   const candidates = allies.length ? allies
     : preferHigherAmount ? optionsWithUnits.filter(({ card }) => amounts[card.id] === highest) : optionsWithUnits;
-  const lethal = kind === 'damage' ? candidates.filter(({ card, side }) =>
-    side !== match.pending.side && lethalDamage(card, amounts?.[card.id] ?? amount) && (armorBreakSwing(card) ?? -card.power) < 0) : [];
-  const shieldFirst = prefersShieldDamage(match);
+  const victims = kind === 'consume' ? replacementVictims(match.pending.job?.ability, candidates) : candidates;
+  const damagePriority = damageTargetPriority(match.pending);
   const forecast = kind === 'consume' && futureContext(match, match.pending.side);
   const priorities = {
-    damage: ({ card, side }) => {
-      if (statusCount(card, 'shield')) return side === match.pending.side ? -.5 : shieldFirst ? Infinity : 0;
-      const hit = amounts?.[card.id] ?? amount;
-      const swing = hit >= card.armor ? armorBreakSwing(card) : undefined;
-      if (side !== match.pending.side) return swing === undefined ? card.power : -swing;
-      return swing ?? (-1 - Math.min(card.power, Math.max(0, hit - (card.armor ?? 0))));
+    damage: (unit) => {
+      const priority = damagePriority(unit);
+      return priority < 100 && prefersShieldDamage(match) && unit.side !== match.pending.side &&
+        statusCount(unit.card, 'shield') ? 99 : priority;
     },
-    'friendly-damage': ({ card }) => {
-      if (statusCount(card, 'shield')) return -.5;
-      const hit = amount || 2;
-      const swing = card.armor <= hit ? armorBreakSwing(card) : undefined;
-      return swing ?? -Math.min(card.power, Math.max(0, hit - (card.armor ?? 0)));
-    },
+    'friendly-damage': ({ card }) => statusCount(card, 'shield') ? -.5 : -damagePoints(card, amount || 2),
     emp: ({ card }) => Math.min(card.power, 2 + (card.armor ?? 0)) + (card.armor ?? 0) * .1,
     consume: (unit) => 4 * consumeBonus(forecast, unit) - .03 * (unit.card.power ?? 0),
     'leader-offering': (unit) => offeringPriority(match, match.pending.side, unit, amount),
@@ -246,7 +234,7 @@ export function pickBotTarget(match) {
     'target-mark': ({ card }) => Math.min(3, card.power) - (card.armor ?? 0) * .3 - statusCount(card, 'shield') * 2,
     marshal: (unit) => neighbors(match, unit).length * 100 + unit.card.power,
   };
-  const target = bestTarget(lethal.length ? lethal : candidates, priorities[kind] ?? pendingUnitPriority(match, match.pending) ?? leaderTargetPriority(match, match.pending.side, kind) ?? (({ card }) => card.power));
+  const target = bestTarget(victims.length ? victims : candidates, priorities[kind] ?? pendingUnitPriority(match, match.pending) ?? leaderTargetPriority(match, match.pending.side, kind) ?? (({ card }) => card.power));
   return { type: 'target', cardId: target.card.id };
 }
 

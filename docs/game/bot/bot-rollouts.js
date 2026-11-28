@@ -1,18 +1,19 @@
 import { evaluatePosition } from './bot-evaluation.js';
 import { EVAL_WEIGHTS as W } from './bot-weights.js';
-import { FACTIONS } from '../cards/cards.js';
 import { ROWS } from '../shared/card-metadata.js';
 import { shuffle } from '../shared/score.js';
 import { createCard, isUnit, opponent, placementSide, ROW_LIMIT } from '../engine/board.js';
-import { collection, copyLimit } from '../cards/decks.js';
 import { applyAction, canEndTurn, canPass, confirmMulligan, mulliganLimit, playableCards, totalScore } from '../engine/match.js';
 import { availableOrders } from '../effects/effects.js';
 import { rowArmor } from '../effects/effect-queries.js';
+import { visibleSupply } from './bot-supply.js';
 import { handCount } from './bot-hand.js';
 import { canUseBotLeader, preferredLeaderUse } from './bot-leaders.js';
-import { beneficialFee, effectSwing, immediateWeatherOrder, immediateWeatherValue, infectionGain, shouldProtectArmor, tributeTarget, usefulWeatherOrder } from './bot-effect-value.js';
+import { beneficialFee, effectSwing, immediateWeatherOrder, immediateWeatherValue, infectionGain, missedDeployValue, shouldProtectArmor, tributeTarget, usefulWeatherOrder } from './bot-effect-value.js';
 
 import { armorBreakSwing, delayedCardValue, futureContext, wantsToHoldInheritance } from './bot-future-value.js';
+
+export { visibleSupply } from './bot-supply.js';
 
 const PASS = { type: 'pass' };
 const END = { type: 'end-turn' };
@@ -22,40 +23,14 @@ function seeded(seed) {
   return () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32);
 }
 
-export function visibleSupply(match, memory = true, knowsDeckList = false) {
-  const player = match.players.human;
-  if (knowsDeckList && player.knownDeck) return player.knownDeck.map((card) => ({ card, weight: 1 }));
-  const faction = FACTIONS[player.factionId];
-  const known = new Map();
-  if (memory || knowsDeckList) {
-    const field = Object.entries(match.players).flatMap(([side, owner]) =>
-      Object.values(owner.board).flat().filter((card) => (card.owner ?? side) === 'human'));
-    for (const card of [...player.discard, ...player.exile, ...field]) {
-      if (!card.definition.token && !card.definition.stratagem) known.set(card.id, card.definition.id);
-    }
-    for (const event of match.log) {
-      if (event.side !== 'human') continue;
-      if (event.type === 'play' && event.card?.definition && !event.card.definition.token) {
-        known.set(event.cardId, event.card.definition.id);
-      }
-      if (knowsDeckList && event.type === 'spawn' && event.from === 'deck') {
-        for (const card of event.cards ?? []) known.set(card.id, card.definition.id);
-      }
-    }
-  }
-  if (knowsDeckList && player.startingDeck) {
-    return player.startingDeck.filter(({ id }) => !known.has(id))
-      .map(({ definition: card }) => ({ card, weight: 1 }));
-  }
-  if (!faction) return [];
-  const available = collection(player.factionId);
-  const presetCounts = new Map();
-  const observedCounts = new Map();
-  for (const { id } of faction.deck) presetCounts.set(id, (presetCounts.get(id) ?? 0) + 1);
-  for (const id of known.values()) observedCounts.set(id, (observedCounts.get(id) ?? 0) + 1);
-  return available.flatMap((card) => Array.from({
-    length: Math.max(0, copyLimit(card) - (observedCounts.get(card.id) ?? 0)),
-  }, (_, index) => ({ card, weight: index + (observedCounts.get(card.id) ?? 0) < (presetCounts.get(card.id) ?? 0) ? 1 : .14 })));
+function canonicalDeck(deck) {
+  return deck.toSorted((a, b) => a.definition.id.localeCompare(b.definition.id) ||
+    (a.power ?? 0) - (b.power ?? 0) || a.id.localeCompare(b.id));
+}
+
+export function searchDeck(match) {
+  const { bot, human } = match.players;
+  return shuffle(canonicalDeck(bot.deck), seeded(match.round * 65537 + bot.turns * 31 + human.turns));
 }
 
 export function samplePosition(match, supply, random) {
@@ -67,7 +42,7 @@ export function samplePosition(match, supply, random) {
     .slice(0, handSize + deckSize)
     .map(({ card }, index) => createCard('sample-human-' + index, card));
   // The bot knows the contents of its own deck, but not its shuffled order.
-  const order = bot.deck.toSorted((a, b) => a.definition.id.localeCompare(b.definition.id) || a.id.localeCompare(b.id));
+  const order = canonicalDeck(bot.deck);
   return {
     ...match,
     log: [],
@@ -122,7 +97,7 @@ function fastPlays(match, side) {
       entry.definition.scenario && entry.chapter < entry.definition.scenario.chapters.length &&
       def.categories?.includes(entry.definition.scenario.category))) ? 2 : 0;
     if (def.type === 'effect') {
-      let points = effectSwing(match, side, card);
+      let points = effectSwing(match, side, card) - missedDeployValue(match, side, card);
       if (def.aiHints?.spendsRowArmor) {
         points -= Math.max(...ROWS.map((row) => rowArmor(player, row))) -
           Math.max(...ROWS.map((row) => armorSpendValue(player, row)));
@@ -154,7 +129,8 @@ function fastPlays(match, side) {
     return {
       action: { ...action, row: choice.row, position: choice.position },
       points: (card.power ?? 0) * (def.enemySide ? -1 : 1) + (def.deploy || def.endTurn || def.order ? 1 : 0)
-        + choice.value + removal + weather + scenario + scenarioTrigger + delayedCardValue(context, card, choice.row, true),
+        + choice.value + removal + weather + scenario + scenarioTrigger + delayedCardValue(context, card, choice.row, true)
+        - missedDeployValue(match, side, card, choice),
       cost, reserve: 0,
     };
   });
@@ -291,5 +267,5 @@ export function compareRollouts(match, candidates, {
     ...candidate, samples,
     average: W.rolloutShare * totals[index] / samples + (1 - W.rolloutShare) * Math.tanh((candidate.rating - bestRating) / W.rolloutScale),
   }))
-    .sort((a, b) => b.average - a.average || b.rating - a.rating);
+    .sort((a, b) => b.average - a.average || b.rating - a.rating || b.contribution - a.contribution);
 }

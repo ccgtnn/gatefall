@@ -69,9 +69,10 @@ test('round two can dry pass after winning round one and fights after losing it'
   assert.equal(chooseBotTurn(lost, 6).type, 'play');
 });
 
-test('in the deciding round every bot plays a productive card, even with a winning lead', () => {
+test('in the deciding round a safe productive play wins a rating tie with pass', () => {
   const match = position(3, 'human');
   const { bot, human } = match.players;
+  bot.lives = human.lives = 1;
   bot.board.orbit = [plain('ahead', 10)];
   bot.hand = [standard('surface-only', { id: 'surface-only', power: 1, requiredRow: 'surface' })];
   human.board.orbit = [plain('enemy', 5)];
@@ -175,9 +176,10 @@ test('levels 5–7 compare pass with plays using the match position', () => {
     assert.equal(chooseBotTurn(close, level).cardId, 'enough', 'spend just enough at level ' + level);
 
     const final = position(3);
+    final.players.bot.lives = final.players.human.lives = 1;
     final.players.human.passed = true;
     final.players.bot.board.orbit = [plain('lead', 30)];
-    assert.equal(chooseBotTurn(final, level).type, 'play', 'always play a legal card in round three');
+    assert.equal(chooseBotTurn(final, level).type, 'play', 'prefer gaining points when both lines win the final round');
   }
 });
 

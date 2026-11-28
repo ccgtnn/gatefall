@@ -1,13 +1,14 @@
 import { handCount } from './bot-hand.js';
-import { canUseBotLeader, leaderTargetPriority, offeringPriority } from './bot-leaders.js';
+import { canUseBotLeader, leaderTargetPriority, offeringPriority, replacementVictims } from './bot-leaders.js';
 import { cardPotential, evaluateBreakdown, evaluatePosition, positionStrength } from './bot-evaluation.js';
 import { EVAL_WEIGHTS as W } from './bot-weights.js';
-import { compareRollouts, visibleSupply } from './bot-rollouts.js';
+import { compareRollouts, searchDeck } from './bot-rollouts.js';
+import { visibleSupply } from './bot-supply.js';
 import { ROWS } from '../shared/card-metadata.js';
 import { cardType, createCard, findUnit, placementSide } from '../engine/board.js';
 import { availableFees, availableOrders } from '../effects/effects.js';
 import { rowArmor } from '../effects/effect-queries.js';
-import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, holdUntargetedDamage, lockPriority, pendingUnitPriority, shouldProtectArmor, usefulWeatherOrder, tributeOptions } from './bot-effect-value.js';
+import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, handReturnPriority, holdUntargetedDamage, missedDeployValue, lockPriority, pendingUnitPriority, shouldProtectArmor, usefulWeatherOrder, tributeOptions } from './bot-effect-value.js';
 import { cardAbilities } from '../engine/events.js';
 import { ROW_LIMIT, applyAction, availableRows, canEndTurn, canPass, playableCards, totalScore } from '../engine/match.js';
 
@@ -35,7 +36,7 @@ export function botSearchState(match, knowsDeckList = false) {
     // The search only needs public plays for faction-based sampling.
     log: match.log.filter(({ type }) => type === 'play'),
     players: {
-      bot: { ...bot, startingDeck: undefined, deck: bot.deck.toSorted((a, b) => a.id.localeCompare(b.id)) },
+      bot: { ...bot, startingDeck: undefined, deck: searchDeck(match) },
       human: { ...human, startingDeck: undefined, startingCategories: knowsDeckList ? human.startingCategories : {}, knownDeck, deck: [],
         publicHandSize: handCount(human), publicDeckSize: human.deck.length, handMasked: true,
         hand: human.hand.map((_, index) => ({ ...UNKNOWN_PLAY, id: `unknown-play-${index}` })) },
@@ -44,9 +45,7 @@ export function botSearchState(match, knowsDeckList = false) {
 }
 
 export function publicMatch(match, knowsDeckList = false) {
-  const state = botSearchState(match, knowsDeckList);
-  const { bot, human } = state.players;
-  return { ...state, log: [], players: { bot: { ...bot, exile: [] }, human: { ...human, exile: [] } } };
+  return botSearchState(match, knowsDeckList);
 }
 
 function usesNeighbors(ability) {
@@ -123,7 +122,8 @@ function choices(state, all = false) {
   const { kind, options: legal, side, cardId, cards, pile = 'deck' } = state.pending;
   if (kind === 'tribute') return tributeOptions(state).slice(0, all ? Infinity : 3).map(({ cardId }) => ({ type: 'target', cardId }));
   const allies = kind === 'transform' ? legal.filter((id) => findUnit(state, id)?.side === side) : [];
-  const options = allies.length ? allies : legal;
+  const victims = kind === 'consume' ? replacementVictims(state.pending.job?.ability, legal.map((id) => findUnit(state, id))) : [];
+  const options = allies.length ? allies : victims.length ? victims.map(({ card }) => card.id) : legal;
   const priority = targetPriority(state);
   if (priority) {
     const ranked = options.map((id) => ({ id, score: priority(findUnit(state, id), side) }))
@@ -178,7 +178,7 @@ function choicePreference(state, side, action) {
   if (priority) return priority(findUnit(state, action.cardId), side);
   if (kind === 'hand-bottom' || kind === 'hand-return') {
     const card = state.players[side].hand.find(({ id }) => id === action.cardId);
-    return card ? -deckCardValue(state, side, card) : 0;
+    return card ? handReturnPriority(state, side, card) : 0;
   }
   if (kind === 'armor-row') return state.players[side].board[action.cardId]
     .reduce((sum, card) => sum + (armorBreakSwing(card) ?? 0), 0);
@@ -195,10 +195,10 @@ function choicePreference(state, side, action) {
 // After the opponent passes, the round result depends only on our next decisions.
 // Finish it greedily through the engine (pass when ahead, else the cheapest single play
 // that takes the lead, then pass) so every candidate is rated in the next round's terms.
-function resolveTurn(match, side, move) {
+function resolveTurn(match, side, move, pickTarget) {
   let next = applyAction(match, side, move, SIMULATION);
   for (let guard = 0; next !== match && next.pending && guard < 12; guard++) {
-    const [choice] = choices(next);
+    const choice = next.pending.kind === 'tribute' ? choices(next)[0] : pickTarget(next);
     const after = choice && applyAction(next, next.pending.side, choice, SIMULATION);
     if (!after || after === next) return match;
     next = after;
@@ -207,7 +207,7 @@ function resolveTurn(match, side, move) {
   return next;
 }
 
-function settleWonRound(match, side, round, depth = 0) {
+function settleWonRound(match, side, round, pickTarget, depth = 0) {
   const rival = side === 'bot' ? 'human' : 'bot';
   if (round === 3 || match.phase !== 'playing' || match.round !== round || match.pending || match.turn !== side ||
       !match.players[rival].passed || !canPass(match, side)) return match;
@@ -222,11 +222,11 @@ function settleWonRound(match, side, round, depth = 0) {
   for (const { action, cost } of plays(match, side)) {
     if (tried.has(action.cardId) || (best && cost >= best.cost)) continue;
     tried.add(action.cardId);
-    const next = resolveTurn(match, side, action);
+    const next = resolveTurn(match, side, action, pickTarget);
     if (next === match || next.phase !== 'playing' || next.round !== round || next.turn !== side) continue;
     if (totalScore(next.players[side]) > totalScore(next.players[rival])) best = { next, cost };
   }
-  return best ? settleWonRound(best.next, side, round, depth + 1) : match;
+  return best ? settleWonRound(best.next, side, round, pickTarget, depth + 1) : match;
 }
 
 function evaluateAction(state, side, action, search) {
@@ -237,7 +237,7 @@ function evaluateAction(state, side, action, search) {
     const actor = next.pending?.side ?? next.turn;
     if (depth >= 36 || (!next.pending && (next.phase !== 'playing' || actor !== side ||
         next.players[side].turns !== state.players[side].turns))) {
-      const rating = evaluatePosition(settleWonRound(next, side, state.round), 'bot');
+      const rating = evaluatePosition(settleWonRound(next, side, state.round, search.pickTarget), 'bot');
       const contribution = finalRound ? positionStrength(next, side, state.round) - strength : 0;
       return { next, rating, contribution };
     }
@@ -284,7 +284,8 @@ function evaluateAction(state, side, action, search) {
       }
     }
     const reserveCost = shortfall / rolls.length;
-    return { next: worst, rating: total / rolls.length - reserveCost * W.removalReserve, contribution: contribution / rolls.length, reserveCost, choiceValue };
+    const wastedDeploy = actor === 'bot' && card && total / rolls.length < W.matchWin ? missedDeployValue(before, actor, card, move) : 0;
+    return { next: worst, rating: total / rolls.length - reserveCost * W.removalReserve - wastedDeploy, contribution: contribution / rolls.length, reserveCost, choiceValue };
   }
   return advance(state, side, action, 0);
 }
@@ -309,7 +310,7 @@ function rankPlays(state, search, limit, level) {
   for (const { action, cost } of plays(state, 'bot').slice(0, level.candidates)) {
     if (search.expired()) break;
     const local = limit(Math.max(15, level.budgetMs / 40));
-    const candidate = evaluateAction(state, 'bot', action, { expired: () => search.expired() || local.expired() });
+    const candidate = evaluateAction(state, 'bot', action, { ...search, expired: () => search.expired() || local.expired() });
     if (candidate) ranked.push({ ...candidate, action, cost });
   }
   return ranked.sort((a, b) => b.rating - a.rating || a.cost - b.cost);
@@ -388,7 +389,10 @@ function selectRanked(options, level, ranked, reason, state) {
       return report(options, pass.action, 'Ошибаюсь с моментом паса.', ranked, state);
     }
     const choices = distinct(ranked, (action) => [action.type, action.cardId ?? action.row].join('/'));
-    const pool = (choices.length > 1 ? choices : ranked).slice(1, level.errorPool);
+    const pool = (choices.length > 1 ? choices : ranked).slice(1)
+      .filter(({ action, next }) => level.passMistakeRate > 0 ||
+        (action.type !== 'pass' && !(next.phase === 'finished' && next.result === 'win')))
+      .slice(0, level.errorPool - 1);
     if (pool.length) {
       const choice = pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))];
       return report(options, choice.action, 'Выбираю ход с более низкой оценкой.', ranked, state);
@@ -398,7 +402,8 @@ function selectRanked(options, level, ranked, reason, state) {
 }
 
 function forecast(match, ranked, level, search, options) {
-  if (ranked.length < 2 || level.horizon === 'turn') return ranked;
+  if (ranked.length < 2 || level.horizon === 'turn' ||
+      match.pending?.kind === 'hand-bottom' || match.pending?.kind === 'hand-return') return ranked;
   const shortlist = distinct(ranked, (action) => [action.type, action.cardId, action.row].join('/'))
     .slice(0, level.candidates);
   const pass = ranked.find(({ action }) => action.type === 'pass');
@@ -411,13 +416,13 @@ function forecast(match, ranked, level, search, options) {
   if (simulated?.length) return simulated;
   return shortlist.map((candidate) => ({
     ...candidate, rating: replyRating(candidate, search, level),
-  })).sort((a, b) => b.rating - a.rating);
+  })).sort((a, b) => b.rating - a.rating || b.contribution - a.contribution);
 }
 
 export function chooseStrategicTarget(match, level, options) {
   const state = publicMatch(match, level.knowsDeckList);
   const limit = searchLimit(options.random);
-  const search = limit(level.budgetMs);
+  const search = { ...limit(level.budgetMs), pickTarget: options.pickTarget };
   const local = limit(level.budgetMs * .4);
   const ranked = [];
   if (!match.pending.job || match.pending.side !== 'bot') {
@@ -426,7 +431,7 @@ export function chooseStrategicTarget(match, level, options) {
   for (const action of choices(state, true).slice(0, level.candidates)) {
     if (search.expired() || local.expired()) break;
     const candidate = evaluateAction(state, 'bot', action, {
-      expired: () => search.expired() || local.expired(),
+      ...search, expired: () => search.expired() || local.expired(),
     });
     if (candidate) ranked.push({ ...candidate, action });
   }
@@ -438,7 +443,7 @@ export function chooseStrategicTarget(match, level, options) {
 
 export function chooseStrategicTurn(match, level, options) {
   const limit = searchLimit(options.random);
-  const search = limit(level.budgetMs);
+  const search = { ...limit(level.budgetMs), pickTarget: options.pickTarget };
   const state = publicMatch(match, level.knowsDeckList);
   const { bot } = state.players;
   const finalRound = state.round === 3;
@@ -446,7 +451,7 @@ export function chooseStrategicTurn(match, level, options) {
   const mayPass = canPass(state, 'bot');
   const share = (fraction) => {
     const local = limit(level.budgetMs * fraction);
-    return { expired: () => search.expired() || local.expired() };
+    return { ...search, expired: () => search.expired() || local.expired() };
   };
   const canEnd = canEndTurn(state, 'bot');
   const local = share(.16);
@@ -454,17 +459,13 @@ export function chooseStrategicTurn(match, level, options) {
   const pass = mayPass ? evaluateAction(state, 'bot', PASS, local) : undefined;
   const plays = canEnd ? [] : rankPlays(state, share(.35), limit, level);
   const ranked = plays.filter((candidate) => preservesArmor(candidate, bot));
-  const efficient = ranked.filter(({ reserveCost }) => reserveCost === 0);
-  // A listed removal reserve protects finishers when another play is available.
-  const alternatives = efficient.length ? efficient : ranked;
+  // Keep finishers for later when both lives are safe and a normal play is rated similarly.
+  const ordinary = ranked.find(({ reserveCost }) => !reserveCost);
+  const alternatives = bot.lives > 1 && state.players.human.lives > 1 && ordinary
+    ? ranked.filter(({ rating, reserveCost }) => !reserveCost || rating > ordinary.rating + W.life / 4)
+    : ranked;
   const candidates = [...alternatives, ...rankAbilities(state, share(.16), level)];
-  if (pass) {
-    if (!finalRound) candidates.push({ ...pass, action: PASS });
-    else if (candidates.every(({ contribution }) => contribution <= 0)) {
-      const productive = plays.filter(({ contribution }) => contribution > 0);
-      candidates.push(...(productive.length ? productive : [{ ...pass, action: PASS }]));
-    }
-  }
+  if (pass) candidates.push({ ...pass, action: PASS });
   if (baseline) candidates.push({ ...baseline, action: END, rating: baseline.rating + W.endTurnTie });
   candidates.sort((a, b) => {
     const passOrder = Number(a.action.type === 'pass') - Number(b.action.type === 'pass');

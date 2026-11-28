@@ -165,10 +165,11 @@ test('each bot uses Incubator each turn with space and targets the available row
   for (const difficulty of [2, 4, 6]) {
     let match = position(3);
     const { bot, human } = match.players;
+    bot.lives = human.lives = 1;
     bot.board.orbit = [member('incubator', 'growth', 'incubator'),
       ...Array.from({ length: 8 }, (_, i) => plain('blocked-' + i, 1))];
     bot.hand = [plain('keep', 2), plain('spare', 2)];
-    human.board.orbit = [plain('enemy', 20)];
+    human.board.orbit = [plain('enemy', 12)];
     const order = { type: 'order', cardId: 'incubator' };
     assert.deepEqual(chooseBotTurn(match, difficulty), order);
     match = applyAction(match, 'bot', order);

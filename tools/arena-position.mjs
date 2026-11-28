@@ -9,9 +9,11 @@ const mirrorEvent = (event) => ({
   ...(event.scores && { scores: reverseSides(event.scores) }),
 });
 function mirrorPlayer(player) {
-  const mirrorCard = (card) => card.owner || card.infectionSource?.attacker
+  const mirrorCard = (card) => card.owner || card.infectionSource?.attacker || card.inheritedDeathwishes?.some(({ grantedBy }) => grantedBy)
     ? { ...card, ...(card.owner && { owner: swap(card.owner) }),
-      ...(card.infectionSource && { infectionSource: { ...card.infectionSource, attacker: swap(card.infectionSource.attacker) } }) } : card;
+      ...(card.infectionSource && { infectionSource: { ...card.infectionSource, attacker: swap(card.infectionSource.attacker) } }),
+      ...(card.inheritedDeathwishes && { inheritedDeathwishes: card.inheritedDeathwishes.map((wish) =>
+        wish.grantedBy ? { ...wish, grantedBy: swap(wish.grantedBy) } : wish) }) } : card;
   return { ...player,
     board: Object.fromEntries(Object.entries(player.board).map(([row, cards]) => [row, cards.map(mirrorCard)])),
     rowEffects: Object.fromEntries(Object.entries(player.rowEffects ?? {}).map(([row, effect]) =>
