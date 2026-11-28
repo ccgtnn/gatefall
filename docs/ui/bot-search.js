@@ -2,7 +2,10 @@ import { chooseEasyTurn } from '../game/bot/bot.js';
 import { BOT_LEVELS, readBotLevel } from '../game/bot/bot-levels.js';
 import { botSearchState } from '../game/bot/bot-strategy.js';
 
-const BOT_REQUEST_TIMEOUT_MS = 15_000;
+export function botSearchTimeoutMs(level) {
+  const { budgetMs } = BOT_LEVELS[readBotLevel(level)];
+  return Math.max(5_000, budgetMs * 1.5 + 3_000);
+}
 
 export function chooseFallbackTurn(match) {
   return chooseEasyTurn(botSearchState(match));
@@ -10,7 +13,7 @@ export function chooseFallbackTurn(match) {
 
 export function createBotSearch({
   createWorker = () => new Worker(new URL('./bot-worker.js', import.meta.url), { type: 'module' }),
-  timeoutMs = BOT_REQUEST_TIMEOUT_MS,
+  timeoutMs = botSearchTimeoutMs,
   startupTimeoutMs = 15_000,
 } = {}) {
   let worker;
@@ -49,7 +52,8 @@ export function createBotSearch({
   function sendRequest() {
     if (!ready || !pending) return;
     const current = worker;
-    pending.timer = setTimeout(() => fail(current, new Error('Bot worker timed out')), timeoutMs);
+    const duration = timeoutMs(pending.payload.level);
+    pending.timer = setTimeout(() => fail(current, new Error('Bot worker timed out')), duration);
     try {
       current.postMessage(pending.payload);
     } catch (error) {

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Worker } from 'node:worker_threads';
-import { chooseFallbackTurn, createBotSearch } from '../../docs/ui/bot-search.js';
+import { botSearchTimeoutMs, chooseFallbackTurn, createBotSearch } from '../../docs/ui/bot-search.js';
 import { createMatch } from '../../docs/game/engine/match.js';
 
 const workerEntry = new URL('../../docs/ui/bot-worker.js', import.meta.url).href;
@@ -100,7 +100,7 @@ test('a failed or timed-out worker is replaced on the next turn', async () => {
     let created = 0;
     let stopped = 0;
     const action = { type: 'pass' };
-    const search = createBotSearch({ timeoutMs: 10, createWorker() {
+    const search = createBotSearch({ timeoutMs: () => 10, createWorker() {
       const first = ++created === 1;
       const listeners = {};
       return {
@@ -133,7 +133,7 @@ test('prewarm starts the worker early and the search clock waits for readiness',
   let respond;
   let created = 0;
   let requests = 0;
-  const search = createBotSearch({ timeoutMs: 10, createWorker() {
+  const search = createBotSearch({ timeoutMs: () => 10, createWorker() {
     created += 1;
     return {
       terminate() {},
@@ -158,7 +158,9 @@ test('prewarm starts the worker early and the search clock waits for readiness',
   }
 });
 
-test('every level uses the worker', async () => {
+test('every level uses the worker with a timeout sized to its search budget', async () => {
+  const levels = [1, 2, 3, 4, 5, 6, 7];
+  assert.deepEqual(levels.map(botSearchTimeoutMs), [5_000, 5_000, 5_000, 5_100, 6_900, 10_500, 15_000]);
   let respond;
   const requests = [];
   const search = createBotSearch({ createWorker: () => ({
@@ -169,8 +171,8 @@ test('every level uses the worker', async () => {
   search.warm();
   respond({ data: { ready: true } });
   try {
-    for (let level = 1; level <= 7; level += 1) await search.choose(createMatch(), level);
-    assert.deepEqual(requests, [1, 2, 3, 4, 5, 6, 7]);
+    for (const level of levels) await search.choose(createMatch(), level);
+    assert.deepEqual(requests, levels);
   } finally {
     search.cancel();
   }
