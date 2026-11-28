@@ -149,6 +149,7 @@ function syncFixture(initial, { remote = null, choose = 'local', locks, realAuth
   let offline = false;
   let onPatch;
   let losePatchResponse = false;
+  let losePostResponse = false;
   let replaced = 0;
   const conflicts = [];
   const { request, calls } = fetchMock(({ method, body, url, headers }) => {
@@ -176,6 +177,10 @@ function syncFixture(initial, { remote = null, choose = 'local', locks, realAuth
       losePatchResponse = false;
       throw new DOMException('Timeout', 'TimeoutError');
     }
+    if (method === 'POST' && losePostResponse) {
+      losePostResponse = false;
+      throw new DOMException('Timeout', 'TimeoutError');
+    }
     return Response.json([remote]);
   });
   const auth = realAuth ? createCloudAuth({ storage, request, now: () => NOW }) :
@@ -189,6 +194,7 @@ function syncFixture(initial, { remote = null, choose = 'local', locks, realAuth
     sync: tab(), tab, auth, storage, calls, conflicts, replaced: () => replaced, cloud: () => remote,
     signBackIn() { storage.setItem(SESSION_KEY, credentials); },
     dropPatchResponse() { losePatchResponse = true; },
+    dropPostResponse() { losePostResponse = true; },
     setRemote(row) { remote = row; },
     setInMatch(value) { inMatch = value; },
     setOffline(value) { offline = value; },
@@ -198,6 +204,19 @@ function syncFixture(initial, { remote = null, choose = 'local', locks, realAuth
 
 function row(version, data) {
   return { version, data, device: 'Телефон', updated_at: new Date(NOW).toISOString() };
+}
+
+function queuedLocks() {
+  const queues = new Map();
+  return { request(name, task) {
+    const next = (queues.get(name) ?? Promise.resolve()).then(task);
+    queues.set(name, next.catch(() => {}));
+    return next;
+  } };
+}
+
+async function until(check) {
+  for (let attempt = 0; attempt < 200 && !check(); attempt += 1) await new Promise((resolve) => setTimeout(resolve, 1));
 }
 
 test('first sync inserts, later local saves patch exactly the known cloud version', async () => {
@@ -496,4 +515,136 @@ test('the conflict dialog shows both copies and favors the cloud before a baseli
     dialog.dispatchEvent(new Event('close'));
     assert.equal(await answer, dialog.returnValue);
   }
+});
+
+test('a confirmed keepalive write becomes the baseline, so later cloud progress applies without a prompt', async () => {
+  const game = syncFixture({ [DECKS]: OWN_DECKS });
+  await game.sync.run();
+  game.storage.setItem(REWARDS, '{"startingGold":100}');
+  game.sync.saveOnHide();
+  await until(() => JSON.parse(game.storage.getItem(META)).version === 2);
+  assert.equal(JSON.parse(game.storage.getItem(META)).version, 2);
+  assert.equal(JSON.parse(game.storage.getItem(META)).pending, undefined);
+  game.setRemote(row(3, { ...game.cloud().data, [REWARDS]: '{"startingGold":150}' }));
+  await game.sync.run();
+  assert.equal(game.conflicts.length, 0);
+  assert.equal(game.replaced(), 1);
+  assert.equal(game.storage.getItem(REWARDS), '{"startingGold":150}');
+});
+
+test('newer cloud progress after an unconfirmed upload of this exact copy is favored in the dialog', async () => {
+  const game = syncFixture({ [DECKS]: OWN_DECKS }, { choose: '' });
+  await game.sync.run();
+  game.storage.setItem(REWARDS, '{"startingGold":100}');
+  game.dropPatchResponse();
+  game.sync.saveOnHide();
+  assert.equal(game.cloud().version, 2);
+  game.setRemote(row(3, { ...game.cloud().data, [REWARDS]: '{"startingGold":150}' }));
+  await game.sync.run();
+  assert.equal(game.conflicts.length, 1);
+  assert.equal(game.conflicts[0].hasBaseline, false);
+  // A change made after that upload is a real divergence, so this copy stays the default.
+  game.storage.setItem(REWARDS, '{"startingGold":120}');
+  await game.sync.run({ manual: true });
+  assert.equal(game.conflicts[1].hasBaseline, true);
+  assert.equal(game.cloud().version, 3);
+  assert.equal(game.replaced(), 0);
+});
+
+test('hidden uploads keep short capped fingerprints and upgrade full snapshots from older builds', async () => {
+  const game = syncFixture({ [DECKS]: OWN_DECKS });
+  await game.sync.run();
+  game.setOffline(true);
+  const padding = 'x'.repeat(20_000);
+  for (let gold = 1; gold <= 20; gold += 1) {
+    game.storage.setItem(REWARDS, JSON.stringify({ padding, startingGold: gold }));
+    game.sync.saveOnHide();
+  }
+  const { pending } = JSON.parse(game.storage.getItem(META));
+  assert.equal(pending.version, 2);
+  assert.equal(pending.alternates.length, 8);
+  assert.ok(game.storage.getItem(META).length < 1000);
+
+  const sent = { [DECKS]: OWN_DECKS, [REWARDS]: '{"startingGold":1}' };
+  const legacy = syncFixture({ [DECKS]: OWN_DECKS, [REWARDS]: '{"startingGold":2}' }, { remote: row(2, sent) });
+  legacy.storage.setItem(META, JSON.stringify({
+    version: 1, fingerprint: 'old', lastSync: NOW,
+    hiddenFingerprint: 'snapshot:' + JSON.stringify({ [DECKS]: OWN_DECKS }),
+    pending: { version: 2, fingerprint: 'snapshot:' + JSON.stringify(sent), alternates: ['snapshot:{}'] },
+  }));
+  await legacy.sync.run();
+  assert.equal(legacy.conflicts.length, 0);
+  assert.equal(legacy.cloud().version, 3);
+  assert.deepEqual(legacy.cloud().data, readSnapshot(legacy.storage));
+  assert.doesNotMatch(legacy.storage.getItem(META), /snapshot:/);
+});
+
+test('an open conflict dialog lets other tabs sync and its answer is checked again', async () => {
+  let answer;
+  const game = syncFixture({ [DECKS]: OWN_DECKS }, {
+    remote: row(3, { [REWARDS]: '{}' }), locks: queuedLocks(), choose: new Promise((resolve) => { answer = resolve; }),
+  });
+  const dialogTab = game.sync.run();
+  await until(() => game.conflicts.length === 1);
+  assert.equal(game.conflicts.length, 1);
+  game.setRemote(row(4, readSnapshot(game.storage)));
+  const blocked = new Promise((resolve) => setTimeout(resolve, 500, 'blocked'));
+  assert.notEqual(await Promise.race([game.tab().run({ manual: true }), blocked]), 'blocked');
+  assert.equal(game.sync.version(), 4);
+  answer('cloud');
+  await dialogTab;
+  assert.equal(game.replaced(), 0);
+  assert.deepEqual(readSnapshot(game.storage), { [DECKS]: OWN_DECKS });
+  game.sync.accountChanged();
+});
+
+test('a lost response to the first upload still leaves a baseline for later changes', async () => {
+  const game = syncFixture({ [DECKS]: OWN_DECKS });
+  game.dropPostResponse();
+  await game.sync.run();
+  assert.equal(game.cloud().version, 1);
+  game.storage.setItem(REWARDS, '{"startingGold":100}');
+  await game.sync.run();
+  assert.equal(game.conflicts.length, 0);
+  assert.equal(game.cloud().version, 2);
+  assert.deepEqual(game.cloud().data, readSnapshot(game.storage));
+});
+
+test('a cloud row recreated with an older version drops the stale baseline instead of retrying forever', async () => {
+  const game = syncFixture({
+    [DECKS]: OWN_DECKS, [META]: JSON.stringify({ version: 5, fingerprint: 'stale', lastSync: NOW }),
+  }, { remote: row(1, { [REWARDS]: '{}' }) });
+  await game.sync.run();
+  assert.deepEqual(game.calls.map(({ method }) => method), ['GET', 'GET', 'PATCH']);
+  assert.equal(game.conflicts.length, 1);
+  assert.equal(game.conflicts[0].hasBaseline, false);
+  assert.equal(game.cloud().version, 2);
+  assert.deepEqual(game.cloud().data, { [DECKS]: OWN_DECKS });
+  assert.match(game.sync.status(), /^Синхронизировано в /);
+});
+
+test('an imported copy equal to the old baseline is not silently replaced by newer cloud progress', async () => {
+  const game = syncFixture({ [DECKS]: OWN_DECKS });
+  await game.sync.run();
+  const backup = readSnapshot(game.storage);
+  game.setRemote(row(2, { [DECKS]: '[]' }));
+  game.sync.markImported();
+  await game.sync.run();
+  assert.equal(game.replaced(), 0);
+  assert.equal(game.conflicts.length, 1);
+  assert.equal(game.conflicts[0].hasBaseline, true);
+  assert.equal(game.cloud().version, 3);
+  assert.deepEqual(game.cloud().data, backup);
+});
+
+test('a response body cut off after success is reported as a network failure', async () => {
+  const request = createCloudRequest(async () => new Response(new ReadableStream({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode('['));
+      controller.error(new TypeError('network'));
+    },
+  })));
+  await assert.rejects(request('/rest/v1/progress'), (error) => error.status === 0);
+  const garbled = createCloudRequest(async () => new Response('<html>'));
+  assert.equal(await garbled('/rest/v1/progress'), null);
 });

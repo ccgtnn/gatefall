@@ -55,6 +55,7 @@ export function createAppCloud(storage, inMatch) {
         if (inMatch()) throw new Error('Импорт доступен после выхода из матча.');
         replaceSnapshot(storage, parseSnapshot(data));
         markProgressChange(storage);
+        sync.markImported();
         reload();
       });
     },

@@ -10,9 +10,29 @@ const SYNC_LOCK = 'gatefall-cloud.sync';
 const KEEPALIVE_LIMIT = 60_000;
 const DEVICE_KEY = 'gatefall-cloud.device';
 const DELAY_MS = 3000;
+const MAX_ALTERNATES = 8;
+const LEGACY_SNAPSHOT = 'snapshot:';
 const matches = (left, right) => JSON.stringify(left) === JSON.stringify(right);
-const snapshotFingerprint = (data) => 'snapshot:' + JSON.stringify(data);
 const byteLength = (text) => new TextEncoder().encode(text).length;
+
+// cyrb53: a synchronous 53-bit hash, so a hiding page can record its upload before sending keepalive.
+function textFingerprint(text) {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let index = 0; index < text.length; index += 1) {
+    const code = text.charCodeAt(index);
+    h1 = Math.imul(h1 ^ code, 2654435761);
+    h2 = Math.imul(h2 ^ code, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return 'cyrb53:' + (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
+}
+
+const snapshotFingerprint = (data) => textFingerprint(JSON.stringify(data));
+// Older builds stored the whole snapshot text; hashing it yields the same value as the current fingerprint.
+const upgradeFingerprint = (value) => typeof value === 'string' && value.startsWith(LEGACY_SNAPSHOT)
+  ? textFingerprint(value.slice(LEGACY_SNAPSHOT.length)) : value;
 
 async function fingerprint(data) {
   const bytes = new TextEncoder().encode(JSON.stringify(data));
@@ -59,11 +79,25 @@ export function createCloudSync({
   const listeners = new Set();
 
   function meta(id) {
-    try { return JSON.parse(storage?.getItem(SYNC_META_PREFIX + id) ?? '{}') ?? {}; } catch { return {}; }
+    let saved;
+    try { saved = JSON.parse(storage?.getItem(SYNC_META_PREFIX + id) ?? '{}') ?? {}; } catch { return {}; }
+    if (saved.hiddenFingerprint) saved.hiddenFingerprint = upgradeFingerprint(saved.hiddenFingerprint);
+    if (saved.pending) {
+      const { alternates } = saved.pending;
+      saved.pending = {
+        ...saved.pending, fingerprint: upgradeFingerprint(saved.pending.fingerprint),
+        ...(Array.isArray(alternates) && { alternates: alternates.slice(0, MAX_ALTERNATES).map(upgradeFingerprint) }),
+      };
+    }
+    return saved;
   }
 
   function saveMeta(id, value) {
     storage.setItem(SYNC_META_PREFIX + id, JSON.stringify(value));
+  }
+
+  function exclusive(task) {
+    return locks ? locks.request(SYNC_LOCK, task) : task();
   }
 
   function updateStatus(text) {
@@ -118,9 +152,35 @@ export function createCloudSync({
     const pending = { version, fingerprint: digest };
     // A hidden tab can send a competing CAS while a foreground write is in flight.
     if (previous?.version === version) {
-      pending.alternates = [previous.fingerprint, ...(previous.alternates ?? [])];
+      pending.alternates = [previous.fingerprint, ...(previous.alternates ?? [])].slice(0, MAX_ALTERNATES);
     }
     saveMeta(account, { ...baseline, pending });
+  }
+
+  function saveBaseline(account, row, digest, settled = true) {
+    const previous = meta(account);
+    if (previous.version > row.version) return;
+    const lastSync = now();
+    saveMeta(account, { version: row.version, fingerprint: digest, hiddenFingerprint: snapshotFingerprint(row.data), lastSync });
+    dismissedVersion = undefined;
+    if (settled) {
+      readyAccount = account;
+      showSynced(lastSync);
+    }
+  }
+
+  async function confirmHidden(account, rows, digest, attempt) {
+    const saved = progressRow(rows);
+    if (!saved || snapshotFingerprint(saved.data) !== digest) return;
+    const cloudDigest = await fingerprint(saved.data);
+    const task = () => {
+      const current = meta(account);
+      // A sign-out, reset or newer baseline since the hide makes this response stale.
+      if (paused || reloading || attempt !== epoch || auth.session()?.user.id !== account ||
+          current.reset || !current.fingerprint || !(current.version < saved.version)) return;
+      saveBaseline(account, saved, cloudDigest);
+    };
+    await exclusive(task);
   }
 
   function saveOnHide() {
@@ -140,10 +200,11 @@ export function createCloudSync({
       const body = payload(data, baseline.version + 1);
       if (byteLength(JSON.stringify(body)) >= KEEPALIVE_LIMIT) return;
       recordPending(account, body.version, digest);
+      const attempt = epoch;
       void request(filterFor(account) + '&version=eq.' + baseline.version, {
         method: 'PATCH', body, token: current.accessToken,
         headers: { Prefer: 'return=representation' }, keepalive: true,
-      }).catch(() => {});
+      }).then((rows) => confirmHidden(account, rows, digest, attempt)).catch(() => {});
     } catch {
       // The foreground reconciliation can retry storage and network operations.
     }
@@ -165,17 +226,7 @@ export function createCloudSync({
     };
 
     function remember(row, digest, settled = true) {
-      const previous = meta(account);
-      if (previous.version > row.version) return;
-      const lastSync = now();
-      const snapshot = snapshotFingerprint(row.data);
-      const hiddenFingerprint = byteLength(snapshot) < KEEPALIVE_LIMIT ? snapshot : undefined;
-      saveMeta(account, { version: row.version, fingerprint: digest, hiddenFingerprint, lastSync });
-      dismissedVersion = undefined;
-      if (settled) {
-        readyAccount = account;
-        showSynced(lastSync);
-      }
+      saveBaseline(account, row, digest, settled);
     }
 
     async function useCloud(remote, local) {
@@ -197,14 +248,15 @@ export function createCloudSync({
         replaceSnapshot(storage, remote.data);
         markProgressChange(storage, remote.updated_at);
         reloading = true;
-        remember(remote, digest);
-        onReplaced();
+        // The storage already holds the cloud copy, so reload even if the metadata cannot be saved.
+        try { remember(remote, digest); } finally { onReplaced(); }
       });
     }
 
     async function write(remote, data, digest) {
       const body = payload(data, remote ? remote.version + 1 : 1);
-      if (remote) recordPending(account, body.version, digest);
+      // Even the first insert can commit while its response is lost.
+      recordPending(account, body.version, digest);
       let rows;
       try {
         rows = await api(remote ? filter + '&version=eq.' + remote.version : '/rest/v1/progress', {
@@ -241,15 +293,32 @@ export function createCloudSync({
       }
     }
     if (remote && baseline.version > remote.version) {
-      schedule();
-      return;
+      // Another tab may have saved between the read and the metadata check.
+      remote = await read();
+      if (!active()) return;
+      baseline = meta(account);
+      if (remote && baseline.version > remote.version) {
+        // The cloud row was recreated or restored with an older version: the old baseline proves nothing,
+        // so the first-sync rules decide and neither copy is overwritten automatically.
+        saveMeta(account, reset ? { reset } : {});
+        baseline = meta(account);
+      }
     }
+    // The cloud moved past an upload whose response never arrived. When this copy is exactly that upload,
+    // the newer cloud version may already contain it, so the old baseline must not favor this copy.
+    const uploadOnly = (data, dataDigest) => {
+      const sent = baseline.pending;
+      return Boolean(remote && sent && remote.version > sent.version &&
+        [sent.fingerprint, ...(sent.alternates ?? [])].some((candidate) =>
+          candidate === dataDigest || candidate === snapshotFingerprint(data)));
+    };
+    const knownBaseline = () => Boolean(baseline.fingerprint) && !uploadOnly(local, digest);
     if (remote && matches(local, remote.data)) {
       remember(remote, digest);
       return;
     }
     const { decks, matches: played } = progressActivity(local);
-    if (remote && !reset && (baseline.fingerprint === digest || (!baseline.fingerprint && !decks && !played))) {
+    if (remote && !reset && (baseline.fingerprint === digest || (!knownBaseline() && !decks && !played))) {
       await useCloud(remote, local);
       return;
     }
@@ -274,26 +343,36 @@ export function createCloudSync({
       return;
     }
     local = readSnapshot(storage);
+    digest = await fingerprint(local);
+    if (!active()) return;
     updateStatus('Прогресс на этом устройстве и в облаке разный.');
     if (!manual && dismissedVersion === remote.version) return;
-    const choice = await chooseConflict({
-      local, localAt: progressChangedAt(storage), remote, hasBaseline: Boolean(baseline.fingerprint),
-    });
-    if (!active()) return;
-    if (!choice) {
-      dismissedVersion = remote.version;
-      return;
-    }
-    if (choice === 'cloud') {
-      await useCloud(remote, local);
-    } else if (choice === 'local') {
-      local = readSnapshot(storage);
-      digest = await fingerprint(local);
-      if (active() && !(await write(remote, local, digest))) {
-        updateStatus('Облачная копия снова изменилась. Проверь версии ещё раз.');
-        schedule();
-      }
-    }
+    // The dialog is answered outside the sync lock, so other tabs keep syncing meanwhile.
+    return {
+      details: { local, localAt: progressChangedAt(storage), remote, hasBaseline: knownBaseline() },
+      async resolve(choice) {
+        if (!active()) return;
+        if (!choice) {
+          dismissedVersion = remote.version;
+          return;
+        }
+        // Another tab may have settled this conflict while the dialog was open.
+        if (meta(account).version > remote.version) {
+          schedule();
+          return;
+        }
+        if (choice === 'cloud') {
+          await useCloud(remote, local);
+        } else if (choice === 'local') {
+          local = readSnapshot(storage);
+          digest = await fingerprint(local);
+          if (active() && !(await write(remote, local, digest))) {
+            updateStatus('Облачная копия снова изменилась. Проверь версии ещё раз.');
+            schedule();
+          }
+        }
+      },
+    };
   }
 
   function run({ manual = false } = {}) {
@@ -307,8 +386,12 @@ export function createCloudSync({
     if (!account || paused || reloading) return Promise.resolve();
     const attempt = epoch;
     updateStatus('Синхронизация…');
-    const task = () => reconcile({ manual, account, attempt });
-    job = Promise.resolve().then(() => locks ? locks.request(SYNC_LOCK, task) : task()).catch((error) => {
+    job = Promise.resolve().then(async () => {
+      const conflict = await exclusive(() => reconcile({ manual, account, attempt }));
+      if (!conflict) return;
+      const choice = await chooseConflict(conflict.details);
+      await exclusive(() => conflict.resolve(choice));
+    }).catch((error) => {
       if (attempt === epoch && auth.session()) {
         updateStatus(error?.status === 0 ? 'Нет сети' : 'Ошибка синхронизации. Попробуй снова.');
       }
@@ -355,8 +438,17 @@ export function createCloudSync({
     updateStatus('');
   }
 
+  function markImported() {
+    const account = auth.session()?.user.id;
+    try {
+      const baseline = account ? meta(account) : {};
+      // An imported file is a deliberate local change even when it equals the last synced copy.
+      if (baseline.fingerprint) saveMeta(account, { ...baseline, fingerprint: 'import:' + now() });
+    } catch {}
+  }
+
   return {
-    run, schedule, reset, accountChanged, saveOnHide,
+    run, schedule, reset, accountChanged, saveOnHide, markImported,
     ready: () => !reloading && (!auth.session() || readyAccount === auth.session().user.id),
     status: () => status,
     reloading: () => reloading,
