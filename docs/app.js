@@ -28,7 +28,8 @@ import { createRewardProgress, REWARD_STORAGE_KEY } from './game/meta/rewards.js
 import { createBoosterOpening, createBoosterShop, economyDialog } from './ui/booster-screens.js';
 import { createResourceBar, prepareLazySection, sectionDialog, showEssenceGain } from './ui/resources.js';
 import { bindTargeting, updatePendingAim } from './ui/targeting.js';
-import { BATTLEFIELD_STORAGE_KEY, createBattlefieldPreferences, createFramePreferences, decorationsScreen, FRAME_STORAGE_KEY } from './ui/decorations.js';
+import { BATTLEFIELD_STORAGE_KEY, CARD_BACK_STORAGE_KEY, createBattlefieldPreferences, createCardBackPreferences, createFramePreferences, decorationsScreen, FRAME_STORAGE_KEY } from './ui/decorations.js';
+import { useCardBacks } from './ui/card-back.js';
 import { rankScreen } from './ui/rank-screen.js';
 import { leagueScreen, LEAGUE_OVERVIEW_QUERY } from './ui/league-screen.js';
 import { resetProgress } from './game/meta/reset-progress.js';
@@ -85,6 +86,8 @@ turns = createMatchTurn({
 });
 const progress = createRewardProgress(storage, navigator.locks, { enqueueReward });
 battlefieldPreferences.refresh();
+const cardBackPreferences = createCardBackPreferences(storage, (nodeId) => progress.get().unlocked.has(nodeId));
+useCardBacks(cardBackPreferences.art);
 const menu = createMatchMenu(() => turns.match, () => settings.showBotThoughts(), testFeedback);
 const { drawer } = menu;
 const session = createMatchSession({
@@ -168,8 +171,9 @@ const reloadKeys = new Set([REWARD_STORAGE_KEY, DECK_STORAGE_KEY, RECENT_DECKS_K
 window.addEventListener('storage', (event) => {
   if (event.storageArea !== localStorage) return;
   if (event.key === BOT_DIFFICULTY_KEY) botDifficulty.refresh();
-  const decorationKeys = [FRAME_STORAGE_KEY, BATTLEFIELD_STORAGE_KEY];
+  const decorationKeys = [FRAME_STORAGE_KEY, BATTLEFIELD_STORAGE_KEY, CARD_BACK_STORAGE_KEY];
   if (decorationKeys.includes(event.key) || event.key === null) {
+    if (event.key === CARD_BACK_STORAGE_KEY || event.key === null) cardBackPreferences.refresh();
     if (event.key !== BATTLEFIELD_STORAGE_KEY) framePreferences.refresh();
     if (event.key !== FRAME_STORAGE_KEY) battlefieldPreferences.refresh();
     emit('decorations-change');
@@ -427,7 +431,7 @@ function renderScreen({ deckListNotice } = {}) {
           editDeck(deck, details.length ? status + ' Не хватает карт: ' + details.join(', ') + '.' : status);
         },
       }, progress.inventory, signal); break;
-      case 'decorations': content = decorationsScreen(phaseLabel, framePreferences, battlefieldPreferences, () => navigation.backTo('decks'), signal); break;
+      case 'decorations': content = decorationsScreen(phaseLabel, framePreferences, battlefieldPreferences, () => navigation.backTo('decks'), signal, { cardBacks: cardBackPreferences }); break;
       case 'ranks': content = rankScreen(phaseLabel, progress, () => navigation.backTo('decks'), signal); break;
       case 'league': content = leagueScreen(phaseLabel, {
         back: () => navigation.backTo('decks'),
