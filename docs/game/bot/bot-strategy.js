@@ -8,7 +8,7 @@ import { ROWS } from '../shared/card-metadata.js';
 import { cardType, createCard, findUnit, placementSide } from '../engine/board.js';
 import { availableFees, availableOrders } from '../effects/effects.js';
 import { rowArmor } from '../effects/effect-queries.js';
-import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, handReturnPriority, holdUntargetedDamage, missedDeployValue, lockPriority, pendingUnitPriority, shouldProtectArmor, usefulWeatherOrder, tributeOptions } from './bot-effect-value.js';
+import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionRolls, destructionSwing, infectionGain, handPlayValue, handReturnPriority, holdUntargetedDamage, missedDeployValue, lockPriority, pendingUnitPriority, shouldProtectArmor, usefulWeatherOrder, tributeOptions } from './bot-effect-value.js';
 import { cardAbilities } from '../engine/events.js';
 import { ROW_LIMIT, applyAction, availableRows, canEndTurn, canPass, playableCards, totalScore } from '../engine/match.js';
 
@@ -135,6 +135,15 @@ function choices(state, all = false) {
   if (kind === 'deck-placement') {
     const card = (cards ?? state.players[side][pile]).find((item) => item.id === cardId);
     return placements(state, side, card, options).map((destination) => ({ type: 'place', ...destination }));
+  }
+  const { job } = state.pending;
+  if (kind === 'deck-card' && pile === 'hand' && job?.ability.steps[job.index]?.requiresPlayable) {
+    // Resolve this Order with the strongest eligible hand play, then simulate its draw.
+    const eligible = new Set(options);
+    const [best] = state.players[side].hand.filter(({ id }) => eligible.has(id))
+      .map((card) => ({ id: card.id, value: handPlayValue(state, side, card) }))
+      .sort((a, b) => b.value - a.value);
+    return [{ type: 'target', cardId: best.id }];
   }
   if (state.pending.fullDeck) {
     const legal = new Set(options);

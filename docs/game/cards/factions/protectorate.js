@@ -318,6 +318,22 @@ const protectorateExtras = [
     keywords: ['Лёгкий корабль', 'Рвение', 'Приказ', 'Заряды', 'Огненный шторм', 'Погода'],
   },
   {
+    id: 'gonets', name: 'Десантный транспорт „Гонец“', provision: 11, power: 5,
+    type: 'unit', rarity: 'epic', faction: 'protectorate',
+    text: 'Приказ: сыграй бронзовую карту из своей руки, затем возьми карту из колоды. Перезарядка: 5 ходов.',
+    art: 'gonets.webp', artCrop: 'gonets-crop.webp',
+    categories: [lightShip], shipClass: lightShip,
+    order: {
+      cooldown: 5,
+      ...ability([
+        { action: 'play-from-hand', filter: { anyType: true, rarity: 'bronze' }, requiresPlayable: true,
+          prompt: 'Выбери бронзовую карту из руки.' },
+        { action: 'draw', amount: 1 },
+      ]),
+    },
+    keywords: [lightShip, 'Приказ', 'Перезарядка'],
+  },
+  {
     id: 'flame-inquisitor', name: 'Инквизитор Пламени', provision: 5, power: 2,
     type: 'unit', rarity: 'bronze', faction: 'protectorate',
     text: 'Когда Огненный шторм наносит урон вражескому отряду, Инквизитор Пламени получает столько же силы. Не больше +5 за ход.',

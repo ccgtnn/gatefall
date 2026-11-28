@@ -445,8 +445,10 @@ function boostSwing({ match, job }, { amount }) {
 }
 
 function playChoiceSwing({ match, job }, step) {
-  const candidates = eligiblePileCards(match, job.side, playPiles[step.action], step);
-  return Math.max(0, ...candidates.map((candidate) => deckCardValue(match, job.side, candidate)));
+  const pile = playPiles[step.action];
+  const candidates = eligiblePileCards(match, job.side, pile, step);
+  const value = pile === 'hand' ? handPlayValue : deckCardValue;
+  return Math.max(0, ...candidates.map((candidate) => value(match, job.side, candidate)));
 }
 
 function deckPlaySwing(context, step) {
@@ -607,4 +609,11 @@ export function deckCardValue(match, side, card) {
   const value = (card.power ?? 0) * (definition.enemySide ? -1 : 1) + (card.armor ?? 0) * .15;
   const swing = deploy?.steps.some((step) => step.fullDeck || step.action === 'play-from-discard') ? 0 : effectSwing(match, side, card);
   return value + swing + delayedCardValue(futureContext(match, side), card, undefined, true) + Number(Boolean(deploy || order || endTurn || scenario));
+}
+
+export function handPlayValue(match, side, card) {
+  // A nested tutor cannot offer itself or a card already played by its parent.
+  const player = match.players[side];
+  const hand = player.hand.filter(({ id }) => id !== card.id);
+  return deckCardValue({ ...match, players: { ...match.players, [side]: { ...player, hand } } }, side, card);
 }
