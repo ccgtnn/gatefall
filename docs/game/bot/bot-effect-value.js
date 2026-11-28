@@ -172,7 +172,7 @@ export function cleansePriority({ card, side }, actor) {
   return side === actor ? -value : value;
 }
 
-function firestormDamage(candidates, hits) {
+function firestormDamage(candidates, hits, lossesByTurn) {
   // Track each unit's hit count. Use expected survivors as the size of the next target pool.
   const units = candidates.map((card) => {
     const protection = (card.armor ?? 0) + statusCount(card, 'shield');
@@ -190,11 +190,38 @@ function firestormDamage(candidates, hits) {
         const change = chance[prior] / Math.max(1, alive);
         chance[prior] -= change;
         chance[prior + 1] += change;
-        if (prior >= protection) expected += change;
+        if (prior >= protection) {
+          expected += change;
+          if (lossesByTurn) lossesByTurn[Math.floor(hit / 3)] += change;
+        }
       }
     }
   }
   return expected;
+}
+
+export function firestormGrowth(defender, horizon, cap, extension, extra = 0, excludedId) {
+  const losses = Array(horizon).fill(0);
+  for (const row of ROWS) {
+    const previous = defender.rowEffects?.[row];
+    const duration = (previous?.type === 'firestorm' ? previous.remaining : 0)
+      + (extension === row || extension === 'all' ? extra : 0);
+    const hits = 3 * Math.min(duration, horizon);
+    if (!hits) continue;
+    const victims = defender.board[row].filter((card) => isUnit(card) && card.id !== excludedId);
+    firestormDamage(victims, hits, losses);
+  }
+  return losses.reduce((total, loss) => total + Math.min(cap, loss), 0);
+}
+
+function firestormGrowthGain(match, defenderSide, horizon, row, extra, excludedId, prior = 0) {
+  const defender = match.players[defenderSide];
+  return units(match, opponent(defenderSide)).reduce((gain, { card }) => {
+    const cap = card.definition.firestormGrowthCap;
+    if (!cap || isLocked(card)) return gain;
+    return gain + firestormGrowth(defender, horizon, cap, row, extra + prior, excludedId)
+      - firestormGrowth(defender, horizon, cap, row, prior, excludedId);
+  }, 0);
 }
 
 export function rowEffectValue(player, row, turns = 3, incremental = true,
@@ -228,7 +255,8 @@ export function stormDeathwishValue(match, { card, row, side }, duration, alread
   const horizon = remainingTurns(match, side);
   const gain = rowEffectValue(player, row, duration + prior, true, horizon, 'firestorm', card.id);
   const existing = prior ? rowEffectValue(player, row, prior, true, horizon, 'firestorm', card.id) : 0;
-  return Math.max(0, gain - existing) * probability;
+  const growth = firestormGrowthGain(match, side, horizon, row, duration, card.id, prior);
+  return Math.max(0, gain - existing + growth) * probability;
 }
 
 export function usefulWeatherOrder(match, side, { card }) {
@@ -274,8 +302,18 @@ function rowEffectSwing({ match, job }, step) {
   const side = rowSide(job.side, step);
   const defender = match.players[side];
   const turns = step.effect === 'firestorm' || defender.passed ? remainingTurns(match, side) : undefined;
-  const values = ROWS.map((row) => rowEffectValue(defender, row, step.amount, true, turns, step.effect));
-  return step.row === 'all' ? values.reduce((sum, value) => sum + value, 0) : Math.max(...values);
+  if (step.row === 'all') {
+    const damage = ROWS.reduce((sum, row) => sum + rowEffectValue(defender, row, step.amount, true, turns, step.effect), 0);
+    return damage + (step.effect === 'firestorm' ? firestormGrowthGain(match, side, turns, 'all', step.amount) : 0);
+  }
+  const rows = step.effect === 'firestorm' && ROWS.includes(step.row) ? [step.row] : ROWS;
+  return Math.max(...rows.map((row) => rowWeatherPlayValue(match, side, row, step.amount, turns, step.effect)));
+}
+
+export function rowWeatherPlayValue(match, defenderSide, row, amount, horizon, type) {
+  const defender = match.players[defenderSide];
+  const damage = rowEffectValue(defender, row, amount, true, horizon, type);
+  return damage + (type === 'firestorm' ? firestormGrowthGain(match, defenderSide, horizon, row, amount) : 0);
 }
 
 export function leaderFirestormStep(ability) {
@@ -309,7 +347,8 @@ function replacementLeaderSwing({ match, job, player }, step) {
   const oldLeader = player.leader;
   const savedUses = oldLeader?.order?.usesCharges
     ? Math.min(Math.max(0, oldLeader.charges - currentUses), futureUses) : futureUses;
-  return liveValue + nextRoundValue -
+  const growth = extra ? firestormGrowthGain(match, opponent(side), current.opponentTurns, 'all', extra, undefined, deployed) : 0;
+  return liveValue + growth + nextRoundValue -
     currentUses * leaderChargeValue(current) - savedUses * leaderChargeValue(current, true);
 }
 

@@ -19,7 +19,7 @@ test('the immutable presets fit the provision cap and have enough units', () => 
       'preset-protectorate-orbital': 156, 'preset-growth-rebirth': 163, 'preset-choir': 160, 'preset-captains': 154,
     })[preset.id]);
     assert.ok(Object.isFrozen(preset.cardIds));
-    assert.equal(collection(preset.factionId).length, { growth: 60, protectorate: 53, choir: 42, captains: 41 }[preset.factionId]);
+    assert.equal(collection(preset.factionId).length, { growth: 60, protectorate: 55, choir: 42, captains: 41 }[preset.factionId]);
     assert.equal(collection(preset.factionId).filter(({ faction }) => faction === 'neutral').length, 27);
   }
 });

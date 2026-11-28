@@ -18,7 +18,7 @@ const events = (keys, child) => Object.freeze(Object.fromEntries(
 export const EFFECT_SCHEMA = Object.freeze({
   card: shape(`
     id name type text rarity provision faction power armor shield immune doomed immovable token
-    categories keywords shipClass accent art artCrop artFocus artZoom timer startTurnGrowth
+    categories keywords shipClass accent art artCrop artFocus artZoom timer startTurnGrowth firestormGrowthCap
     zeal resilience fieldAura sidePowerAura requiredRow preferredRow enemySide stratagem removalReserve
   `, {
     aiHints: 'aiHints', artStates: 'dataMap', growth: 'growth', rowPower: 'rowPower',
@@ -71,7 +71,7 @@ export const EFFECT_SCHEMA = Object.freeze({
   aiHints: shape(`
     armorBreakCostsPower boardBonus endTurnNeedsMarkedEnemy handPotential leaderChargeValue leaderCoinsAtMost leaderConsume
     leaderOffering leaderZeal leaderShield leaderSpawn placement preferRowWith sacrificeBonus
-    spendsRowArmor useOrderWhenReady
+    spendsRowArmor useOrderWhenReady preferShieldDamage
   `),
   dataMap: Object.freeze({ '*': null }),
 });

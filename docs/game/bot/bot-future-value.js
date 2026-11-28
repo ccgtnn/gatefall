@@ -1,7 +1,7 @@
 import { activeOrder, availableRows, cardType, COIN_LIMIT, infectionDamage, isUnit, opponent, placementSide, ROW_LIMIT, statusCount, units } from '../engine/board.js';
 import { handCount } from './bot-hand.js';
 import { ROWS } from '../shared/card-metadata.js';
-import { feePayoff, leaderFirestormStep, leaderFirestormValue } from './bot-effect-value.js';
+import { feePayoff, firestormGrowth, leaderFirestormStep, leaderFirestormValue } from './bot-effect-value.js';
 import { carriedCoins } from '../engine/match.js';
 import { EVAL_WEIGHTS as W } from './bot-weights.js';
 import { canGrantZeal, leaderCooldown } from '../effects/effects.js';
@@ -433,7 +433,10 @@ export function delayedCardValue(context, card, row, inHand = false, parts) {
     parts.armor += armorSynergy + emergence;
     parts.orders += charges;
   }
-  return protection + armorSynergy + emergence + activation * wish + engine + growth + counter * .8 + charges;
+  const storm = card.definition.firestormGrowthCap && !isLocked(card)
+    ? firestormGrowth(context.match.players[opponent(context.side)], context.opponentTurns, card.definition.firestormGrowthCap)
+    : 0;
+  return protection + armorSynergy + emergence + activation * wish + engine + growth + storm + counter * .8 + charges;
 }
 
 export function consumeBonus(context, unit) {

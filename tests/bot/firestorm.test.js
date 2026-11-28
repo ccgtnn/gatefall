@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { findCardDefinition } from '../../docs/game/cards/card-registry.js';
-import { chooseBotTurn } from '../../docs/game/bot/bot.js';
+import { chooseBotTurn, createBotView } from '../../docs/game/bot/bot.js';
 import { effectSwing } from '../../docs/game/bot/bot-effect-value.js';
 import { canUseLeader } from '../../docs/game/effects/effects.js';
 import { createCard, ROW_LIMIT } from '../../docs/game/engine/board.js';
@@ -108,4 +108,45 @@ test('bot plays Salfurion into both rows and uses its order once recharged again
   assert.equal(choose(ordered).type, 'end-turn');
   ordered.players.human.board.surface = [unit('exposed', 4, { armor: 1, shield: true })];
   assert.deepEqual(choose(ordered), { type: 'leader' });
+});
+
+test('bot values Flame Inquisitor with active storms and values new storms with an Inquisitor on board', () => {
+  const match = setup('flame-inquisitor');
+  const { human, bot } = match.players;
+  human.board.surface = [unit('victim', 20)];
+  human.board.orbit = [unit('armored', 20, { armor: 3, shield: true })];
+  const swing = () => {
+    const [card] = createBotView(match).cards;
+    return card.swing ?? card.power;
+  };
+  assert.equal(swing(), 2);
+  human.rowEffects.orbit = { type: 'firestorm', remaining: 1, attacker: 'bot' };
+  assert.equal(swing(), 2);
+  human.rowEffects.surface = { type: 'firestorm', remaining: 1, attacker: 'bot' };
+  assert.equal(swing(), 5);
+  human.board.orbit = [unit('second', 20)];
+  assert.equal(swing(), 7);
+  human.rowEffects = {};
+  const storm = createCard('firestorm', findCardDefinition('firestorm'));
+  const alone = effectSwing(match, 'bot', storm);
+  bot.board.orbit.push(bot.hand.shift());
+  assert.ok(effectSwing(match, 'bot', storm) > alone);
+});
+
+test('bot plays Assault Tank on Surface and chooses a kill, then a shield', () => {
+  const match = setup('assault-tank');
+  match.players.bot.usedAbility = true;
+  assert.deepEqual(choose(match), { type: 'play', cardId: 'assault-tank', row: 'surface', position: 0 });
+  match.players.bot.board.surface = [match.players.bot.hand.shift()];
+  match.players.bot.hand.push(unit('spare', 5));
+  match.players.human.board.surface = [unit('strong', 10), unit('weak', 1)];
+  const order = choose(match);
+  assert.deepEqual(order, { type: 'order', cardId: 'assault-tank' });
+  const pending = act(match, order);
+  assert.deepEqual(choose(pending), { type: 'target', cardId: 'weak' });
+  const resolved = act(pending, choose(pending));
+  assert.ok(!resolved.players.human.board.surface.some(({ id }) => id === 'weak'));
+  match.players.human.board.orbit = [];
+  match.players.human.board.surface = [unit('strong', 10), unit('shield', 3, { shield: true })];
+  assert.deepEqual(choose(act(match, order)), { type: 'target', cardId: 'shield' });
 });

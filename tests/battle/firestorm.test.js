@@ -245,3 +245,74 @@ test('Salfurion casts on both rows, replaces the leader, and keeps its order acr
   assert.deepEqual(roundTwo.players.human.leader, after.players.human.leader);
   assert.equal(canUseLeader(roundTwo, 'human'), true);
 });
+
+test('Flame Inquisitor grows from strength lost to Firestorm and journals each boost', () => {
+  const match = setup();
+  const inquisitor = card('flame-inquisitor');
+  match.players.human.board.surface = [inquisitor];
+  match.players.bot.board.orbit = ['a', 'b', 'c'].map((id) => unit(id, 5));
+  setRowEffect(match, 'bot', 'orbit', { ...weather('firestorm', 1), sourceDefinitionId: 'brander' });
+  const rolls = [0, .4, .8];
+  start(match, 'bot', () => rolls.shift());
+  assert.deepEqual(hitEvents(match).map(({ cardId }) => cardId), ['a', 'b', 'c']);
+  assert.equal(inquisitor.power, 5);
+  assert.deepEqual(match.log.filter(({ type }) => type === 'boost').map(({ cardId, amount }) => [cardId, amount]),
+    Array.from({ length: 3 }, () => [inquisitor.id, 1]));
+});
+
+test('Flame Inquisitor ignores armor, shields, friendly losses and ordinary damage, and only grows on the field', () => {
+  const match = setup('flame-inquisitor');
+  const inHand = match.players.human.hand[0];
+  const inquisitor = createCard('on-field', inHand.definition);
+  match.players.human.board.surface = [inquisitor];
+  match.players.bot.board.orbit = [unit('protected', 5, { armor: 1, shield: true })];
+  setRowEffect(match, 'bot', 'orbit', weather('firestorm', 1));
+  start(match, 'bot');
+  assert.equal(inquisitor.power, 3);
+  assert.equal(inHand.power, 2);
+  damage(match, findUnit(match, 'protected'), 1, 'ordinary-damage');
+  assert.equal(inquisitor.power, 3);
+  setRowEffect(match, 'human', 'surface', weather('firestorm', 1, 'bot'));
+  start(match, 'human');
+  assert.equal(inquisitor.power, 0);
+  assert.equal(match.log.filter(({ type }) => type === 'boost').length, 1);
+});
+
+test('two Flame Inquisitors each gain up to 5 across both rows on every enemy turn', () => {
+  let match = setup();
+  const definition = findCardDefinition('flame-inquisitor');
+  match.players.human.board.orbit = [createCard('first', definition)];
+  match.players.human.board.surface = [createCard('second', definition)];
+  match.players.bot.board.orbit = [unit('orbit-target', 12)];
+  match.players.bot.board.surface = [unit('surface-target', 12)];
+  match.players.bot.passed = true;
+  for (const row of ['orbit', 'surface']) setRowEffect(match, 'bot', row, weather('firestorm', 2));
+  for (const [turn, expected] of [[0, 7], [1, 12]]) {
+    match = step(match, play('human-spare-' + turn, 'surface', 1 + turn));
+    assert.equal(findUnit(match, 'first').card.power, expected);
+    assert.equal(findUnit(match, 'second').card.power, expected);
+  }
+  assert.equal(hitEvents(match).length, 12);
+});
+
+test('Assault Tank orders are Surface-only, ready the following turn and usable once per turn', () => {
+  let match = setup('assault-tank');
+  const definition = findCardDefinition('assault-tank');
+  match.players.human.board.surface = [createCard('ready-tank', definition)];
+  match.players.bot.board.orbit = [unit('target', 5)];
+  const orbit = step(match, play('assault-tank'));
+  assert.equal(findUnit(orbit, 'assault-tank').card.armor, 2);
+  assert.deepEqual(definition.categories, ['Бронетехника']);
+  assert.ok(!availableOrders(nextHumanTurn(orbit), 'human').some(({ card }) => card.id === 'assault-tank'));
+
+  match = step(match, play('assault-tank', 'surface', 1));
+  assert.equal(match.turn, 'human');
+  assert.equal(step(match, order('assault-tank')), match);
+  match = nextHumanTurn(match);
+  for (const strength of [4, 3]) {
+    match = step(step(match, order('assault-tank')), pick('target'));
+    assert.equal(findUnit(match, 'target').card.power, strength);
+    assert.equal(step(match, order('assault-tank')), match);
+    match = nextHumanTurn(step(match, play(match.players.human.hand[0].id)));
+  }
+});

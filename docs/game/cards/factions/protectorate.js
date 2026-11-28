@@ -168,6 +168,7 @@ const protectorate = [
 
 const heavyShip = 'Тяжёлый корабль';
 const lightShip = 'Лёгкий корабль';
+const armoredVehicles = 'Бронетехника';
 const markedEnemy = { ...enemies, marked: true };
 const unmarkedEnemy = { ...enemies, marked: false };
 const mark = (target) => ({ ...action('status', target, 1), status: 'target' });
@@ -303,6 +304,28 @@ const protectorateExtras = [
     categories: [lightShip], shipClass: lightShip, preferredRow: 'surface', zeal: true,
     order: { charges: 1, ...onRow('surface', firestormRow(2)) },
     keywords: ['Лёгкий корабль', 'Рвение', 'Приказ', 'Заряды', 'Огненный шторм', 'Погода'],
+  },
+  {
+    id: 'flame-inquisitor', name: 'Инквизитор Пламени', provision: 5, power: 2,
+    type: 'unit', rarity: 'bronze', faction: 'protectorate',
+    text: 'Когда Огненный шторм наносит урон вражескому отряду, Инквизитор Пламени получает столько же силы. Не больше +5 за ход.',
+    art: 'flame-inquisitor.webp', artCrop: 'flame-inquisitor-crop.webp',
+    firestormGrowthCap: 5,
+    keywords: ['Огненный шторм', 'Усиление'],
+  },
+  {
+    id: 'assault-tank', name: 'Штурмовой танк', provision: 5, power: 3,
+    type: 'unit', rarity: 'bronze', faction: 'protectorate',
+    text: 'Броня 2. Поверхность: Приказ: нанеси 1 урон выбранному вражескому отряду. Орбита: без эффекта.',
+    art: 'assault-tank.webp', artCrop: 'assault-tank-crop.webp',
+    armor: 2,
+    categories: [armoredVehicles],
+    preferredRow: 'surface',
+    order: onRow('surface', ability([action('damage', chosen('enemy'), 1)], [
+      choice('enemy', enemies, 'Выбери вражеский отряд для 1 урона.', { kind: 'damage', amount: 1 }),
+    ])),
+    aiHints: { preferShieldDamage: true },
+    keywords: ['Броня', 'Приказ', 'Урон'],
   },
 ];
 
