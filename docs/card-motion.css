@@ -57,6 +57,10 @@
   overflow-wrap: anywhere;
 }
 .motion-activation { border-color: #cead75; color: #ffebc4; background: #443626; }
+.drag-ghost { inset: 0 auto auto 0; }
+.motion-number[data-tier="medium"] { font-size: 1.95rem; }
+.motion-number[data-tier="heavy"] { font-size: 2.3rem; }
+
 .motion-number {
   font-size: 1.65rem;
   font-weight: 850;
@@ -248,4 +252,70 @@
 @keyframes field-thinking-dot {
   0%, 65%, 100% { transform: translateY(0); opacity: .5; }
   32% { transform: translateY(-2px); opacity: 1; }
+}
+
+.motion-heavy-hit {
+  box-shadow: inset 0 0 18px #ff986e, 0 0 12px #ff5c37;
+  background: radial-gradient(ellipse, #fff0bb9c, transparent 70%);
+}
+.motion-hit-crack {
+  background: #ffeed6;
+  filter: drop-shadow(0 0 2px #ff7647);
+  clip-path: polygon(56% 0, 46% 28%, 62% 41%, 91% 28%, 63% 47%, 49% 69%,
+    52% 100%, 45% 70%, 25% 59%, 2% 64%, 25% 54%, 45% 64%, 56% 46%, 41% 31%);
+}
+.motion-heal {
+  box-shadow: inset 0 0 15px #74ff8c, 0 0 10px #60ed88;
+  background: radial-gradient(ellipse, transparent 45%, #77f7a766);
+}
+.motion-target-mark {
+  background: linear-gradient(#ff9a43, #ff9a43) center / 2px 44% no-repeat,
+    linear-gradient(#ff9a43, #ff9a43) center / 44% 2px no-repeat,
+    radial-gradient(circle, transparent 25%, #ff9a43 26% 28%, transparent 29%);
+  filter: drop-shadow(0 0 4px #ff632c);
+}
+.motion-infection-drop {
+  width: .75rem;
+  aspect-ratio: 1;
+  border-radius: 0 65% 65%;
+  background: #b6f76d;
+  box-shadow: 0 0 10px #66bd2d;
+}
+.motion-weather-wave {
+  --weather-light: #8cea69bb;
+  --weather-shadow: #377e3480;
+  border-radius: 6px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse at 35% 55%, var(--weather-light), transparent 70%),
+    linear-gradient(100deg, transparent, var(--weather-shadow), transparent);
+}
+.motion-weather-wave[data-weather="firestorm"] {
+  --weather-light: #ffad5bcc;
+  --weather-shadow: #e74c1a99;
+}
+.motion-counter-pulse {
+  border-radius: 50%;
+  box-shadow: 0 0 8px 2px #91dafb, inset 0 0 4px #a8edff;
+}
+.motion-order-glint {
+  background: linear-gradient(125deg, transparent 28%, #fff3b3 47% 53%, transparent 72%);
+  box-shadow: 0 0 8px #ffc463;
+}
+
+.motion-round-wreath {
+  color: #ffe393;
+  font-size: 2rem;
+  line-height: 1;
+  text-shadow: 0 0 14px #fdb92b;
+}
+.motion-match-shade {
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at center, transparent 15%, #110d1d 78%);
+}
+
+.motion-broken-armor > .armor-stat {
+  position: static;
+  width: 100%;
+  margin: 0;
 }

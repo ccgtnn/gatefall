@@ -124,8 +124,7 @@ export function bindCardPlacement(screen, play, inspect) {
       clearTimeout(active.holdTimer);
       beginDrag(active);
     }
-    active.ghost.style.left = `${active.x}px`;
-    active.ghost.style.top = `${active.y}px`;
+    active.ghost.style.transform = `translate3d(${active.x}px, ${active.y}px, 0) translate(-50%, -50%)`;
     showTarget(active);
   });
 

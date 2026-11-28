@@ -11,6 +11,12 @@ export const MOTION = Object.freeze({
     skippedTurn: 1.2,
     lifeLoss: 1.5,
     score: .88,
+    journalFeedback: .8,
+    rowRecoil: .48,
+    botAim: .35,
+    roundWinner: 2,
+    matchWin: 2.2,
+    matchLoss: 2.8,
     projectile: .43,
     firestormDrop: .58,
     lightning: .54,
@@ -40,6 +46,8 @@ export const MOTION = Object.freeze({
   }),
   ms: Object.freeze({
     drawMax: 1100,
+    orderPulse: 1550,
+    orderPulseFast: 950,
     normal: 320,
     fast: 200,
     roundResult: 1500,
@@ -80,6 +88,20 @@ export const MOTION = Object.freeze({
     cssIn: 'ease-in',
   }),
 });
+
+export function respectReducedMotion(duration, view = globalThis) {
+  return view?.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ? 0 : duration;
+}
+
+export function impactTier(amount) {
+  const magnitude = Math.abs(amount);
+  return magnitude >= 5 ? 'heavy' : magnitude >= 3 ? 'medium' : 'light';
+}
+
+export function orderPulsePhase(speed, now) {
+  const period = speed === 'fast' ? MOTION.ms.orderPulseFast : MOTION.ms.orderPulse;
+  return { period, delay: -(now % period) };
+}
 
 export function scaleMotion(duration, scale = 1) {
   return duration * scale;

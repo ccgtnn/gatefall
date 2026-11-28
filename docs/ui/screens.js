@@ -25,13 +25,20 @@ export function leaderScreen(phaseLabel, factionId, start, back) {
   return panel;
 }
 
+// Settlement updates the controls while the same result heading may still be animating.
+const resultHeadings = new WeakMap();
+
 export function finishedScreen(match, phaseLabel, start, leaveMatch, showThoughts, canReplay, league, { saving, failed, notice, opponent, reply }, signal) {
   phaseLabel.textContent = `Матч завершён · раундов ${match.round}`;
   const game = element('div', 'game');
   const panel = element('section', 'panel finish');
   const outcomes = { win: 'Победа', loss: 'Поражение', draw: 'Ничья' };
-  const heading = element('h2', null, outcomes[match.result]);
-  heading.tabIndex = -1;
+  let heading = resultHeadings.get(match);
+  if (!heading) {
+    heading = element('h2', 'match-result-heading', outcomes[match.result]);
+    heading.tabIndex = -1;
+    resultHeadings.set(match, heading);
+  }
   const rounds = match.log.filter((event) => event.type === 'round-end');
   const wins = rounds.filter(({ winner }) => winner === 'human').length;
   const losses = rounds.filter(({ winner }) => winner === 'bot').length;

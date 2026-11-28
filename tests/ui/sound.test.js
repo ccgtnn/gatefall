@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createSoundEffects } from '../../docs/ui/sound.js';
+import { CUES, createSoundEffects } from '../../docs/ui/sound.js';
 
 function audioStub() {
   const tones = [];
@@ -70,4 +70,19 @@ test('volume changes update the live mix and the sound check plays the sample cu
   sounds.setEnabled(true);
   assert.equal(gains[0].value, .42);
   assert.deepEqual(tones, [440, 554, 659]);
+});
+
+test('journal feedback and match results each have a synthesized cue', () => {
+  for (const kind of ['heal', 'armor-break', 'capture', 'target-marked', 'row-effect', 'power-loss',
+    'growth', 'counter', 'order-ready', 'damage-heavy', 'match-win', 'match-loss']) {
+    assert.ok(CUES[kind]?.notes.length, kind);
+  }
+  const { tones, AudioContext } = audioStub();
+  const sounds = createSoundEffects(true, AudioContext);
+  sounds.unlock();
+  sounds.play({ type: 'damage', amount: 4 });
+  sounds.play({ type: 'damage', amount: 5 });
+  sounds.play({ type: 'armor', amount: -2, armor: 0 });
+  sounds.play({ type: 'match-end', result: 'loss' });
+  assert.deepEqual(tones, [165, 102, 76, 900, 680, 330, 262, 196]);
 });

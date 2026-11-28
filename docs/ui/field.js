@@ -7,6 +7,7 @@ import { createFieldChoices } from './field-choices.js';
 import { createFieldPanels } from './field-panels.js';
 import { createFieldRows } from './field-rows.js';
 import { cardArt } from './card-art.js';
+import { orderPulsePhase } from './motion-tokens.js';
 import { isChoicePending } from './targeting.js';
 
 export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, isMulliganFieldVisible, setMulliganField,
@@ -22,6 +23,12 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
     const match = getMatch();
     const game = element('div', 'match-screen');
     const field = element('div', 'match-board');
+    const now = performance.now();
+    for (const speed of ['normal', 'fast']) {
+      const { period, delay } = orderPulsePhase(speed, now);
+      field.style.setProperty(`--order-pulse-period-${speed}`, period + 'ms');
+      field.style.setProperty(`--order-pulse-delay-${speed}`, delay + 'ms');
+    }
     const { pending, players, phase } = match;
     const replaying = isReplaying();
     const humanTurn = phase === 'playing' && !replaying && match.turn === 'human';

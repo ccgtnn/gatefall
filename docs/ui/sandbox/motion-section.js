@@ -1,12 +1,14 @@
 import { clearTurnBanner } from '../turn-banner.js';
 import {
-  animateCoin, animateLifeLoss, dismissRoundTransition, presentJournalEvent, roundResultLabel, showRoundTransition,
+  animateCoin, animateLifeLoss, animateMatchResult, animateRoundWinner, dismissRoundTransition, presentJournalEvent, roundResultLabel, showRoundTransition,
 } from '../card-motion.js';
 import { animateChoiceSelection, clearRememberedRects, rememberChoicePosition } from '../card-motion-core.js';
 import { button, element, selectField } from '../dom.js';
 import { createBattlefield } from '../field.js';
 import { mulliganScreen } from '../hand.js';
-import { coinTimings, MOTION, motionDuration, scaleMotion } from '../motion-tokens.js';
+import { coinTimings, MOTION, motionDuration, respectReducedMotion, scaleMotion } from '../motion-tokens.js';
+import { finishedScreen } from '../screens.js';
+import { botAimTime, showBotAim } from '../targeting.js';
 import { playJournal } from '../turn-playback.js';
 import { motionFixture } from './fixtures.js';
 import { applyMotionAction, motionGroups, prepareMotionScenario } from './motion-scenarios.js';
@@ -36,6 +38,7 @@ export function createMotionSection() {
   let generation = 0;
   let mulliganPreview = false;
   let mulliganDeal;
+  let resultListeners;
   const speed = selectField('Скорость', [['normal', 'Обычная'], ['fast', 'Быстрая'], ['off', 'Выкл']], 'deck-field');
   speed.input.value = 'normal';
   const slow = element('input');
@@ -104,7 +107,7 @@ export function createMotionSection() {
 
   const scale = () => slow.checked ? 4 : 1;
   function syncSpeed() {
-    const duration = motionDuration(speed.input.value, false, scale());
+    const duration = respectReducedMotion(motionDuration(speed.input.value, false, scale()));
     app.dataset.animationSpeed = speed.input.value;
     app.dataset.reducedMotion = String(duration === 0);
     app.style.setProperty('--motion-base', duration + 'ms');
@@ -115,7 +118,14 @@ export function createMotionSection() {
 
   function render(state = match) {
     match = state;
-    screen.replaceChildren(battlefield());
+    resultListeners?.abort();
+    if (state.phase === 'finished') {
+      const phaseLabel = element('span', 'sr-only');
+      resultListeners = new AbortController();
+      const result = finishedScreen(state, phaseLabel, resetScene, resetScene, false, () => true, false,
+        {}, resultListeners.signal);
+      screen.replaceChildren(phaseLabel, result);
+    } else screen.replaceChildren(battlefield());
   }
 
   function setMulliganField(visible) {
@@ -144,20 +154,26 @@ export function createMotionSection() {
     const duration = syncSpeed();
     const multiplier = scale();
     const active = () => generation === token;
+    if (presentation === 'bot-aim' && before.pending?.options.length) {
+      const action = { type: 'target', cardId: before.pending.options[0] };
+      await showBotAim(screen, before, action, botAimTime(before.pending, duration));
+      if (!active()) return;
+    }
     await playJournal(before, next.log.slice(before.log.length), async (event, commit, state, nextEvent, previous) => {
       if (!active()) return;
       if (event.type === 'round-end') {
-        if (presentation === 'round-result') {
+        if (presentation === 'round-result' || presentation === 'match-result') {
           render(state);
           animateLifeLoss(screen, event.winner, duration * MOTION.pace.lifeLoss);
+          animateRoundWinner(screen, event.winner, duration);
           roundNotice.textContent = roundResultLabel(event);
           roundNotice.hidden = false;
-          await wait(scaleMotion(MOTION.ms.roundResult, multiplier));
+          if (duration) await wait(scaleMotion(MOTION.ms.roundResult, multiplier));
         }
         if (active()) commit();
         return;
       }
-      await presentJournalEvent(screen, event, commit, (state) => { if (active()) render(state); }, duration, { next: nextEvent, previous });
+      await presentJournalEvent(screen, event, commit, (state) => { if (active()) render(state); }, duration, { next: nextEvent, previous, state });
     });
     if (!active()) return;
     if (presentation === 'round-title') {
@@ -179,6 +195,7 @@ export function createMotionSection() {
     if (active()) {
       roundNotice.hidden = true;
       render(next);
+      if (presentation === 'match-result') animateMatchResult(screen, next.result, duration);
     }
   }
 
@@ -218,7 +235,7 @@ export function createMotionSection() {
       throw error;
     } finally {
       setBusy(false);
-      if (!mulliganPreview) render();
+      if (!mulliganPreview && match.phase !== 'finished') render();
     }
   }
 

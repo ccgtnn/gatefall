@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { clearRememberedRects, ghostCard, pileAnchor, rememberRect, takeRememberedRect } from '../../docs/ui/card-motion-core.js';
-import { motionDuration } from '../../docs/ui/motion-tokens.js';
+import { clearRememberedRects, ghostCard, pileAnchor, rememberRect, takeRememberedRect, VISUAL_EVENTS } from '../../docs/ui/card-motion-core.js';
+import { impactTier, motionDuration, orderPulsePhase } from '../../docs/ui/motion-tokens.js';
 import { animateHandTurn, dismissRoundTransition, presentJournalEvent, showRoundTransition } from '../../docs/ui/card-motion.js';
 
+import { feedbackKind } from '../../docs/ui/card-motion-feedback.js';
 import { playJournal } from '../../docs/ui/turn-playback.js';
 
 function scenario(turnFinished, entranceFinished) {
@@ -179,7 +180,7 @@ test('an isolated empty turn pulses the pass indicator on its own half', async (
 
 test('a phone banner plays for at most 700ms', async () => {
   const { screen, overlays } = scenario();
-  screen.ownerDocument.defaultView.matchMedia = () => ({ matches: true });
+  screen.ownerDocument.defaultView.matchMedia = (query) => ({ matches: query.includes('max-width') || query.includes('max-height') });
   const state = turnState();
   state.players.bot.passed = false;
   await presentJournalEvent(screen, humanTurn, () => state, () => {}, 320);
@@ -419,4 +420,53 @@ test('the round title survives a cancelled entrance and removes itself after a s
   t.mock.timers.tick(400);
   await dismiss;
   assert.equal(overlay.isConnected, false);
+});
+
+test('impact tiers scale at 3 and 5 for losses and gains', () => {
+  for (const sign of [1, -1]) {
+    assert.deepEqual([1, 2, 3, 4, 5, 10].map((amount) => impactTier(sign * amount)),
+      ['light', 'light', 'medium', 'medium', 'heavy', 'heavy']);
+  }
+});
+
+test('the new visual events include the actual status transitions recorded by the engine', async () => {
+  const events = ['heal', 'armor-break', 'capture', 'target-marked', 'row-effect', 'power-loss', 'growth', 'counter', 'order-ready'];
+  const { screen, overlays } = scenario();
+  for (const type of events) {
+    assert.ok(VISUAL_EVENTS.has(type), type);
+    let committed = 0;
+    await presentJournalEvent(screen, { type }, () => committed++, assert.fail, 0);
+    assert.equal(committed, 1);
+  }
+  assert.equal(feedbackKind({ type: 'armor', amount: -3, armor: 0 }), 'armor-break');
+  assert.equal(feedbackKind({ type: 'status', status: 'target', amount: 1 }), 'target-marked');
+  assert.equal(feedbackKind({ type: 'status', status: 'infection', tick: true, blocked: false }), 'power-loss');
+  assert.equal(feedbackKind({ type: 'status', status: 'infection', tick: true, blocked: true }), 'status');
+  assert.deepEqual(overlays, []);
+});
+
+test('order pulses start at the shared phase for both speeds', () => {
+  assert.deepEqual(orderPulsePhase('normal', 1625), { period: 1550, delay: -75 });
+  assert.deepEqual(orderPulsePhase('fast', 1625), { period: 950, delay: -675 });
+});
+
+test('heal snapshots the earlier power and does not wait for the effect', async (t) => {
+  const originalCSS = globalThis.CSS;
+  globalThis.CSS = { escape: (value) => value };
+  t.after(() => { globalThis.CSS = originalCSS; });
+  const { screen, overlays } = scenario();
+  const node = screen.ownerDocument.createElement();
+  node.dataset.boardCard = 'wounded';
+  node.querySelector = () => null;
+  node.getBoundingClientRect = () => ({ width: 20, height: 30, left: 5, top: 2 });
+  screen.querySelectorAll = (selector) => selector === '[data-board-card]' ? [node] : [];
+  screen.querySelector = () => null;
+  const card = { id: 'wounded', power: 1 };
+  const state = { players: { human: { board: { orbit: [card] } } } };
+  await presentJournalEvent(screen, { type: 'heal', side: 'human', cardId: card.id, power: 4 }, () => {
+    card.power = 4;
+    return state;
+  }, () => {}, 320, { state });
+  assert.ok(overlays.some(({ className }) => className.includes('motion-heal')));
+  assert.ok(overlays.some(({ textContent, dataset }) => textContent === '+3' && dataset.tier === 'medium'));
 });

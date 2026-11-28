@@ -86,6 +86,7 @@ test('every animation scenario runs at zero duration for each playable faction w
   const otherChoices = { 'offer-hand-return': 'hand-return', 'offer-deck-top': 'deck-top', 'offer-tribute': 'tribute' };
   const turns = { 'turn-human': 'human', 'turn-bot': 'bot', 'turn-empty': 'bot', 'turn-combined': 'human', 'turn-compact': 'human' };
   const mulliganCases = new Set(['deal-round-one', 'deal-round-two', 'mulligan-swap']);
+  const matchOutcomes = { 'match-win': 'win', 'match-loss': 'loss' };
   const roundWinners = { 'round-win': 'human', 'round-loss': 'bot', 'round-draw': null };
   motion.speed.value = 'off';
   for (const faction of Object.keys(FACTIONS)) {
@@ -128,7 +129,17 @@ test('every animation scenario runs at zero duration for each playable faction w
       if (scenario.id in roundWinners) {
         assert.equal(state.log.find(({ type }) => type === 'round-end')?.winner, roundWinners[scenario.id], label);
       }
-      assert.ok(motion.section.querySelector('.match-board'), label);
+      if (scenario.id in matchOutcomes) {
+        assert.equal(state.result, matchOutcomes[scenario.id], label);
+        assert.ok(motion.section.querySelector('.match-result-heading'), label);
+      } else assert.ok(motion.section.querySelector('.match-board'), label);
+      if (scenario.id === 'bot-aim') assert.ok(state.log.some(({ type }) => type === 'damage'), label);
+      if (scenario.id === 'order-ready') {
+        const field = motion.section.querySelector('.match-board');
+        assert.ok(field.querySelector('.unit-order.order-ready'), label);
+        assert.equal(field.style['--order-pulse-period-normal'], '1550ms');
+        assert.match(field.style['--order-pulse-delay-fast'], /^-?\d+(\.\d+)?ms$/);
+      }
     }
   }
   await motion.runAll(async () => {});

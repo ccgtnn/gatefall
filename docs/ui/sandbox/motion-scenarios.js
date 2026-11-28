@@ -1,7 +1,7 @@
 import { findCardDefinition } from '../../game/cards/card-registry.js';
 import {
   applyStatus, boost, capture, changeCoins, cleanse, consume, createCard, damage, findUnit, heal,
-  spawnCards, takeCards, tickInfection, transformUnit, weaken,
+  setRowEffect, spawnCards, takeCards, tickInfection, transformUnit, weaken,
 } from '../../game/engine/board.js';
 import { applyAction } from '../../game/engine/match.js';
 import { motionFixture } from './fixtures.js';
@@ -71,6 +71,22 @@ function round(winner) {
   };
 }
 
+function finish(winner) {
+  return (match) => {
+    round(winner)(match);
+    match.players[winner === 'human' ? 'bot' : 'human'].lives = 1;
+  };
+}
+
+function prepareBotAim(match) {
+  match.turn = 'bot';
+  effect('Прицельный удар', [
+    { action: 'choose-unit', target: enemy, ref: 'victim', kind: 'damage', prompt: 'Выбери цель.' },
+    { action: 'damage', target: { scope: 'ref', ref: 'victim' }, amount: 2 },
+  ])(match);
+  return play(match);
+}
+
 function mulligan(match, roundNumber) {
   match.phase = 'mulligan';
   match.turn = null;
@@ -91,6 +107,7 @@ export const motionGroups = [
   ['Розыгрыш', [
     { id: 'play', label: 'Своя карта', run: play },
     { id: 'opponent-play', label: 'Карта соперника', prepare: (match) => { match.turn = 'bot'; }, run: play },
+    { id: 'bot-aim', label: 'Прицел соперника', presentation: 'bot-aim', prepare: prepareBotAim, run: resolve },
     { id: 'effect', label: 'Эффект', prepare: effect('Усиление отряда', [{ action: 'boost', target: { scope: 'ally' }, amount: 2 }]), run: play },
     { id: 'from-deck', label: 'Из колоды', prepare: realCard('reinforcements'), run: (match) => resolve(play(match)) },
     { id: 'from-discard', label: 'Из сброса', prepare: realCard('resurrection'), run: (match) => resolve(play(match)) },
@@ -99,8 +116,10 @@ export const motionGroups = [
     ]), run: (match) => resolve(play(match)) },
   ]],
   ['Бой', [
-    { id: 'damage', label: 'Урон', run: (match) => { damage(match, unit(match), 3); } },
-    { id: 'armor-hit', label: 'Урон по броне', prepare: (match) => { unit(match).card.armor = 3; },
+    { id: 'damage-light', label: 'Лёгкий удар', run: (match) => { damage(match, unit(match), 2); } },
+    { id: 'damage-heavy', label: 'Тяжёлый удар', run: (match) => { damage(match, unit(match), 5); } },
+    { id: 'damage', label: 'Средний удар', run: (match) => { damage(match, unit(match), 3); } },
+    { id: 'armor-hit', label: 'Разрушение брони', prepare: (match) => { unit(match).card.armor = 3; },
       run: (match) => { damage(match, unit(match), 3); } },
     { id: 'projectile', label: 'Снаряд', run: (match) => { shot(match, 2, 'turret'); } },
     { id: 'lightning', label: 'Молния', run: (match) => { shot(match, 2, 'lightning'); } },
@@ -112,7 +131,8 @@ export const motionGroups = [
     { id: 'death', label: 'Гибель', run: (match) => { damage(match, unit(match), 8); } },
     { id: 'annihilation', label: 'Аннигиляция', prepare: realCard('annihilation'), run: play },
     { id: 'consume', label: 'Поглощение', run: (match) => { consume(match, unit(match, 'human', 1), unit(match, 'human')); } },
-    { id: 'boost', label: 'Усиление', run: (match) => { boost(match, unit(match, 'human'), 3); } },
+    { id: 'boost', label: 'Среднее усиление', run: (match) => { boost(match, unit(match, 'human'), 3); } },
+    { id: 'boost-heavy', label: 'Сильное усиление', run: (match) => { boost(match, unit(match, 'human'), 5); } },
     { id: 'weaken', label: 'Ослабление', run: (match) => { weaken(match, unit(match), 2); } },
     { id: 'heal', label: 'Лечение', prepare: (match) => { unit(match, 'human').card.power -= 3; },
       run: (match) => { heal(match, unit(match, 'human')); } },
@@ -122,6 +142,34 @@ export const motionGroups = [
       const target = unit(match);
       applyStatus(match, target, 'infection', 2);
       tickInfection(match, target);
+    } },
+    { id: 'mark', label: 'Штамп прицела', run: (match) => { applyStatus(match, unit(match), 'target', 1, { attacker: 'human' }); } },
+    { id: 'capture', label: 'Захват', run: (match) => { capture(match, 'human', unit(match)); } },
+    { id: 'weather-rot', label: 'Волна Гниения', run: (match) => { setRowEffect(match, 'bot', 'orbit', { type: 'rot', remaining: 3 }); } },
+    { id: 'weather-firestorm', label: 'Волна Огненного шторма', run: (match) => {
+      setRowEffect(match, 'bot', 'orbit', { type: 'firestorm', remaining: 3 });
+    } },
+    { id: 'growth', label: 'Рост', prepare: (match) => {
+      const { card } = unit(match, 'human');
+      card.definition = { ...card.definition, growth: { label: 'Рост', base: 0 } };
+      card.growth = 1;
+    }, run: (match) => {
+      const { card } = unit(match, 'human');
+      card.growth += 2;
+      match.log.push({ type: 'growth', side: 'human', cardId: card.id, growth: card.growth });
+    } },
+    { id: 'counter', label: 'Пульс счётчика', prepare: (match) => { unit(match, 'human').card.counter = 3; }, run: (match) => {
+      const { card } = unit(match, 'human');
+      card.counter -= 1;
+      match.log.push({ type: 'counter', side: 'human', cardId: card.id, remaining: card.counter });
+    } },
+    { id: 'order-ready', label: 'Готовность приказа', prepare: (match) => {
+      prepareOrder(match);
+      unit(match, 'human').card.readyAt = match.players.human.turns + 1;
+    }, run: (match) => {
+      const { card } = unit(match, 'human');
+      card.readyAt = match.players.human.turns;
+      match.log.push({ type: 'order-ready', side: 'human', cardId: card.id, readyAt: card.readyAt });
     } },
     { id: 'deathwish', label: 'Завещание', prepare: (match) => {
       const { card } = unit(match);
@@ -159,13 +207,11 @@ export const motionGroups = [
   ]],
   ['Пока без анимации', [
     { id: 'lock', label: 'Блокировка', run: (match) => { applyStatus(match, unit(match), 'lock', 2); } },
-    { id: 'mark', label: 'Цель', run: (match) => { applyStatus(match, unit(match), 'target', 1, { attacker: 'human' }); } },
     { id: 'cleanse', label: 'Очищение', prepare: (match) => { unit(match, 'human').card.statuses = { lock: 2, infection: 2 }; },
       run: (match) => { cleanse(match, unit(match, 'human')); } },
     { id: 'transform', label: 'Превращение', run: (match) => {
       transformUnit(match, unit(match), unit(match, 'human', 1).card.definition);
     } },
-    { id: 'capture', label: 'Захват', run: (match) => { capture(match, 'human', unit(match)); } },
   ]],
   ['Переход хода и пас', [
     { id: 'turn-human', label: 'Ход: твой', run: (match) => { turnStart(match, 'human'); } },
@@ -185,6 +231,8 @@ export const motionGroups = [
     { id: 'round-win', label: 'Победа', presentation: 'round-result', prepare: round('human'), run: pass },
     { id: 'round-loss', label: 'Поражение', presentation: 'round-result', prepare: round('bot'), run: pass },
     { id: 'round-draw', label: 'Ничья', presentation: 'round-result', prepare: round(), run: pass },
+    { id: 'match-win', label: 'Победа в матче', presentation: 'match-result', prepare: finish('human'), run: pass },
+    { id: 'match-loss', label: 'Поражение в матче', presentation: 'match-result', prepare: finish('bot'), run: pass },
     { id: 'round-title', label: 'Раунд N', presentation: 'round-title', prepare: round('human'), run: pass },
     { id: 'coin', label: 'Монетка', presentation: 'coin', run: () => undefined },
   ]],

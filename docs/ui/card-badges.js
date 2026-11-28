@@ -124,7 +124,11 @@ function liveBadges(node, card, { orderOnField, showProvision, orderReady, order
   const badges = [];
   const growth = growthValue(card);
   if (growth !== undefined) badges.push(statBadge('hourglass', definition.growth.label + ': ' + growth, growth));
-  if (counter > 0) badges.push(statBadge('hourglass', 'Счётчик ' + counter, counter));
+  if (counter > 0) {
+    const badge = statBadge('hourglass', 'Счётчик ' + counter, counter);
+    badge.classList.add('counter-stat');
+    badges.push(badge);
+  }
   if (timer > 0) badges.push(statBadge('hourglass', 'Таймер ' + timer, timer));
   if (definition.order && !orderOnField) {
     const label = orderReady ? 'Приказ готов' : orderCooldown ? 'Перезарядка Приказа: ' + orderCooldown : 'Приказ';
