@@ -38,12 +38,17 @@ const protectorate = [
     keywords: ['Броня'],
   },
   {
-    id: 'assault', name: 'Тяжёлый штурмовик', provision: 5, power: 5,
+    id: 'assault', name: 'Тяжёлый штурмовик', provision: 5, power: 4,
     type: 'unit', rarity: 'bronze', faction: 'protectorate',
-    text: 'Броня 3.',
-    art: 'assault.webp',
-    armor: 3,
-    keywords: ['Броня'],
+    text: 'Броня 1. Поверхность: Приказ (1 заряд): нанеси 3 урона выбранному вражескому отряду. Орбита: без эффекта.',
+    art: 'assault.webp', artCrop: 'assault-crop.webp',
+    armor: 1,
+    preferredRow: 'surface',
+    // Same shape as onRow('surface', …), which is declared further down this module.
+    order: { charges: 1, sourceRow: 'surface', ...ability([action('damage', chosen('enemy'), 3)], [
+      choice('enemy', enemies, 'Выбери вражеский отряд для 3 урона.', { kind: 'damage', amount: 3 }),
+    ]) },
+    keywords: ['Броня', 'Приказ', 'Заряды', 'Урон'],
   },
   {
     id: 'orbital-shield', name: 'Орбитальный щит', provision: 6, power: 4,
