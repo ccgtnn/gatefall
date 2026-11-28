@@ -45,7 +45,7 @@ test('level 4 spends its last removal in round two when a life is at stake', () 
   assert.deepEqual(chooseBotTurn(match, 4), pass);
 });
 
-test('round one gives up expensive chases and respects the no-pass rule after an ability', () => {
+test('round one gives up expensive chases but follows an ability with a legal play', () => {
   const match = position();
   match.players.human.board.orbit = [plain('ahead', 25)];
   assert.deepEqual(chooseBotTurn(match, 4), pass);

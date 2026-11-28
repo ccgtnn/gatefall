@@ -64,6 +64,7 @@
 }
 .mulligan-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px 12px; }
 .mulligan-actions .button, .mulligan-return { padding: clamp(3px, 1.4dvh, 10px) .7rem; }
+.match-board-mulligan { isolation: isolate; }
 .mulligan-return { position: absolute; z-index: 2; left: 50%; top: 50%; transform: translate(-50%, -50%); }
 
 .field-drawer {

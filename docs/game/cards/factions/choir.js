@@ -20,10 +20,10 @@ const psionic = (definition) => card({ type: 'effect', categories: [PSIONICS], .
 function tentacle(id, name, power, hit, stats = {}) {
   return card({
     id, name, power, token: true, categories: [TENTACLE_CATEGORY], ...stats,
-    text: `В конце твоего хода: нанеси ${hit} урон своему отряду справа. Когда это Щупальце получает Ранение и выживает, усиль его на 2.`,
+    text: `В конце твоего хода: нанеси ${hit} урон своему отряду справа. Когда это Щупальце получает урон от твоей карты и выживает: усиль его на 2.`,
     keywords: ['Конец хода', 'Соседи', 'Урон', 'Ранение', 'Усиление'],
     endTurn: ability([damage({ ...nearby, direction: 'right' }, hit)]),
-    events: { damage: ability([boost(2)]) },
+    events: { damage: { ...ability([boost(2)]), friendlySource: true } },
   });
 }
 

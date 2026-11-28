@@ -4,7 +4,7 @@ import { applyStatus, cleanse, findUnit, heal } from '../../docs/game/engine/boa
 import { FACTIONS } from '../../docs/game/cards/cards.js';
 import { effectOperations } from '../../docs/game/effects/effect-operations.js';
 import { chooseSubset } from '../../docs/game/effects/effect-queries.js';
-import { applyAction, canEndTurn, canPlayCard } from '../../docs/game/engine/match.js';
+import { applyAction, canPass, canPlayCard } from '../../docs/game/engine/match.js';
 import { plain, position, standard } from '../helpers/bot-strategy.js';
 
 const card = (id, faction) => standard(id, FACTIONS[faction].pool.find((def) => def.id === id));
@@ -72,14 +72,14 @@ function orderFixture() {
   return match;
 }
 
-test('an empty hand can use multiple orders before ending the turn', () => {
+test('an empty hand can use multiple orders before passing', () => {
   let match = orderFixture();
   for (const cardId of ['one', 'two']) {
     match = act(match, 'bot', { type: 'order', cardId });
     assert.equal(match.turn, 'bot');
     assert.equal(findUnit(match, cardId).card.power, 2);
   }
-  assert.ok(canEndTurn(match, 'bot'));
+  assert.ok(canPass(match, 'bot'));
 });
 
 test('ending a turn with an empty hand after an order passes automatically', () => {

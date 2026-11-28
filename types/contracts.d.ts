@@ -244,7 +244,7 @@ export interface CardDefinition {
   fee?: Fee;
   scenario?: Scenario;
   counter?: CounterDefinition;
-  events?: Record<string, Ability>;
+  events?: Record<string, Ability & { friendlySource?: boolean }>;
   neighborEvents?: Record<string, Ability>;
   fieldEvents?: Record<string, FieldEvent>;
   pileEvents?: Record<string, PileEvent>;
@@ -261,7 +261,7 @@ export interface CardInstance {
   armor?: number;
   owner?: Side;
   statuses?: Partial<Record<'lock' | 'shield' | 'doomed' | 'target' | 'infection', number>>;
-  infectionSource?: { sourceDefinitionId: string; attacker?: Side };
+  infectionSource?: { sourceDefinitionId?: string; attacker?: Side };
   orderCharges?: number;
   orderUsedTurn?: number;
   firestormGrowth?: { turn: number; amount: number };
@@ -408,6 +408,7 @@ export interface MatchRules {
 export interface MatchEvent {
   type: string;
   side?: Side;
+  attacker?: Side;
   [field: string]: unknown;
 }
 

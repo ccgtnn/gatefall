@@ -1,6 +1,6 @@
 import { handCount } from './bot-hand.js';
 import { leaderFirestormStep, leaderFirestormValue } from './bot-effect-value.js';
-import { neighbors, opponent, ROW_LIMIT, statusCount } from '../engine/board.js';
+import { COIN_LIMIT, neighbors, opponent, ROW_LIMIT, statusCount } from '../engine/board.js';
 import { canGrantZeal, canUseLeader } from '../effects/effects.js';
 import { targets } from '../effects/effect-queries.js';
 import { cardAbilities, deathwishDefinitions } from '../engine/events.js';
@@ -35,6 +35,22 @@ export function leaderTargetPriority(match, side, kind) {
 export function replacementVictims(ability, candidates) {
   const replacement = ability?.steps.find(({ action, replacement }) => action === 'consume' && replacement)?.replacement;
   return replacement ? candidates.filter(({ card }) => card.definition.id !== replacement.id) : candidates;
+}
+
+export function leaderBeforeReplacement(match, side, action) {
+  if (action.type !== 'play') return false;
+  const { hand, leader, board, coins } = match.players[side];
+  const card = hand.find(({ id }) => id === action.cardId);
+  if (!cardAbilities(card).deploy?.steps.some(({ action }) => action === 'replace-leader') ||
+      !canUseBotLeader(match, side)) return false;
+
+  const { ability, aiHints } = leader;
+  if (aiHints?.leaderConsume || aiHints?.leaderOffering) return preferredLeaderUse(match, side) === true;
+  if (ability.steps.some(({ action }) => action === 'spawn')) {
+    return Object.values(board).some((row) => row.length < ROW_LIMIT) ||
+      (coins ?? 0) < COIN_LIMIT && ability.steps.some(({ action, amount }) => action === 'coins' && amount > 0);
+  }
+  return true;
 }
 
 export function canUseBotLeader(match, side) {

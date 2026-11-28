@@ -41,7 +41,7 @@ export function applyAction(match, side, action, { random = Math.random, copy = 
   const player = match.players[side];
   const { type, cardId } = action;
   if (type === 'pass' && !canPass(match, side)) return match;
-  if (type === 'end-turn' && !canEndTurn(match, side)) return match;
+  if (type === 'end-turn' && !canEndTurn(match, side) && !canPass(match, side)) return match;
   if (type === 'order' && !availableOrders(match, side).some(({ card }) => card.id === cardId)) return match;
   const fee = type === 'fee' && availableFees(match, side).find(({ card }) => card.id === cardId)?.card.definition.fee;
   if (type === 'fee' && !fee) return match;
@@ -61,10 +61,8 @@ export function applyAction(match, side, action, { random = Math.random, copy = 
 
   const next = copy(match);
   const current = next.players[side];
-  if (type === 'pass') {
-    markPassed(next, side, 'manual');
-    next.ending = 'effects';
-  } else if (type === 'end-turn') {
+  if (type === 'pass' || type === 'end-turn') {
+    if (!next.playedCard) markPassed(next, side, 'manual');
     next.ending = 'effects';
   } else if (type === 'play') {
     const [card] = current.hand.splice(cardIndex, 1);

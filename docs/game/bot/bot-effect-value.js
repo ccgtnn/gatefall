@@ -8,28 +8,30 @@ import { canStart, eligiblePileCards, pileCandidates, playPiles, playTiming, ref
 import { armorBreakSwing, consumeBonus, coinValue, delayedCardValue, futureContext, leaderChargeValue, leaderUses, remainingTurns } from './bot-future-value.js';
 import { cardAbilities, deathwishDefinitions, isLocked } from '../engine/events.js';
 
-function woundBoost(card) {
-  return (cardAbilities(card).events?.damage?.steps ?? []).reduce((sum, step) =>
+function woundBoost(card, friendly) {
+  const reaction = cardAbilities(card).events?.damage;
+  if (!reaction || (reaction.friendlySource && !friendly)) return 0;
+  return reaction.steps.reduce((sum, step) =>
     step.action === 'boost' && step.target?.scope === 'source' && !step.when &&
     typeof step.amount === 'number' ? sum + step.amount : sum, 0);
 }
 
-export function damagePoints(card, amount, armor = card.armor ?? 0) {
+export function damagePoints(card, amount, armor = card.armor ?? 0, friendly = false) {
   if (statusCount(card, 'shield')) return 0;
   const loss = Math.min(card.power, Math.max(0, amount - armor));
   const swing = amount >= armor ? armorBreakSwing(card) : undefined;
-  return swing === undefined ? loss - (loss > 0 && loss < card.power ? woundBoost(card) : 0) : -swing;
+  return swing === undefined ? loss - (loss > 0 && loss < card.power ? woundBoost(card, friendly) : 0) : -swing;
 }
 
 export function damageTargetPriority({ side, amount, amounts }) {
   return ({ card, side: targetSide }) => {
     const hit = amounts?.[card.id] ?? amount;
-    const points = damagePoints(card, hit);
+    const points = damagePoints(card, hit, undefined, targetSide === side);
     if (targetSide === side) return -1 - points;
     const lethal = points > 0 && (lethalDamage(card, hit) || armorBreakSwing(card) < 0 && hit >= card.armor);
     // Keep the existing preference for killing an enemy or interrupting a big unit.
     if (lethal) return 100 + points;
-    if (statusCount(card, 'shield') || (hit > (card.armor ?? 0) && woundBoost(card)) || points < 0) return points;
+    if (statusCount(card, 'shield') || (hit > (card.armor ?? 0) && woundBoost(card, false)) || points < 0) return points;
     return Math.min(98, card.power);
   };
 }
@@ -126,22 +128,22 @@ export function shouldProtectArmor(card, player) {
     player.hand.some(({ definition }) => definition.aiHints?.spendsRowArmor);
 }
 
-export function rowDamage(player, row, amount, armorStrip = 0) {
+export function rowDamage(player, row, amount, armorStrip = 0, friendly = false) {
   return player.board[row].filter(isUnit).reduce((sum, card) => {
     const armor = Math.max(0, (card.armor ?? 0) - armorStrip);
     const swing = armor === 0 ? armorBreakSwing(card) : undefined;
-    return sum + (swing === undefined ? damagePoints(card, amount, armor) : -swing);
+    return sum + (swing === undefined ? damagePoints(card, amount, armor, friendly) : -swing);
   }, 0);
 }
 
-export function rowScatterValue(player, row, amount) {
+export function rowScatterValue(player, row, amount, friendly = false) {
   const units = player.board[row].filter(isUnit);
   const perUnit = amount / Math.max(1, units.length);
   return units.reduce((sum, card) => {
     const absorbed = (card.armor ?? 0) + statusCount(card, 'shield');
     const swing = perUnit >= absorbed ? armorBreakSwing(card) : undefined;
     return sum + (swing === undefined ? Math.min(card.power, Math.max(0, perUnit - absorbed)) -
-      (perUnit > absorbed && perUnit < absorbed + card.power ? woundBoost(card) * Math.min(1, perUnit - absorbed) : 0) : -swing);
+      (perUnit > absorbed && perUnit < absorbed + card.power ? woundBoost(card, friendly) * Math.min(1, perUnit - absorbed) : 0) : -swing);
   }, 0);
 }
 
@@ -263,7 +265,7 @@ function firestormDamage(candidates, hits, lossesByTurn) {
   // Track each unit's hit count. Use expected survivors as the size of the next target pool.
   const units = candidates.map((card) => {
     const protection = (card.armor ?? 0) + statusCount(card, 'shield');
-    const boost = woundBoost(card);
+    const boost = woundBoost(card, false);
     const lethal = boost > 0 && card.power > 1 ? Infinity : protection + card.power;
     const chance = new Float64Array(Math.min(hits, lethal) + 1);
     chance[0] = 1;
@@ -414,11 +416,17 @@ export function leaderFirestormValue(match, side, weather) {
 }
 
 function replacementLeaderSwing({ match, job, player }, step) {
-  const weather = leaderFirestormStep(step.order.ability);
-  if (!weather) return 2;
-
   const { side } = job;
   const current = futureContext(match, side);
+  const currentUses = leaderUses(current);
+  const futureUses = leaderUses(current, true);
+  const oldLeader = player.leader;
+  const savedUses = oldLeader?.order?.usesCharges
+    ? Math.min(Math.max(0, oldLeader.charges - currentUses), futureUses) : futureUses;
+  const lostValue = currentUses * leaderChargeValue(current) + savedUses * leaderChargeValue(current, true);
+
+  const weather = leaderFirestormStep(step.order.ability);
+  if (!weather) return 2 - lostValue;
   const replacement = { ...current, player: { ...player, leader: {
     ability: step.order.ability, order: step.order, charges: 0, readyAtTurn: player.turns + 1,
   } } };
@@ -430,14 +438,8 @@ function replacementLeaderSwing({ match, job, player }, step) {
     sum + rowEffectValue(enemy, row, deployed + extra, true, current.opponentTurns, 'firestorm') -
       rowEffectValue(enemy, row, deployed, true, current.opponentTurns, 'firestorm'), 0);
   const nextRoundValue = leaderUses(replacement, true) * leaderChargeValue(replacement, true);
-  const currentUses = leaderUses(current);
-  const futureUses = leaderUses(current, true);
-  const oldLeader = player.leader;
-  const savedUses = oldLeader?.order?.usesCharges
-    ? Math.min(Math.max(0, oldLeader.charges - currentUses), futureUses) : futureUses;
   const growth = extra ? firestormGrowthGain(match, opponent(side), current.opponentTurns, 'all', extra, undefined, deployed) : 0;
-  return liveValue + growth + nextRoundValue -
-    currentUses * leaderChargeValue(current) - savedUses * leaderChargeValue(current, true);
+  return liveValue + growth + nextRoundValue - lostValue;
 }
 
 function boostSwing({ match, job }, { amount }) {
@@ -514,7 +516,7 @@ function scatterSwing({ match, job, player }, step) {
   const recipient = step.side === 'ally' ? player : match.players[side];
   const amount = step.amount?.result === 'armor'
     ? Math.max(...ROWS.map((row) => rowArmor(player, row))) : valueOf(match, job, step.amount);
-  const health = ROWS.reduce((sum, row) => sum + rowScatterValue(recipient, row, amount), 0);
+  const health = ROWS.reduce((sum, row) => sum + rowScatterValue(recipient, row, amount, step.side === 'ally'), 0);
   return Math.min(health, amount) * (step.side === 'ally' ? -1 : 1);
 }
 
@@ -540,7 +542,7 @@ function infectionSwing({ match, job, applyInfection }, step) {
 function damageSwing({ match, job, card }, step) {
   const { ability, side } = job;
   if (step.target.scope === 'source') {
-    return -damagePoints(card, valueOf(match, job, step.amount));
+    return -damagePoints(card, valueOf(match, job, step.amount), undefined, true);
   }
   if (step.target.rowRef) {
     const strip = ability.steps.find((part) => part.action === 'armor' && part.target?.rowRef === step.target.rowRef);
@@ -555,7 +557,7 @@ function damageSwing({ match, job, card }, step) {
   const points = options.map(({ card, side: targetSide }, index) => {
     if (statusCount(card, 'shield') || (step.amount?.row && amounts[index] !== highest)) return 0;
     const armor = stripArmor ? 0 : card.armor ?? 0;
-    return (targetSide === side ? -1 : 1) * damagePoints(card, amounts[index], armor);
+    return (targetSide === side ? -1 : 1) * damagePoints(card, amounts[index], armor, targetSide === side);
   });
   return !selection && !step.mode && ['ally', 'enemy', 'field'].includes(step.target.scope) ? points.reduce((sum, value) => sum + value, 0)
     : points.length ? Math.max(...points) : 0;

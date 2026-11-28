@@ -30,11 +30,11 @@ test('passive turns are forecast for infection and Rot on passed enemies', () =>
   assert.ok(effectSwing(match, 'bot', card('rot', 'growth')) > 0);
 });
 
-test('the fallback can explicitly end an empty turn after the last ability', () => {
+test('the fallback passes with an empty hand after the last ability', () => {
   const match = position();
   match.players.bot.hand = [];
   match.players.bot.usedAbility = true;
-  assert.deepEqual(chooseEasyTurn(match), { type: 'end-turn' });
+  assert.deepEqual(chooseEasyTurn(match), { type: 'pass' });
 });
 
 test('armor spending favors a fresh Boil and avoids breaking a grown one', () => {

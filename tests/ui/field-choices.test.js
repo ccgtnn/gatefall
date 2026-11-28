@@ -22,6 +22,7 @@ globalThis.document = {
 };
 globalThis.window = new EventTarget();
 const { createBattlefield } = await import('../../docs/ui/field.js');
+const { mulliganScreen } = await import('../../docs/ui/hand.js');
 const { createFieldChoices } = await import('../../docs/ui/field-choices.js');
 
 const click = (node, detail = 1) => node.dispatchEvent(Object.assign(new Event('click'), { detail }));
@@ -285,7 +286,45 @@ test('the disabled turn button gives the actual reason to sighted and assistive 
   check('Пас', 'Ход соперника');
   match.turn = 'human';
   match.players.human.usedAbility = true;
-  check('Пас', 'Сыграй карту после применения способности');
-  match.players.human.usedAbility = false;
   check('Пас', null);
+  match.playedCard = true;
+  check('Конец хода', null);
+});
+
+test('round two mulligan can show the board and return to card selection', () => {
+  const initial = createMatch({ random: () => .99 });
+  initial.starter = 'human';
+  const start = confirmMulligan(initial, [], { random: () => .99 });
+  const pass = { type: 'pass' };
+  const match = applyAction(applyAction(start, 'human', pass), 'bot', pass);
+  assert.equal(match.round, 2);
+  assert.equal(match.phase, 'mulligan');
+
+  const deal = { round: 1 };
+  let viewing = false;
+  let game;
+  const controls = {
+    getMatch: () => match, settingsButton: () => new TestNode('button'),
+    setMulliganField(visible) {
+      viewing = visible;
+      game = battlefield();
+    },
+  };
+  const battlefield = createBattlefield({
+    ...controls, isMulliganFieldVisible: () => viewing, isReplaying: () => false,
+    humanCanAct: () => false, getLeagueOpponent: () => undefined, getSelectedCardId: () => undefined,
+    mulliganScreen: () => mulliganScreen({ ...controls, motion: () => 0, mulliganDeal: () => deal }),
+  });
+  game = battlefield();
+  assert.equal(game.querySelector('#mulligan-title').textContent, 'Раунд 2');
+  click(namedButton(game, 'Посмотреть поле'));
+  const board = game.querySelector('.match-board');
+  const back = namedButton(game, 'К муллигану');
+  assert.ok(board.classList.contains('match-board-mulligan'));
+  assert.equal(back.parent, board.parent);
+  assert.equal(board.inert, false);
+  assert.equal(game.querySelector('.mulligan-overlay'), null);
+  click(back);
+  assert.ok(game.querySelector('.mulligan-overlay').querySelector('.hand-card'));
+  assert.equal(game.querySelector('.match-board').inert, true);
 });

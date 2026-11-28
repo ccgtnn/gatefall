@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
 import test from 'node:test';
-import { announcePlay, applyStatus, createCard, damage, findUnit, spawnCards, statusCount, weaken } from '../../docs/game/engine/board.js';
+import { announcePlay, applyStatus, createCard, damage, findUnit, setRowEffect, spawnCards, statusCount, weaken } from '../../docs/game/engine/board.js';
 import { pickBotTarget } from '../../docs/game/bot/bot.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
 import { FACTIONS, KEYWORDS } from '../../docs/game/cards/cards.js';
 import { AWAKENING, CHOIR_CARDS, CULTIST, FANATIC, LARGE_TENTACLE, PSIONICS, SLEEPER, TENTACLE } from '../../docs/game/cards/factions/choir.js';
 import { collection, copyLimit, inspectDeck, PRESETS } from '../../docs/game/cards/decks.js';
-import { availableOrders, canUseLeader, enqueueEndTurn } from '../../docs/game/effects/effects.js';
+import { availableOrders, canUseLeader, enqueueEndTurn, enqueueStartTurn } from '../../docs/game/effects/effects.js';
 import { applyAction, createDeckMatch, createMatch } from '../../docs/game/engine/match.js';
 import { createRewardProgress } from '../../docs/game/meta/rewards.js';
 import { filterCatalog } from '../../docs/ui/catalog-cards.js';
@@ -97,7 +97,7 @@ test('Fanatic transforms at two power or less in place, but not on lethal damage
   assert.equal(get(reduced, 'orbit-0').definition.id, TENTACLE.id);
 });
 
-test('Both tentacles only hit the immediate unit to their right and grow on surviving real damage', () => {
+test('Both tentacles only hit the immediate unit to their right and grow on surviving allied damage', () => {
   for (const [definition, dealt] of [[TENTACLE, 1], [LARGE_TENTACLE, 2]]) {
     const match = setup({ orbit: [unit(9), definition, unit(9)], enemies: [unit(9)] });
     enqueueEndTurn(match, 'human');
@@ -106,18 +106,47 @@ test('Both tentacles only hit the immediate unit to their right and grow on surv
     assert.equal(get(match, 'orbit-2').power, 9 - dealt);
     assert.equal(get(match, 'enemy-0').power, 9);
     applyStatus(match, findUnit(match, 'orbit-1'), 'shield', 1);
-    hit(match, 'orbit-1', 1);
+    const wound = (attacker) => {
+      damage(match, findUnit(match, 'orbit-1'), 1, 'test-source', { attacker });
+      drain(match);
+    };
+    wound('human');
     assert.equal(get(match, 'orbit-1').power, definition.power);
-    hit(match, 'orbit-1', 1);
-    assert.equal(get(match, 'orbit-1').power, definition.power + 1);
+    wound('bot');
+    assert.equal(get(match, 'orbit-1').power, definition.power - 1);
+    wound('human');
+    assert.equal(get(match, 'orbit-1').power, definition.power);
     assert.equal(get(hit(match, 'orbit-1', 20), 'orbit-1'), undefined);
   }
+});
+
+test('enemy weather and infection ticks preserve attribution and never strengthen a tentacle', () => {
+  const match = setup({ orbit: [LARGE_TENTACLE] });
+  const source = { sourceDefinitionId: 'enemy-card', attacker: 'bot' };
+  setRowEffect(match, 'human', 'orbit', { type: 'firestorm', remaining: 1, ...source });
+  enqueueStartTurn(match, 'human');
+  drain(match);
+  assert.equal(get(match, 'orbit-0').power, 5);
+
+  setRowEffect(match, 'human', 'orbit', { type: 'rot', remaining: 2, ...source });
+  enqueueStartTurn(match, 'human');
+  drain(match);
+  enqueueStartTurn(match, 'human');
+  drain(match);
+  assert.equal(get(match, 'orbit-0').power, 3);
+  enqueueEndTurn(match, 'human');
+  drain(match);
+  assert.equal(get(match, 'orbit-0').power, 2);
+  assert.ok(match.log.filter(({ type }) => type === 'damage').every(({ attacker }) => attacker === 'bot'));
+  assert.equal(match.log.find(({ tick }) => tick).attacker, 'bot');
+  assert.ok(!match.log.some(({ type }) => type === 'boost'));
 });
 
 test('armor only triggers a damage reaction when a hit also removes power', () => {
   for (const [amount, power, boosted] of [[2, 3, false], [3, 4, true]]) {
     const match = setup({ orbit: [{ ...TENTACLE, armor: 2 }] });
-    hit(match, 'orbit-0', amount);
+    damage(match, findUnit(match, 'orbit-0'), amount, 'test-source', { attacker: 'human' });
+    drain(match);
     assert.equal(get(match, 'orbit-0').power, power);
     assert.equal(get(match, 'orbit-0').armor, 0);
     assert.equal(match.log.find(({ type }) => type === 'damage').lost, amount - 2);

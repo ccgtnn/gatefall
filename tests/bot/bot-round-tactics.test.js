@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { chooseBotTurn, pickBotTarget } from '../../docs/game/bot/bot.js';
+import { chooseBotTurn, chooseEasyTurn, pickBotTarget } from '../../docs/game/bot/bot.js';
 import { evaluateBreakdown } from '../../docs/game/bot/bot-evaluation.js';
-import { effectSwing, rowDamage, rowEffectValue } from '../../docs/game/bot/bot-effect-value.js';
+import { damagePoints, effectSwing, rowDamage, rowEffectValue } from '../../docs/game/bot/bot-effect-value.js';
 import { preferredLeaderUse } from '../../docs/game/bot/bot-leaders.js';
 import { botSearchState } from '../../docs/game/bot/bot-strategy.js';
 import { FACTIONS } from '../../docs/game/cards/cards.js';
+import { SKARA_REINHOLD } from '../../docs/game/cards/factions/captains.js';
 import { TENTACLE } from '../../docs/game/cards/factions/choir.js';
 import { DEVOURER_SPAWN } from '../../docs/game/cards/factions/growth.js';
 import { ANNIHILATION, NEUTRAL_CARDS } from '../../docs/game/cards/factions/neutral-cards.js';
@@ -164,25 +165,26 @@ test('A2 Devourer skips its own replacement and chooses a different victim', () 
   assert.equal(preferredLeaderUse(match, 'bot'), false);
 });
 
-test('A3 damage, rows and firestorm account for surviving wound reactions', () => {
+test('A3 only allied damage accounts for the tentacle wound reaction', () => {
   const match = position(3);
   const { human } = match.players;
-  human.board.orbit = [standard('big-tentacle', { ...TENTACLE, power: 6 })];
+  human.board.orbit = [standard('big-tentacle', { ...TENTACLE, power: 7 })];
   human.board.surface = [plain('other', 6)];
   const hit = member('hit', 'choir', 'mind-strike');
   match.players.bot.hand = [hit];
   const pending = applyAction(match, 'bot', { type: 'play', cardId: hit.id });
-  assert.equal(pickBotTarget(pending).cardId, 'other');
-  assert.equal(rowDamage(human, 'orbit', 1), -1);
-  assert.equal(rowDamage(human, 'orbit', 6), 6);
-  assert.ok(rowEffectValue(human, 'orbit', 1, true, 1, 'firestorm') < 0);
+  assert.equal(pickBotTarget(pending).cardId, 'big-tentacle');
+  assert.equal(rowDamage(human, 'orbit', 1), 1);
+  assert.equal(rowDamage(human, 'orbit', 7), 7);
+  assert.equal(damagePoints(human.board.orbit[0], 1, undefined, true), -1);
+  assert.equal(rowEffectValue(human, 'orbit', 1, true, 1, 'firestorm'), 3);
   const weather = { ...match, pending: {
     kind: 'row-effect', side: 'bot', selectionSide: 'human', rowWeather: 'firestorm',
     options: ['orbit', 'surface'], amount: 1,
   } };
-  assert.equal(pickBotTarget(weather).cardId, 'surface');
+  assert.equal(pickBotTarget(weather).cardId, 'orbit');
   human.board.surface = [];
-  assert.equal(effectSwing(match, 'bot', hit), 3);
+  assert.equal(effectSwing(match, 'bot', hit), 5);
 });
 
 test('A4 a winning Choir banks the round and keeps Abyss Shepherd in reserve', () => {
@@ -238,4 +240,29 @@ test('T3 concedes a costly R2 chase with a larger, stronger hand for R3', () => 
   human.hand = [plain('first', 5), plain('second', 5)];
   human.startingDeck = [...human.hand];
   assert.deepEqual(decide(match, 6), pass);
+});
+
+test('Captains use Skara before playing Tiraelis, even near the coin limit', () => {
+  const match = position(3);
+  const { bot, human } = match.players;
+  bot.coins = 8;
+  bot.leader = structuredClone(SKARA_REINHOLD);
+  bot.hand = [standard('tiraelis', NEUTRAL_CARDS.find(({ id }) => id === 'falura'))];
+  human.board.surface = [plain('enemy', 5)];
+  human.hand = [];
+  human.passed = true;
+  bot.lives = human.lives = 1;
+
+  for (let level = 1; level <= 7; level++) assert.deepEqual(decide(match, level), { type: 'leader' }, String(level));
+  assert.deepEqual(chooseEasyTurn(match), { type: 'leader' });
+  const before = effectSwing(match, 'bot', bot.hand[0]);
+  let next = applyAction(match, 'bot', { type: 'leader' });
+  next = applyAction(next, 'bot', pickBotTarget(next));
+  assert.equal(next.players.bot.leader.charges, 0);
+  assert.equal(next.players.bot.coins, 9);
+  assert.equal(Object.values(next.players.bot.board).flat().length, 2);
+  assert.ok(effectSwing(next, 'bot', bot.hand[0]) > before);
+  assert.deepEqual(decide(next), { type: 'play', cardId: 'tiraelis' });
+  next = applyAction(next, 'bot', decide(next));
+  assert.equal(next.players.bot.leader.name, 'Тираэлис');
 });

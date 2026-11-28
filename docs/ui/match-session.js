@@ -195,7 +195,7 @@ export function createMatchSession({
   function onMatchChanged(before, next, speech) {
     if (speech && next.phase !== 'finished') showLeagueSpeech(speech);
     if (next.phase === 'finished' && before.phase !== 'finished') void saveMatchResult();
-    if (next.phase === 'mulligan') mulliganFieldVisible = false;
+    if (next.phase === 'mulligan' && before.phase !== 'mulligan') mulliganFieldVisible = false;
   }
 
   async function saveMatchResult() {

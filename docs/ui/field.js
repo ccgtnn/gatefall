@@ -63,7 +63,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       iconButton('▤', 'Журнал ходов', () => showDrawer('journal'), 'field-log'),
       leaderView(match, 'human'), pileView(match, 'human', 'discard'));
     const right = element('div', 'field-rail field-right');
-    const afterPlay = match.turn === 'human' && (match.playedCard || canEndTurn(match, 'human'));
+    const afterPlay = match.turn === 'human' && match.playedCard;
     const action = button(afterPlay ? 'Конец хода' : 'Пас', () =>
       playHuman({ type: afterPlay ? 'end-turn' : 'pass' }), 'button field-action');
     action.id = 'pass-button';
@@ -84,7 +84,6 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       else if (match.turn !== 'human' || pending?.side === 'bot') action.title = 'Ход соперника';
       else if (pending) action.title = 'Сначала выбери цель';
       else if (players.human.passed) action.title = 'Ты уже спасовал';
-      else if (!afterPlay && players.human.usedAbility) action.title = 'Сыграй карту после применения способности';
       else action.title = 'Сначала разыграй карту или спасуй';
       action.setAttribute('aria-description', action.title);
     }
@@ -130,8 +129,10 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       stage.append(choiceOverlay);
     }
     if (phase === 'mulligan') {
-      field.inert = !isMulliganFieldVisible();
-      stage.append(isMulliganFieldVisible()
+      const viewingField = isMulliganFieldVisible();
+      field.classList.add('match-board-mulligan');
+      field.inert = !viewingField;
+      stage.append(viewingField
         ? button('К муллигану', () => setMulliganField(false), 'button mulligan-return')
         : mulliganScreen());
     }
