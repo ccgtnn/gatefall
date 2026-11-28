@@ -159,3 +159,17 @@ test('Firestorm and both ships have their printed stats and all four art assets'
     }
   }
 });
+
+test('Protectorate bronzes have full and cropped art, with premium video only for Flame Inquisitor', () => {
+  for (const [id, power, premium] of [['flame-inquisitor', 2, true], ['assault-tank', 3, false]]) {
+    const card = CARD_DEFINITIONS.find((definition) => definition.id === id);
+    assert.deepEqual([card.faction, card.type, card.rarity, card.provision, card.power],
+      ['protectorate', 'unit', 'bronze', 5, power]);
+    assert.equal(card.art, id + '.webp');
+    assert.equal(card.artCrop, id + '-crop.webp');
+    assert.equal(hasPremiumArt(id), premium);
+    const files = [card.art, card.artCrop];
+    if (premium) files.push(id + '-card.mp4', id + '-preview.mp4');
+    for (const file of files) assert.ok(statSync(new URL('../../docs/art/' + file, import.meta.url)).size > 0, file);
+  }
+});

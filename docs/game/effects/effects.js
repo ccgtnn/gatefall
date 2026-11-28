@@ -4,7 +4,7 @@
 /** @typedef {import('../../../types/contracts').MatchState} MatchState */
 
 import { cardAbilities, emit, isLocked } from '../engine/events.js';
-import { activeOrder, applyStatus, changeBasePower, damage, findUnit, isUnit, opponent, ROW_LIMIT,
+import { activeOrder, applyStatus, boost, changeBasePower, damage, findUnit, isUnit, opponent, ROW_LIMIT,
   statusCount, statusEndTurn, units } from '../engine/board.js';
 import { tickRowEffectDuration } from '../engine/board-status.js';
 import { ROWS, ROW_LABELS } from '../shared/card-metadata.js';
@@ -145,6 +145,22 @@ export function enqueueStartTurn(match, side) {
   }
 }
 
+function growFromFirestorm(match, damagedSide, lost) {
+  if (lost <= 0) return;
+  // Both players' completed turn counts advance even on empty turns after a pass.
+  const turn = match.players.human.turns + match.players.bot.turns;
+  for (const unit of units(match, opponent(damagedSide))) {
+    const { card } = unit;
+    const cap = card.definition.firestormGrowthCap;
+    if (!cap || isLocked(card)) continue;
+    const already = card.firestormGrowth?.turn === turn ? card.firestormGrowth.amount : 0;
+    const amount = Math.min(lost, cap - already);
+    if (amount <= 0) continue;
+    card.firestormGrowth = { turn, amount: already + amount };
+    boost(match, unit, amount, card.definition.id);
+  }
+}
+
 function tickRow(match, job, random) {
   const { side, row } = job;
   const effect = job.tickingWeather ?? match.players[side].rowEffects?.[row];
@@ -157,8 +173,10 @@ function tickRow(match, job, random) {
   if (effect.type === 'firestorm') {
     const hits = (job.hits ?? 3) - 1;
     if (hits > 0) match.effects.unshift({ ...job, tickingWeather: effect, hits });
+    const before = unit.card.power ?? 0;
     damage(match, unit, 1, effect.sourceDefinitionId,
       { attacker: effect.attacker, scattered: true, visual: 'firestorm' });
+    growFromFirestorm(match, side, before - (unit.card.power ?? 0));
     return;
   }
   if (statusCount(unit.card, 'infection')) damage(match, unit, 2, effect.sourceDefinitionId, { attacker: effect.attacker });

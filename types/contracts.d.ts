@@ -200,6 +200,7 @@ export interface CardDefinition {
   faction?: string;
   provision?: number;
   power?: number;
+  firestormGrowthCap?: number;
   armor?: number;
   shield?: boolean;
   immune?: boolean;
@@ -262,6 +263,7 @@ export interface CardInstance {
   infectionSource?: { sourceDefinitionId: string; attacker?: Side };
   orderCharges?: number;
   orderUsedTurn?: number;
+  firestormGrowth?: { turn: number; amount: number };
   growth?: number;
   timer?: number;
   chapter?: number;

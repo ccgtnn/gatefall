@@ -3,7 +3,7 @@ import { ROWS } from '../shared/card-metadata.js';
 import { cardType, findUnit, isUnit, neighbors, placementSide, restoreCard, statusCount, units } from '../engine/board.js';
 import { availableOrders } from '../effects/effects.js';
 import { rowArmor } from '../effects/effect-queries.js';
-import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionSwing, effectSwing, immediateWeatherOrder, immediateWeatherValue, infectionGain, holdUntargetedDamage, lockPriority, pendingUnitPriority, rowDamage, rowEffectValue, rowScatterValue, usefulWeatherOrder } from './bot-effect-value.js';
+import { armorTargetPriority, beneficialFee, cleansePriority, deckCardValue, destructionSwing, effectSwing, immediateWeatherOrder, immediateWeatherValue, infectionGain, holdUntargetedDamage, lockPriority, pendingUnitPriority, rowDamage, rowScatterValue, rowWeatherPlayValue, usefulWeatherOrder } from './bot-effect-value.js';
 import { armorBreakSwing, consumeBonus, delayedCardValue, futureContext, inheritancePayoff, remainingTurns, wantsToHoldInheritance } from './bot-future-value.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, availableRows, canEndTurn, canPass, playableCards, totalScore } from '../engine/match.js';
 
@@ -16,6 +16,12 @@ export { BOT_LEVELS } from './bot-levels.js';
 
 export const BOT_RULES = Object.freeze({ passLead: 12, cardDeficitLimit: 1 });
 export const BOT_DELAY_MS = 700;
+
+function prefersShieldDamage(match) {
+  const pending = match.pending;
+  return pending?.kind === 'damage' &&
+    findUnit(match, pending.job?.sourceId)?.card.definition.aiHints?.preferShieldDamage;
+}
 
 export function createBotView(match) {
   const { human, bot } = match.players;
@@ -161,7 +167,7 @@ export function pickBotTarget(match) {
     const { selectionSide, rowWeather } = match.pending;
     const enemy = match.players[selectionSide];
     const horizon = rowWeather === 'firestorm' || enemy.passed ? remainingTurns(match, selectionSide) : undefined;
-    return { type: 'target', cardId: bestTarget(options, (row) => rowEffectValue(enemy, row, amount, true, horizon, rowWeather)) };
+    return { type: 'target', cardId: bestTarget(options, (row) => rowWeatherPlayValue(match, selectionSide, row, amount, horizon, rowWeather)) };
   }
   if (kind === 'mark-row') {
     const enemy = match.players[match.pending.selectionSide];
@@ -208,10 +214,11 @@ export function pickBotTarget(match) {
     : preferHigherAmount ? optionsWithUnits.filter(({ card }) => amounts[card.id] === highest) : optionsWithUnits;
   const lethal = kind === 'damage' ? candidates.filter(({ card, side }) =>
     side !== match.pending.side && lethalDamage(card, amounts?.[card.id] ?? amount) && (armorBreakSwing(card) ?? -card.power) < 0) : [];
+  const shieldFirst = prefersShieldDamage(match);
   const forecast = kind === 'consume' && futureContext(match, match.pending.side);
   const priorities = {
     damage: ({ card, side }) => {
-      if (statusCount(card, 'shield')) return side === match.pending.side ? -.5 : 0;
+      if (statusCount(card, 'shield')) return side === match.pending.side ? -.5 : shieldFirst ? Infinity : 0;
       const hit = amounts?.[card.id] ?? amount;
       const swing = hit >= card.armor ? armorBreakSwing(card) : undefined;
       if (side !== match.pending.side) return swing === undefined ? card.power : -swing;
@@ -307,7 +314,8 @@ export function chooseBotTurn(match, mastery, options = {}) {
   const level = BOT_LEVELS[readBotLevel(mastery)];
   const strategy = { ...options, pickTarget: pickBotTarget };
   const state = botSearchState(match, level.knowsDeckList);
-  if (state.pending?.rowWeather === 'firestorm' || state.pending?.kind === 'weather-deathwish') return pickBotTarget(state);
+  if (state.pending?.rowWeather === 'firestorm' || state.pending?.kind === 'weather-deathwish' ||
+      prefersShieldDamage(state)) return pickBotTarget(state);
   if (!state.pending && state.turn === 'bot' && state.playedCard) {
     const order = immediateWeatherOrder(state, 'bot', availableOrders(state, 'bot'));
     if (order) return { type: 'order', cardId: order.card.id };
