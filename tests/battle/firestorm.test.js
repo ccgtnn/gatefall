@@ -316,3 +316,20 @@ test('Assault Tank orders are Surface-only, ready the following turn and usable 
     match = nextHumanTurn(step(match, play(match.players.human.hand[0].id)));
   }
 });
+
+test('Heavy Assault: Armor 1, a single surface order for 3 damage from the next turn, none from orbit', () => {
+  let match = setup('assault');
+  match.players.bot.board.orbit = [unit('victim', 5)];
+  match = step(match, play('assault', 'surface'));
+  const assault = findUnit(match, 'assault').card;
+  assert.deepEqual([assault.power, assault.armor], [4, 1]);
+  assert.equal(step(match, order('assault')), match);
+  match = nextHumanTurn(match);
+  assert.equal(availableOrders(match, 'human')[0].card.id, 'assault');
+  match = step(step(match, order('assault')), pick('victim'));
+  assert.equal(findUnit(match, 'victim').card.power, 2);
+  assert.equal(findUnit(match, 'assault').card.orderCharges, 0);
+  assert.deepEqual(availableOrders(nextHumanTurn(match), 'human'), []);
+  const orbit = step(setup('assault'), play('assault'));
+  assert.deepEqual(availableOrders(nextHumanTurn(orbit), 'human'), []);
+});

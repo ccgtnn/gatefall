@@ -133,11 +133,11 @@ test('infection playback updates the badge and strength without changing the pre
   before.players.human.board.orbit = [unit];
   const visible = createPlaybackState(before);
   applyJournalEvent(visible, { type: 'status', status: 'infection', side: 'human',
-    cardId: 'target', tick: true, count: 0, power: 4 });
-  assert.equal(visible.players.human.board.orbit[0].power, 4);
+    cardId: 'target', tick: true, count: 0, power: 3 });
+  assert.equal(visible.players.human.board.orbit[0].power, 3);
   assert.equal(visible.players.human.board.orbit[0].statuses.infection, undefined);
   assert.equal(unit.statuses.infection, 1);
-  assert.equal(unit.power, 5);
+  assert.equal(unit.power, 4);
 });
 
 test('playback moves a revived card from discard and applies a counter draw exactly once', () => {
