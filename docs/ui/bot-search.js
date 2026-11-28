@@ -3,7 +3,12 @@ import { BOT_LEVELS, readBotLevel } from '../game/bot/bot-levels.js';
 import { botSearchState } from '../game/bot/bot-strategy.js';
 
 export function botSearchTimeoutMs(level) {
-  return Math.max(3500, BOT_LEVELS[readBotLevel(level)].budgetMs + 1500);
+  const { budgetMs } = BOT_LEVELS[readBotLevel(level)];
+  return Math.max(5_000, budgetMs * 1.5 + 3_000);
+}
+
+export function chooseFallbackTurn(match) {
+  return chooseEasyTurn(botSearchState(match));
 }
 
 export function createBotSearch({
@@ -47,7 +52,8 @@ export function createBotSearch({
   function sendRequest() {
     if (!ready || !pending) return;
     const current = worker;
-    pending.timer = setTimeout(() => fail(current, new Error('Bot worker timed out')), timeoutMs(pending.payload.level));
+    const duration = timeoutMs(pending.payload.level);
+    pending.timer = setTimeout(() => fail(current, new Error('Bot worker timed out')), duration);
     try {
       current.postMessage(pending.payload);
     } catch (error) {
@@ -103,7 +109,7 @@ export function createBotSearch({
       const state = botSearchState(match, BOT_LEVELS[mastery].knowsDeckList);
       return await request(state, mastery, withTrace);
     } catch {
-      const action = chooseEasyTurn(botSearchState(match));
+      const action = chooseFallbackTurn(match);
       const trace = withTrace ? { action, reason: 'Стратегический поиск недоступен. Использую резервный ход.', candidates: [] } : undefined;
       return { action, trace };
     }

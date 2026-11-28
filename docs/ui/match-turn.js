@@ -4,7 +4,7 @@ import {
 } from './card-motion.js';
 import { BOT_DELAY_MS } from '../game/bot/bot.js';
 import { serializeBotPosition } from '../game/bot/bot-position.js';
-import { createBotSearch } from './bot-search.js';
+import { chooseFallbackTurn, createBotSearch } from './bot-search.js';
 import { applyAction } from '../game/engine/match.js';
 import { playJournal } from './turn-playback.js';
 import { animateChoiceSelection, clearRememberedRects, rememberChoicePosition, takeRememberedRect } from './card-motion-core.js';
@@ -37,6 +37,7 @@ export function createMatchTurn({
     botSearch.cancel();
     match = next;
     replaying = false;
+    screen.classList.remove('is-replaying');
     targetAction = undefined;
     confirmingTarget = false;
     retryRolls = [];
@@ -72,8 +73,15 @@ export function createMatchTurn({
     if (session !== matchSession || match !== before) return;
     if (result === null) return;
     const { action, trace } = result;
-    const next = applyAction(before, 'bot', action);
-    if (trace && next !== before) {
+    let next = applyAction(before, 'bot', action);
+    if (next === before) {
+      console.warn('Bot action rejected', action);
+      next = applyAction(before, 'bot', chooseFallbackTurn(before));
+      if (next === before) next = applyAction(before, 'bot', { type: 'pass' });
+      if (next === before) next = applyAction(before, 'bot', { type: 'end-turn' });
+      return updateMatch(next);
+    }
+    if (trace) {
       next.log.push({
         type: 'bot-thought', side: 'bot',
         chosen: describeBotAction(match, action), reason: trace.reason,
@@ -124,7 +132,10 @@ export function createMatchTurn({
       } catch (error) {
         console.warn('Playback stopped early', error);
       } finally {
-        if (session === matchSession) replaying = false;
+        if (session === matchSession) {
+          replaying = false;
+          screen.classList.remove('is-replaying');
+        }
       }
     } else {
       for (const event of events) {
@@ -206,18 +217,24 @@ export function createMatchTurn({
     }
     if (action.type === 'target' && choiceNode && isChoicePending(before.pending)) {
       confirmingTarget = true;
-      const animation = animateChoiceSelection(choiceNode, settings.motion());
-      if (animation) await animation;
-      if (session !== matchSession) return;
-      confirmingTarget = false;
-      if (match !== before) return;
-      rememberChoicePosition(before, next, action.cardId, choiceNode);
+      try {
+        const animation = animateChoiceSelection(choiceNode, settings.motion());
+        if (animation) await animation;
+        if (session === matchSession && match === before) rememberChoicePosition(before, next, action.cardId, choiceNode);
+      } catch (error) {
+        console.warn('Target confirmation animation interrupted', error);
+      } finally {
+        if (session === matchSession) confirmingTarget = false;
+      }
+      if (session !== matchSession || match !== before) return;
     } else if (before.pending && !isChoicePending(before.pending) && aim.showTap()) {
       confirmingTarget = true;
-      await new Promise((resolve) => setTimeout(resolve, settings.motion() ? MOTION.ms.targetConfirm : MOTION.ms.targetConfirmReduced));
-      if (session !== matchSession) return;
-      confirmingTarget = false;
-      if (match !== before) return;
+      try {
+        await new Promise((resolve) => setTimeout(resolve, settings.motion() ? MOTION.ms.targetConfirm : MOTION.ms.targetConfirmReduced));
+      } finally {
+        if (session === matchSession) confirmingTarget = false;
+      }
+      if (session !== matchSession || match !== before) return;
     }
     if (next.pending?.side !== 'human') targetAction = undefined;
     await updateMatch(next);

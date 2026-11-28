@@ -3,7 +3,7 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { clearRememberedRects, ghostCard, pileAnchor, rememberRect, takeRememberedRect } from '../../docs/ui/card-motion-core.js';
 import { motionDuration } from '../../docs/ui/motion-tokens.js';
-import { animateHandTurn, presentJournalEvent } from '../../docs/ui/card-motion.js';
+import { animateHandTurn, dismissRoundTransition, presentJournalEvent, showRoundTransition } from '../../docs/ui/card-motion.js';
 
 import { playJournal } from '../../docs/ui/turn-playback.js';
 
@@ -400,4 +400,23 @@ test('firestorm strikes respect reduced motion at a manually selected speed', as
     () => { committed = true; }, () => {}, 320);
   assert.equal(committed, true);
   assert.deepEqual(overlays, []);
+});
+
+test('the round title survives a cancelled entrance and removes itself after a stalled exit', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const { screen } = scenario();
+  const savedDocument = globalThis.document;
+  globalThis.document = screen.ownerDocument;
+  t.after(() => { globalThis.document = savedDocument; });
+  const app = { append(node) {
+    node.animate = () => ({ finished: Promise.reject(new DOMException('Cancelled', 'AbortError')) });
+  } };
+  const overlay = await showRoundTransition(app, 2, 100, 1, async () => {});
+  assert.equal(overlay.children[0].textContent, 'Раунд 2');
+  overlay.animate = () => ({ finished: new Promise(() => {}) });
+  const dismiss = dismissRoundTransition(overlay, 100);
+  assert.equal(overlay.isConnected, true);
+  t.mock.timers.tick(400);
+  await dismiss;
+  assert.equal(overlay.isConnected, false);
 });

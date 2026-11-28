@@ -53,7 +53,7 @@ class StartupNode extends TestNode {
   }
 }
 
-test('app starts from the page shell and renders the main screen without a session', async (t) => {
+function startup(t) {
   const markup = readFileSync(new URL('../../docs/index.html', import.meta.url), 'utf8');
   const body = new StartupNode('body');
   body.innerHTML = markup.split('<body>')[1].split('</body>')[0];
@@ -86,6 +86,11 @@ test('app starts from the page shell and renders the main screen without a sessi
     for (const key of Object.keys(globals)) delete globalThis[key];
   });
 
+  return { document, window, data };
+}
+
+test('app starts from the page shell and renders the main screen without a session', async (t) => {
+  const { document } = startup(t);
   await import('../../docs/app.js');
   await setImmediate();
 
@@ -93,3 +98,39 @@ test('app starts from the page shell and renders the main screen without a sessi
   assert.ok(home?.querySelector('.quick-match'));
   assert.ok(document.querySelector('#settings').querySelector('.cloud-settings'));
 });
+
+for (const failures of [1, 2]) {
+  test(`render retries once after ${failures} rendering error(s)`, async (t) => {
+    const { document, window, data } = startup(t);
+    data.set('test-saved-progress', 'preserved');
+    const screen = document.querySelector('#screen');
+    const replace = screen.replaceChildren.bind(screen);
+    let attempts = 0;
+    t.mock.method(screen, 'replaceChildren', (...children) => {
+      replace(...children);
+      if (children[0]?.classList.contains('deck-home') && ++attempts <= failures) {
+        throw new Error('Injected render failure');
+      }
+    });
+    const errors = t.mock.method(console, 'error', () => {});
+    const reload = t.mock.fn();
+    window.location.reload = reload;
+
+    await import(`../../docs/app.js?render-failures=${failures}`);
+    await setImmediate();
+
+    assert.equal(attempts, 2);
+    assert.equal(errors.mock.callCount(), failures);
+    if (failures === 1) {
+      assert.ok(screen.querySelector('.deck-home'));
+      assert.equal(reload.mock.callCount(), 0);
+    } else {
+      assert.equal(screen.querySelector('h2').textContent, 'Что-то пошло не так');
+      const menu = screen.querySelector('button');
+      assert.equal(menu.textContent, 'В меню');
+      menu.dispatchEvent(new Event('click'));
+      assert.equal(reload.mock.callCount(), 1);
+      assert.equal(data.get('test-saved-progress'), 'preserved');
+    }
+  });
+}

@@ -9,7 +9,7 @@ import { bindCardPlacement } from './ui/card-placement.js';
 import { placementSide } from './game/engine/board.js';
 import { FACTIONS } from './game/cards/cards.js';
 import { inspectDeck, PRESETS } from './game/cards/decks.js';
-import { iconButton } from './ui/dom.js';
+import { button, element, iconButton } from './ui/dom.js';
 import { preview, showCard } from './ui/cards.js';
 import { createBattlefield } from './ui/field.js';
 import { mulliganScreen, updatePlacementSelection } from './ui/hand.js';
@@ -47,6 +47,7 @@ let selectedFaction;
 let editedDeck;
 const editNotices = new Map();
 let screenEvents;
+let renderFailed = false;
 let selectedCardId;
 let reloadOnMatchExit = false;
 let turns;
@@ -331,7 +332,32 @@ function placeSelected(row, side) {
   playHuman({ type: 'play', cardId: selectedCardId, row, position: match.players[side].board[row].length });
 }
 
-function render({ deckListNotice } = {}) {
+function render(options) {
+  if (renderFailed) return;
+  try {
+    renderScreen(options);
+    return;
+  } catch (error) {
+    console.error('Render failed', error);
+  }
+  try {
+    renderScreen(options);
+  } catch (error) {
+    console.error('Render retry failed', error);
+    renderFailed = true;
+    screenEvents?.abort();
+    const panel = element('section', 'panel');
+    const heading = element('h2', null, 'Что-то пошло не так');
+    heading.setAttribute('role', 'alert');
+    panel.append(heading, button('В меню', () => {
+      navigation.replace('decks');
+      window.location.reload();
+    }));
+    screen.replaceChildren(panel);
+  }
+}
+
+function renderScreen({ deckListNotice } = {}) {
   screenEvents?.abort();
   screenEvents = new AbortController();
   const { signal } = screenEvents;

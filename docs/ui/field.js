@@ -40,6 +40,7 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
         const prompt = picked ? picked.definition.name + ' · ' + pending.prompt : pending.prompt;
         const message = element('p', 'field-message target-prompt', prompt);
         if (picked?.definition?.art) message.prepend(cardArt(picked.definition, 'aim-source-art', { staticArt: true }));
+        if (canCancel?.()) message.append(button('Отмена', cancelTargeting, 'button target-cancel'));
         center.append(message);
       }
     }
@@ -63,7 +64,16 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       action.title = 'Доступно · ' + ready.join(', ');
       action.setAttribute('aria-description', action.title);
     }
-    if (humanCanAct() && !afterPlay && players.human.usedAbility) action.title = 'Сыграй карту после применения способности';
+    if (action.disabled) {
+      if (replaying || choiceLocked?.()) action.title = 'Идёт анимация';
+      else if (phase === 'mulligan') action.title = 'Сначала закончи муллиган';
+      else if (match.turn !== 'human' || pending?.side === 'bot') action.title = 'Ход соперника';
+      else if (pending) action.title = 'Сначала выбери цель';
+      else if (players.human.passed) action.title = 'Ты уже спасовал';
+      else if (!afterPlay && players.human.usedAbility) action.title = 'Сыграй карту после применения способности';
+      else action.title = 'Сначала разыграй карту или спасуй';
+      action.setAttribute('aria-description', action.title);
+    }
     const humanCount = element('span', 'field-hand-count', players.human.hand.length + '/' + HAND_LIMIT);
     humanCount.title = 'Карт в твоей руке';
     const humanCorner = element('div', 'field-corner');
