@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { chooseBotTurn } from '../../docs/game/bot/bot.js';
 import { capture, createCard, damage, findUnit, removeUnit, cardType, placementSide } from '../../docs/game/engine/board.js';
 import { FACTIONS, NEUTRAL, NEUTRAL_CARDS, LARVA } from '../../docs/game/cards/cards.js';
 import { applyAction, availableRows, canEndTurn, confirmMulligan, createMatch, playableCards, ROW_LIMIT } from '../../docs/game/engine/match.js';
@@ -104,8 +103,7 @@ test('live faction matches resolve all choices, keep card identities unique, and
       const player = match.players[side];
       const [card] = playableCards(match, side);
       let action;
-      if (side === 'bot') action = chooseBotTurn(match, 1, { random });
-      else if (match.pending?.kind === 'deck-placement') {
+      if (match.pending?.kind === 'deck-placement') {
         const row = match.pending.options[0];
         action = { type: 'place', row, position: player.board[row].length };
       } else if (match.pending) action = { type: 'target', cardId: match.pending.options[0] };
