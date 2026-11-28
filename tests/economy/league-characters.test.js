@@ -25,6 +25,15 @@ test('the renamed league rival retains his saved ID and contextual lines', () =>
   assert.ok(LEAGUE_CONTEXT_LINES[rival.id]);
 });
 
+test('Tiraelis takes the saved league slot, with Falura only mentioned in lore', () => {
+  const rival = LEAGUE_CHARACTERS.find(({ id }) => id === 'bot-3-6');
+  assert.deepEqual([rival.name, rival.initials, rival.avatar, rival.tier, rival.strength, rival.deckNow, rival.loreFaction],
+    ['Тираэлис, Пепел Звёзд', 'Т', 'league/tiraelis.webp', 3, 8, 'falura', 'void']);
+  assert.ok(rival.lines.win.some((line) => /Файлура/.test(line)));
+  assert.match(LEAGUE_CONTEXT_LINES[rival.id].relegated[0], /Я спустилась/);
+  assert.ok(LEAGUE_CHARACTERS.every(({ name, avatar }) => !/Файлур/i.test(name) && avatar !== 'league/falura.webp'));
+});
+
 test('league records display match results and the separate round totals', () => {
   assert.equal(leagueRecord({ wins: 3, draws: 2, losses: 1, difference: 4 }), 'В 3 · Н 2 · П 1');
   assert.equal(leagueRecord({ wins: 1 }), 'В 1 · Н 0 · П 0');

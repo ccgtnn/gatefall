@@ -173,16 +173,19 @@ test('Broodlord chooses the row with larvae of strength 2 and 4 at levels 4 and 
   }
 });
 
-test('Falura adds value through immediate and future uses of the repeatable leader Order', () => {
+test('Tiraelis adds value through Shadows and the replacement Order without row placement', () => {
   const match = position();
   const falura = standard('falura', NEUTRAL_CARDS.find(({ id }) => id === 'falura'));
   match.players.bot.hand = [falura, plain('one', 4), plain('two', 4), plain('three', 4)];
   match.players.human.board.surface = [plain('enemy', 8)];
-  const next = applyAction(match, 'bot', { type: 'play', cardId: falura.id, row: 'orbit', position: 0 }, fixed);
+  const action = { type: 'play', cardId: falura.id };
+  assert.ok(effectSwing(match, 'bot', falura) > 4);
+  const next = applyAction(match, 'bot', action, fixed);
+  assert.equal(findUnit(next, falura.id), undefined);
   const { bot } = next.players;
   const leader = bot.leader;
   assert.equal(leader.order.sourceDefinitionId, 'falura');
-  assert.equal(bot.board.orbit.filter(({ definition }) => definition.id === 'shadow').length, 2);
+  assert.equal(bot.board.surface.filter(({ definition }) => definition.id === 'shadow').length, 2);
 
   next.round = 3;
   const ready = evaluatePosition(next, 'bot');
@@ -192,7 +195,7 @@ test('Falura adds value through immediate and future uses of the repeatable lead
   next.round = 1;
   bot.leader = leader;
   const accelerated = leaderUses(futureContext(next, 'bot'));
-  for (const shadow of bot.board.orbit.filter(({ definition }) => definition.id === 'shadow')) {
+  for (const shadow of bot.board.surface.filter(({ definition }) => definition.id === 'shadow')) {
     shadow.statuses = { lock: 1 };
   }
   assert.ok(accelerated > leaderUses(futureContext(next, 'bot')));

@@ -55,9 +55,7 @@ export function eventText(event) {
     }
     case 'cleanse': return `«${event.name}»: наложенные эффекты сняты Очищением.`;
     case 'row-effect': return `${side}, ${ROW_LABELS[event.row]}: ${event.effect ? ROW_EFFECTS[event.effect.type]?.label + ' · ' + event.effect.remaining : 'Погода снята'}.`;
-    case 'leader-replaced': return event.identityChanged
-      ? `${side}: ${event.name} занимает место лидера.`
-      : `${side}: Файлура заменила способность лидера Приказом.`;
+    case 'leader-replaced': return `${side}: ${event.name} занимает место лидера.`;
     case 'scenario-chapter': return `«${event.name}»: глава ${event.chapter}.`;
     case 'base-power': return `${side}: базовая сила карты — ${event.basePower}.`;
     case 'heal': return `${side}: сила карты восстановлена до ${event.power}.`;

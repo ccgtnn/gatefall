@@ -23,7 +23,7 @@ export const ANNIHILATION = Object.freeze({
 export const SHADOW = Object.freeze({
   id: 'shadow', name: 'Тень', faction: NEUTRAL, type: 'unit', power: 2,
   art: 'shadow.webp',
-  text: 'Обречённая. Пока на твоей стороне поля есть хотя бы одна Тень, Приказ лидера от Файлуры готов каждый твой ход.',
+  text: 'Обречённая. Пока на твоей стороне поля есть хотя бы одна Тень, Приказ лидера от Тираэлис готов каждый твой ход.',
   categories: ['Пустота'], doomed: true, token: true, keywords: ['Обречённость'],
 });
 
@@ -121,11 +121,11 @@ export const NEUTRAL_CARDS = Object.freeze([
     ['world-gates', 'Врата Миров', 'gold', 11, null, 'Посмотри свою колоду, выбери любую карту и сыграй её.', {
       type: 'effect', art: 'world-gates.webp', accent: 'gate', deploy: ability([{ action: 'play-from-deck', fullDeck: true }]),
     }],
-    ['falura', 'Файлура, Пепел Звёзд', 'gold', 19, null,
-      'Замени способность лидера до конца матча Приказом: нанеси 2 урона выбранному вражескому отряду. Перезарядка: 1 ход. Призови 2 Тени. Пока на твоём поле есть Тень, Приказ готов каждый твой ход.', {
-        type: 'artifact', art: 'falura.webp', categories: ['Пустота'],
-        deploy: ability([{ action: 'replace-leader', order: faluraOrder },
-          { action: 'spawn', card: SHADOW, position: 'right', row: 'source', amount: 2, overflow: true }]),
+    ['falura', 'Тираэлис, Пепел Звёзд', 'gold', 19, null,
+      'Тираэлис заменяет твоего лидера до конца матча: Приказ — нанеси 2 урона выбранному вражескому отряду. Перезарядка: 1 ход. Призови 2 Тени в ряд Поверхности. Пока на твоём поле есть Тень, Приказ готов каждый твой ход.', {
+        type: 'effect', art: 'tiraelis.webp', artCrop: 'tiraelis-crop.webp', categories: ['Пустота'],
+        deploy: ability([{ action: 'replace-leader', name: 'Тираэлис', portrait: 'tiraelis-portrait.webp', order: faluraOrder },
+          { action: 'spawn', card: SHADOW, row: 'surface', amount: 2, overflow: true }]),
         keywords: ['Приказ', 'Перезарядка', 'Урон', 'Порождение'],
       }],
     ['gate-guardian', 'Хранитель врат', 'gold', 10, 12, 'Броня 4. Уязвимость: отправь эту карту в сброс.', {

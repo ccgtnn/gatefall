@@ -33,17 +33,19 @@ test('Hound tokens stay outside the catalog with or without inventory filters', 
 
 test('catalog searches both name and card text, ignoring case and ё spelling', () => {
   assert.ok(ids({ query: '  АННИГИЛЯЦИЯ  ' }).includes('annihilation'));
-  assert.deepEqual(ids({ query: 'Файлура призови 2 тени' }), ['falura']);
+  assert.deepEqual(ids({ query: 'Тираэлис призови 2 тени' }), ['falura']);
+  assert.deepEqual(ids({ query: 'Файлура' }), []);
+  assert.ok(CARD_DEFINITIONS.every(({ name, art }) => !/Файлур/i.test(name) && art !== 'falura.webp'));
   assert.ok(ids({ query: 'пепел звезд' }).includes('falura'));
-  assert.equal(cards.find(({ id }) => id === 'falura').name, 'Файлура, Пепел Звёзд');
+  assert.equal(cards.find(({ id }) => id === 'falura').name, 'Тираэлис, Пепел Звёзд');
   assert.deepEqual(ids({ query: 'неттакойкарты' }), []);
 });
 
 test('all collectible gold cards are included and catalog filters combine across factions', () => {
   assert.equal(ids({ rarity: 'gold' }).length, 34);
-  assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'artifact', category: 'Пустота', provision: '19' }),
+  assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'effect', category: 'Пустота', provision: '19' }),
     ['falura']);
-  assert.deepEqual(ids({ faction: 'growth', rarity: 'gold', type: 'artifact', category: 'Пустота', provision: '19' }), []);
+  assert.deepEqual(ids({ faction: 'growth', rarity: 'gold', type: 'effect', category: 'Пустота', provision: '19' }), []);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'effect', provision: '11' }), ['world-gates']);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'effect', provision: '18' }), ['salfurion']);
   assert.deepEqual(ids({ faction: 'neutral', rarity: 'gold', type: 'effect', provision: '9' }), ['resurrection']);
@@ -81,10 +83,10 @@ test('a reused card container drops the previous rarity for cards without one', 
 });
 
 test('availability filters compose with other filters and distinguish one copy from zero', () => {
-  const owned = { 'resurrection': 0, 'world-gates': 1 };
+  const owned = { 'resurrection': 0, 'world-gates': 1, falura: 1 };
   const options = { faction: 'neutral', type: 'effect', rarity: 'gold', owned };
   assert.ok(ids(options).includes('resurrection'));
-  assert.deepEqual(ids({ ...options, availability: 'owned' }), ['world-gates']);
+  assert.deepEqual(ids({ ...options, availability: 'owned' }), ['world-gates', 'falura']);
   const unavailable = ids({ ...options, availability: 'missing' });
   assert.ok(unavailable.includes('resurrection'));
   assert.ok(!unavailable.includes('world-gates'));
