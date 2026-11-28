@@ -38,7 +38,8 @@ test('categories cover the existing Growth pool and identify the Void neutrals',
   assert.deepEqual(FACTIONS.protectorate.pool.filter((card) => card.categories).map(({ id, categories }) => [id, categories]),
     [['imperial-golem', ['Голем']], ['aggressor', ['Тяжёлый корабль']],
       ['aurelian', ['Тяжёлый корабль']], ['tiberius', ['Тяжёлый корабль']],
-      ['emperors-hand', ['Тяжёлый корабль']], ['brander', ['Лёгкий корабль']], ['assault-tank', ['Бронетехника']]]);
+      ['emperors-hand', ['Тяжёлый корабль']], ['brander', ['Лёгкий корабль']],
+      ['gonets', ['Лёгкий корабль']], ['assault-tank', ['Бронетехника']]]);
   assert.deepEqual([...NEUTRAL_CARDS, SHADOW].filter((card) => card.categories?.includes('Пустота')).map(({ id, categories }) => [id, categories]),
     [['falura', ['Пустота']], ['shadow', ['Пустота']]]);
 });

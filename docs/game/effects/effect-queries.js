@@ -156,6 +156,8 @@ export function canStart(match, job) {
   if (steps.some((step) => (step.action === 'play-from-deck' &&
     !eligiblePileCards(match, job.side, 'deck', step, job.pileChoices).length) ||
     (step.action === 'play-from-discard' && !eligiblePileCards(match, job.side, 'discard', step, job.pileChoices).length) ||
+    (step.action === 'play-from-hand' && step.requiresPlayable &&
+      !eligiblePileCards(match, job.side, 'hand', step, job.pileChoices).length) ||
     (step.action === 'create-play' && !playableOffer(match, job, step, true).length))) return false;
   if (steps.some((step) => step.action === 'select-row' && !eligibleRows(match.players[rowSide(job.side, step)], step.filter).length)) return false;
   return (!when || targets(match, job, when.targets, when.selectable).length >= (when.atLeast ?? 1)) &&

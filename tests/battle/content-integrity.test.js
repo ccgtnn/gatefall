@@ -173,3 +173,13 @@ test('Protectorate bronzes have full and cropped art, with premium video only fo
     for (const file of files) assert.ok(statSync(new URL('../../docs/art/' + file, import.meta.url)).size > 0, file);
   }
 });
+
+test('Gonets has full and cropped artwork', () => {
+  const card = CARD_DEFINITIONS.find(({ id }) => id === 'gonets');
+  assert.equal(card.art, 'gonets.webp');
+  assert.equal(card.artCrop, 'gonets-crop.webp');
+  assert.equal(hasPremiumArt(card.id), false);
+  for (const file of [card.art, card.artCrop]) {
+    assert.ok(statSync(new URL('../../docs/art/' + file, import.meta.url)).size > 0, file);
+  }
+});

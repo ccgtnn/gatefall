@@ -3,7 +3,7 @@ import { ROWS } from '../shared/card-metadata.js';
 import { cardType, findUnit, isUnit, neighbors, placementSide, restoreCard, statusCount, units } from '../engine/board.js';
 import { availableOrders } from '../effects/effects.js';
 import { rowArmor } from '../effects/effect-queries.js';
-import { armorTargetPriority, beneficialFee, cleansePriority, damagePoints, damageTargetPriority, deckCardValue, destructionSwing, effectSwing, immediateWeatherOrder, immediateWeatherValue, infectionGain, handReturnPriority, holdUntargetedDamage, lethalDamage, lockPriority, pendingUnitPriority, rowDamage, rowScatterValue, rowWeatherPlayValue, usefulWeatherOrder } from './bot-effect-value.js';
+import { armorTargetPriority, beneficialFee, cleansePriority, damagePoints, damageTargetPriority, deckCardValue, destructionSwing, effectSwing, immediateWeatherOrder, immediateWeatherValue, infectionGain, handPlayValue, handReturnPriority, holdUntargetedDamage, lethalDamage, lockPriority, pendingUnitPriority, rowDamage, rowScatterValue, rowWeatherPlayValue, usefulWeatherOrder } from './bot-effect-value.js';
 import { armorBreakSwing, consumeBonus, delayedCardValue, futureContext, inheritancePayoff, remainingTurns, wantsToHoldInheritance } from './bot-future-value.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, availableRows, canEndTurn, canPass, playableCards, totalScore } from '../engine/match.js';
 
@@ -188,7 +188,8 @@ export function pickBotTarget(match) {
     const optionsSet = new Set(options);
     const candidates = (match.pending.cards ?? player[match.pending.pile ?? 'deck']).filter(({ id }) => optionsSet.has(id));
     const card = bestTarget(candidates, (card) => {
-      if (['created', 'hand'].includes(match.pending.pile)) return deckCardValue(match, match.pending.side, card);
+      if (match.pending.pile === 'hand') return handPlayValue(match, match.pending.side, card);
+      if (match.pending.pile === 'created') return deckCardValue(match, match.pending.side, card);
       if (match.pending.pile === 'discard') return deckCardValue(match, match.pending.side, restoreCard(card));
       if (match.pending.fullDeck) return deckCardValue(match, match.pending.side, card);
       const { definition, power } = card;

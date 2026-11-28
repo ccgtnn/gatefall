@@ -97,6 +97,7 @@ export interface EffectStep {
   power?: EffectValue;
   when?: StepCondition;
   sourceRow?: Row;
+  requiresPlayable?: boolean;
   requiresResult?: string;
   mode?: 'random';
   filter?: PileFilter | string;
