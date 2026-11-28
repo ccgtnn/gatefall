@@ -191,6 +191,17 @@ test('Plague cards use their own static and premium art on both faces', async ()
   }
 });
 
+test('Heavy Assault uses the correct premium clip on each face', async () => {
+  const { cardArt } = await import('../../docs/ui/card-art.js');
+  const { definition } = makeCard('assault');
+  for (const [fullArt, file] of [[false, 'assault-card.mp4'], [true, 'assault-preview.mp4']]) {
+    const video = cardArt(definition, 'card-art-crop', { fullArt, animated: true });
+    assert.equal(video.src, './art/' + file);
+    assert.ok(video.loop && video.muted);
+    await access(new URL('../../docs/art/' + file, import.meta.url));
+  }
+});
+
 test('filtered or moved video resumes after layout only while it is visible and attached', async () => {
   const { resumeCardVideos } = await import('../../docs/ui/card-art.js');
   const frames = [];

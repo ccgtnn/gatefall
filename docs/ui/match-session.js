@@ -183,7 +183,12 @@ export function createMatchSession({
       next.log.push(speech);
       journal.push(speech);
     }
-    void progress.recordTavernEvents(matchRewardId, before.log.length, journal);
+    const { targetAction } = turns;
+    if (!targetAction) void progress.recordTavernEvents(matchRewardId, before.log.length, journal);
+    else if (next.pending?.side !== 'human') {
+      const offset = targetAction.before.log.length;
+      void progress.recordTavernEvents(matchRewardId, offset, next.log.slice(offset));
+    }
     return speech;
   }
 

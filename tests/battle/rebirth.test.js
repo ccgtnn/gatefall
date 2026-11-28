@@ -6,7 +6,7 @@ import { FACTIONS, NEUTRAL_CARDS } from '../../docs/game/cards/cards.js';
 import { applyAction, confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
 import { unit, pick as pickTarget, play as playCard } from '../helpers/battle-helpers.js';
 
-const cards = [...FACTIONS.growth.pool, ...NEUTRAL_CARDS];
+const cards = [...FACTIONS.growth.pool, ...NEUTRAL_CARDS, ...FACTIONS.protectorate.pool];
 const card = (definitionId, id = definitionId) => createCard(id, cards.find(({ id }) => id === definitionId));
 const random = () => 0;
 const play = (match, cardId) =>
@@ -49,6 +49,21 @@ test('Synaptic Parasite triggers an allied bronze deathwish while leaving the or
   const next = pick(pending, 'first');
   assert.deepEqual(next.players.human.board.surface.map(({ id }) => id), ['first', 'second', 'xylaris-bloom']);
   assert.deepEqual(next.players.human.discard, []);
+});
+
+test('Synaptic Parasite skips an ally with only the Emperor’s Hand deathwish', () => {
+  let match = fixture('synaptic-parasite');
+  match.turn = 'bot';
+  match.players.bot.board.orbit = [card('emperors-hand')];
+  match.players.human.board.surface = [card('infantry', 'marked'), card('thorn-screecher', 'natural')];
+
+  match = applyAction(match, 'bot', { type: 'order', cardId: 'emperors-hand' });
+  match = applyAction(match, 'bot', { type: 'target', cardId: 'marked' });
+  assert.equal(findUnit(match, 'marked').card.inheritedDeathwishes[0].grantedBy, 'bot');
+  match = applyAction(match, 'bot', { type: 'play', cardId: 'bot-spare', row: 'surface', position: 0 });
+  match = applyAction(match, 'bot', { type: 'end-turn' });
+  assert.equal(match.turn, 'human');
+  assert.deepEqual(play(match, 'synaptic-parasite').pending.options, ['natural']);
 });
 
 test('immunity prevents both kinds of manual choice, while random and weakest effects can hit', () => {

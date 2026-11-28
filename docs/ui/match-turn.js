@@ -118,6 +118,8 @@ export function createMatchTurn({
     const before = match;
     const journal = next.log.slice(before.log.length);
     const speech = recordJournal(before, next, journal);
+    if (next.pending?.side !== 'human') targetAction = undefined;
+    const reportEntry = reportAction && testReport?.record(before, journal, reportAction, { deferBotFeedback: true });
     const events = journal.filter(({ type }) => type !== 'bot-thought' && type !== 'league-speech');
     const duration = respectReducedMotion(settings.motion());
     let roundTransition;
@@ -168,7 +170,7 @@ export function createMatchTurn({
       return;
     }
     match = next;
-    if (reportAction) testReport?.record(before, journal, reportAction);
+    if (reportEntry?.botMove) testReport.showBotFeedback(reportEntry);
     if (match.phase === 'finished') testReport?.finish(match);
     onMatchChanged(before, match, speech);
     render();
@@ -266,7 +268,6 @@ export function createMatchTurn({
       }
       if (session !== matchSession || match !== before) return;
     }
-    if (next.pending?.side !== 'human') targetAction = undefined;
     await updateMatch(next, { side: 'human', action });
     if (session === matchSession && match && humanCanAct()) screen.querySelector('#pass-button:enabled')?.focus({ preventScroll: true });
   }

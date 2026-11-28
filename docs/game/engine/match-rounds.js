@@ -232,12 +232,12 @@ export function progress(match, random) {
     const player = match.players[side];
     const otherSide = opponent(side);
     if (match.ending === 'effects' || match.ending === 'empty-start') {
-      if (!player.passed && player.hand.length === 0) markPassed(match, side, 'empty-hand');
       match.ending = 'advance';
       enqueueEndTurn(match, side);
       continue;
     }
     if (match.ending === 'advance') {
+      if (!player.passed && player.hand.length === 0) markPassed(match, side, 'empty-hand');
       match.ending = null;
       match.playedCard = false;
       player.turns += 1;
@@ -267,9 +267,9 @@ export function progress(match, random) {
       continue;
     }
     if (!startingTurn && player.hand.length === 0) return;
-    const reason = player.hand.length === 0 ? 'empty-hand'
-      : player.hand.every((card) => cardType(card) === 'effect') ? 'no-target' : 'full-row';
-    markPassed(match, side, reason);
+    if (player.hand.length) {
+      markPassed(match, side, player.hand.every((card) => cardType(card) === 'effect') ? 'no-target' : 'full-row');
+    }
     match.ending = 'effects';
   }
 }

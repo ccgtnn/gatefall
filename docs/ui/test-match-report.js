@@ -108,7 +108,7 @@ export function createTestMatchReport({ storage, buildVersion, now = () => new D
     persist();
   }
 
-  function record(before, journal, { side, action, description, level, trace }) {
+  function record(before, journal, { side, action, description, level, trace }, { deferBotFeedback = false } = {}) {
     if (!active) return;
     const bot = side === 'bot';
     const events = journal.filter(({ type }) => type !== 'bot-thought').map(compactEvent);
@@ -122,10 +122,11 @@ export function createTestMatchReport({ storage, buildVersion, now = () => new D
       entry.botMove = ++botMoves;
       entry.position = JSON.parse(serializeBotPosition(before, level));
       entry.trace = trace ?? null;
-      latestBot = entry;
+      if (!deferBotFeedback) latestBot = entry;
     }
     active.timeline.push(entry);
     persist();
+    return entry;
   }
 
   function finish(match, result = match.result) {
@@ -156,6 +157,7 @@ export function createTestMatchReport({ storage, buildVersion, now = () => new D
     get latestBot() { return latestBot; },
     previous: () => previous,
     start, record, finish, rate,
+    showBotFeedback: (entry) => { latestBot = entry; },
     clearLatestBot: () => { latestBot = undefined; },
     detach: () => { active = latestBot = undefined; },
   };
