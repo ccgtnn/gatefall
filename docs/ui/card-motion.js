@@ -1,5 +1,6 @@
-import { MOTION, scaleMotion } from './motion-tokens.js';
+import { MOTION, respectReducedMotion, scaleMotion } from './motion-tokens.js';
 import { element } from './dom.js';
+import { burstParticles } from './particles.js';
 import {
   VISUAL_EVENTS, animate, cardFlash, center, floatingNumber, handRects, moveNeighbors, oldHandPosition, pileAnchor, rects, takeRememberedRect, updateScores,
 } from './card-motion-core.js';
@@ -7,7 +8,8 @@ import { annihilate, fly, hop, leave, revealOpponentCard, swallow } from './card
 import { passReasonText } from './match-log.js';
 import { showPassStamp, showTurnBanner, pulsePass, pairsWithTurn } from './turn-banner.js';
 import { presentHandEvent } from './card-motion-hand.js';
-import { hit, lightning, projectile, shield, showActivation } from './card-motion-hit-effects.js';
+import { prepareFeedback, showFeedback } from './card-motion-feedback.js';
+import { boostImpact, hit, lightning, projectile, shield, showActivation } from './card-motion-hit-effects.js';
 
 const IMAGE_DECODE_TIMEOUT_MS = 300;
 const ROUND_ANIMATION_GRACE_MS = 300;
@@ -86,7 +88,8 @@ export function animateHandTurn(screen, duration) {
   });
 }
 
-export async function presentJournalEvent(screen, event, commit, render, duration, { next, previous: previousEvent } = {}) {
+export async function presentJournalEvent(screen, event, commit, render, duration, { next, previous: previousEvent, state } = {}) {
+  duration = respectReducedMotion(duration, screen.ownerDocument?.defaultView);
   if (event.type === 'turn-start') {
     const state = commit();
     // The active turn renders the shared banner when the two events are adjacent.
@@ -130,8 +133,7 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
   }
   if (event.type === 'leader-replaced' && event.identityChanged) {
     render(commit());
-    const reduced = screen.ownerDocument?.defaultView?.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if (!duration || reduced) return;
+    if (!duration) return;
     const portrait = screen.querySelector(`[data-aim-leader="${event.side}"]`);
     await animate(portrait, [
       { opacity: .4, filter: 'brightness(2.6) drop-shadow(0 0 8px #ff6424)' },
@@ -140,13 +142,22 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
     ], duration);
     return;
   }
-  if (event.type === 'row-effect' || event.type === 'inherit-deathwishes') {
+  if (event.type === 'inherit-deathwishes') {
     render(commit());
     return;
   }
-  const reduceFirestorm = event.visual === 'firestorm' &&
-    screen.ownerDocument?.defaultView?.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  if (duration === 0 || reduceFirestorm || !VISUAL_EVENTS.has(event.type)) {
+  const feedback = duration ? prepareFeedback(screen, event, state) : null;
+  if (event.type === 'row-effect' && duration) {
+    render(commit());
+    if (feedback) showFeedback(screen, event, feedback, duration);
+    return;
+  }
+  if (feedback && !['armor', 'status'].includes(event.type)) {
+    render(commit());
+    showFeedback(screen, event, feedback, duration);
+    return;
+  }
+  if (!duration || !VISUAL_EVENTS.has(event.type)) {
     commit();
     return;
   }
@@ -159,7 +170,10 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
   }
 
   if (event.type === 'armor' && event.scattered) {
-    commit();
+    if (feedback) {
+      render(commit());
+      showFeedback(screen, event, feedback, duration);
+    } else commit();
     return;
   }
   if (event.scattered && (event.type === 'damage' || event.blockedDamage ||
@@ -187,6 +201,7 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
   render(commit());
   const current = rects(screen);
   const entry = current.get(event.cardId);
+  if (feedback) showFeedback(screen, event, feedback, duration);
   const motions = moveNeighbors(previous, current, duration);
   if (previousHand) motions.push(...moveNeighbors(previousHand, handRects(screen), duration));
   motions.push(updateScores(screen, previousScores, duration * MOTION.pace.score));
@@ -203,7 +218,7 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
       for (const { id } of event.cards) motions.push(...hop(screen, current.get(id), duration));
       break;
     case 'armor':
-      motions.push(...shield(screen, entry, duration));
+      if (feedback?.kind !== 'armor-break') motions.push(...shield(screen, entry, duration));
       break;
     case 'status':
       if (event.status === 'shield') motions.push(...shield(screen, entry, duration));
@@ -216,7 +231,6 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
           { opacity: .9, transform: 'translate(-50%, -50%) scale(1)', offset: .4 },
           { opacity: 0, transform: 'translate(-50%, -50%) scale(1.12)' },
         ], duration));
-        if (event.tick && !event.blocked) motions.push(...floatingNumber(screen, entry, '−1', 'poison', duration));
       }
       break;
     case 'damage':
@@ -230,7 +244,7 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
         current.get(event.eaterId), duration));
       break;
     case 'boost':
-      motions.push(...floatingNumber(screen, entry, '+' + event.amount, 'boost', duration));
+      motions.push(...boostImpact(screen, entry, event.amount, duration));
       break;
     case 'weaken':
       motions.push(...floatingNumber(screen, entry, '−' + event.amount, 'damage', duration));
@@ -250,6 +264,47 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
       motions.push(...showActivation(screen, event, duration));
   }
   await Promise.all(motions);
+}
+
+export function animateRoundWinner(screen, winner, duration) {
+  if (!duration || !winner) return;
+  const score = screen.querySelector(`[data-score="${winner}"]`);
+  if (!score) return;
+  const time = duration * MOTION.pace.roundWinner;
+  void animate(score, [
+    { scale: '1', filter: 'brightness(1)' },
+    { scale: '1.24', filter: 'brightness(1.8) drop-shadow(0 0 8px #ffda72)', offset: .29 },
+    { scale: '1', filter: 'brightness(1)' },
+  ], time);
+  const at = center(score.getBoundingClientRect());
+  const wreath = floatNode(screen, 'motion-round-wreath', '❦', { x: at.x, y: score.getBoundingClientRect().top });
+  void animate(wreath, [
+    { transform: 'translate(-50%, -40%) scale(.7)', opacity: 0 },
+    { transform: 'translate(-50%, -93%) scale(1.18)', opacity: 1, offset: .32 },
+    { transform: 'translate(-50%, -118%) scale(1)', opacity: 0 },
+  ], time).finally(() => wreath.remove());
+}
+
+export function animateMatchResult(screen, result, duration) {
+  if (!duration || (result !== 'win' && result !== 'loss')) return;
+  const heading = screen.querySelector('.match-result-heading');
+  if (!heading) return;
+  const won = result === 'win';
+  const time = duration * (won ? MOTION.pace.matchWin : MOTION.pace.matchLoss);
+  const glow = won ? '#ffcb54' : '#a691be';
+  void animate(heading, [
+    { opacity: .25, transform: 'scale(.85)', textShadow: '0 0 0 transparent' },
+    { opacity: 1, transform: won ? 'scale(1.1)' : 'scale(1.02)', textShadow: `0 0 24px ${glow}`, offset: .3 },
+    { opacity: 1, transform: 'scale(1)', textShadow: '0 0 0 transparent' },
+  ], time);
+  const rect = heading.getBoundingClientRect();
+  const { x, y } = center(rect);
+  if (won) burstParticles(screen.ownerDocument, 'gold', x, y, rect.width, time);
+  else {
+    const shade = floatNode(screen, 'motion-match-shade', '', { x: 0, y: 0 });
+    void animate(shade, [{ opacity: .55 }, { opacity: .3, offset: .36 }, { opacity: 0 }], time)
+      .finally(() => shade.remove());
+  }
 }
 
 export function roundResultLabel({ scores, winner }) {

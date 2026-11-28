@@ -1,5 +1,7 @@
 import { pendingEffectSource } from '../game/effects/effect-queries.js';
 import { cardArt } from './card-art.js';
+import { animate, floatingCard, visibleRect } from './card-motion-core.js';
+import { MOTION } from './motion-tokens.js';
 
 const TARGET = '[data-aim-target]';
 const choiceKinds = new Set(['deck-card', 'deck-top', 'hand-bottom', 'hand-return', 'tribute']);
@@ -38,13 +40,28 @@ function center(node) {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 }
 
-export function bindTargeting(screen, cancel) {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+let nextAimMarker = 0;
+
+function aimOverlay(screen) {
+  const tip = 'aim-tip-' + nextAimMarker++;
+  const svg = (screen.ownerDocument ?? document).createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.classList.add('aim-overlay');
   svg.setAttribute('aria-hidden', 'true');
-  svg.innerHTML = '<defs><marker id="aim-tip" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="14" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto"><path d="M1 1L11 6 1 11 4 6Z" fill="var(--aim-color)"/></marker></defs><path class="aim-curve" fill="none" stroke-linecap="round" marker-end="url(#aim-tip)"/>';
+  svg.innerHTML = `<defs><marker id="${tip}" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="14" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto"><path d="M1 1L11 6 1 11 4 6Z" fill="var(--aim-color)"/></marker></defs><path class="aim-curve" fill="none" stroke-linecap="round" marker-end="url(#${tip})"/>`;
   screen.after(svg);
-  const curve = svg.querySelector('.aim-curve');
+  return { svg, curve: svg.querySelector('.aim-curve') };
+}
+
+function drawAim(svg, curve, origin, point) {
+  const { curve: path, length } = aimGeometry(origin, point);
+  if (length <= 8) return false;
+  curve.setAttribute('d', path);
+  svg.classList.add('is-visible');
+  return true;
+}
+
+export function bindTargeting(screen, cancel) {
+  const { svg, curve } = aimOverlay(screen);
   let source;
   let pointer;
   let snapped;
@@ -60,11 +77,7 @@ export function bindTargeting(screen, cancel) {
     clear();
     const origin = typeof source === 'function' ? source() : source;
     if (!origin || !point) return;
-    const { curve: path, length } = aimGeometry(origin, point);
-    if (length > 8) {
-      curve.setAttribute('d', path);
-      svg.classList.add('is-visible');
-    }
+    drawAim(svg, curve, origin, point);
     snapped = target;
     snapped?.classList.add('aim-snapped');
   }
@@ -169,4 +182,49 @@ export function updatePendingAim(screen, aim, match, targetAction) {
     }
   }
   aim.update(pending ? aimAnchor(source) ?? targetAction?.origin : undefined, aimTone(pending?.kind, pending?.selectionSide));
+}
+
+export function botAimTime(pending, duration) {
+  return pending?.side === 'bot' && !isChoicePending(pending) && pending.kind !== 'deck-placement'
+    ? duration * MOTION.pace.botAim : 0;
+}
+
+export async function showBotAim(screen, match, action, duration) {
+  const { pending } = match;
+  if (!duration || action?.type !== 'target' || !botAimTime(pending, duration)) return;
+  const targetId = CSS.escape(action.cardId);
+  const target = screen.querySelector(`[data-board-card="${targetId}"] .unit-face`) ??
+    screen.querySelector(`[data-side="${pending.selectionSide ?? 'bot'}"] [data-row="${targetId}"]`);
+  if (!visibleRect(target)) return;
+
+  const { sourceId, card } = pendingEffectSource(match);
+  const field = screen.querySelector('.side[data-side="bot"]');
+  const source = sourceId
+    ? screen.querySelector(`[data-board-card="${CSS.escape(sourceId)}"] .unit-face`)
+    : screen.querySelector('[data-aim-leader="bot"]');
+  let origin = visibleRect(source) ? center(source) : null;
+  let preview;
+  if (!origin && sourceId && visibleRect(field)) {
+    const played = match.log.findLast((event) => event.type === 'play' && event.cardId === sourceId);
+    const definition = card?.definition ?? played?.card?.definition;
+    if (definition) {
+      const side = field.getBoundingClientRect();
+      const spot = { x: side.right - 8, y: side.top + side.height / 2 };
+      preview = floatingCard(screen, { card: { definition }, name: definition.name, side: 'bot' },
+        'motion-opponent-reveal', spot, true);
+      origin = center(preview);
+    }
+  }
+  if (!origin) return;
+  const { svg, curve } = aimOverlay(screen);
+  svg.style.setProperty('--aim-color', COLORS[aimTone(pending.kind, 'bot')]);
+  try {
+    if (drawAim(svg, curve, origin, center(target))) {
+      void animate(svg, [{ opacity: .3 }, { opacity: 1, offset: .32 }, { opacity: .84 }], duration);
+      await new Promise((resolve) => setTimeout(resolve, duration));
+    }
+  } finally {
+    preview?.remove();
+    svg.remove();
+  }
 }

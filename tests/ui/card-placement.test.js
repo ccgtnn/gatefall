@@ -23,7 +23,7 @@ function placementFixture(pointerType, { isEffect = false, full = false, enemy =
   const ghost = {
     classList: { add() {} }, setAttribute() {}, style: {}, remove() { this.removed = true; },
   };
-  const marker = { ...ghost, classList: { toggle() {} } };
+  const marker = { ...ghost, style: {}, classList: { toggle() {} } };
   let captured = null;
   const card = {
     dataset: { cardId: 'orbit-card', type: isEffect ? 'effect' : 'unit', ...(enemy && { enemySide: 'true' }), effectRows },
@@ -72,14 +72,17 @@ function placementFixture(pointerType, { isEffect = false, full = false, enemy =
     });
   }
 
-  return { send, marker, played, classes, keyboard };
+  return { send, ghost, marker, played, classes, keyboard };
 }
 
 for (const pointer of ['mouse', 'touch']) {
   test(`${pointer} drag shows the middle target and plays into that position on release`, () => {
-    const { send, marker, played } = placementFixture(pointer);
+    const { send, ghost, marker, played } = placementFixture(pointer);
     send('pointerdown', 105, 90);
     send('pointermove', 106, 40);
+    assert.equal(ghost.style.transform, 'translate3d(106px, 40px, 0) translate(-50%, -50%)');
+    assert.equal(ghost.style.left, undefined);
+    assert.equal(ghost.style.top, undefined);
     assert.equal(marker.hidden, false);
     assert.equal(marker.style.left, '87px');
     assert.deepEqual(played, []);

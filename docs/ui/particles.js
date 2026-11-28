@@ -3,6 +3,7 @@ const presets = {
   dust: { count: 12, color: '#d4bea0', speed: .55, gravity: .2 },
   starlight: { count: 28, color: '#e7f6ff', speed: 1.36, gravity: 0 },
   sparks: { count: 19, color: '#ffa044', speed: 1.2, gravity: .75 },
+  gold: { count: 24, color: '#ffdc72', speed: 1.3, gravity: .55 },
   slime: { count: 15, color: '#88e342', speed: .37, gravity: 1.25 },
   shards: { count: 15, color: '#9adfff', speed: 1.15, gravity: .6 },
   drops: { count: 11, color: '#a9ff66', speed: .85, gravity: 1.15 },

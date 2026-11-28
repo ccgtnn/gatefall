@@ -1,10 +1,11 @@
-import { MOTION } from './motion-tokens.js';
+import { impactTier, MOTION } from './motion-tokens.js';
 import { setCardRarity } from './dom.js';
 import { cardArt } from './card-art.js';
 import { NEUTRAL } from '../game/shared/card-metadata.js';
 
 export const VISUAL_EVENTS = new Set([
   'play', 'damage', 'boost', 'weaken', 'armor', 'status', 'cleanse', 'death', 'destroy', 'discard', 'banish', 'spawn', 'deathwish', 'consume', 'consume-group', 'leader', 'order', 'aura-power', 'transform',
+  'heal', 'armor-break', 'capture', 'target-marked', 'row-effect', 'power-loss', 'growth', 'counter', 'order-ready',
 ]);
 
 export function handRects(screen) {
@@ -176,6 +177,7 @@ export function floatingNumber(screen, entry, value, kind, duration) {
   const anchor = center(entry.rect);
   anchor.y -= entry.rect.height / 4;
   const number = floatNode(screen, 'motion-number motion-' + kind, value, anchor);
+  number.dataset.tier = impactTier(Number(value.replace('−', '-')));
   return [animate(number, [
     { transform: 'translate(-50%, -45%) scale(.86)', opacity: .2 },
     { transform: 'translate(-50%, -92%) scale(1.08)', opacity: 1, offset: .34 },
