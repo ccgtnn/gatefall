@@ -107,7 +107,9 @@ test('a global premium setting clears exceptions and updates existing copies', a
 
     setPremiumArtEnabled(true);
     assert.equal(premiumArtEnabled(), true);
-    assert.equal(byClass(falura, 'card-art-crop').tag, 'video');
+    assert.equal(byClass(falura, 'card-art-video').src, './art/tiraelis-card.mp4');
+    showCard(makeCard('falura'));
+    assert.equal(byClass(preview, 'card-art-video').src, './art/tiraelis-preview.mp4');
     assert.equal(usesPremiumArt('bastion'), false);
     assert.equal(usesPremiumArt('ulmarin-awakening'), true);
     selectPremiumArt('world-gates', false);

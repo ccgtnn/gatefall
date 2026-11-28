@@ -187,14 +187,17 @@ function replaceLeader(match, job, step) {
   const art = step.portrait ?? step.art;
   const identityChanged = Boolean(step.name || art);
   const previous = player.leader;
-  const leader = { ...(previous ?? { name: 'Файлура' }), ability, text,
+  const leader = { ...(previous ?? { name: 'Лидер' }), ability, text,
     order: { ...order, sourceDefinitionId: job.sourceDefinitionId } };
   if (identityChanged) {
     leader.id = job.sourceDefinitionId ?? previous?.id;
     leader.name = step.name ?? leader.name;
     leader.charges = 0;
-    leader.readyAtTurn = player.turns + 1;
-    delete leader.lastUsedTurn;
+    // A quickened Order keeps the existing turn's usage and can be ready immediately.
+    if (!order.quickenedBy) {
+      leader.readyAtTurn = player.turns + 1;
+      delete leader.lastUsedTurn;
+    }
     delete leader.aiHints;
     delete leader.keywords;
     if (art) {

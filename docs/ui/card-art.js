@@ -10,7 +10,7 @@ const clips = new Map([
   ['brander', { small: 'brander-card.mp4', large: 'brander-preview.mp4' }],
   ['synaptic-parasite', { small: 'synaptic-parasite-hand.mp4', large: 'synaptic-parasite-preview.mp4' }],
   ['carrion-devourer', { small: 'carrion-devourer-card.mp4', large: 'carrion-devourer-preview.mp4' }],
-  ['falura', { small: 'falura-card.mp4', large: 'falura-preview.mp4' }],
+  ['falura', { small: 'tiraelis-card.mp4', large: 'tiraelis-preview.mp4' }],
   ['world-gates', { small: 'world-gates-card.mp4', large: 'world-gates-preview.mp4' }],
   ['great-sacrifice', { small: 'great-sacrifice-card.mp4', large: 'great-sacrifice-preview.mp4' }],
   ['abyss-shepherd', { small: 'abyss-shepherd-card.mp4', large: 'abyss-shepherd-preview.mp4' }],

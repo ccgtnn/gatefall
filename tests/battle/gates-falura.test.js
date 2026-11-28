@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createCard, damage, findUnit, removeUnit, statusCount } from '../../docs/game/engine/board.js';
+import { createCard, damage, findUnit, statusCount } from '../../docs/game/engine/board.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
 import { NEUTRAL_CARDS, SHADOW } from '../../docs/game/cards/cards.js';
 import { canUseLeader, leaderCooldown } from '../../docs/game/effects/effects.js';
 import { applyAction, canPlayCard, confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
+import { eventText } from '../../docs/ui/match-log.js';
 import { applyJournalEvent, createPlaybackState } from '../../docs/ui/turn-playback.js';
 import { unit as makeUnit } from '../helpers/battle-helpers.js';
 
@@ -108,7 +109,7 @@ test('Forgotten Gates skips each summon when the row is full or the deck has no 
   assert.deepEqual(match.players.human.board.orbit.map(({ id }) => id), ['forgotten-gates']);
 });
 
-test('World Gates offers playable units, artifacts and effects and resolves a chosen effect without placement', () => {
+test('World Gates offers playable units and effects and resolves a chosen effect without placement', () => {
   let match = setup('world-gates');
   match.players.human.deck = [unit('reserve-unit'), card('falura'), card('emp-grenade')];
   match = move(match, 'play', 'world-gates');
@@ -123,7 +124,7 @@ test('World Gates offers playable units, artifacts and effects and resolves a ch
     [['world-gates', undefined], ['emp-grenade', 'deck']]);
 });
 
-test('World Gates can play and deploy an artifact chosen by the hard bot', () => {
+test('World Gates casts Tiraelis chosen by the hard bot without a placement step', () => {
   let match = setup('world-gates', 'bot');
   match.players.human.board.orbit[0].power = 5;
   match.players.bot.deck = [card('falura')];
@@ -131,11 +132,10 @@ test('World Gates can play and deploy an artifact chosen by the hard bot', () =>
   const choice = chooseBotTurn(match, 6, { random, rolloutSamples: 1 });
   assert.deepEqual(choice, { type: 'target', cardId: 'falura' });
   match = applyAction(match, 'bot', choice, { random });
-  const placement = chooseBotTurn(match, 6, { random, rolloutSamples: 1 });
-  assert.equal(placement.type, 'place');
-  match = applyAction(match, 'bot', placement, { random });
   const bot = match.players.bot;
-  assert.equal(bot.board[placement.row].length, 3);
+  assert.equal(match.pending, null);
+  assert.deepEqual(bot.board.surface.map(({ definition }) => definition.id), ['shadow', 'shadow']);
+  assert.equal(findUnit(match, 'falura'), undefined);
   assert.equal(bot.leader.order.sourceDefinitionId, 'falura');
   assert.deepEqual(chooseBotTurn(match, 7, { random, rolloutSamples: 1 }), { type: 'leader' });
 });
@@ -149,34 +149,42 @@ test('World Gates allows effects with a full board, rejects illegal targets and 
   human.deck = [unit('blocked'), card('falura'), card('gravity-pulse')];
   assert.equal(canPlayCard(match, 'human', gates), true);
   match = move(match, 'play', 'world-gates');
-  assert.deepEqual(match.pending.options, ['gravity-pulse']);
+  assert.deepEqual(match.pending.options, ['falura', 'gravity-pulse']);
   assert.equal(move(match, 'target', 'blocked'), match);
+  const replaced = move(match, 'target', 'falura');
+  assert.equal(replaced.players.human.leader.name, 'Тираэлис');
+  assert.equal(replaced.players.human.board.surface.length, 9);
+  assert.equal(replaced.players.human.board.orbit.length, 9);
   match = move(match, 'target', 'gravity-pulse');
   assert.equal(match.pending.kind, 'enemy-row');
   match = move(match, 'target', 'orbit');
   assert.equal(match.log.find(({ type, cardId }) => type === 'damage' && cardId === 'enemy').power, 11);
 });
 
-test('Falura replaces a spent leader permanently, spawns Doomed Shadows and only allows one Order each turn', () => {
+test('Tiraelis changes the leader portrait, spawns two Doomed Shadows and only allows one Order each turn', () => {
   let match = setup('falura');
   const before = match;
-  const play = move(match, 'play', 'falura');
+  const play = applyAction(match, 'human', { type: 'play', cardId: 'falura' }, { random });
+  assert.equal(findUnit(play, 'falura'), undefined);
+  assert.equal(play.players.human.discard.at(-1).definition.id, 'falura');
   const playback = createPlaybackState(before);
   for (const event of play.log.slice(before.log.length)) applyJournalEvent(playback, event);
   assert.deepEqual(playback.players.human.leader.order, play.players.human.leader.order);
   assert.equal(before.players.human.leader.order.usesCharges, true);
-  for (const prop of ['name', 'art', 'charges']) {
-    assert.equal(play.players.human.leader[prop], before.players.human.leader[prop]);
-  }
-  const shadows = play.players.human.board.orbit.filter(({ definition }) => definition.id === SHADOW.id);
+  const { leader } = play.players.human;
+  assert.deepEqual([leader.id, leader.name, leader.art, leader.order.cooldown],
+    ['falura', 'Тираэлис', 'tiraelis-portrait.webp', 1]);
+  assert.deepEqual(playback.players.human.leader, leader);
+  const replacement = play.log.find(({ type }) => type === 'leader-replaced');
+  assert.equal(replacement.identityChanged, true);
+  assert.match(eventText(replacement), /Тираэлис занимает место лидера/);
+  const shadows = play.players.human.board.surface;
   assert.equal(shadows.length, 2);
-  assert.ok(shadows.every((entry) => entry.power === 2 && statusCount(entry, 'doomed')));
+  assert.ok(shadows.every((entry) => entry.definition.id === SHADOW.id && entry.power === 2 && statusCount(entry, 'doomed')));
   assert.equal(canUseLeader(play, 'human'), true);
   match = move(move(play, 'leader'), 'target', 'enemy');
   assert.equal(findUnit(match, 'enemy').card.power, 10);
   assert.equal(match.players.human.turns, play.players.human.turns + 1);
-  assert.equal(canUseLeader(match, 'human'), true);
-  removeUnit(match, findUnit(match, 'falura'), 'destroy');
   assert.equal(canUseLeader(match, 'human'), true);
   match = move(move(match, 'leader'), 'target', 'enemy');
   assert.equal(findUnit(match, 'enemy').card.power, 8);
@@ -193,10 +201,26 @@ test('Falura replaces a spent leader permanently, spawns Doomed Shadows and only
   assert.equal(confirmMulligan(next, [], { random }).players.human.leader.order.sourceDefinitionId, 'falura');
 });
 
-test('Falura fills space in the other row when the row of deployment is almost full', () => {
+test('Tiraelis fills the last spot in Surface first and sends the second Shadow to Orbit', () => {
   const match = setup('falura');
-  match.players.human.board.orbit = Array.from({ length: 8 }, (_, i) => unit('orbit' + i));
-  const next = move(match, 'play', 'falura', 'orbit', 8);
-  assert.equal(next.players.human.board.orbit.length, 9);
-  assert.deepEqual(next.players.human.board.surface.map(({ definition }) => definition.id), ['shadow', 'shadow']);
+  match.players.human.board.surface = Array.from({ length: 8 }, (_, i) => unit('surface' + i));
+  const next = applyAction(match, 'human', { type: 'play', cardId: 'falura' }, { random });
+  assert.equal(next.players.human.board.surface.length, 9);
+  assert.deepEqual(next.players.human.board.orbit.map(({ definition }) => definition.id), ['shadow']);
+  assert.equal(next.players.human.board.surface.at(-1).definition.id, 'shadow');
+});
+
+test('replacing a leader already used this turn does not grant a second Order', () => {
+  const match = setup('falura');
+  match.players.human.leader.lastUsedTurn = match.players.human.turns;
+  match.players.bot.passed = false;
+  const next = applyAction(match, 'human', { type: 'play', cardId: 'falura' }, { random });
+  const playback = createPlaybackState(match);
+  for (const event of next.log.slice(match.log.length)) {
+    if (event.type === 'turn-start') break;
+    applyJournalEvent(playback, event);
+  }
+  assert.equal(playback.players.human.leader.lastUsedTurn, match.players.human.turns);
+  assert.equal(leaderCooldown(playback.players.human), 1);
+  assert.equal(canUseLeader(playback, 'human'), false);
 });
