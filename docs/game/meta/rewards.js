@@ -13,7 +13,7 @@ import { NEUTRAL } from '../shared/card-metadata.js';
 import { REWARD_STORAGE_KEY } from '../shared/storage-keys.js';
 import { inspectDeck } from '../cards/decks.js';
 import { collectionInventory, createCollectionActions, readCollection } from './collection-economy.js';
-import { addRewardBookBalances, findRewardNode, readRewardBookProgress, rewardForNode, rewardState } from './reward-book.js';
+import { addRewardBookBalances, findRewardNode, readRewardBookProgress, REWARD_MATERIALS, rewardForNode, rewardState } from './reward-book.js';
 
 export { BOOSTER_FACTIONS, BOOSTER_PRICE, BOOSTER_RARITY_WEIGHTS, BOOSTER_SIZE, craftPrice, dismantleValue, drawBoosterCards }
   from './collection-economy.js';
@@ -224,9 +224,10 @@ export function createRewardProgress(storage, locks, { random = Math.random, now
     unlock(id) {
       const node = findRewardNode(id);
       if (!node) return Promise.resolve('unknown');
-      return transact(({ progress }, _previousAt, _time, enqueueReward) => {
+      return transact(({ progress, base }, _previousAt, _time, enqueueReward) => {
         const state = rewardState(node, progress);
         if (state !== 'available') return state;
+        if (REWARD_MATERIALS.includes(node.kind) && !creditMaterials(base.materials, { [node.kind]: node.value })) return 'unavailable';
         progress.unlocked.add(id);
         enqueueReward({ title: node.label, source: 'Книга наград', reward: rewardForNode(node) });
         return 'opened';

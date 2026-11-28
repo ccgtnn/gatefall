@@ -184,3 +184,17 @@ test('the tavern badge counts saved rewards and completed unclaimed current ques
   assert.equal(tavernRewardCount(tavern), 2);
   assert.equal(tavernRewardCount(null), 0);
 });
+
+test('Choir and Captains have card and victory quests that track like the other factions', async () => {
+  const { advanceTavern, trackTavernMatch, TAVERN_QUEST_BY_ID } = await import('../../docs/game/meta/tavern.js');
+  for (const faction of ['choir', 'captains']) {
+    assert.equal(TAVERN_QUEST_BY_ID.get('cards-' + faction).goal, 10);
+    assert.equal(TAVERN_QUEST_BY_ID.get('win-' + faction).goal, 1);
+    const card = { definition: { faction } };
+    assert.deepEqual(tavernEventAmounts([{ type: 'play', side: 'human', card }]), { ['cards-' + faction]: 1 });
+    const state = { slots: [{ id: 'win-' + faction, progress: 0 }, { id: 'cards-' + faction, progress: 9 }], finished: [] };
+    assert.equal(trackTavernMatch(state, 'match-1', 'win', faction, false), true);
+    advanceTavern(state, { ['cards-' + faction]: 1 });
+    assert.deepEqual(state.slots.map(({ progress }) => progress), [1, 10]);
+  }
+});

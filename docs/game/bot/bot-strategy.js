@@ -97,8 +97,21 @@ function plays(state, side) {
     options.flatMap((group) => group[index] ? [group[index]] : [])).flat();
 }
 
+// Opening bonuses (First Signal) wait until the opponent has passed or the bot is about to pass:
+// boosting early only shows the opponent which unit to remove.
+export function holdsStratagem(state, side, card) {
+  return Boolean(card.definition.stratagem) && !state.players[side === 'bot' ? 'human' : 'bot'].passed;
+}
+
+export function stratagemBeforePass(state, side, action) {
+  if (action?.type !== 'pass' && !(action?.type === 'end-turn' && !state.playedCard)) return null;
+  const signal = availableOrders(state, side).find(({ card }) => card.definition.stratagem);
+  return signal ? { type: 'order', cardId: signal.card.id } : null;
+}
+
 function abilities(state, side) {
-  const actions = availableOrders(state, side).filter((unit) => usefulWeatherOrder(state, side, unit)).map(({ card }) => ({ type: 'order', cardId: card.id }));
+  const actions = availableOrders(state, side).filter((unit) => usefulWeatherOrder(state, side, unit) &&
+    !holdsStratagem(state, side, unit.card)).map(({ card }) => ({ type: 'order', cardId: card.id }));
   actions.push(...availableFees(state, side).map(({ card }) => ({ type: 'fee', cardId: card.id })));
   if (canUseBotLeader(state, side)) actions.push({ type: 'leader' });
   return actions;

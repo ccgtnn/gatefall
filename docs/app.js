@@ -62,7 +62,10 @@ const testReport = createTestMatchReport({ storage: localStorage, buildVersion: 
 const testFeedback = createTestMatchFeedback(testReport);
 const deckStore = createDeckStorage(storage);
 const framePreferences = createFramePreferences(storage, document.documentElement);
-const battlefieldPreferences = createBattlefieldPreferences(storage, document.documentElement);
+// Reward Book fields: before `progress` exists the stored choice falls back to standard; refreshed below.
+const battlefieldPreferences = createBattlefieldPreferences(storage, document.documentElement, (nodeId) => {
+  try { return progress.get().unlocked.has(nodeId); } catch { return false; }
+});
 const stats = createFactionStats(Object.keys(FACTIONS), storage);
 const botDifficulty = createBotDifficulty(storage);
 const settings = createSettings(app, (surrender) => session.leave(surrender), async () => {
@@ -81,6 +84,7 @@ turns = createMatchTurn({
   onMatchChanged: (...args) => session.onMatchChanged(...args),
 });
 const progress = createRewardProgress(storage, navigator.locks, { enqueueReward });
+battlefieldPreferences.refresh();
 const menu = createMatchMenu(() => turns.match, () => settings.showBotThoughts(), testFeedback);
 const { drawer } = menu;
 const session = createMatchSession({

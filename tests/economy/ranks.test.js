@@ -30,16 +30,19 @@ function setup() {
 }
 
 test('all 26 ranks follow the approved thresholds and reward totals', () => {
-  assert.equal(MONTHLY_RANKS.length, 26);
+  assert.equal(MONTHLY_RANKS.length, 51);
   assert.deepEqual([10, 15, 20, 25].map((rank) => MONTHLY_RANKS[rank].rounds), [10, 25, 55, 105]);
-  assert.deepEqual(MONTHLY_RANKS.filter((rank) => rank.keys === 5).map(({ rank }) => rank), [5, 10, 15, 20, 25]);
+  assert.deepEqual(MONTHLY_RANKS.filter((rank) => rank.keys >= 5).map(({ rank }) => rank), [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);
   assert.equal(MONTHLY_RANKS[1].steel, 2);
   assert.equal(MONTHLY_RANKS[9].energyCells, 0);
   assert.equal(MONTHLY_RANKS[10].energyCells, 2);
   assert.deepEqual(MONTHLY_RANKS[25], { rank: 25, rounds: 105, keys: 5, steel: 100, energyCells: 50, gateShards: 5 });
   assert.deepEqual(rankRewards(0, 105), { keys: 61, steel: 975, energyCells: 348, gateShards: 11 });
   assert.equal(rankStanding(104).rank, 24);
-  assert.equal(rankStanding(200).rank, 25);
+  assert.equal(rankStanding(200).rank, 32);
+  assert.equal(rankStanding(10000).rank, 50);
+  assert.deepEqual(MONTHLY_RANKS[50], { rank: 50, rounds: 405, keys: 6, steel: 275, energyCells: 175, gateShards: 12 });
+  assert.ok(MONTHLY_RANKS.every((entry, rank) => !rank || entry.rounds > MONTHLY_RANKS[rank - 1].rounds));
   assert.deepEqual(rankRewards(105, 110), { keys: 0, steel: 0, energyCells: 0, gateShards: 0 });
 });
 

@@ -66,3 +66,22 @@ test('the battlefield choice persists independently of the card frame', async ()
   assert.equal(root.dataset.battlefieldChoice, 'standard');
 });
 
+
+test('Reward Book fields are locked until their node is bought and every book field is listed once', async () => {
+  const { createBattlefieldPreferences } = await import('../../docs/ui/decorations.js');
+  const { REWARD_SECTIONS } = await import('../../docs/game/meta/reward-book.js');
+  const values = new Map();
+  const storage = { getItem: (key) => values.get(key), setItem: (key, value) => values.set(key, value) };
+  const bought = new Set();
+  const battlefield = createBattlefieldPreferences(storage, { dataset: {} }, (id) => bought.has(id));
+  const book = battlefield.choices().filter(({ reward }) => reward);
+  const fields = REWARD_SECTIONS.flatMap(({ chapters }) => chapters.flatMap(({ nodes }) => nodes)).filter(({ kind }) => kind === 'battlefield');
+  assert.deepEqual(book.map(({ reward }) => reward), fields.map(({ id }) => id));
+  assert.ok(book.every(({ locked }) => locked));
+  const [first] = book;
+  assert.equal(battlefield.select(first.id), false);
+  bought.add(first.reward);
+  assert.equal(battlefield.select(first.id), true);
+  assert.equal(createBattlefieldPreferences(storage, { dataset: {} }, (id) => bought.has(id)).current(), first.id);
+  assert.equal(createBattlefieldPreferences(storage, { dataset: {} }).current(), 'standard');
+});

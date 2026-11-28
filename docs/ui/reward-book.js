@@ -2,7 +2,7 @@ import { button, createBusyGuard, element } from './dom.js';
 import { REWARD_SECTIONS, rewardState } from '../game/meta/reward-book.js';
 import { createRewardMap } from './reward-book-map.js';
 import { resourceIcon } from './resource-icon.js';
-import { dialogClose } from './resources.js';
+import { dialogClose, resourceGlyph } from './resources.js';
 const rewardKinds = {
   gold: ['Золото', 'Для покупки бустеров.'],
   'gold-stack': ['Большой запас золота', 'Для покупки бустеров.'],
@@ -10,6 +10,9 @@ const rewardKinds = {
   booster: ['Бустер', 'Набор карт Gatefall.'],
   'card-back': ['Рубашка карт', 'Косметическая награда.'],
   battlefield: ['Фон игрового поля', 'Косметическая награда.'],
+  steel: ['Сталь', 'Для построек на базе.'],
+  energyCells: ['Энергоячейки', 'Для построек на базе.'],
+  gateShards: ['Осколки Врат', 'Редкий ресурс базы.'],
 };
 const stateLabels = {
   available: 'Доступно', unlocked: 'Открыто', locked: 'Закрыто', unaffordable: 'Не хватает ключей',
@@ -18,6 +21,7 @@ const stateLabels = {
 function rewardNotice(node) {
   const amount = {
     gold: 'золота', 'gold-stack': 'золота', essence: 'эссенции', booster: 'буст.',
+    steel: 'стали', energyCells: 'энергоячеек', gateShards: 'осколков Врат',
   }[node.kind];
   const reward = amount ? `+${node.value} ${amount}` : node.label;
   return node.keyReward ? `${reward} · +${node.keyReward} ключей` : reward;
@@ -145,7 +149,7 @@ export function mountRewardBook(progress, { dialog: book, shell }) {
     const availability = rewardState(selected, state);
     const [kindLabel, descriptionText] = rewardKinds[selected.kind];
     panel.dataset.kind = selected.kind;
-    emblem.replaceChildren(resourceIcon(selected.kind));
+    emblem.replaceChildren(resourceGlyph(selected.kind) ?? resourceIcon(selected.kind));
     kind.textContent = selected.finale ? 'Главная награда · ' + kindLabel : kindLabel;
     label.textContent = selected.label;
     value.textContent = typeof selected.value === 'string' ? '' : '×' + selected.value;

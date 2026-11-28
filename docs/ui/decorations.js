@@ -1,6 +1,7 @@
 import { on } from './app-events.js';
 import { assetUrl } from './asset-url.js';
 import { FACTIONS } from '../game/cards/cards.js';
+import { REWARD_SECTIONS } from '../game/meta/reward-book.js';
 import { createCard } from '../game/engine/board.js';
 import { decorateCard } from './cards.js';
 import { button, element } from './dom.js';
@@ -22,20 +23,27 @@ const battlefields = [
   { id: 'bridge', name: 'Мостик флагмана', art: 'battlefield-bridge.webp' },
   { id: 'new-year', name: 'Новогодний стол', art: 'battlefield-new-year.webp' },
   { id: 'heart-of-growth', name: 'Сердце Поросли', art: 'battlefield-heart-of-growth.webp' },
+  // Fields from the Reward Book open after purchase. Until their art is drawn they show the standard nebula.
+  ...REWARD_SECTIONS.flatMap(({ chapters }) => chapters.flatMap(({ nodes }) => nodes))
+    .filter(({ kind }) => kind === 'battlefield')
+    .map(({ id, label }) => ({ id: 'book-' + id.replace(':', '-'), name: label, art: 'home-nebula.webp', reward: id })),
 ];
 
 export function createFramePreferences(storage, root) {
   return createChoicePreferences(storage, root, FRAME_STORAGE_KEY, 'cardFrameChoice', frames);
 }
 
-export function createBattlefieldPreferences(storage, root) {
-  return createChoicePreferences(storage, root, BATTLEFIELD_STORAGE_KEY, 'battlefieldChoice', battlefields);
+/** @param {(nodeId: string) => boolean} [rewardUnlocked] */
+export function createBattlefieldPreferences(storage, root, rewardUnlocked = () => false) {
+  return createChoicePreferences(storage, root, BATTLEFIELD_STORAGE_KEY, 'battlefieldChoice', () => battlefields.map((item) =>
+    item.reward ? { ...item, locked: !rewardUnlocked(item.reward) } : item));
 }
 
-function createChoicePreferences(storage, root, key, attribute, choices) {
+function createChoicePreferences(storage, root, key, attribute, source) {
+  const list = () => typeof source === 'function' ? source() : source;
   let current;
   function apply(id) {
-    current = choices.some((choice) => choice.id === id && !choice.locked) ? id : 'standard';
+    current = list().some((choice) => choice.id === id && !choice.locked) ? id : 'standard';
     root.dataset[attribute] = current;
   }
   function refresh() {
@@ -45,9 +53,10 @@ function createChoicePreferences(storage, root, key, attribute, choices) {
   refresh();
   return {
     current: () => current,
+    choices: list,
     refresh,
     select(id) {
-      if (!choices.some((choice) => choice.id === id && !choice.locked)) return false;
+      if (!list().some((choice) => choice.id === id && !choice.locked)) return false;
       apply(id);
       try {
         if (!storage) return false;
@@ -59,7 +68,7 @@ function createChoicePreferences(storage, root, key, attribute, choices) {
 }
 
 export function decorationsScreen(phase, framesPreference, battlefieldPreference, back, signal,
-  { frameChoices = frames, battlefieldChoices = battlefields } = {}) {
+  { frameChoices = frames, battlefieldChoices = battlefieldPreference.choices?.() ?? battlefields } = {}) {
   phase.textContent = '';
   const panel = element('section', 'decorations-panel');
   const heading = element('h2', null, 'Украшения');
