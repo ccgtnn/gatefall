@@ -169,6 +169,16 @@ export function createFieldChoices({ playHuman, canCancel = () => false, cancelT
     }
     if (confirmTwice) refreshPicked();
     layout.append(choices);
+    if (many) {
+      // Phone strip: explicit arrows, because touch browsers hide the scrollbar of a horizontal list.
+      for (const [dir, symbol, label] of [[-1, '‹', 'Листать влево'], [1, '›', 'Листать вправо']]) {
+        const arrow = button(symbol, () => choices.scrollBy?.({ left: dir * Math.max(120, (choices.clientWidth || 0) * .8), behavior: 'smooth' }),
+          'button choice-scroll');
+        arrow.dataset.dir = String(dir);
+        arrow.setAttribute('aria-label', label);
+        layout.append(arrow);
+      }
+    }
     if (detail) layout.append(detail);
     panel.append(layout);
     if (entering) setFanOrigin(overlay, choices);
