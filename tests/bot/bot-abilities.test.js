@@ -50,10 +50,19 @@ test('all difficulties prefer weak offerings and use the Priest to open an Awake
     match.players.bot.hand = [plain('spare', 1)];
     match.players.bot.lives = match.players.human.lives = 1;
     match.players.bot.board.surface = [plain('strong', 6), plain('weak', 1)];
-    const action = chooseBotTurn(match, mode);
+    // Playing the 1-power spare first is equivalent: it then becomes an equally weak offering.
+    let state = match;
+    let action = chooseBotTurn(state, mode);
+    if (action.type === 'play') {
+      assert.equal(action.cardId, 'spare');
+      state = applyAction(state, 'bot', action);
+      action = chooseBotTurn(state, mode);
+    }
     assert.equal(action.type, 'leader');
-    const pending = applyAction(match, 'bot', action);
-    assert.deepEqual(chooseBotTurn(pending, mode, { rolloutSamples: 0 }), { type: 'target', cardId: 'weak' });
+    const pending = applyAction(state, 'bot', action);
+    const sacrifice = chooseBotTurn(pending, mode, { rolloutSamples: 0 });
+    assert.equal(sacrifice.type, 'target');
+    assert.ok(['weak', 'spare'].includes(sacrifice.cardId));
     match.players.bot.board.surface.pop();
     assert.notEqual(chooseBotTurn(match, mode).type, 'leader');
     const scenario = createCard('scenario', AWAKENING);

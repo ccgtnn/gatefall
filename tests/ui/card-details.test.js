@@ -54,11 +54,12 @@ test('card details start at the top and focus the title without scrolling the pa
   assert.equal(preview.scrollTop, 0);
 });
 
-test('Awakening shows its Psionics tag, full art and live scenario counter', () => {
+test('Awakening has no Psionics tag, shows full art and live scenario counter', () => {
   const card = createCard(AWAKENING.id, AWAKENING);
   card.playedEffects = 6;
   showCard(card);
-  assert.equal(byClass(preview, 'card-category').textContent, 'Псионика');
+  assert.ok(tree(preview).filter(({ className }) => String(className ?? '').includes('card-category'))
+    .every(({ textContent }) => textContent !== 'Псионика'));
   assert.equal(byClass(preview, 'scenario-play-count').textContent, '6/7');
   assert.match(byClass(preview, 'preview-details').textContent, /Сценарий.*Безмолвный хор/);
   assert.equal(byClass(preview, 'card-art-crop').src, './art/' + AWAKENING.art);

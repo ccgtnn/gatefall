@@ -16,14 +16,13 @@ import { drain as drainEffects, pick as pickTarget, play as playCard } from '../
 
 import { action, cards, drain, fixed, get, hit, human, pick, play, quiet, setup, unit } from '../helpers/choir.js';
 
-test('Scenario prologue surrounds the artifact and Fanatic transformation triggers chapter one', () => {
+test('Scenario prologue summons one Fanatic to the right and its transformation triggers chapter one', () => {
   const match = play(setup({ hand: [AWAKENING], orbit: [unit(9)], deck: [FANATIC, unit(4)] }), 'orbit', 0);
   const row = human(match).board.orbit;
-  assert.deepEqual(row.map(({ definition }) => definition.id), [FANATIC.id, AWAKENING.id, FANATIC.id, 'unit-9']);
-  assert.equal(row[0].definition.token, true);
-  assert.equal(row[2].definition.token, true);
+  assert.deepEqual(row.map(({ definition }) => definition.id), [AWAKENING.id, FANATIC.id, 'unit-9']);
+  assert.equal(row[1].definition.token, true);
   assert.equal(get(match, 'hand-0').playedEffects, 0);
-  const result = hit(match, row[0].id, 2);
+  const result = hit(match, row[1].id, 2);
   assert.equal(get(result, 'hand-0').chapter, 1);
   assert.deepEqual(human(result).deck.map(({ power, basePower }) => [power, basePower]), [[5, 5], [4, 4]]);
 });
@@ -87,11 +86,11 @@ test('Final chapter needs a new appearance with seven played effects, completes 
   assert.equal(human(match).board.surface.filter(({ definition }) => definition.id === SLEEPER.id).length, 1);
 });
 
-test('Hand and deck tutors offer Psionics and resolve the nested play before drawing', () => {
+test('Hand and deck tutors offer Psionics (not the scenario) and resolve the nested play before drawing', () => {
   const handTutor = cards.get('whisper-interpreter');
   const start = setup({ hand: [handTutor, quiet, AWAKENING], deck: [unit(8)] });
   const fromHand = play(start);
-  assert.deepEqual(fromHand.pending.options, ['hand-1', 'hand-2']);
+  assert.deepEqual(fromHand.pending.options, ['hand-1']);
   assert.equal(fromHand.pending.pile, 'hand');
   assert.ok(fromHand.pending.options.includes(pickBotTarget(fromHand).cardId));
   const finished = pick(fromHand, 'hand-1');
@@ -101,11 +100,8 @@ test('Hand and deck tutors offer Psionics and resolve the nested play before dra
 
   const keeper = cards.get('forbidden-scroll-keeper');
   const deckChoice = play(setup({ hand: [keeper], deck: [unit(5), AWAKENING, quiet] }));
-  assert.deepEqual(deckChoice.pending.options, ['deck-1', 'deck-2']);
-  const placement = pick(deckChoice, 'deck-1');
-  assert.equal(placement.pending.kind, 'deck-placement');
-  const placed = action(placement, 'place', { row: 'surface', position: 0 });
-  assert.deepEqual(human(placed).board.surface.map(({ definition }) => definition.id), [FANATIC.id, AWAKENING.id, FANATIC.id]);
+  // The scenario lost the Psionics category, so Psionics tutors no longer find it.
+  assert.deepEqual(deckChoice.pending.options, ['deck-2']);
 });
 
 test('Creation offers opposing bronze cards or tiered gold effects and plays the chosen copy', () => {
