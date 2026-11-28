@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PRESETS } from '../../docs/game/cards/decks.js';
+import { inspectDeck, PRESETS } from '../../docs/game/cards/decks.js';
 import { createLeague, leagueOpponent } from '../../docs/game/meta/league.js';
+import { REWARD_STORAGE_KEY } from '../../docs/game/shared/storage-keys.js';
+import { progressChangedAt, trackProgressWrites } from '../../docs/ui/cloud/snapshot.js';
 import { deckListItem, deckListScreen } from '../../docs/ui/deck-list.js';
-import { createDeckStorage } from '../../docs/ui/deck-storage.js';
+import { createDeckStorage, DECK_STORAGE_KEY } from '../../docs/ui/deck-storage.js';
 import { nextOpponent } from '../../docs/ui/league-opponent.js';
 
 class Node extends EventTarget {
@@ -202,6 +204,69 @@ test('the primary custom deck is the first card in All Decks', (t) => {
   assert.equal(cards[0].attributes['aria-label'], 'Редактировать: Основная своя');
   assert.equal(label(byClass(cards[0], 'deck-primary-badge')), '★ Основная');
   assert.equal(cards[1].attributes['aria-label'], 'Редактировать: Первая своя');
+});
+
+test('loaded decks lose transferred cards from other factions and show a shortage on both screens', async (t) => {
+  const { deckEditor } = await import('../../docs/ui/deck-editor.js');
+  const scope = new AbortController();
+  t.after(() => scope.abort());
+  const choir = PRESETS.find(({ factionId }) => factionId === 'choir');
+  const captains = PRESETS.find(({ factionId }) => factionId === 'captains');
+  const protectorate = PRESETS.find(({ factionId }) => factionId === 'protectorate');
+  const cardIds = choir.cardIds.slice(0, -1);
+  const saved = [
+    { ...choir, id: 'choir', name: 'Моя колода Хора', cardIds: [...cardIds, 'bounty-hunter'] },
+    { ...captains, id: 'captains', cardIds: ['bounty-hunter', 'field-medic'] },
+    { ...protectorate, id: 'protectorate', cardIds: ['field-medic'] },
+  ];
+  const collection = JSON.stringify({ fullCollection: true, earnedCards: { 'bounty-hunter': 1, 'field-medic': 1 } });
+  const values = new Map([[DECK_STORAGE_KEY, JSON.stringify(saved)], [REWARD_STORAGE_KEY, collection]]);
+  let deckWrites = 0;
+  let syncChanges = 0;
+  const storage = {
+    getItem: (key) => values.get(key) ?? null,
+    setItem(key, value) {
+      if (key === DECK_STORAGE_KEY) deckWrites += 1;
+      values.set(key, value);
+    },
+  };
+  const tracked = trackProgressWrites(storage, () => { syncChanges += 1; });
+  const store = createDeckStorage(tracked);
+  const deck = store.get('choir');
+  assert.deepEqual(deck.cardIds, cardIds);
+  assert.deepEqual(store.get('captains').cardIds, ['bounty-hunter']);
+  assert.deepEqual(store.get('protectorate').cardIds, ['field-medic']);
+  const result = inspectDeck(deck);
+  assert.equal(result.valid, false);
+  assert.equal(result.issues.cards, true);
+  assert.equal(result.issues.foreign, false);
+  assert.equal(values.get(REWARD_STORAGE_KEY), collection);
+  const persisted = values.get(DECK_STORAGE_KEY);
+  assert.deepEqual(JSON.parse(persisted), store.list());
+  assert.ok(progressChangedAt(storage));
+  store.refresh();
+  assert.deepEqual(createDeckStorage(tracked).list(), store.list());
+  assert.equal(values.get(DECK_STORAGE_KEY), persisted);
+  assert.equal(deckWrites, 1);
+  assert.equal(syncChanges, 1);
+
+  const owned = Object.fromEntries(PRESETS.flatMap((preset) => preset.cardIds).map((id) => [id, 2]));
+  const inventory = () => ({ owned });
+  const noop = () => {};
+  const list = deckListScreen(new Node('p'), [deck], { get: () => ({ win: 0, loss: 0 }) }, {
+    notice: '', back: noop, create: noop, edit: noop, copy: noop, importJson: noop, onImported: noop,
+  }, inventory, scope.signal);
+  const item = allByClass(list, 'deck-list-item').find((node) => node.attributes['aria-label'] === 'Редактировать: ' + deck.name);
+  const listError = byClass(item, 'deck-invalid');
+  assert.equal(listError.hidden, false);
+  assert.match(label(listError), /Не хватает карт/);
+
+  const editor = deckEditor(new Node('p'), deck, {
+    save: store.save, play: noop, back: noop, inventory, notice: '', signal: scope.signal,
+  });
+  const editorErrors = allByClass(editor, 'deck-invalid').find(({ tag }) => tag === 'ul');
+  assert.match(label(editorErrors), /Не хватает карт/);
+  assert.equal(menuButton(editor, 'Играть').disabled, true);
 });
 
 test('the deck toolbar puts transfers in a keyboard-friendly menu', (t) => {

@@ -5,7 +5,7 @@ export const byProvision = (a, b) => b.provision - a.provision || a.name.localeC
 export function violations(result) {
   const messages = {
     name: 'Укажи название колоды.',
-    cards: 'Нужно минимум ' + MIN_CARDS + ' карт.',
+    cards: 'Не хватает карт. Нужно минимум ' + MIN_CARDS + ' карт.',
     units: 'Нужно минимум ' + MIN_UNITS + ' отрядов.',
     provisions: 'Лимит провизии ' + result.budget + ' превышен.',
     copies: 'Лимит копий: обычные ×2, эпические и легендарные ×1.',

@@ -214,8 +214,10 @@ test('Fang Orders destroy a weak Hound, accounting for a useful Deathwish', () =
   const pending = applyAction(match, 'bot', { type: 'order', cardId: 'fang' });
   // A grown Larva can repay more than the extra strength spent on the victim.
   pending.players.bot.board.orbit[2].growth = 5;
+  // Judge the sacrifice without sampling hidden cards from the current starter decks.
   for (const difficulty of [2, 4, 6]) {
-    assert.deepEqual(chooseBotTurn(pending, difficulty), { type: 'target', cardId: 'useful-deathwish' }, difficulty);
+    assert.deepEqual(chooseBotTurn(pending, difficulty, { rolloutSamples: 0 }),
+      { type: 'target', cardId: 'useful-deathwish' }, difficulty);
   }
   pending.players.bot.board.orbit[2].growth = 0;
   assert.deepEqual(pickBotTarget(pending), { type: 'target', cardId: 'weak-token' });

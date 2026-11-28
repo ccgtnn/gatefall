@@ -362,9 +362,9 @@ test('failed pack writes leave boosters, cards and auto-dismantle essence intact
   assert.deepEqual(wallet.inventory(), before);
 });
 
-test('a pre-update pending pack keeps already granted cards and can finish without paying essence again', async () => {
+test('a legacy neutral pack with transferred cards can finish without paying essence again', async () => {
   const storage = localStorage();
-  const cards = NEUTRAL_CARDS.slice(0, 5).map(({ id }) => id);
+  const cards = ['bounty-hunter', 'field-medic', ...NEUTRAL_CARDS.slice(0, 3).map(({ id }) => id)];
   storage.setItem(REWARD_STORAGE_KEY, JSON.stringify({
     opened: { neutral: 1 },
     earnedCards: Object.fromEntries(cards.map((id) => [id, 1])),

@@ -98,10 +98,6 @@ export const NEUTRAL_CARDS = Object.freeze([
       counter: { amount: 4, effect: ability([{ action: 'draw', amount: 1 }]) },
       keywords: ['Счётчик'],
     }],
-    ['field-medic', 'Полевой реаниматор', 'gold', 9, 3, 'Сыграй обычный отряд из своего сброса.', {
-      art: 'field-medic.webp',
-      deploy: ability([{ action: 'play-from-discard', filter: { rarity: 'bronze' } }]),
-    }],
     ['gate-relic', 'Реликт врат', 'gold', 9, null, 'Приказ: усиль выбранный свой отряд на 3. Перезарядка: 2 хода.', {
       art: 'gate-relic.webp',
       type: 'artifact', order: {
@@ -109,14 +105,6 @@ export const NEUTRAL_CARDS = Object.freeze([
           [choice('ally', allies, 'Выбери свой отряд для усиления на 3.', { kind: 'boost' })]),
         cooldown: 2,
       }, keywords: ['Приказ', 'Усиление'],
-    }],
-    ['bounty-hunter', 'Охотник за головами', 'gold', 10, 4, 'Нанеси 6 урона выбранному вражескому отряду. Расправа: усиль себя на 2.', {
-      removalReserve: 5,
-      art: 'bounty-hunter.webp',
-      deploy: ability([
-        { ...action('damage', chosen('enemy'), 6), save: 'kill' },
-        action('boost', self, { result: 'kill', scale: 2 }),
-      ], [enemyChoice(6)]), keywords: ['Урон', 'Расправа', 'Усиление'],
     }],
     ['world-gates', 'Врата Миров', 'gold', 11, null, 'Посмотри свою колоду, выбери любую карту и сыграй её.', {
       type: 'effect', art: 'world-gates.webp', accent: 'gate', deploy: ability([{ action: 'play-from-deck', fullDeck: true }]),

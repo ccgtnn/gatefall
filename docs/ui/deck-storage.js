@@ -1,5 +1,5 @@
 import { FACTIONS } from '../game/cards/cards.js';
-import { findCardDefinition } from '../game/cards/card-registry.js';
+import { FORMERLY_NEUTRAL_CARDS, findCardDefinition } from '../game/cards/card-registry.js';
 import { inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/cards/decks.js';
 
 export const DECK_STORAGE_KEY = 'gatefall.decks';
@@ -87,11 +87,20 @@ export function createDeckStorage(storage) {
       const text = storage.getItem(DECK_STORAGE_KEY);
       if (text === lastRead) return;
       const saved = JSON.parse(text);
-      lastRead = text;
       decks = Array.isArray(saved) ? saved.filter((deck) =>
         typeof deck?.id === 'string' && !deck.id.startsWith('preset-') &&
         typeof deck.name === 'string' && typeof deck.factionId === 'string' && typeof deck.leaderId === 'string' &&
         Array.isArray(deck.cardIds) && deck.cardIds.every((id) => typeof id === 'string')) : [];
+      let migrated = false;
+      for (const deck of decks) {
+        const cardIds = deck.cardIds.filter((id) =>
+          !FORMERLY_NEUTRAL_CARDS.includes(id) || findCardDefinition(id).faction === deck.factionId);
+        if (cardIds.length === deck.cardIds.length) continue;
+        deck.cardIds = cardIds;
+        migrated = true;
+      }
+      if (migrated) persist();
+      else lastRead = text;
     } catch {}
   }
 

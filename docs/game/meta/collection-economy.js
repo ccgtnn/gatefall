@@ -1,6 +1,6 @@
 import { FACTIONS } from '../cards/cards.js';
 import { NEUTRAL } from '../shared/card-metadata.js';
-import { CARD_DEFINITIONS, cardsForFaction, findCardDefinition } from '../cards/card-registry.js';
+import { CARD_DEFINITIONS, FORMERLY_NEUTRAL_CARDS, cardsForFaction, findCardDefinition } from '../cards/card-registry.js';
 import { copyLimit } from '../cards/decks.js';
 
 export const BOOSTER_PRICE = 100;
@@ -59,7 +59,8 @@ function readPack(pack) {
   const faction = pools.get(pack?.faction);
   if (!faction || !count(pack.id) || !Array.isArray(pack.cards) || pack.cards.length !== BOOSTER_SIZE ||
       new Set(pack.cards).size !== BOOSTER_SIZE ||
-      !pack.cards.every((id) => findCardDefinition(id)?.faction === pack.faction)) return null;
+      !pack.cards.every((id) => findCardDefinition(id)?.faction === pack.faction ||
+        (pack.faction === NEUTRAL && FORMERLY_NEUTRAL_CARDS.includes(id)))) return null;
   const { id, cards } = pack;
   const revealed = Array.isArray(pack.revealed) ? cards.filter((card) => pack.revealed.includes(card)) : [];
   // Packs started with the old rules already paid their entire dismantling reward.

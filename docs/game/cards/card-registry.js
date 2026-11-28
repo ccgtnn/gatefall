@@ -1,6 +1,8 @@
 import { NEUTRAL } from '../shared/card-metadata.js';
 import { FACTIONS, NEUTRAL_CARDS } from './cards.js';
 
+export const FORMERLY_NEUTRAL_CARDS = Object.freeze(['bounty-hunter', 'field-medic']);
+
 const factionPools = new Map(Object.entries(FACTIONS).map(([id, { pool }]) => [id, pool]));
 factionPools.set(NEUTRAL, NEUTRAL_CARDS);
 

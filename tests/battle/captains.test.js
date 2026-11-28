@@ -242,7 +242,7 @@ const heavyShip = byId.get('black-hound');
 
 test('the three independent bronzes are collectible faction cards', () => {
   const economy = createRewardProgress();
-  assert.equal(CAPTAIN_CARDS.length, 14);
+  assert.equal(CAPTAIN_CARDS.length, 15);
   for (const card of [debtor, pilot, turret]) {
     assert.deepEqual([card.faction, card.rarity, card.provision, card.categories], ['captains', 'bronze', 4, undefined]);
     assert.ok(economy.inventory().owned[card.id] > 0);
