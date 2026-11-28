@@ -58,7 +58,7 @@ export function targets(match, job, query, choosing = false) {
   const eligible = candidates.filter((unit) =>
     (!choosing || !statusCount(unit.card, 'immune')) &&
     (!query.rarity || unit.card.definition.rarity === query.rarity) &&
-    (!query.deathwish || deathwishDefinitions(unit.card).length > 0) &&
+    (!query.deathwish || deathwishDefinitions(unit.card).some(({ grantedBy }) => !grantedBy)) &&
     (!row || unit.row === row) &&
     (!query.type || cardType(unit.card) === query.type) &&
     (!query.unitOrOrder || isUnit(unit.card) || cardAbilities(unit.card).order) &&
@@ -102,6 +102,7 @@ export function eligiblePileCards(match, side, pile, step, piles = {}) {
   const cards = piles[pile] ?? match.players[side][pile];
   const candidates = step.fullDeck ? cards : pileCandidates(cards, step.filter);
   return candidates.filter((card) => {
+    if (pile === 'discard' && card.definition.token) return false;
     if (cardType(card) !== 'effect') return availableRows(match.players[placementSide(side, card)], card).length > 0;
     return canCast(match, side, card, { ...piles, [pile]: cards.filter(({ id }) => id !== card.id) }, 'deploy');
   });

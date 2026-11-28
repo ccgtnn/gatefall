@@ -32,7 +32,7 @@ function playFromPile(match, job, step, random) {
     [job.refs.deckCard] = options;
   }
   const index = cards.findIndex(({ id }) => id === job.refs.deckCard);
-  if (index < 0) return;
+  if (index < 0 || (pile === 'discard' && cards[index].definition.token)) return;
   const isEffect = cardType(cards[index]) === 'effect';
   const destinationSide = placementSide(job.side, cards[index]);
   const recipient = match.players[destinationSide];

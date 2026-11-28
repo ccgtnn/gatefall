@@ -5,6 +5,10 @@ import { FACTIONS } from '../../docs/game/cards/cards.js';
 import { findCardDefinition } from '../../docs/game/cards/card-registry.js';
 import { applyAction, confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
 import { createMatchTurn } from '../../docs/ui/match-turn.js';
+import { createMatchSession } from '../../docs/ui/match-session.js';
+import { createTestMatchReport } from '../../docs/ui/test-match-report.js';
+import { createRewardProgress, REWARD_STORAGE_KEY } from '../../docs/game/meta/rewards.js';
+import { TAVERN_QUESTS } from '../../docs/game/meta/tavern.js';
 import { takeRememberedRect } from '../../docs/ui/card-motion-core.js';
 
 function readyMatch() {
@@ -280,7 +284,6 @@ for (const playedCard of [false, true]) {
 }
 
 test('testing requests hidden traces and rates each bot action after its playback', async (t) => {
-  const { createTestMatchReport } = await import('../../docs/ui/test-match-report.js');
   t.mock.timers.enable({ apis: ['setTimeout'] });
   let respond;
   const requests = [];
@@ -348,4 +351,107 @@ test('testing requests hidden traces and rates each bot action after its playbac
   assert.equal(report.latestBot.position.state.pending.side, 'bot');
   assert.ok(report.latestBot.position.state.pending.options.includes('test-vine'));
   assert.equal(report.latestBot.action.cardId, 'test-vine');
+});
+
+test('Tavern counts only the committed play after a target selection is cancelled', async (t) => {
+  const previousCSS = globalThis.CSS;
+  globalThis.CSS = { escape: (value) => value };
+  t.after(() => { globalThis.CSS = previousCSS; });
+
+  const roll = (TAVERN_QUESTS.findIndex(({ id }) => id === 'cards-protectorate') + 0.1) / TAVERN_QUESTS.length;
+  let saved = JSON.stringify({
+    startingGold: 3000, base: { materials: { steel: 2000, energyCells: 800, gateShards: 7 } },
+  });
+  const storage = { length: 1, key: () => REWARD_STORAGE_KEY, getItem: () => saved, setItem: (_, value) => { saved = value; } };
+  const wallet = createRewardProgress(storage, null, { random: () => roll });
+  assert.equal(await wallet.build('5', 'tavern'), 'done');
+  const committed = [];
+  const writes = [];
+  const turns = controller({ recordJournal: (...args) => session.recordJournal(...args) });
+  t.after(() => turns.reset());
+  const session = createMatchSession({ turns, notices: {}, progress: {
+    recordTavernEvents: (_, offset, journal) => {
+      committed.push(journal);
+      writes.push(wallet.recordTavernEvents('targeting-test', offset, journal));
+    },
+  } });
+
+  const ready = readyMatch();
+  ready.players.human.hand = ['orbital-salvo', 'reinforcements', 'infantry'].map((id) => createCard(id, findCardDefinition(id)));
+  ready.players.human.deck = [createCard('recruit', findCardDefinition('infantry'))];
+  ready.players.bot.board.surface = [createCard('victim', findCardDefinition('vine'))];
+  turns.reset(ready);
+
+  await turns.playHuman({ type: 'play', cardId: 'orbital-salvo' });
+  assert.equal(turns.match.pending.side, 'human');
+  assert.ok(turns.cancelTargeting());
+  assert.equal(writes.length, 0);
+  assert.equal(wallet.tavern().slots[0].progress, 0);
+
+  await turns.playHuman({ type: 'play', cardId: 'reinforcements' });
+  const recruit = turns.match.pending.options[0];
+  await turns.playHuman({ type: 'target', cardId: recruit });
+  assert.equal(turns.match.pending.kind, 'deck-placement');
+  assert.equal(writes.length, 0);
+
+  await turns.playHuman({ type: 'place', row: 'surface', position: 0 });
+  assert.equal(writes.length, 1);
+  await Promise.all(writes);
+  assert.deepEqual(committed[0].filter(({ type }) => type === 'play').map(({ cardId }) => cardId), ['reinforcements', recruit]);
+  assert.equal(wallet.tavern().slots[0].progress, 2);
+});
+
+test('surrender during bot playback keeps the bot move in the saved report', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let saved;
+  const report = createTestMatchReport({ storage: {
+    getItem: () => saved, setItem: (_, value) => { saved = value; },
+  } });
+  const ready = readyMatch();
+  ready.turn = 'bot';
+  ready.players.bot.hand = [createCard('bot-infantry', findCardDefinition('infantry'))];
+  report.start(ready, { id: 'surrender-test', level: 2 });
+
+  const decoding = Promise.withResolvers();
+  const animationStarted = Promise.withResolvers();
+  let showArt = false;
+  const art = { dataset: { boardCard: 'bot-infantry' }, getBoundingClientRect: () => ({}),
+    querySelector: () => ({ decode() {
+      animationStarted.resolve();
+      return decoding.promise;
+    } }) };
+  const screen = {
+    classList: { add() {}, remove() {} },
+    querySelector: (selector) => selector === 'h2' ? { focus() {} } : null,
+    querySelectorAll: (selector) => showArt && selector === '[data-board-card]' ? [art] : [],
+  };
+  const turns = controller({
+    screen, testReport: report, settings: {
+      motion: () => 1,
+      playSound(event) { if (event.type === 'art-state') showArt = true; },
+    },
+  });
+  const session = createMatchSession({
+    app: { ownerDocument: { querySelectorAll: () => [] } }, screen, turns, testReport: report,
+    stats: { record() {} }, announcement: {}, notices: {}, dialogs: [], settings: { close() {} },
+    hideNotice() {}, onLeave() {}, render() {},
+  });
+  turns.reset(ready);
+  const action = { type: 'play', cardId: 'bot-infantry', row: 'surface', position: 0 };
+  const next = applyAction(ready, 'bot', action);
+  next.log.push({ type: 'art-state', side: 'bot', cardId: 'bot-infantry' });
+  const playback = turns.updateMatch(next, { side: 'bot', action, level: 2 });
+  await animationStarted.promise;
+  assert.equal(turns.replaying, true);
+  assert.equal(report.latestBot, undefined);
+
+  await session.leave(true);
+  decoding.resolve();
+  await playback;
+  const { meta, timeline } = JSON.parse(saved);
+  assert.equal(meta.result.outcome, 'loss');
+  assert.deepEqual(timeline.map(({ action }) => action.type), ['play', 'surrender']);
+  assert.equal(timeline[0].botMove, 1);
+  assert.ok(timeline[0].events.some(({ type }) => type === 'play'));
+  assert.equal(report.latestBot, undefined);
 });

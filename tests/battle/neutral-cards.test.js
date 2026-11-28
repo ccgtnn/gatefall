@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyStatus, createCard, findUnit, statusCount } from '../../docs/game/engine/board.js';
+import { applyStatus, createCard, damage, findUnit, statusCount } from '../../docs/game/engine/board.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
 import { FACTIONS, FIRST_SIGNAL, NEUTRAL_CARDS } from '../../docs/game/cards/cards.js';
+import { DEVOURER_SPAWN } from '../../docs/game/cards/factions/growth.js';
 import { availableOrders } from '../../docs/game/effects/effects.js';
 import { applyAction, confirmMulligan, createMatch } from '../../docs/game/engine/match.js';
 import { unit as makeUnit } from '../helpers/battle-helpers.js';
@@ -110,6 +111,21 @@ test('Liaison counts its entry turn and draws only once on the fourth end of tur
   assert.equal(match.players.human.deck[0].id, 'next');
 });
 
+test('Liaison draws at the end of the last card’s turn before the empty-hand pass check', () => {
+  const match = scenario('liaison');
+  const liaison = card('liaison');
+  liaison.counter = 1;
+  match.players.human.board.orbit = [liaison];
+  match.players.human.hand = [unit('last')];
+  match.players.human.deck = [unit('drawn')];
+
+  const next = play(match, 'last');
+  assert.deepEqual(next.players.human.hand.map(({ id }) => id), ['drawn']);
+  assert.equal(next.turn, 'bot');
+  assert.equal(next.players.human.passed, false);
+  assert.equal(count(next, 'pass'), 0);
+});
+
 test('the counter resolves on pass and respects full hands or empty decks', () => {
   const match = scenario('liaison');
   const liaison = card('liaison');
@@ -127,6 +143,29 @@ test('the counter resolves on pass and respects full hands or empty decks', () =
   const empty = applyAction(match, 'human', { type: 'pass' });
   assert.equal(empty.players.human.board.orbit[0].counter, 0);
   assert.equal(count(empty, 'draw'), 0);
+});
+
+test('Field Medic and Resurrection offer only ordinary cards after Devourer Spawn dies', () => {
+  for (const id of ['field-medic', 'resurrection']) {
+    const match = scenario(id);
+    const spawn = createCard('spawn', DEVOURER_SPAWN);
+    spawn.power = 3;
+    match.players.human.board.surface = [spawn];
+    damage(match, findUnit(match, 'spawn'), 3);
+    assert.equal(match.players.human.discard[0].id, 'spawn');
+    assert.equal(match.players.human.discard[0].basePower, 0);
+    match.players.human.discard.push(unit('recruit', 3, { rarity: 'bronze', provision: 4 }));
+
+    const pending = play(match, id);
+    assert.equal(pending.pending.pile, 'discard');
+    assert.deepEqual(pending.pending.options, ['recruit']);
+    assert.equal(pick(pending, 'spawn'), pending);
+    const placement = pick(pending, 'recruit');
+    const next = applyAction(placement, 'human', { type: 'place', row: 'surface', position: 0 });
+    assert.equal(findUnit(next, 'recruit').card.power, 3);
+    assert.deepEqual(next.players.human.discard.map(({ id }) => id),
+      id === 'resurrection' ? ['spawn', 'resurrection'] : ['spawn']);
+  }
 });
 
 test('Field Medic restores a bronze unit from its own discard and resolves its deploy ability', () => {
