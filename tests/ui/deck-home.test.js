@@ -208,11 +208,11 @@ test('home tiles show production, tavern rewards, next League opponent and rank 
   assert.match(ranks.attributes['aria-label'], /Ранги · 9 · ранг 10: Ключи 5, Сталь 20, Энергоячейки 2, Осколки врат 1/);
   buildings = {};
   league.resetAt = 0;
-  rounds = 105;
+  rounds = 405;
   emit('collection-change');
   assert.equal(base.attributes['aria-label'], 'База · награды Таверны: 3');
   assert.equal(label(ladder), 'Лига');
-  assert.equal(label(ranks), 'Ранги · 25');
+  assert.equal(label(ranks), 'Ранги · 50');
 });
 
 test('home tiles have plain labels when progress data is absent', (t) => {

@@ -265,7 +265,7 @@ test('manual end runs end-of-turn effects once and keeps unused orders for the n
   assert.ok(availableOrders(match, 'human').some(({ card }) => card.id === FIRST_SIGNAL.id));
 });
 
-test('the bot uses an order made legal by its play, or ends the turn if already ahead of a passed player', () => {
+test('the bot keeps First Signal while the opponent plays on, and ends the turn if already ahead of a passed player', () => {
   for (const opponentPassed of [false, true]) {
     let match = confirmMulligan(setup('bot'), []);
     match.players.bot.hand = [unit('first'), unit('spare')];
@@ -273,14 +273,13 @@ test('the bot uses an order made legal by its play, or ends the turn if already 
     assert.equal(match.turn, 'bot');
     match.players.human.passed = opponentPassed;
     const choice = chooseBotTurn(match);
-    assert.deepEqual(choice, opponentPassed ? { type: 'end-turn' } : { type: 'order', cardId: FIRST_SIGNAL.id });
+    assert.deepEqual(choice, { type: 'end-turn' });
     match = applyAction(match, 'bot', choice);
-    if (opponentPassed) {
-      assert.equal(match.playedCard, false);
-      assert.equal(match.players.bot.passed, false);
-    } else {
-      match = applyAction(match, 'bot', chooseBotTurn(match));
+    assert.equal(match.playedCard, false);
+    assert.equal(match.players.bot.passed, false);
+    if (!opponentPassed) {
       assert.equal(match.turn, 'human');
+      assert.ok(Object.values(match.players.bot.board).flat().some(({ id }) => id === FIRST_SIGNAL.id), 'the signal waits on the board');
     }
     assert.equal(match.players.bot.hand[0].id, 'spare');
   }

@@ -266,3 +266,29 @@ test('Captains use Skara before playing Tiraelis, even near the coin limit', () 
   next = applyAction(next, 'bot', decide(next));
   assert.equal(next.players.bot.leader.name, 'Тираэлис');
 });
+
+test('T4 a mass category boost waits for its category: Hound Captain after a Hound', async () => {
+  const { missedDeployValue } = await import('../../docs/game/bot/bot-effect-value.js');
+  const match = position(1);
+  const captain = member('captain', 'captains', 'hound-captain');
+  const hound = member('hound', 'captains', 'hound-claw');
+  match.players.bot.hand = [captain, hound];
+  match.players.bot.board.orbit = [];
+  assert.ok(missedDeployValue(match, 'bot', captain, { row: 'surface', position: 0 }) > 0);
+  match.players.bot.hand = [captain, plain('filler', 3)];
+  assert.equal(missedDeployValue(match, 'bot', captain, { row: 'surface', position: 0 }), 0);
+});
+
+test('T5 First Signal waits while the opponent plays on and is spent right before the bot passes', async () => {
+  const { FIRST_SIGNAL } = await import('../../docs/game/cards/cards.js');
+  const { holdsStratagem, stratagemBeforePass } = await import('../../docs/game/bot/bot-strategy.js');
+  const match = position(1);
+  const signal = standard('signal', FIRST_SIGNAL);
+  signal.readyAt = 0;
+  match.players.bot.board.surface = [signal, plain('ally', 4)];
+  assert.equal(holdsStratagem(match, 'bot', signal), true);
+  assert.deepEqual(stratagemBeforePass(match, 'bot', pass), { type: 'order', cardId: signal.id });
+  assert.equal(stratagemBeforePass(match, 'bot', { type: 'play', cardId: 'x' }), null);
+  match.players.human.passed = true;
+  assert.equal(holdsStratagem(match, 'bot', signal), false);
+});

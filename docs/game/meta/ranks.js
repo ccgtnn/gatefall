@@ -1,11 +1,15 @@
-const roundThresholds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 16, 19, 22, 25, 31, 37, 43, 49, 55, 65, 75, 85, 95, 105];
-const steelByRank = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 45, 50, 55, 60, 65, 72, 79, 86, 93, 100];
-const energyFromRank10 = [2, 4, 6, 8, 10, 12, 15, 18, 21, 24, 27, 31, 35, 40, 45, 50];
-const shardsByRank = { 10: 1, 15: 2, 20: 3, 25: 5 };
+const roundThresholds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 16, 19, 22, 25, 31, 37, 43, 49, 55, 65, 75, 85, 95, 105,
+  // Ranks 26–50 (28.11): +12 won rounds per rank, rank 50 at 405.
+  ...Array.from({ length: 25 }, (_, index) => 117 + 12 * index)];
+const steelByRank = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 45, 50, 55, 60, 65, 72, 79, 86, 93, 100,
+  ...Array.from({ length: 25 }, (_, index) => 107 + 7 * index)];
+const energyFromRank10 = [2, 4, 6, 8, 10, 12, 15, 18, 21, 24, 27, 31, 35, 40, 45, 50,
+  ...Array.from({ length: 25 }, (_, index) => 55 + 5 * index)];
+const shardsByRank = { 10: 1, 15: 2, 20: 3, 25: 5, 30: 6, 35: 7, 40: 8, 45: 9, 50: 12 };
 
 export const MONTHLY_RANKS = Object.freeze(roundThresholds.map((rounds, rank) => Object.freeze({
   rank, rounds,
-  keys: !rank ? 0 : rank % 5 === 0 ? 5 : 1 + Number(rank >= 10) + Number(rank >= 20),
+  keys: !rank ? 0 : rank % 5 === 0 ? 5 + Number(rank > 25) : 1 + Number(rank >= 10) + Number(rank >= 20) + Number(rank > 35),
   steel: steelByRank[rank],
   energyCells: energyFromRank10[rank - 10] ?? 0,
   gateShards: shardsByRank[rank] ?? 0,

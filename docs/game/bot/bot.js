@@ -10,7 +10,7 @@ import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, availableRows, canEndTurn, canPass, 
 import { canUseBotLeader, leaderTargetPriority, offeringPriority, replacementVictims, preferredLeaderUse, leaderBeforeReplacement } from './bot-leaders.js';
 import { deathwishDefinitions } from '../engine/events.js';
 import { BOT_LEVELS, readBotLevel } from './bot-levels.js';
-import { botSearchState, chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js';
+import { botSearchState, chooseStrategicTarget, chooseStrategicTurn, holdsStratagem, stratagemBeforePass } from './bot-strategy.js';
 
 export { BOT_LEVELS } from './bot-levels.js';
 
@@ -267,7 +267,8 @@ function easyTurn(match) {
   const orders = availableOrders(match, 'bot');
   const weatherOrder = immediateWeatherOrder(match, 'bot', orders);
   if (weatherOrder) return { type: 'order', cardId: weatherOrder.card.id };
-  const order = orders.find((unit) => !unit.card.definition.aiHints?.useOrderWhenReady && usefulWeatherOrder(match, 'bot', unit));
+  const order = orders.find((unit) => !unit.card.definition.aiHints?.useOrderWhenReady && usefulWeatherOrder(match, 'bot', unit) &&
+    !holdsStratagem(match, 'bot', unit.card));
   const alreadyWon = view.opponentPassed && view.score > view.opponentScore;
   if (!alreadyWon) {
     if (order) {
@@ -302,7 +303,8 @@ function easyTurn(match) {
 
 export function chooseEasyTurn(match) {
   const action = easyTurn(match);
-  return leaderBeforeReplacement(match, 'bot', action) ? { type: 'leader' } : action;
+  if (leaderBeforeReplacement(match, 'bot', action)) return { type: 'leader' };
+  return (!match.pending && stratagemBeforePass(match, 'bot', action)) || action;
 }
 
 export function chooseBotTurn(match, mastery, options = {}) {
@@ -315,5 +317,7 @@ export function chooseBotTurn(match, mastery, options = {}) {
     const order = immediateWeatherOrder(state, 'bot', availableOrders(state, 'bot'));
     if (order) return { type: 'order', cardId: order.card.id };
   }
-  return state.pending ? chooseStrategicTarget(state, level, strategy) : chooseStrategicTurn(state, level, strategy);
+  if (state.pending) return chooseStrategicTarget(state, level, strategy);
+  const action = chooseStrategicTurn(state, level, strategy);
+  return stratagemBeforePass(state, 'bot', action) ?? action;
 }

@@ -1,6 +1,7 @@
 import { assetUrl } from './asset-url.js';
 import { button, element } from './dom.js';
 import { resourceIcon } from './resource-icon.js';
+import { resourceGlyph } from './resources.js';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
 
@@ -50,7 +51,7 @@ export function createRewardMap(chapter, onSelect) {
     price.node.setAttribute('aria-hidden', 'true');
     const mark = resourceIcon('check');
     mark.classList.add('reward-node-check');
-    control.append(resourceIcon(node.kind), price.node, mark);
+    control.append(resourceGlyph(node.kind) ?? resourceIcon(node.kind), price.node, mark);
     plot.append(control);
     return { node, control, incoming };
   });

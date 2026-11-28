@@ -220,6 +220,20 @@ export function missedDeployValue(match, side, card, placement) {
   const available = (state) => ability.select?.length
     ? canStart(state, job)
     : queries.some((query) => targets(state, job, query).length > 0);
+  // A mass ally boost (Hound Captain) is worth more after its category is on the board:
+  // price the best single ally from hand that would join the boost if played first.
+  const massBoosts = ability.select?.length ? [] : ability.steps.filter(({ action, target, amount }) =>
+    action === 'boost' && target?.scope === 'ally' && !target.rowRef && typeof amount === 'number');
+  if (massBoosts.length && available(field)) {
+    const boosted = (state) => massBoosts.reduce((sum, step) => sum + targets(state, job, step.target).length * step.amount, 0);
+    const now = boosted(field);
+    const later = alternatives.reduce((best, unit) => {
+      if (unit.definition.enemySide || !isUnit(unit)) return best;
+      const [lane] = availableRows(field.players[side], unit);
+      return lane ? Math.max(best, boosted(withUnit(field, side, lane, unit, 0)) - now) : best;
+    }, 0);
+    return later;
+  }
   if (available(field)) return 0;
 
   const waitsForEnemy = queries.some(({ scope }) => scope === 'enemy' || scope === 'field');

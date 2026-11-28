@@ -21,13 +21,14 @@ test('every playable faction has its own booster', () => {
 
 const chapters = REWARD_SECTIONS.flatMap((section) => section.chapters);
 
-test('the book has two sections, five chapters and reachable rare rewards', () => {
+test('the book has three sections, eleven chapters and reachable rare rewards', () => {
   const storage = localStorage();
   assert.equal(createRewardProgress(storage).get().keys, 0);
-  assert.deepEqual(REWARD_SECTIONS.map(({ chapters }) => chapters.length), [3, 2]);
-  assert.equal(new Set(chapters.flatMap(({ nodes }) => nodes.map(({ id }) => id))).size, 120);
+  assert.deepEqual(REWARD_SECTIONS.map(({ title, chapters }) => [title, chapters.length]),
+    [['Сигналы Врат', 5], ['Дальний рубеж', 3], ['Вольные трассы', 3]]);
+  assert.equal(new Set(chapters.flatMap(({ nodes }) => nodes.map(({ id }) => id))).size, 21 * 8 + 29 + 28 + 29);
   const layouts = new Set();
-  assert.deepEqual(chapters.map(({ nodes }) => nodes.length), [21, 21, 21, 29, 28]);
+  assert.deepEqual(chapters.map(({ nodes }) => nodes.length), [21, 21, 21, 21, 21, 29, 28, 29, 21, 21, 21]);
   for (const { nodes, tall } of chapters) {
     const layout = nodes.map(({ x, y }) => [x, y]);
     assert.equal(new Set(layout.map(String)).size, nodes.length);
@@ -42,7 +43,15 @@ test('the book has two sections, five chapters and reachable rare rewards', () =
     assert.ok(terminals.every(({ id, kind }) => ['card-back', 'battlefield'].includes(kind) && (tall || costs.get(id) <= 25)));
   }
   assert.equal(layouts.size, chapters.length);
-  assert.deepEqual(chapters.map(({ nodes }) => nodes.filter(({ finale }) => finale).length), [2, 1, 2, 1, 2]);
+  assert.deepEqual(chapters.map(({ nodes }) => nodes.filter(({ finale }) => finale).length), [2, 2, 2, 2, 2, 1, 2, 1, 1, 1, 1]);
+  for (const [index, { chapters: group }] of REWARD_SECTIONS.entries()) {
+    for (const { nodes } of group) {
+      assert.ok(nodes.every(({ finale, kind }) => finale || !['card-back', 'battlefield'].includes(kind)), 'cosmetics only at the ends');
+      const ends = nodes.filter(({ finale }) => finale).map(({ kind }) => kind).sort();
+      if (index === 0) assert.deepEqual(ends, ['battlefield', 'card-back']);
+      else assert.ok(ends.every((kind) => kind === 'battlefield'));
+    }
+  }
 });
 
 test('every frontier route is eighteen stops long and a funded wallet can reach each finale', async () => {
@@ -425,4 +434,17 @@ test('a corrupt booster ledger reports zero and cannot grant free packs', async 
   assert.equal(await wallet.openPack('choir'), 'empty');
   assert.equal(wallet.inventory().pendingPack, null);
   assert.equal(wallet.inventory().packCount, 0);
+});
+
+test('base materials from the book are credited once on purchase and keep the wallet unchanged', async () => {
+  const wallet = createRewardProgress(localStorage({ startingKeys: 120 }));
+  const route = ['signal', 'supply', 'junction', 'upper-cache', 'upper-relay', 'upper-vault'].map((stop) => 'protectorate:' + stop);
+  for (const id of route) assert.equal(await wallet.unlock(id), 'opened', id);
+  const before = { ...wallet.base().materials };
+  const { gold, essence } = wallet.inventory();
+  assert.equal(await wallet.unlock('protectorate:upper-finish'), 'opened');
+  assert.equal(wallet.base().materials.steel, (before.steel ?? 0) + 60);
+  assert.deepEqual([wallet.inventory().gold, wallet.inventory().essence], [gold, essence]);
+  assert.equal(await wallet.unlock('protectorate:upper-finish'), 'unlocked');
+  assert.equal(wallet.base().materials.steel, (before.steel ?? 0) + 60);
 });
