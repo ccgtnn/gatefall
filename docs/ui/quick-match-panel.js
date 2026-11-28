@@ -1,5 +1,5 @@
 import { on } from './app-events.js';
-import { inspectDeck, PRESETS } from '../game/cards/decks.js';
+import { inspectDeck, STARTER_DECKS } from '../game/cards/decks.js';
 import { button, element, selectField } from './dom.js';
 
 export const QUICK_MATCH_KEY = 'gatefall.quick-match';
@@ -49,13 +49,13 @@ export function quickMatchPanel({ deckStore, inventory, storage, difficulty, pla
   function update() {
     const { owned } = inventory();
     const userDecks = deckStore.list().filter((deck) => inspectDeck(deck, owned).valid);
-    const playerPresets = PRESETS.filter((deck) => inspectDeck(deck, owned).valid);
+    const playerPresets = STARTER_DECKS.filter((deck) => inspectDeck(deck, owned).valid);
     const primary = deckStore.primary(owned);
     const available = [...userDecks, ...playerPresets];
     const ordered = primary && available.some(({ id }) => id === primary.id)
       ? [primary, ...available.filter(({ id }) => id !== primary.id)] : available;
     playerDecks = new Map(ordered.map((deck) => [deck.id, deck]));
-    botDecks = new Map([...PRESETS.filter((deck) => inspectDeck(deck).valid), ...userDecks]
+    botDecks = new Map([...STARTER_DECKS.filter((deck) => inspectDeck(deck).valid), ...userDecks]
       .map((deck) => [deck.id, deck]));
     const playerId = playerDecks.has(selected.player) ? selected.player
       : primary && playerDecks.has(primary.id) ? primary.id

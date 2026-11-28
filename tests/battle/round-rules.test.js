@@ -328,3 +328,19 @@ test('turn-start brackets turn effects and identifies the empty turn of a passed
   assert.ok(roundEnd.log.slice(match.log.length).some(({ type }) => type === 'round-end'));
   assert.ok(roundEnd.log.slice(match.log.length).every(({ type }) => type !== 'turn-start'));
 });
+
+test('the bot mulligans Helper Robot first while a legendary can still summon it from the deck', () => {
+  const robot = findCardDefinition('helper-robot');
+  const legend = { ...definitions.get('infantry'), id: 'test-legend', rarity: 'gold' };
+  const prepare = (deckLegend) => {
+    const match = setup();
+    const { bot } = match.players;
+    bot.hand = [createCard('bot-robot', robot), ...bot.hand.slice(1).map((card) => ({ ...card, power: 1 }))];
+    bot.deck = [createCard('bot-legend', deckLegend ? legend : definitions.get('infantry')), ...bot.deck]
+      .filter(({ definition }) => definition.rarity !== 'gold' || deckLegend);
+    bot.hand = bot.hand.filter(({ definition }) => definition.rarity !== 'gold' || definition.id === robot.id);
+    return confirmMulligan(match, []);
+  };
+  assert.ok(!prepare(true).players.bot.hand.some(({ definition }) => definition.id === 'helper-robot'));
+  assert.ok(prepare(false).players.bot.hand.some(({ definition }) => definition.id === 'helper-robot'));
+});

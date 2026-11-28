@@ -100,7 +100,15 @@ function beginRound(match) {
   }
 }
 
-const mulliganValue = (card) => card.power ?? card.definition.provision ?? 0;
+// A card that summons itself from the deck on the first legendary (Helper Robot) is worth more in the deck:
+// the bot sends it back first while a legendary is still ahead.
+function waitsInDeck(player, card) {
+  const rule = card.definition.pileEvents?.play;
+  return Boolean(rule?.pile === 'deck' && rule.firstLegendary && !player.playedLegendary &&
+    [...player.hand, ...player.deck].some(({ definition }) => definition.rarity === 'gold'));
+}
+
+const mulliganValue = (player, card) => waitsInDeck(player, card) ? -1000 : card.power ?? card.definition.provision ?? 0;
 
 export function confirmMulligan(match, cardIds = [], { random = Math.random } = {}) {
   if (match.phase !== 'mulligan') return match;
@@ -113,7 +121,7 @@ export function confirmMulligan(match, cardIds = [], { random = Math.random } = 
 
   const next = structuredClone(match);
   const { human, bot } = next.players;
-  const botChoices = [...bot.hand].sort((left, right) => mulliganValue(left) - mulliganValue(right))
+  const botChoices = [...bot.hand].sort((left, right) => mulliganValue(bot, left) - mulliganValue(bot, right))
     .slice(0, mulliganLimit(next, 'bot')).map(({ id }) => id);
   const counts = {
     human: next.mulligan.used + swapCards(human, selectedIds, random, next.mulligan.excluded),

@@ -1,11 +1,26 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { FACTIONS } from '../../docs/game/cards/cards.js';
-import { collection, inspectDeck, PRESETS, REBIRTH_PRESET } from '../../docs/game/cards/decks.js';
+import { collection, inspectDeck, PRESETS, REBIRTH_PRESET, STARTER_DECKS } from '../../docs/game/cards/decks.js';
 import { createDeckMatch } from '../../docs/game/engine/match.js';
 
 const [protectorate, growth] = PRESETS;
 const shortDeck = { ...protectorate, cardIds: [] };
+
+test('starter decks are legal, cost-checked and owned by a new player', async () => {
+  const { createRewardProgress } = await import('../../docs/game/meta/rewards.js');
+  const values = new Map();
+  const { owned } = createRewardProgress({ getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) }).inventory();
+  assert.deepEqual(STARTER_DECKS.map(({ factionId }) => factionId), ['protectorate', 'choir', 'captains', 'growth']);
+  for (const deck of STARTER_DECKS) {
+    assert.ok(deck.id.startsWith('preset-starter-'));
+    assert.ok(Object.isFrozen(deck.cardIds));
+    const result = inspectDeck(deck, owned);
+    assert.equal(result.valid, true, deck.id);
+    assert.equal(result.cards.length, 25);
+    assert.equal(result.cost, { protectorate: 165, choir: 159, captains: 165, growth: 165 }[deck.factionId]);
+  }
+});
 
 test('the immutable presets fit the provision cap and have enough units', () => {
   for (const [index, preset] of PRESETS.entries()) {
@@ -130,8 +145,9 @@ test('primary decks may be presets, move between decks and reset when invalid or
   const store = createDeckStorage(storage);
   const custom = { ...protectorate, id: 'custom' };
   store.save(custom);
-  assert.equal(store.setPrimary(growth.id), true);
-  assert.equal(store.primary().id, growth.id);
+  const starter = STARTER_DECKS[1];
+  assert.equal(store.setPrimary(starter.id), true);
+  assert.equal(store.primary().id, starter.id);
   assert.equal(store.setPrimary(custom.id), true);
   assert.equal(store.primary().id, custom.id);
   store.save({ ...custom, cardIds: [] });

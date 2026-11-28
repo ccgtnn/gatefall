@@ -69,6 +69,46 @@ export const PRESETS = Object.freeze([
   factionPreset('captains'),
 ]);
 
+/** Стартовые колоды, собранные геймдизайнером: их видит игрок и берёт бот быстрого матча. Старые PRESETS остаются только для Лиги и тестов. */
+export const STARTER_DECKS = Object.freeze([
+  Object.freeze({
+    id: 'preset-starter-protectorate', name: 'Протекторат - огненный шторм', factionId: 'protectorate', leaderId: 'supreme-commander',
+    cardIds: Object.freeze([
+      'assault-tank', 'assault-tank', 'assault', 'assault', 'flame-inquisitor', 'flame-inquisitor', 'reinforcements',
+      'reinforcements', 'brander', 'brander', 'gonets', 'emperors-hand', 'field-medic', 'recon-drone', 'firestorm',
+      'salfurion', 'armor-piercing-shot', 'suppressor', 'armor-piercing-shot', 'shield-generator', 'warden',
+      'warden', 'recon-drone', 'engineer', 'world-gates',
+    ]),
+  }),
+  Object.freeze({
+    id: 'preset-starter-choir', name: 'Безмолвный хор - спящий (без сценария)', factionId: 'choir', leaderId: 'high-priest',
+    cardIds: Object.freeze([
+      'abyss-shepherd', 'great-sacrifice', 'sleeper-revelation', 'altar-guardian', 'cult-dreamer', 'forbidden-scroll-keeper',
+      'call-of-the-deep', 'call-of-the-deep', 'sleeper-litany', 'sleeper-litany', 'mind-strike', 'mind-strike',
+      'depth-neophyte', 'depth-neophyte', 'whisper-interpreter', 'whisper-interpreter', 'minor-offering', 'minor-offering',
+      'ulmarin-fanatic', 'ulmarin-fanatic', 'alien-dream', 'alien-dream', 'carrion-devourer', 'suppressor', 'gate-guardian',
+    ]),
+  }),
+  Object.freeze({
+    id: 'preset-starter-captains', name: 'Вольные капитаны - гончие', factionId: 'captains', leaderId: 'skara-reinhold',
+    cardIds: Object.freeze([
+      'black-hound', 'hound-eyes', 'bounty-hunter', 'hound-recruiter', 'hound-captain', 'hound-pack', 'hound-pack',
+      'hound-good-deal', 'hound-good-deal', 'broken-turret', 'hound-claw', 'hound-claw', 'hound-left-fang', 'stolen-goods-fence',
+      'hound-foreman', 'hound-foreman', 'scrapped-pilot', 'scrapped-pilot', 'broken-turret', 'debtor', 'debtor',
+      'helper-robot', 'falura', 'world-gates', 'recon-drone',
+    ]),
+  }),
+  Object.freeze({
+    id: 'preset-starter-growth', name: 'Поросль - заражение', factionId: 'growth', leaderId: 'carrier',
+    cardIds: Object.freeze([
+      'rot-midge', 'rot-midge', 'rot', 'rot', 'plague-leviathan', 'plague-sower', 'spore-season', 'pestilence',
+      'infected-carcass', 'infected-carcass', 'colossus', 'bioreactor', 'xylaris-bloom', 'acid-gland', 'acid-gland',
+      'rot-giant', 'recon-drone', 'armor-piercing-shot', 'carrion-devourer', 'world-gates', 'recon-drone', 'rot-scavenger',
+      'rot-scavenger', 'suppressor', 'armor-piercing-shot',
+    ]),
+  }),
+]);
+
 /**
  * @param {Partial<Deck> | null} [deck]
  * @param {Counts} [owned]
