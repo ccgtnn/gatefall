@@ -26,7 +26,11 @@ export function createCloudRequest(fetcher = globalThis.fetch) {
       if (error?.name === 'TimeoutError') throw new CloudError('Облако не ответило вовремя.', 408);
       throw new CloudError('Нет сети.', 0);
     }
-    const payload = response.status === 204 ? null : await response.json().catch(() => null);
+    const payload = response.status === 204 ? null : await response.json().catch((error) => {
+      // A connection lost while reading a successful response is a network failure, not an empty answer.
+      if (response.ok && error?.name !== 'SyntaxError') throw new CloudError('Нет сети.', 0);
+      return null;
+    });
     if (!response.ok) throw new CloudError('Ошибка облачного сервиса.', response.status, payload?.code);
     return payload;
   };
