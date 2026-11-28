@@ -140,6 +140,28 @@ test('dense touch offers confirm by second tap or button and three-card offers s
   assert.deepEqual(actions.at(-1), { type: 'target', cardId: 'offer-2' });
 });
 
+test('a long phone strip scrolls inside the panel and has arrows; short offers have none', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const css = await readFile(new URL('../../docs/field-effects.css', import.meta.url), 'utf8');
+  // Regression: an auto grid track grew to the width of a 15-card nowrap strip, so the strip never scrolled
+  // and the header controls («Рука», «Выбрать») were pushed off screen on phones.
+  assert.match(css, /\.choice-overlay \{[^}]*grid-template: minmax\(0, 1fr\) \/ minmax\(0, 1fr\);/);
+  assert.match(css, /\.deck-offer \{[^}]*min-width: 0;/);
+
+  const { deckChoice } = createFieldChoices({ phoneChoice: () => true, playHuman: () => {} });
+  const scrolls = [];
+  const overlay = deckChoice(fixture(15));
+  const strip = overlay.querySelector('.deck-choice-cards');
+  strip.clientWidth = 500;
+  strip.scrollBy = (options) => scrolls.push(options.left);
+  const arrows = overlay.querySelectorAll('.choice-scroll');
+  assert.equal(arrows.length, 2);
+  click(arrows[1]);
+  click(arrows[0]);
+  assert.deepEqual(scrolls, [400, -400]);
+  assert.equal(deckChoice(fixture(5)).querySelectorAll('.choice-scroll').length, 0);
+});
+
 test('choice overlays have no aim curve and right click reaches card inspection without cancelling', () => {
   const screen = new TestNode('div');
   screen.after = () => {};
