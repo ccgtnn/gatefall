@@ -38,10 +38,14 @@ function botThought(event) {
   return entry;
 }
 
-export function logView(match, showThoughts = false) {
+export function logView(match, showThoughts = false, testFeedback) {
   const log = element('section', 'panel journal');
   const list = element('ol', 'log-list');
-  for (const event of [...match.log].reverse()) {
+  const ratings = testFeedback?.journalRows();
+  for (let index = match.log.length; index > 0; index--) {
+    const rows = ratings?.get(index);
+    if (rows) list.append(...rows);
+    const event = match.log[index - 1];
     if (event.type === 'bot-thought') {
       if (showThoughts) list.append(botThought(event));
     } else {
@@ -57,11 +61,13 @@ export function logView(match, showThoughts = false) {
       list.append(entry);
     }
   }
+  const initialRows = ratings?.get(0);
+  if (initialRows) list.append(...initialRows);
   log.append(element('h2', null, 'Журнал ходов'), list);
   return log;
 }
 
-export function createMatchMenu(getMatch, showThoughts) {
+export function createMatchMenu(getMatch, showThoughts, testFeedback) {
   let openPile;
   const drawer = element('dialog', 'field-drawer');
   drawer.setAttribute('aria-labelledby', 'drawer-title');
@@ -81,7 +87,7 @@ export function createMatchMenu(getMatch, showThoughts) {
     const header = element('header', 'drawer-header');
     header.append(title, dialogClose(drawer));
     if (journal) {
-      drawer.replaceChildren(header, logView(match, showThoughts()).querySelector('ol'));
+      drawer.replaceChildren(header, logView(match, showThoughts(), testFeedback).querySelector('ol'));
       return;
     }
 
@@ -107,7 +113,7 @@ export function createMatchMenu(getMatch, showThoughts) {
   function refresh(match, replaying) {
     if (!drawer.open || !match) return;
     if (openPile === 'journal') {
-      drawer.querySelector('ol').replaceChildren(...logView(match, showThoughts()).querySelector('ol').children);
+      drawer.querySelector('ol').replaceChildren(...logView(match, showThoughts(), testFeedback).querySelector('ol').children);
     } else if (!replaying) {
       fillDrawer();
     }

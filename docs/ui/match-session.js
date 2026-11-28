@@ -14,7 +14,7 @@ function matchId() {
 
 export function createMatchSession({
   app, screen, turns, progress, stats, deckStore, settings, dialogs, waitForRewards,
-  announcement, notices, showNotice, hideNotice, onStart, onLeave, render,
+  testReport, announcement, notices, showNotice, hideNotice, onStart, onLeave, render,
 }) {
   const { turnNotice, coinNotice, roundNotice } = notices;
   let matchDeck;
@@ -54,18 +54,24 @@ export function createMatchSession({
   }
 
   function start(deck, { botDeck } = {}) {
-    if (!canPlayDeck(deck)) return;
-    const next = createDeckMatch(deck, { botDeck });
-    if (next) begin(deck, next, { botDeck });
+    startQuick(deck, { botDeck });
   }
 
-  function begin(deck, next, { bot, botDeck, id }) {
+  function startQuick(deck, { botDeck, testing } = {}) {
+    if (!canPlayDeck(deck)) return;
+    const next = createDeckMatch(deck, { botDeck });
+    if (next) begin(deck, next, { botDeck, testing });
+  }
+
+  function begin(deck, next, { bot, botDeck, id, testing }) {
     deckStore.recordPlay(deck.id);
     matchDeck = structuredClone(deck);
     matchBotDeck = botDeck && structuredClone(botDeck);
     turns.reset(next);
     matchRewardId = id ?? matchId();
     leagueOpponent = bot;
+    if (testing && !bot) testReport?.start(next, { id: matchRewardId, level: settings.difficulty() });
+    else testReport?.detach();
     turns.warmBot();
     leagueDialogue = leagueOpponent && createLeagueDialogue(leagueOpponent);
     const greeting = leagueDialogue?.start(progress.league());
@@ -129,7 +135,10 @@ export function createMatchSession({
       return;
     } else if (surrender === true && (match?.phase === 'playing' || match?.phase === 'mulligan')) {
       stats.record(match.players.human.factionId, 'loss');
+      testReport?.record(match, [], { side: 'human', action: { type: 'surrender' }, description: 'Игрок сдаётся.' });
+      testReport?.finish(match, 'loss');
     }
+    testReport?.detach();
     turns.reset();
     clearParticles(app.ownerDocument);
     for (const overlay of app.ownerDocument.querySelectorAll('.motion-overlay')) overlay.remove();
@@ -157,7 +166,9 @@ export function createMatchSession({
   async function replay() {
     const finished = turns.match;
     await waitForRewards();
-    if (turns.match === finished && finished?.phase === 'finished') start(matchDeck, { botDeck: matchBotDeck });
+    if (turns.match === finished && finished?.phase === 'finished') {
+      startQuick(matchDeck, { botDeck: matchBotDeck, testing: Boolean(testReport?.active) });
+    }
   }
 
   function setMulliganField(visible) {
@@ -196,7 +207,7 @@ export function createMatchSession({
   }
 
   return {
-    start, startLeague, leave, replay, setMulliganField, recordJournal, onMatchChanged,
+    start, startQuick, startLeague, leave, replay, setMulliganField, recordJournal, onMatchChanged,
     get leagueOpponent() { return leagueOpponent; },
     get leagueSpeech() { return leagueSpeech; },
     get mulliganFieldVisible() { return mulliganFieldVisible; },

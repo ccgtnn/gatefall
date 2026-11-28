@@ -6,7 +6,7 @@ import { bindRulesMenu } from './rules.js';
 import { createSoundEffects, DEFAULT_VOLUME } from './sound.js';
 import { motionDuration } from './turn-playback.js';
 
-export function createSettings(app, onLeave, onReset, difficulty, cloud) {
+export function createSettings(app, onLeave, onReset, difficulty, cloud, testFeedback) {
   const settings = document.querySelector('#settings');
   const refreshCloud = mountCloudSettings(settings, cloud);
   const matchMenu = document.querySelector('#match-menu');
@@ -62,7 +62,9 @@ export function createSettings(app, onLeave, onReset, difficulty, cloud) {
     }
   }, 'button');
   copyPosition.hidden = copyStatus.hidden = true;
-  matchMenu.append(copyPosition, copyStatus);
+  const downloadReport = button('Скачать отчёт', () => testFeedback?.download());
+  downloadReport.hidden = true;
+  matchMenu.append(copyPosition, copyStatus, downloadReport);
   function syncPositionCopy() {
     copyPosition.hidden = copyStatus.hidden = !thoughts.checked || matchMenu.hidden;
     copyStatus.textContent = '';
@@ -149,6 +151,7 @@ export function createSettings(app, onLeave, onReset, difficulty, cloud) {
 
   function showSettings() {
     matchMenu.hidden = !app.classList.contains('in-match');
+    downloadReport.hidden = !testFeedback?.enabled();
     syncPositionCopy();
     fullscreenStatus.textContent = document.fullscreenEnabled || fullscreenMode.matches
       ? '' : 'Браузер не поддерживает полноэкранный режим. Попробуй установить игру через меню браузера.';

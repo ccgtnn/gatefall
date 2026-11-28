@@ -4,7 +4,7 @@ import { button, element, selectField } from './dom.js';
 
 export const QUICK_MATCH_KEY = 'gatefall.quick-match';
 
-export function quickMatchPanel({ deckStore, inventory, storage, difficulty, play }, signal) {
+export function quickMatchPanel({ deckStore, inventory, storage, difficulty, play, testReport, downloadReport }, signal) {
   const panel = element('section', 'home-block quick-match');
   const player = selectField('Твоя колода', []);
   const opponent = selectField('Колода бота', []);
@@ -19,9 +19,14 @@ export function quickMatchPanel({ deckStore, inventory, storage, difficulty, pla
   let botDecks;
   let selected = {};
   try { selected = JSON.parse(storage?.getItem(QUICK_MATCH_KEY)) ?? {}; } catch {}
+  const testing = element('input');
+  testing.type = 'checkbox';
+  testing.checked = selected.testing === true;
+  const testLabel = element('label', 'quick-match-testing');
+  testLabel.append(testing, 'Тестирование');
 
   function save() {
-    selected = { player: player.input.value, bot: opponent.input.value };
+    selected = { player: player.input.value, bot: opponent.input.value, ...(testing.checked && { testing: true }) };
     try { storage?.setItem(QUICK_MATCH_KEY, JSON.stringify(selected)); } catch {}
   }
 
@@ -29,7 +34,7 @@ export function quickMatchPanel({ deckStore, inventory, storage, difficulty, pla
     const deck = playerDecks.get(player.input.value);
     if (!deck) return;
     save();
-    play(deck, { botDeck: botDecks.get(opponent.input.value) });
+    play(deck, { botDeck: botDecks.get(opponent.input.value), testing: testing.checked });
   }, 'button primary quick-match-play');
 
   function setOptions(select, choices, selectedId) {
@@ -63,9 +68,14 @@ export function quickMatchPanel({ deckStore, inventory, storage, difficulty, pla
     if ((selected.player && selected.player !== playerId) || (selected.bot && selected.bot !== botId)) save();
   }
 
-  for (const input of [player.input, opponent.input]) input.addEventListener('change', save, { signal });
+  for (const input of [player.input, opponent.input, testing]) input.addEventListener('change', save, { signal });
   on('collection-change', update, { signal });
   update();
-  panel.append(element('h2', null, 'Быстрый матч'), controls, start);
+  panel.append(element('h2', null, 'Быстрый матч'), controls, testLabel, start);
+  const previous = testReport?.previous();
+  if (previous) {
+    const caption = previous.meta.result ? 'Скачать отчёт прошлого теста' : 'Скачать отчёт прерванного теста';
+    panel.append(button(caption, () => downloadReport(previous), 'button quick-match-report'));
+  }
   return panel;
 }

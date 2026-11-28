@@ -80,17 +80,19 @@ export function eventText(event) {
   }
 }
 
-export function describeBotAction(match, action) {
+export function describeMatchAction(match, action, side = 'bot') {
   const { type, row, position } = action;
   const cardId = type === 'place' ? match.pending?.cardId : action.cardId;
-  const { bot, human } = match.players;
-  const card = [...bot.hand, ...bot.deck, ...bot.discard, ...Object.values(bot.board).flat(),
-    ...Object.values(human.board).flat()].find(({ id }) => id === cardId);
+  const player = match.players[side];
+  const rival = match.players[side === 'bot' ? 'human' : 'bot'];
+  const card = cardId && [...(match.pending?.cards ?? []), ...player.hand, ...player.deck, ...player.discard,
+    ...Object.values(player.board).flat(), ...Object.values(rival.board).flat(), ...rival.discard]
+    .find(({ id }) => id === cardId);
   const name = card?.definition.name ?? ROW_LABELS[cardId] ?? cardId;
   switch (type) {
     case 'pass': return 'Пас';
     case 'end-turn': return 'Конец хода';
-    case 'leader': return 'Лидер · ' + bot.leader?.name;
+    case 'leader': return 'Лидер · ' + player.leader?.name;
     case 'order': return 'Приказ · ' + name;
     case 'fee': return 'Плата · ' + name;
     case 'target': return 'Цель · ' + name;

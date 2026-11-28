@@ -83,7 +83,7 @@ async function replaceChoice(panel, previous, replacement, base) {
   flip.cancel();
 }
 
-export function mulliganScreen({ getMatch, setMatch, updateMatch, setMulliganField, settingsButton, motion, mulliganDeal }) {
+export function mulliganScreen({ getMatch, setMatch, updateMatch, setMulliganField, settingsButton, motion, mulliganDeal, testFeedback }) {
   const match = getMatch();
   const panel = element('section', 'mulligan mulligan-overlay');
   panel.setAttribute('role', 'dialog');
@@ -108,7 +108,11 @@ export function mulliganScreen({ getMatch, setMatch, updateMatch, setMulliganFie
       const fade = panel.animate([{ opacity: 1 }, { opacity: 0 }], { duration, easing: 'ease-out', fill: 'forwards' });
       await fade.finished.catch(() => {});
     }
-    if (panel.isConnected && current === getMatch()) updateMatch(confirmMulligan(current));
+    if (panel.isConnected && current === getMatch()) {
+      updateMatch(confirmMulligan(current), {
+        side: 'human', action: { type: 'mulligan-confirm' }, description: 'Муллиган завершён.',
+      });
+    }
   }
 
   function choice(card, index) {
@@ -121,7 +125,8 @@ export function mulliganScreen({ getMatch, setMatch, updateMatch, setMulliganFie
         counter.textContent = 'Нет подходящей карты для замены · осталось: ' + mulliganRemaining(getMatch());
         return;
       }
-      setMatch(next);
+      setMatch(next, { side: 'human', action: { type: 'mulligan-replace', cardId: card.id },
+        description: 'Замена карты «' + card.definition.name + '».' });
       const previous = event.currentTarget;
       const focused = document.activeElement === previous;
       const replacement = choice(next.players.human.hand[index], index);
@@ -138,6 +143,8 @@ export function mulliganScreen({ getMatch, setMatch, updateMatch, setMulliganFie
   header.append(heading, counter);
   const actions = element('div', 'mulligan-actions');
   actions.append(button('Посмотреть поле', () => setMulliganField(true)), confirm);
+  const review = testFeedback?.latestRatingButton();
+  if (review) actions.append(review);
   const nodes = match.players.human.hand.map(choice);
   cards.append(...nodes);
   panel.append(header, cards, actions, settingsButton());

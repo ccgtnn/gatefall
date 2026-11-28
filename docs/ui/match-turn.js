@@ -10,13 +10,13 @@ import { playJournal } from './turn-playback.js';
 import { animateChoiceSelection, clearRememberedRects, rememberChoicePosition, takeRememberedRect } from './card-motion-core.js';
 import { clearTurnBanner, pulseTurnAction } from './turn-banner.js';
 import { MOTION, respectReducedMotion } from './motion-tokens.js';
-import { describeBotAction, eventText } from './match-log.js';
+import { describeMatchAction, eventText } from './match-log.js';
 import { weatherApplied } from './card-motion-feedback.js';
 import { aimAnchor, botAimTime, isChoicePending, showBotAim } from './targeting.js';
 
 export function createMatchTurn({
   app, screen, settings, aim, notices, announcement, showNotice, hideNotice,
-  render, recordJournal, onMatchChanged, onCancelTargeting, difficulty,
+  render, recordJournal, onMatchChanged, onCancelTargeting, difficulty, testReport,
 }) {
   const { turnNotice, coinNotice, roundNotice } = notices;
   const botSearch = createBotSearch();
@@ -67,39 +67,50 @@ export function createMatchTurn({
     const before = match;
     const session = matchSession;
     const level = difficulty();
+    if (testReport?.latestBot) {
+      testReport.clearLatestBot();
+      screen.querySelector('.field-test-feedback')?.remove();
+    }
     const label = screen.querySelector('.field-turn-label[data-side="bot"]');
     label?.setAttribute('data-thinking', '');
-    const result = await botSearch.choose(before, level, settings.showBotThoughts()).finally(() => {
+    const result = await botSearch.choose(before, level, Boolean(testReport?.active) || settings.showBotThoughts()).finally(() => {
       label?.removeAttribute('data-thinking');
     });
     if (session !== matchSession || match !== before) return;
     if (result === null) return;
-    const { action, trace } = result;
+    let { action, trace } = result;
     let next = applyAction(before, 'bot', action);
-    if (next === before) {
+    const rejected = next === before;
+    if (rejected) {
       console.warn('Bot action rejected', action);
-      next = applyAction(before, 'bot', chooseFallbackTurn(before));
-      if (next === before) next = applyAction(before, 'bot', { type: 'pass' });
-      if (next === before) next = applyAction(before, 'bot', { type: 'end-turn' });
-      return updateMatch(next);
+      const rejectedAction = action;
+      for (action of [chooseFallbackTurn(before), { type: 'pass' }, { type: 'end-turn' }]) {
+        next = applyAction(before, 'bot', action);
+        if (next !== before) break;
+      }
+      if (next === before) return;
+      if (testReport?.active) {
+        trace = { action, rejectedAction, reason: 'Действие из поиска отклонено. Использую резервный ход.',
+          candidates: trace?.candidates ?? [] };
+      }
     }
-    if (trace) {
+    if (trace && (!rejected || testReport?.active)) {
       next.log.push({
         type: 'bot-thought', side: 'bot',
-        chosen: describeBotAction(match, action), reason: trace.reason,
+        chosen: describeMatchAction(before, action), reason: trace.reason,
         candidates: trace.candidates.map(({ action, score, samples, changes }) => ({
-          label: describeBotAction(match, action), score, samples, changes,
+          label: describeMatchAction(before, action), score, samples, changes,
         })),
       });
     }
-    if (intentTime) {
+    if (intentTime && !rejected) {
       await showBotAim(screen, before, action, intentTime).catch(() => {});
       if (session !== matchSession || match !== before) return;
     }
-    return updateMatch(next);
+    return updateMatch(next, { side: 'bot', action, level, trace });
   }
 
-  async function updateMatch(next) {
+  async function updateMatch(next, reportAction) {
     if (replaying || next === match) return;
     aim.update();
     const session = matchSession;
@@ -157,6 +168,8 @@ export function createMatchTurn({
       return;
     }
     match = next;
+    if (reportAction) testReport?.record(before, journal, reportAction);
+    if (match.phase === 'finished') testReport?.finish(match);
     onMatchChanged(before, match, speech);
     render();
     if (roundTransition) void dismissRoundTransition(roundTransition, duration);
@@ -199,6 +212,9 @@ export function createMatchTurn({
     retryRolls = [...rolls, ...retryRolls];
     targetAction = undefined;
     clearRememberedRects();
+    testReport?.record(match, [], {
+      side: 'human', action: { type: 'cancel-target' }, description: 'Выбор цели отменён.',
+    });
     match = before;
     onCancelTargeting();
     render();
@@ -251,7 +267,7 @@ export function createMatchTurn({
       if (session !== matchSession || match !== before) return;
     }
     if (next.pending?.side !== 'human') targetAction = undefined;
-    await updateMatch(next);
+    await updateMatch(next, { side: 'human', action });
     if (session === matchSession && match && humanCanAct()) screen.querySelector('#pass-button:enabled')?.focus({ preventScroll: true });
   }
 
@@ -260,7 +276,10 @@ export function createMatchTurn({
     get replaying() { return replaying; },
     get targetAction() { return targetAction; },
     get confirmingTarget() { return confirmingTarget; },
-    setMatch: (next) => { match = next; },
+    setMatch: (next, reportAction) => {
+      if (reportAction && next !== match) testReport?.record(match, next.log.slice(match.log.length), reportAction);
+      match = next;
+    },
     reset, warmBot: botSearch.warm, humanCanAct, playHuman, updateMatch, canCancelTargeting, cancelTargeting,
   };
 }

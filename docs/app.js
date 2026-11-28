@@ -1,3 +1,5 @@
+import { createTestMatchReport } from './ui/test-match-report.js';
+import { createTestMatchFeedback, downloadTestReport } from './ui/test-match-feedback.js';
 import { emit } from './ui/app-events.js';
 import { createAppHistory } from './ui/app-history.js';
 import { createAppTimers } from './ui/app-timers.js';
@@ -56,6 +58,8 @@ let localStorage;
 try { localStorage = window.localStorage; } catch {}
 const cloud = createAppCloud(localStorage, () => Boolean(turns?.match));
 const { storage, backgroundStorage } = cloud;
+const testReport = createTestMatchReport({ storage: localStorage, buildVersion: new URL(import.meta.url).searchParams.get('gf') });
+const testFeedback = createTestMatchFeedback(testReport);
 const deckStore = createDeckStorage(storage);
 const framePreferences = createFramePreferences(storage, document.documentElement);
 const battlefieldPreferences = createBattlefieldPreferences(storage, document.documentElement);
@@ -66,10 +70,10 @@ const settings = createSettings(app, (surrender) => session.leave(surrender), as
     window.confirm('Перезаписать облачную копию после сброса прогресса?');
   await cloud.sync.reset(() => resetProgress(localStorage, navigator.locks), overwrite);
   window.location.reload();
-}, botDifficulty, cloud);
+}, botDifficulty, cloud, testFeedback);
 turns = createMatchTurn({
   app, screen, settings, aim, notices: { turnNotice, coinNotice, roundNotice }, announcement,
-  showNotice, hideNotice, render,
+  showNotice, hideNotice, render, testReport,
   difficulty: () => session.difficulty(),
   battlefieldStyle: battlefieldPreferences.current,
   onCancelTargeting: () => session.cancelDialogue(),
@@ -77,10 +81,10 @@ turns = createMatchTurn({
   onMatchChanged: (...args) => session.onMatchChanged(...args),
 });
 const progress = createRewardProgress(storage, navigator.locks, { enqueueReward });
-const menu = createMatchMenu(() => turns.match, () => settings.showBotThoughts());
+const menu = createMatchMenu(() => turns.match, () => settings.showBotThoughts(), testFeedback);
 const { drawer } = menu;
 const session = createMatchSession({
-  app, screen, turns, progress, stats, deckStore, settings, dialogs: [drawer, preview],
+  app, screen, turns, progress, stats, deckStore, settings, testReport, dialogs: [drawer, preview],
   waitForRewards: () => rewardReveal.whenIdle(),
   announcement, notices: { turnNotice, coinNotice, roundNotice }, showNotice, hideNotice, render,
   onStart() {
@@ -200,7 +204,7 @@ const hand = {
   getMatch: () => turns.match,
   setMatch: turns.setMatch,
   updateMatch, setMulliganField: session.setMulliganField, settingsButton, motion: () => settings.motion(),
-  mulliganDeal: session.mulliganDeal,
+  mulliganDeal: session.mulliganDeal, testFeedback,
 };
 const battlefield = createBattlefield({
   getMatch: () => turns.match,
@@ -214,7 +218,7 @@ const battlefield = createBattlefield({
   cancelTargeting: turns.cancelTargeting,
   getTargetAction: () => turns.targetAction,
   choiceLocked: () => turns.confirmingTarget,
-  showDrawer: menu.showDrawer,
+  showDrawer: menu.showDrawer, testFeedback,
   selectCard: (id) => {
     selectedCardId = selectedCardId === id ? undefined : id;
     updatePlacementSelection(screen, turns.match, selectedCardId);
@@ -377,7 +381,7 @@ function renderScreen({ deckListNotice } = {}) {
   else if (match?.phase === 'finished') {
     const settlement = session.describeResult(match);
     content = finishedScreen(match, phaseLabel, session.replay, session.leave,
-      settings.showBotThoughts(), session.canReplay, Boolean(leagueMatch), settlement, signal);
+      settings.showBotThoughts(), session.canReplay, Boolean(leagueMatch), settlement, signal, testFeedback);
   } else {
     const back = () => navigation.backTo('all-decks');
     switch (menuView) {
@@ -441,7 +445,7 @@ function renderScreen({ deckListNotice } = {}) {
       default: content = deckHomeScreen(phaseLabel, {
         base: openBase, league: () => goTo('league'), ranks: () => goTo('ranks'),
         catalog: () => openResources('essence'), decorations: () => goTo('decorations'), all: () => goTo('all-decks'),
-      }, progress, { deckStore, inventory: progress.inventory, storage, difficulty: botDifficulty, play: session.start }, signal);
+      }, progress, { deckStore, inventory: progress.inventory, storage, difficulty: botDifficulty, play: session.startQuick, testReport, downloadReport: downloadTestReport }, signal);
     }
   }
   app.classList.toggle('is-deck-home', content.classList.contains('deck-home'));
