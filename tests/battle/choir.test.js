@@ -85,7 +85,7 @@ test('The three bronze Psionic effects count toward starting-deck Obsession', ()
   const startingMatch = createMatch({ decks: { human: definitions, bot: [] }, random: fixed });
   human(match).startingCategories = human(startingMatch).startingCategories;
   assert.equal(human(match).startingCategories[PSIONICS], 3);
-  assert.equal(get(play(match), 'hand-0').power, 4);
+  assert.equal(get(play(match), 'hand-0').power, 5);
 });
 
 test('Call of the Deep transforms and boosts the selected unit in place on either side', () => {
@@ -149,7 +149,7 @@ test('Sleeper Litany offers three Choir bronze units and plays one with an owner
   const { id } = choosing.pending.cards.find(({ definition }) => definition.id === 'depth-neophyte');
   const result = action(pick(choosing, id), 'place', { row: 'orbit', position: 0 });
   assert.equal(get(result, id).definition.id, 'depth-neophyte');
-  assert.equal(get(result, id).power, 5);
+  assert.equal(get(result, id).power, 6);
   assert.equal(get(result, id).counter, 3);
   assert.equal(result.log.find(({ type, cardId }) => type === 'play' && cardId === id).from, 'created');
   assert.equal(get(result, 'surface-0').playedEffects, 1);
@@ -183,7 +183,7 @@ test('The Sleeper names and Cultist glossary use the same text while card IDs st
 test('Obsession counts printed starting Psionics (the scenario is not Psionics), unaffected by changing the deck', () => {
   for (const [count, expected] of [[0, 0], [2, 0], [3, 1], [5, 1], [6, 2], [9, 3], [12, 4]]) {
     const match = setup({ count, hand: [cards.get('depth-neophyte')], deck: [AWAKENING, AWAKENING] });
-    assert.equal(get(play(match), 'hand-0').power, 3 + expected);
+    assert.equal(get(play(match), 'hand-0').power, 4 + expected);
   }
   assert.deepEqual(AWAKENING.categories, []);
   const match = createMatch({ decks: { human: [AWAKENING, AWAKENING, quiet], bot: [] }, random: fixed });

@@ -67,7 +67,7 @@ export const AWAKENING = psionic({
   art: 'sleeper-awakening.webp', artCrop: 'sleeper-awakening-crop.webp',
   text: [
     'Стойкость. Главы открываются по одной при появлении нового Щупальца на твоей стороне.',
-    'Пролог: призови Фанатика Спящего справа.',
+    'Пролог: призови по Фанатику Спящего слева и справа.',
     'Глава 1: усиль на 1 всех культистов Спящего в своей колоде.',
     'Глава 2: уничтожь выбранный свой отряд и призови Большое щупальце Спящего на Поверхность.',
     'Глава 3: если за матч сыграно хотя бы 7 эффектов Псионики, призови Спящего под Вратами в ряд сценария.',
@@ -76,7 +76,7 @@ export const AWAKENING = psionic({
   scenario: {
     trigger: 'appearance', category: TENTACLE_CATEGORY,
     countPlayedEffects: PSIONICS, finalChapterMinimum: 7,
-    prologue: ability([spawn(fanaticToken, 'source', 1, 'right')]),
+    prologue: ability([spawn(fanaticToken, 'source', 1, 'left'), spawn(fanaticToken, 'source', 1, 'right')]),
     chapters: [
       ability([{ action: 'boost-deck', category: CULTIST, amount: 1 }]),
       ability([
@@ -121,7 +121,7 @@ export const CHOIR_CARDS = Object.freeze([
   }),
   FANATIC,
   card({
-    id: 'depth-neophyte', name: 'Неофит глубин', rarity: 'bronze', provision: 5, power: 3, categories: [CULTIST],
+    id: 'depth-neophyte', name: 'Неофит глубин', rarity: 'bronze', provision: 5, power: 4, categories: [CULTIST],
     art: 'depth-neophyte.webp', artCrop: 'depth-neophyte-crop.webp',
     text: 'Одержимость (Псионика): при розыгрыше усиль себя на 1 за каждые 3 карты Псионики.',
     keywords: ['Одержимость', PSIONICS, 'Усиление'], deploy: ability([boost(obsession)]),
@@ -135,7 +135,7 @@ export const CHOIR_CARDS = Object.freeze([
       { action: 'return-hand', amount: { result: 'drawn' } }]),
   }),
   card({
-    id: 'abyss-shepherd', name: 'Пастырь бездны', rarity: 'gold', provision: 13, power: 1,
+    id: 'abyss-shepherd', name: 'Пастырь бездны', rarity: 'gold', provision: 12, power: 1,
     art: 'abyss-shepherd.webp', artCrop: 'abyss-shepherd-crop.webp',
     text: 'Одержимость (Псионика): при розыгрыше захвати выбранный вражеский отряд с силой не выше 3 / 4 / 5 / 6 при 3 / 6 / 9 / 12 картах Псионики. При меньшем числе карт Захват не срабатывает.',
     keywords: ['Одержимость', PSIONICS, 'Захват'],
@@ -175,7 +175,7 @@ export const CHOIR_CARDS = Object.freeze([
     [sacrifice('victim', 'Выбери свой отряд для Малого подношения.')]),
   }),
   psionic({
-    id: 'great-sacrifice', name: 'Великая жертва', rarity: 'gold', provision: 10,
+    id: 'great-sacrifice', name: 'Великая жертва', rarity: 'gold', provision: 9,
     art: 'great-sacrifice.webp', artCrop: 'great-sacrifice-crop.webp',
     text: 'Нанеси по 2 урона трём разным своим отрядам, затем призови по Щупальцу Спящего в ряду каждой жертвы. При нехватке места используй другой ряд.',
     keywords: [PSIONICS, 'Урон', 'Порождение'],
