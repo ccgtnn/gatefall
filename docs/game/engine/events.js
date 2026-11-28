@@ -86,7 +86,7 @@ export function emit(match, event, { source, neighbors = [], death, journal = tr
   if (death) jobs.push(...deathwishJobs(source, { side: event.side, deathSide: event.side, ...death }));
   const abilities = cardAbilities(source);
   const self = abilities.events?.[event.type] ?? (event.type === 'turn-end' ? abilities.endTurn : undefined);
-  if (self) jobs.push({ ability: self, side, sourceId: source.id, sourceDefinitionId: source.definition.id, causeDefinitionId: event.sourceDefinitionId, requiredSource: true, cardAbility: true });
+  if (self && (!self.friendlySource || (event.attacker && event.attacker === side))) jobs.push({ ability: self, side, sourceId: source.id, sourceDefinitionId: source.definition.id, causeDefinitionId: event.sourceDefinitionId, requiredSource: true, cardAbility: true });
   for (const { card, side } of neighbors) {
     const ability = cardAbilities(card).neighborEvents?.[event.type];
     if (ability) jobs.push({ ability, sourceId: card.id, side, requiredSource: true, cardAbility: true });

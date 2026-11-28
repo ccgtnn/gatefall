@@ -7,7 +7,7 @@ import { armorTargetPriority, beneficialFee, cleansePriority, damagePoints, dama
 import { armorBreakSwing, consumeBonus, delayedCardValue, futureContext, inheritancePayoff, remainingTurns, wantsToHoldInheritance } from './bot-future-value.js';
 import { HAND_LIMIT, ROUND_DRAW, ROW_LIMIT, availableRows, canEndTurn, canPass, playableCards, totalScore } from '../engine/match.js';
 
-import { canUseBotLeader, leaderTargetPriority, offeringPriority, replacementVictims, preferredLeaderUse } from './bot-leaders.js';
+import { canUseBotLeader, leaderTargetPriority, offeringPriority, replacementVictims, preferredLeaderUse, leaderBeforeReplacement } from './bot-leaders.js';
 import { deathwishDefinitions } from '../engine/events.js';
 import { BOT_LEVELS, readBotLevel } from './bot-levels.js';
 import { botSearchState, chooseStrategicTarget, chooseStrategicTurn } from './bot-strategy.js';
@@ -173,7 +173,8 @@ export function pickBotTarget(match) {
   if (kind === 'enemy-row') {
     const enemy = match.players[match.pending.selectionSide];
     const row = bestTarget(options, (row) => scatter
-      ? rowScatterValue(enemy, row, amount) : rowDamage(enemy, row, amount, armorStrip));
+      ? rowScatterValue(enemy, row, amount, match.pending.side === match.pending.selectionSide)
+      : rowDamage(enemy, row, amount, armorStrip, match.pending.side === match.pending.selectionSide));
     return { type: 'target', cardId: row };
   }
   if (kind === 'tribute') {
@@ -218,7 +219,7 @@ export function pickBotTarget(match) {
       return priority < 100 && prefersShieldDamage(match) && unit.side !== match.pending.side &&
         statusCount(unit.card, 'shield') ? 99 : priority;
     },
-    'friendly-damage': ({ card }) => statusCount(card, 'shield') ? -.5 : -damagePoints(card, amount || 2),
+    'friendly-damage': ({ card }) => statusCount(card, 'shield') ? -.5 : -damagePoints(card, amount || 2, undefined, true),
     emp: ({ card }) => Math.min(card.power, 2 + (card.armor ?? 0)) + (card.armor ?? 0) * .1,
     consume: (unit) => 4 * consumeBonus(forecast, unit) - .03 * (unit.card.power ?? 0),
     'leader-offering': (unit) => offeringPriority(match, match.pending.side, unit, amount),
@@ -258,7 +259,7 @@ function beneficialLeader(match, view, allies) {
   return card.power >= 2 || deathwishDefinitions(card).length > 0 || view.score === view.opponentScore;
 }
 
-export function chooseEasyTurn(match) {
+function easyTurn(match) {
   if (match.pending) return pickBotTarget(match);
   const view = createBotView(match);
   const enemies = units(match, 'human').filter(({ card }) => isUnit(card));
@@ -297,6 +298,11 @@ export function chooseEasyTurn(match) {
   const player = match.players[placementSide('bot', card)];
   const [row] = availableRows(player, card);
   return { type: 'play', cardId: card.id, row, position: player.board[row].length };
+}
+
+export function chooseEasyTurn(match) {
+  const action = easyTurn(match);
+  return leaderBeforeReplacement(match, 'bot', action) ? { type: 'leader' } : action;
 }
 
 export function chooseBotTurn(match, mastery, options = {}) {

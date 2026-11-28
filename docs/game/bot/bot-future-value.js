@@ -273,7 +273,7 @@ function enemyImpact(context, job, step) {
     const sign = target.side === side ? -1 : 1;
     const amount = valueOf(match, job, step.amount, target);
     if (step.action === 'destroy') return sign * card.power;
-    if (step.action === 'damage') return sign * damagePoints(card, amount);
+    if (step.action === 'damage') return sign * damagePoints(card, amount, undefined, target.side === job.side);
     if (step.status === 'infection') {
       const current = statusCount(card, 'infection');
       const ticks = target.side === side ? context.turns : opponentTurns;

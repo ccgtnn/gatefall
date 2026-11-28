@@ -115,7 +115,7 @@ test('the bot completes Right Fang’s order by moving its least valuable hand c
   }
 });
 
-test('all bots end a turn with an empty hand after already using an order', () => {
+test('all bots pass with an empty hand after already using an order', () => {
   const match = position(3);
   const bot = match.players.bot;
   bot.hand = [];
@@ -131,12 +131,12 @@ test('all bots end a turn with an empty hand after already using an order', () =
   const first = { type: 'order', cardId: 'order' };
   const next = applyAction(match, 'bot', first);
   assert.equal(next.players.bot.usedAbility, true);
-  assert.equal(canPass(next, 'bot'), false);
-  assert.equal(canEndTurn(next, 'bot'), true);
+  assert.equal(canPass(next, 'bot'), true);
+  assert.equal(canEndTurn(next, 'bot'), false);
   for (const difficulty of [2, 4, 6]) {
     const action = chooseBotTurn(next, difficulty);
-    assert.deepEqual(action, { type: 'end-turn' });
-    assert.notStrictEqual(applyAction(next, 'bot', action), next);
+    assert.deepEqual(action, pass);
+    assert.equal(applyAction(next, 'bot', action).players.bot.passed, true);
   }
 });
 

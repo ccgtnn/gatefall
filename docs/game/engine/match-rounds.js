@@ -35,7 +35,7 @@ export function playableCards(match, side) {
  */
 export function canPass(match, side) {
   return match.phase === 'playing' && match.turn === side && !match.pending &&
-    !match.playedCard && !match.players[side].passed && !match.players[side].usedAbility;
+    !match.playedCard && !match.players[side].passed;
 }
 
 /**
@@ -44,8 +44,7 @@ export function canPass(match, side) {
  */
 export function canEndTurn(match, side) {
   return match.phase === 'playing' && match.turn === side && !match.pending &&
-    !match.players[side].passed &&
-    (match.playedCard || (match.players[side].usedAbility && !playableCards(match, side).length));
+    !match.players[side].passed && match.playedCard;
 }
 
 export function mulliganLimit(match, side) {
@@ -237,7 +236,7 @@ export function progress(match, random) {
       continue;
     }
     if (match.ending === 'advance') {
-      if (!player.passed && player.hand.length === 0) markPassed(match, side, 'empty-hand');
+      if (!player.passed && (!match.playedCard || player.hand.length === 0)) markPassed(match, side, 'empty-hand');
       match.ending = null;
       match.playedCard = false;
       player.turns += 1;
@@ -260,13 +259,7 @@ export function progress(match, random) {
     }
     if (playableCards(match, side).length || availableFees(match, side).length ||
         canUseLeader(match, side) || availableOrders(match, side).length) return;
-    if (player.usedAbility) {
-      if (player.hand.length === 0) return;
-      match.log.push({ type: 'turn-skip', side });
-      match.ending = 'effects';
-      continue;
-    }
-    if (!startingTurn && player.hand.length === 0) return;
+    if (player.usedAbility || (!startingTurn && player.hand.length === 0)) return;
     if (player.hand.length) {
       markPassed(match, side, player.hand.every((card) => cardType(card) === 'effect') ? 'no-target' : 'full-row');
     }

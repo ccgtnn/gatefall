@@ -1,5 +1,5 @@
 import { handCount } from './bot-hand.js';
-import { canUseBotLeader, leaderTargetPriority, offeringPriority, replacementVictims } from './bot-leaders.js';
+import { canUseBotLeader, leaderTargetPriority, offeringPriority, replacementVictims, leaderBeforeReplacement } from './bot-leaders.js';
 import { cardPotential, evaluateBreakdown, evaluatePosition, positionStrength } from './bot-evaluation.js';
 import { EVAL_WEIGHTS as W } from './bot-weights.js';
 import { compareRollouts, searchDeck } from './bot-rollouts.js';
@@ -256,6 +256,7 @@ function evaluateAction(state, side, action, search) {
     else if (canEndTurn(next, side)) actions = [END, ...abilities(next, side)];
     else {
       actions = plays(next, side).map(({ action }) => action);
+      if (!actions.length && canPass(next, side)) actions.push(PASS);
       if (move.type === 'fee') {
         const ready = availableOrders(next, side).find(({ card }) => card.id === move.cardId);
         if (ready) actions.unshift({ type: 'order', cardId: move.cardId });
@@ -356,6 +357,10 @@ function replyRating(candidate, search, level) {
 }
 
 function report(options, action, reason, candidates = [], state) {
+  if (state && leaderBeforeReplacement(state, 'bot', action)) {
+    action = { type: 'leader' };
+    reason = 'Использую готовую способность лидера перед его заменой.';
+  }
   if (options.onDecision) {
     const baseline = candidates.length ? evaluateBreakdown(state, 'bot').parts : undefined;
     options.onDecision({
@@ -457,7 +462,7 @@ export function chooseStrategicTurn(match, level, options) {
   const { bot } = state.players;
   const finalRound = state.round === 3;
   const legal = holdUntargetedDamage(state, 'bot', playableCards(state, 'bot'));
-  const mayPass = canPass(state, 'bot');
+  const mayPass = canPass(state, 'bot') && (!bot.usedAbility || !legal.length);
   const share = (fraction) => {
     const local = limit(level.budgetMs * fraction);
     return { ...search, expired: () => search.expired() || local.expired() };
@@ -493,5 +498,5 @@ export function chooseStrategicTurn(match, level, options) {
   const recipient = state.players[placementSide('bot', card)];
   const [row] = availableRows(recipient, card);
   const placement = cardType(card) === 'effect' ? {} : { row, position: recipient.board[row].length };
-  return report(options, { type: 'play', cardId: card.id, ...placement }, 'Выбираю допустимый розыгрыш.');
+  return report(options, { type: 'play', cardId: card.id, ...placement }, 'Выбираю допустимый розыгрыш.', [], state);
 }

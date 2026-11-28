@@ -1,5 +1,5 @@
 import { isUnit, neighbors, opponent } from './board-placement.js';
-import { onPowerLoss, refreshRowPower, refreshSidePower, removeUnit } from './board-power.js';
+import { reactToDamage, refreshRowPower, refreshSidePower, removeUnit } from './board-power.js';
 import { emit, isLocked } from './events.js';
 
 export function setRowEffect(match, side, row, effect) {
@@ -88,7 +88,8 @@ export function applyStatus(match, unit, status, amount, extra) {
       delete card.statuses.infection;
       delete card.infectionSource;
     } else if (status === 'infection' && amount > 0) {
-      card.infectionSource = extra?.sourceDefinitionId ? { sourceDefinitionId: extra.sourceDefinitionId, attacker: extra.attacker } : undefined;
+      card.infectionSource = extra?.sourceDefinitionId || extra?.attacker
+        ? { sourceDefinitionId: extra.sourceDefinitionId, attacker: extra.attacker } : undefined;
     }
   }
   const event = { type: status === 'armor' ? 'armor' : 'status', status, count,
@@ -133,5 +134,5 @@ export function tickInfection(match, unit) {
   else card.power -= 1;
   applyStatus(match, unit, 'infection', -1, { ...cause, tick: true, blocked, power: card.power });
   if (card.power === 0) removeUnit(match, unit, 'infection', undefined, { infection, ...cause });
-  else if (!blocked) onPowerLoss(match, unit);
+  else if (!blocked) reactToDamage(match, unit, 1, cause?.sourceDefinitionId, cause?.attacker);
 }

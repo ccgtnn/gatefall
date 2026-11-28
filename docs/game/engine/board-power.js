@@ -133,6 +133,12 @@ export function damageOverflow(card, amount) {
   return statusCount(card, 'shield') ? 0 : Math.max(0, amount - (card.armor ?? 0) - card.power);
 }
 
+export function reactToDamage(match, unit, lost, sourceDefinitionId, attacker) {
+  onPowerLoss(match, unit);
+  match.effects.unshift(...emit(match, { type: 'damage', side: unit.side, lost, sourceDefinitionId, attacker },
+    { source: unit.card, journal: false }));
+}
+
 export function damage(match, unit, amount, sourceDefinitionId, extra) {
   if (!unit || !isUnit(unit.card) || amount <= 0) return;
   if (statusCount(unit.card, 'shield')) {
@@ -145,11 +151,7 @@ export function damage(match, unit, amount, sourceDefinitionId, extra) {
   unit.card.power -= lost;
   emit(match, { type: 'damage', side: unit.side, name: unit.card.definition.name, cardId: unit.card.id, power: unit.card.power, amount, absorbed, lost, sourceDefinitionId, ...extra });
   if (unit.card.power > 0) {
-    if (lost > 0) {
-      onPowerLoss(match, unit);
-      match.effects.unshift(...emit(match, { type: 'damage', side: unit.side, lost, sourceDefinitionId },
-        { source: unit.card, journal: false }));
-    }
+    if (lost > 0) reactToDamage(match, unit, lost, sourceDefinitionId, extra?.attacker);
     return 0;
   }
   removeUnit(match, unit, 'damage', undefined, { sourceDefinitionId, ...extra });

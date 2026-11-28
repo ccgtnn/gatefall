@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { applyStatus, createCard, findUnit, placeCards } from '../../docs/game/engine/board.js';
 import { chooseBestBotTurn as chooseBotTurn } from '../helpers/bot-choice.js';
+import { findCardDefinition } from '../../docs/game/cards/card-registry.js';
 import { FACTIONS, FIRST_SIGNAL } from '../../docs/game/cards/cards.js';
 import { availableOrders } from '../../docs/game/effects/effects.js';
 import { applyAction, canEndTurn, canPass, confirmMulligan, createMatch, mulliganLimit, mulliganRemaining, replaceMulliganCard } from '../../docs/game/engine/match.js';
@@ -20,22 +21,36 @@ function action(match, type, cardId, side = match.turn, row = 'orbit') {
   return applyAction(match, side, { type, cardId, row, position: match.players[side].board[row].length });
 }
 
-test('leader locks pass until a card is played, then the next owner turn can pass', () => {
-  let match = confirmMulligan(setup(), []);
-  match.players.human.board.orbit = [unit('ally')];
-  match.players.human.hand = [unit('play'), unit('spare')];
-  assert.equal(canPass(match, 'human'), true);
-  match = action(action(match, 'leader'), 'target', 'ally');
-  assert.equal(match.turn, 'human');
-  assert.equal(canPass(match, 'human'), false);
-  assert.strictEqual(applyAction(match, 'human', pass), match);
-  match = action(action(match, 'play', 'play'), 'end-turn');
-  assert.equal(match.turn, 'bot');
-  match = applyAction(match, 'bot', pass);
-  assert.equal(canPass(match, 'human'), true);
+test('in round three Salfurion can use his order and still play a card or pass', () => {
+  for (const side of ['human', 'bot']) {
+    const opponent = side === 'human' ? 'bot' : 'human';
+    let match = confirmMulligan(setup(side), []);
+    match.round = 3;
+    match.players[side].leader = null;
+    match.players[side].hand = [createCard('salfurion', findCardDefinition('salfurion')), unit('spare')];
+    match = action(match, 'play', 'salfurion');
+    match = action(match, 'play', match.players[opponent].hand[0].id);
+    if (match.turn === opponent) match = action(match, 'end-turn');
+    assert.equal(match.turn, side);
+
+    const ordered = action(match, 'leader');
+    assert.equal(ordered.turn, side);
+    assert.equal(ordered.players[side].turns, match.players[side].turns);
+    assert.equal(canPass(ordered, side), true);
+    const played = action(ordered, 'play', 'spare');
+    assert.ok(played.log.some((event) => event.type === 'play' && event.cardId === 'spare'));
+
+    for (const type of ['pass', 'end-turn']) {
+      const passed = action(ordered, type);
+      assert.equal(passed.turn, opponent);
+      assert.equal(passed.players[side].passed, true);
+      assert.equal(passed.players[side].hand[0].id, 'spare');
+      assert.ok(passed.log.some((event) => event.type === 'pass' && event.side === side));
+    }
+  }
 });
 
-test('resolving the last ability skips a turn with a nonempty but unplayable hand', () => {
+test('an order cannot silently skip a turn with a nonempty but unplayable hand', () => {
   for (const side of ['human', 'bot']) {
     let match = confirmMulligan(setup(side), []);
     const player = match.players[side];
@@ -43,26 +58,17 @@ test('resolving the last ability skips a turn with a nonempty but unplayable han
     player.leader = null;
     player.hand = [unit('cast', 'orbital-salvo')];
     match = action(action(match, 'order', FIRST_SIGNAL.id), 'target', 'ally');
-    assert.notEqual(match.turn, side);
+    assert.equal(match.turn, side);
     assert.equal(match.players[side].passed, false);
-    assert.equal(match.players[side].usedAbility, false);
+    assert.equal(match.players[side].turns, 0);
+    const finish = side === 'bot' ? chooseBotTurn(match) : { type: 'end-turn' };
+    match = applyAction(match, side, finish);
+    assert.notEqual(match.turn, side);
+    assert.equal(match.players[side].passed, true);
     assert.equal(match.players[side].turns, 1);
-    assert.ok(match.log.some((event) => event.type === 'turn-skip' && event.side === side));
-    assert.ok(!match.log.some((event) => event.type === 'pass' && event.side === side));
+    assert.ok(match.log.some((event) => event.type === 'pass' && event.side === side));
+    assert.ok(!match.log.some((event) => event.type === 'turn-skip'));
   }
-});
-
-test('bot chooses a legal play instead of passing after an order, even when already ahead', () => {
-  let match = confirmMulligan(setup('bot'), []);
-  match.players.bot.board.orbit = [unit('ally', 'bastion')];
-  match.players.bot.hand = [unit('weak'), unit('strong', 'assault')];
-  match = action(action(match, 'order', FIRST_SIGNAL.id), 'target', 'ally');
-  match.players.human.passed = true;
-  assert.strictEqual(applyAction(match, 'bot', pass), match);
-  const play = chooseBotTurn(match);
-  assert.equal(play.type, 'play');
-  assert.equal(play.cardId, 'weak');
-  assert.notStrictEqual(applyAction(match, 'bot', play), match);
 });
 
 test('mulligan skips all copies of selected cards, preserves skipped deck order and clears the blacklist each round', () => {
@@ -201,7 +207,7 @@ test('First Signal starts on the first mover side, can only boost a friendly uni
     assert.equal(match.players[starter].board.orbit[0].power, 8);
     assert.equal(match.players[starter].board.surface.length, 0);
     assert.equal(match.players[starter].exile[0].id, signal.id);
-    assert.equal(canPass(match, starter), false);
+    assert.equal(canPass(match, starter), true);
     assert.strictEqual(action(match, 'order', signal.id), match);
   }
 });
@@ -222,7 +228,7 @@ test('unused First Signal disappears in round one and is never redeployed', () =
 test('a played card opens the order window and blocks a second card or pass', () => {
   let match = confirmMulligan(setup(), []);
   match.players.human.hand = [unit('first'), unit('second')];
-  assert.strictEqual(action(match, 'end-turn'), match);
+  assert.equal(action(match, 'end-turn').players.human.passed, true);
   match = action(match, 'play', 'first');
   assert.equal(match.turn, 'human');
   assert.equal(match.players.human.turns, 0);
