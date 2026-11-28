@@ -9,6 +9,7 @@ import { deckHomeScreen } from '../../docs/ui/deck-list.js';
 import { createDeckStorage, DECK_STORAGE_KEY } from '../../docs/ui/deck-storage.js';
 import { homeTiles } from '../../docs/ui/home-tiles.js';
 import { createMatchSession } from '../../docs/ui/match-session.js';
+import { createTestMatchReport } from '../../docs/ui/test-match-report.js';
 import { QUICK_MATCH_KEY } from '../../docs/ui/quick-match-panel.js';
 
 class Node extends EventTarget {
@@ -63,8 +64,8 @@ function fixture(signal) {
   const difficulty = createBotDifficulty(storage);
   const inventory = () => ({ owned });
   const phase = new Node('p');
-  const view = (play) => deckHomeScreen(phase, actions, {}, { deckStore, inventory, storage, difficulty, play }, signal);
-  return { own, rival, saved, deckStore, owned, difficulty, inventory, actions, view };
+  const view = (play, testOptions) => deckHomeScreen(phase, actions, {}, { deckStore, inventory, storage, difficulty, play, ...testOptions }, signal);
+  return { own, rival, saved, storage, deckStore, owned, difficulty, inventory, actions, view };
 }
 
 test('home has quick match and All Decks tile, with the last played deck and all bot presets', (t) => {
@@ -219,4 +220,44 @@ test('home tiles have plain labels when progress data is absent', (t) => {
   t.after(() => scope.abort());
   const tiles = homeTiles({}, actions, scope.signal);
   assert.deepEqual(tiles.children.map(label), ['База', 'Лига', 'Ранги']);
+});
+
+test('testing persists in quick match and cannot enable recording from a deck or League match', async (t) => {
+  const scope = new AbortController();
+  t.after(() => scope.abort());
+  const { own, rival, deckStore, inventory, saved, storage, difficulty, view } = fixture(scope.signal);
+  const testReport = createTestMatchReport({ storage });
+  const turns = { reset(match) { this.match = match; }, warmBot() {} };
+  const session = createMatchSession({
+    turns, progress: { inventory, league: () => undefined, beginLeagueMatch: async () => 'done' }, deckStore, testReport,
+    screen: { querySelector: () => new Node('h2') }, settings: { motion: () => 0, difficulty: difficulty.read },
+    notices: { coinNotice: new Node('aside') }, announcement: new Node('p'),
+    showNotice() {}, onStart() {}, render() {},
+  });
+  const toggle = (home) => tree(home).find(({ type }) => type === 'checkbox');
+  const checkbox = toggle(view(session.startQuick));
+  checkbox.checked = true;
+  checkbox.dispatchEvent(new Event('change'));
+  assert.equal(JSON.parse(saved.get(QUICK_MATCH_KEY)).testing, true);
+  const home = view(session.startQuick);
+  assert.equal(toggle(home).checked, true);
+  press(byClass(home, 'quick-match-play'));
+  assert.equal(testReport.active.meta.decks.human.leaderId, own.leaderId);
+  testReport.finish(turns.match, 'draw');
+  const previous = testReport.active;
+  session.start(own, { testing: true });
+  assert.equal(testReport.active, undefined);
+  await session.startLeague({}, { ...leagueOpponent(createLeague(Date.now()).season), deck: rival }, own);
+  assert.equal(testReport.active, undefined);
+  let downloaded;
+  const reopened = view(session.startQuick, { testReport, downloadReport: (report) => { downloaded = report; } });
+  press(byClass(reopened, 'quick-match-report'));
+  assert.equal(downloaded, previous);
+  press(byClass(reopened, 'quick-match-play'));
+  assert.notEqual(testReport.previous().meta.id, previous.meta.id);
+  assert.equal(testReport.previous().meta.result, null);
+  const unchecked = toggle(view(session.startQuick));
+  unchecked.checked = false;
+  unchecked.dispatchEvent(new Event('change'));
+  assert.equal(toggle(view(session.startQuick)).checked, false);
 });

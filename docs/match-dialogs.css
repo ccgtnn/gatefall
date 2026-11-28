@@ -150,3 +150,18 @@ body:has(#app[data-reduced-motion="true"]) .field-drawer[open] { animation: none
   font: inherit;
 }
 .cloud-account { overflow-wrap: anywhere; }
+
+.test-rating-dialog { max-height: 94dvh; overflow: auto; }
+.test-rating-form, .test-rating-comment { display: grid; gap: .6rem; }
+.test-rating-stars {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: .25rem;
+  min-inline-size: 0;
+  padding: .4rem;
+}
+.test-rating-stars .test-rating-star { min-block-size: 44px; padding: .25rem 0; }
+.test-rating-star.is-selected { color: #ffdd84; background: #384c5e; border-color: #c4a469; }
+.test-rating-comment textarea { resize: vertical; min-inline-size: 0; }
+.test-journal-move { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.test-journal-move .test-feedback { min-inline-size: 44px; min-block-size: 44px; padding: .25rem; }

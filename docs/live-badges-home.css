@@ -405,3 +405,6 @@ body:has(.is-deck-home, #screen > :is(.league-panel, .rank-panel, .decorations-p
   .campaign-slot { aspect-ratio: 3.9 / 1; }
   .is-deck-home .home-tile { min-height: 3rem; }
 }
+
+.quick-match-testing { display: flex; align-items: center; gap: .5rem; width: fit-content; min-height: 2.75rem; }
+.quick-match-report { width: fit-content; }

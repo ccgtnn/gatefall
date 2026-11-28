@@ -278,3 +278,74 @@ for (const playedCard of [false, true]) {
     assert.equal(warning.mock.callCount(), 1);
   });
 }
+
+test('testing requests hidden traces and rates each bot action after its playback', async (t) => {
+  const { createTestMatchReport } = await import('../../docs/ui/test-match-report.js');
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let respond;
+  const requests = [];
+  const previousWorker = globalThis.Worker;
+  globalThis.Worker = class {
+    addEventListener(type, listener) {
+      if (type !== 'message') return;
+      respond = (data) => listener({ data });
+      queueMicrotask(() => respond({ ready: true }));
+    }
+    postMessage(payload) { requests.push(payload); }
+    terminate() {}
+  };
+  t.after(() => { globalThis.Worker = previousWorker; });
+
+  const report = createTestMatchReport();
+  const ready = readyMatch();
+  const shot = findCardDefinition('orbital-salvo');
+  ready.players.bot.hand.unshift(createCard('bot-shot', shot));
+  ready.players.human.board.surface = [createCard('test-vine', findCardDefinition('vine'))];
+  report.start(ready, { id: 'test', level: 2 });
+
+  let buttonRemoved = 0;
+  let duration = 0;
+  const playback = [];
+  const turns = controller({
+    testReport: report,
+    screen: {
+      classList: { add() {}, remove() {} },
+      querySelector: (name) => name === '.field-test-feedback' ? { remove: () => { buttonRemoved++; } } : null,
+      querySelectorAll: () => [],
+    },
+    settings: { motion: () => duration, showBotThoughts: () => false, playSound() {} },
+    onMatchChanged: (before, after) => playback.push({ before, after, latest: report.latestBot?.botMove }),
+  });
+  t.after(() => turns.reset());
+  turns.reset(ready);
+  await turns.playHuman({ type: 'pass' });
+  t.mock.timers.tick(1000);
+  const flush = () => new Promise((resolve) => setImmediate(resolve));
+  await flush();
+  assert.equal(requests[0].withTrace, true);
+  assert.equal(report.latestBot, undefined);
+  const action = { type: 'play', cardId: 'bot-shot' };
+  const trace = { action, reason: 'Проверка', candidates: [] };
+  respond({ action, trace });
+  await flush();
+  assert.equal(turns.match.pending.side, 'bot');
+  assert.equal(report.latestBot.botMove, 1);
+  assert.equal(playback.at(-1).latest, 1);
+  assert.equal(report.latestBot.position.state.pending, null);
+  assert.deepEqual(report.latestBot.trace, trace);
+  assert.equal(report.active.timeline[0].description, 'Пас');
+
+  t.mock.timers.tick(1000);
+  assert.equal(buttonRemoved, 1);
+  assert.equal(report.latestBot, undefined);
+  assert.equal(requests[1].withTrace, true);
+  const target = { type: 'target', cardId: 'test-vine' };
+  duration = 1;
+  respond({ action: target, trace: { action: target, reason: 'Выбор цели', candidates: [] } });
+  assert.equal(report.latestBot, undefined);
+  await flush();
+  assert.equal(report.latestBot.botMove, 2);
+  assert.equal(report.latestBot.position.state.pending.side, 'bot');
+  assert.ok(report.latestBot.position.state.pending.options.includes('test-vine'));
+  assert.equal(report.latestBot.action.cardId, 'test-vine');
+});

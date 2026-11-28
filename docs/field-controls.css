@@ -233,3 +233,26 @@ button.unit-order:not(:disabled)::before {
 .drag-ghost { min-height: 0; aspect-ratio: 2 / 3; }
 .motion-flight.has-art { width: clamp(40px, 11dvh, 88px); aspect-ratio: 2 / 3; padding: 0; }
 .motion-flight.has-art::after { content: none; }
+
+.match-board-testing { --left-rail: clamp(52px, 5.5vw, 86px); }
+.field-left-testing {
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
+}
+.field-test-controls {
+  display: grid;
+  justify-items: center;
+  grid-template-rows: auto 44px;
+  gap: 2px;
+}
+.field-test-badge {
+  color: #f2cd89;
+  font-size: .68rem;
+  line-height: 1;
+  font-weight: 750;
+}
+.field-left-testing .field-test-feedback {
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  padding: 0;
+  font-size: .9rem;
+}

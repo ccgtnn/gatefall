@@ -2,16 +2,7 @@ import { serializeDeckJson } from './deck-storage.js';
 import { button, element } from './dom.js';
 import { dialogClose } from './resources.js';
 
-function downloadJson(text, filename) {
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-  const link = element('a');
-  link.href = url;
-  link.download = filename;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+import { downloadJson } from './download-json.js';
 
 export async function exportDeckJson(deck, status) {
   const text = serializeDeckJson(deck);

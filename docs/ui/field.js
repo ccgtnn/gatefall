@@ -12,12 +12,12 @@ import { isChoicePending } from './targeting.js';
 
 export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, isMulliganFieldVisible, setMulliganField,
   playHuman, humanCanAct, placeSelected, settingsButton, showDrawer, selectCard, mulliganScreen, getLeagueOpponent, getLeagueSpeech,
-  canCancel, cancelTargeting, getTargetAction, choiceLocked, phoneChoice }) {
+  canCancel, cancelTargeting, getTargetAction, choiceLocked, phoneChoice, testFeedback }) {
   const { readyOrderIds, sideView } = createFieldRows({
     getSelectedCardId, humanCanAct, isReplaying, placeSelected, playHuman,
   });
   const { handSummary, leaderView, pileView, scoreView } = createFieldPanels({ humanCanAct, playHuman, showDrawer });
-  const { deckChoice, tributeChoice } = createFieldChoices({ playHuman, canCancel, cancelTargeting, getTargetAction, choiceLocked, phoneChoice });
+  const { deckChoice, tributeChoice } = createFieldChoices({ playHuman, canCancel, cancelTargeting, getTargetAction, choiceLocked, phoneChoice, testFeedback });
 
   function battlefield() {
     const match = getMatch();
@@ -52,7 +52,14 @@ export function createBattlefield({ getMatch, isReplaying, getSelectedCardId, is
       }
     }
     const left = element('div', 'field-rail field-left');
-    left.append(settingsButton(), pileView(match, 'bot', 'discard'), leaderView(match, 'bot'),
+    left.append(settingsButton());
+    const testControls = testFeedback?.fieldControls();
+    if (testControls) {
+      field.classList.add('match-board-testing');
+      left.classList.add('field-left-testing');
+      left.append(testControls);
+    }
+    left.append(pileView(match, 'bot', 'discard'), leaderView(match, 'bot'),
       iconButton('▤', 'Журнал ходов', () => showDrawer('journal'), 'field-log'),
       leaderView(match, 'human'), pileView(match, 'human', 'discard'));
     const right = element('div', 'field-rail field-right');
