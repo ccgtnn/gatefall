@@ -9,6 +9,7 @@ import { sectionBack } from './resources.js';
 
 export const FRAME_STORAGE_KEY = 'gatefall.card-frame';
 export const BATTLEFIELD_STORAGE_KEY = 'gatefall.battlefield';
+export const CARD_BACK_STORAGE_KEY = 'gatefall.card-backs';
 const frames = [
   { id: 'standard', name: 'Стандартные рамки' },
   { id: 'protectorate-rampart', name: 'Рубеж Протектората' },
@@ -31,6 +32,51 @@ const battlefields = [
 
 export function createFramePreferences(storage, root) {
   return createChoicePreferences(storage, root, FRAME_STORAGE_KEY, 'cardFrameChoice', frames);
+}
+
+const bookBacks = new Map(REWARD_SECTIONS[0].chapters.flatMap(({ faction, nodes }) =>
+  nodes.filter(({ kind }) => kind === 'card-back').map(({ id, label }) => [faction, { id, label }])));
+const BACK_FACTIONS = Object.keys(FACTIONS).filter((faction) => FACTIONS[faction].cardBack);
+
+/** Back choices for one faction: its standard back, its improved Reward Book back and the neutral book back. */
+export function cardBackChoices(faction, rewardUnlocked = () => false) {
+  const own = bookBacks.get(faction);
+  const neutral = bookBacks.get('neutral');
+  return [
+    { id: 'standard', faction, name: 'Стандартная', art: FACTIONS[faction].cardBack },
+    ...(own ? [{ id: 'improved', faction, name: own.label, art: `back-${faction}-improved.webp`, reward: own.id }] : []),
+    ...(neutral ? [{ id: 'neutral', faction, name: neutral.label, art: 'back-neutral-improved.webp', reward: neutral.id }] : []),
+  ].map((item) => item.reward ? { ...item, locked: !rewardUnlocked(item.reward) } : item);
+}
+
+/** @param {(nodeId: string) => boolean} [rewardUnlocked] */
+export function createCardBackPreferences(storage, rewardUnlocked = () => false) {
+  let saved = {};
+  const choice = (faction) => cardBackChoices(faction, rewardUnlocked)
+    .find(({ id, locked }) => id === saved[faction] && !locked) ?? cardBackChoices(faction)[0];
+  function refresh() {
+    try {
+      const parsed = JSON.parse(storage?.getItem(CARD_BACK_STORAGE_KEY) ?? '{}');
+      saved = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch { /* keep the last known choice */ }
+  }
+  refresh();
+  return {
+    factions: BACK_FACTIONS,
+    choices: (faction) => cardBackChoices(faction, rewardUnlocked),
+    current: (faction) => choice(faction).id,
+    art: (faction) => choice(faction).art,
+    refresh,
+    select(faction, id) {
+      if (!cardBackChoices(faction, rewardUnlocked).some((item) => item.id === id && !item.locked)) return false;
+      saved = { ...saved, [faction]: id };
+      try {
+        if (!storage) return false;
+        storage.setItem(CARD_BACK_STORAGE_KEY, JSON.stringify(saved));
+        return true;
+      } catch { return false; }
+    },
+  };
 }
 
 /** @param {(nodeId: string) => boolean} [rewardUnlocked] */
@@ -68,7 +114,7 @@ function createChoicePreferences(storage, root, key, attribute, source) {
 }
 
 export function decorationsScreen(phase, framesPreference, battlefieldPreference, back, signal,
-  { frameChoices = frames, battlefieldChoices = battlefieldPreference.choices?.() ?? battlefields } = {}) {
+  { frameChoices = frames, battlefieldChoices = battlefieldPreference.choices?.() ?? battlefields, cardBacks } = {}) {
   phase.textContent = '';
   const panel = element('section', 'decorations-panel');
   const heading = element('h2', null, 'Украшения');
@@ -106,6 +152,24 @@ export function decorationsScreen(phase, framesPreference, battlefieldPreference
     options('frames', 'Рамки', frameChoices, framesPreference, ({ id }) => cardFace(samples[0], id)),
     options('fields', 'Поле боя', battlefieldChoices, battlefieldPreference, fieldImage),
   ];
+  if (cardBacks) {
+    const items = cardBacks.factions.flatMap((faction) => cardBacks.choices(faction).map((item) =>
+      ({ ...item, id: faction + ':' + item.id, choice: item.id, name: `${FACTIONS[faction].name} · ${item.name}` })));
+    const split = (id) => [id.slice(0, id.indexOf(':')), id.slice(id.indexOf(':') + 1)];
+    groups.push(options('backs', 'Рубашки', items, {
+      current: () => '',
+      isCurrent: (id) => cardBacks.current(split(id)[0]) === split(id)[1],
+      select: (id) => cardBacks.select(...split(id)),
+    }, backImage));
+  }
+
+  function backImage({ art, faction }) {
+    const image = element('img', 'decoration-back');
+    image.alt = '';
+    image.src = assetUrl('./art/' + art);
+    image.addEventListener?.('error', () => { image.src = assetUrl('./art/' + FACTIONS[faction].cardBack); }, { once: true });
+    return image;
+  }
 
   function fieldImage({ art }) {
     const image = element('img', 'decoration-field');
@@ -134,7 +198,7 @@ export function decorationsScreen(phase, framesPreference, battlefieldPreference
   function update() {
     for (const { preferences, choices } of groups) {
       for (const { item, choice } of choices) {
-        choice.setAttribute('aria-pressed', String(item.id === preferences.current()));
+        choice.setAttribute('aria-pressed', String(preferences.isCurrent ? preferences.isCurrent(item.id) : item.id === preferences.current()));
       }
     }
     updatePreview();

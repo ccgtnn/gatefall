@@ -8,6 +8,7 @@ const DEVICE_SETTINGS = new Set([
   'gatefall.premium-card-art',
   'gatefall.card-frame',
   'gatefall.battlefield',
+  'gatefall.card-backs',
   'gatefall.bot-difficulty',
 ]);
 const LAST_CHANGE_KEY = 'gatefall-cloud.changed-at';

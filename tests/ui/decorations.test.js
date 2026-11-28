@@ -198,3 +198,39 @@ test('a storage error keeps the current choice and explains that it is temporary
   assert.equal(rampart.getAttribute('aria-pressed'), 'true');
   assert.equal(byRole(panel, 'status')[0].textContent, 'Выбор действует до перезагрузки.');
 });
+
+test('card backs: each faction picks standard, its improved Reward Book back or the neutral one once bought', async (t) => {
+  const { createCardBackPreferences, CARD_BACK_STORAGE_KEY } = await import('../../docs/ui/decorations.js');
+  const { cardBack, useCardBacks } = await import('../../docs/ui/card-back.js');
+  const stored = new Map();
+  const storage = { getItem: (item) => stored.get(item), setItem: (item, value) => stored.set(item, value) };
+  const bought = new Set();
+  const backs = createCardBackPreferences(storage, (id) => bought.has(id));
+  assert.deepEqual(backs.factions, ['protectorate', 'growth', 'choir', 'captains']);
+  for (const faction of backs.factions) {
+    assert.deepEqual(backs.choices(faction).map(({ id, locked }) => [id, Boolean(locked)]), [['standard', false], ['improved', true], ['neutral', true]]);
+  }
+  assert.equal(backs.select('choir', 'improved'), false);
+  bought.add(backs.choices('choir')[1].reward);
+  assert.equal(backs.select('choir', 'improved'), true);
+  assert.deepEqual(JSON.parse(stored.get(CARD_BACK_STORAGE_KEY)), { choir: 'improved' });
+  assert.equal(backs.current('growth'), 'standard');
+  useCardBacks(backs.art);
+  t.after(() => useCardBacks(() => undefined));
+  assert.match(cardBack('choir').src, /back-choir-improved\.webp/);
+  assert.match(cardBack('growth').src, /back-growth\.webp/);
+  assert.match(cardBack('choir', 'booster-card-back', null).src, /back-choir\.webp/, 'booster covers keep the faction back');
+  bought.clear();
+  assert.equal(backs.current('choir'), 'standard');
+
+  const scope = new AbortController();
+  t.after(() => scope.abort());
+  const root = new Node('main');
+  const panel = decorationsScreen(new Node('p'), createFramePreferences(storage, root), createBattlefieldPreferences(storage, root),
+    () => {}, scope.signal, { cardBacks: backs });
+  assert.equal(byRole(panel, 'tab').length, 3);
+  const backOptions = byRole(panel, 'tabpanel')[2];
+  assert.equal(backOptions.children.length, 12);
+  assert.equal(backOptions.children[0].getAttribute('aria-pressed'), 'true');
+  assert.equal(backOptions.children[1].getAttribute('aria-disabled'), 'true');
+});
