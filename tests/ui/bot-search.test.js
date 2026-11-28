@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Worker } from 'node:worker_threads';
-import { botSearchTimeoutMs, createBotSearch } from '../../docs/ui/bot-search.js';
+import { chooseFallbackTurn, createBotSearch } from '../../docs/ui/bot-search.js';
 import { createMatch } from '../../docs/game/engine/match.js';
 
 const workerEntry = new URL('../../docs/ui/bot-worker.js', import.meta.url).href;
@@ -100,7 +100,7 @@ test('a failed or timed-out worker is replaced on the next turn', async () => {
     let created = 0;
     let stopped = 0;
     const action = { type: 'pass' };
-    const search = createBotSearch({ timeoutMs: () => 10, createWorker() {
+    const search = createBotSearch({ timeoutMs: 10, createWorker() {
       const first = ++created === 1;
       const listeners = {};
       return {
@@ -118,7 +118,9 @@ test('a failed or timed-out worker is replaced on the next turn', async () => {
     const match = createMatch({ random: () => 0 });
     match.phase = 'playing';
     match.turn = 'bot';
-    assert.ok((await search.choose(match, 6)).action);
+    const fallback = await search.choose(match, 6, true);
+    assert.deepEqual(fallback.action, chooseFallbackTurn(match));
+    assert.match(fallback.trace.reason, /резервный ход/);
     assert.deepEqual([created, stopped], [1, 1]);
     assert.deepEqual(await search.choose(match, 6), { action });
     search.cancel();
@@ -131,7 +133,7 @@ test('prewarm starts the worker early and the search clock waits for readiness',
   let respond;
   let created = 0;
   let requests = 0;
-  const search = createBotSearch({ timeoutMs: () => 10, createWorker() {
+  const search = createBotSearch({ timeoutMs: 10, createWorker() {
     created += 1;
     return {
       terminate() {},
@@ -156,10 +158,7 @@ test('prewarm starts the worker early and the search clock waits for readiness',
   }
 });
 
-test('every level uses the worker and its timeout allows the search budget plus slack', async () => {
-  assert.equal(botSearchTimeoutMs(1), 3500);
-  assert.equal(botSearchTimeoutMs(6), 6500);
-  assert.equal(botSearchTimeoutMs(7), 9500);
+test('every level uses the worker', async () => {
   let respond;
   const requests = [];
   const search = createBotSearch({ createWorker: () => ({

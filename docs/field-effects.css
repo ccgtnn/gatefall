@@ -128,6 +128,14 @@
   vertical-align: middle;
 }
 .target-prompt .aim-source-art { margin-inline-end: .45rem; }
+.target-cancel {
+  margin-inline-start: .55rem;
+  pointer-events: auto;
+  vertical-align: middle;
+}
+@media (pointer: coarse), (hover: none) {
+  .target-cancel { min-height: 40px; }
+}
 .choice-overlay [hidden] { display: none; }
 .choice-hand {
   display: flex;

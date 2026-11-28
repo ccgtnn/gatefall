@@ -220,3 +220,50 @@ for (const [kind, control, ability] of choices) {
     assert.notEqual(match, before, 'The engine must accept the action from the rendered control');
   });
 }
+
+test('board targeting offers a touch-accessible cancel button only when cancellation is allowed', () => {
+  const match = fixture();
+  match.pending = { kind: 'damage', side: 'human', options: [], prompt };
+  let canCancel = false;
+  let cancelled = 0;
+  const battlefield = createBattlefield({
+    getMatch: () => match, isReplaying: () => false, getSelectedCardId: () => undefined,
+    humanCanAct: () => false, settingsButton: () => new TestNode('button'), getLeagueOpponent: () => undefined,
+    canCancel: () => canCancel, cancelTargeting: () => { cancelled += 1; },
+  });
+  assert.equal(namedButton(battlefield(), 'Отмена'), undefined);
+  canCancel = true;
+  const game = battlefield();
+  const cancel = namedButton(game.querySelector('.target-prompt'), 'Отмена');
+  assert.ok(isAvailable(cancel));
+  click(cancel);
+  assert.equal(cancelled, 1);
+});
+
+test('the disabled turn button gives the actual reason to sighted and assistive users', () => {
+  const match = fixture();
+  let replaying = false;
+  const battlefield = createBattlefield({
+    getMatch: () => match, isReplaying: () => replaying, getSelectedCardId: () => undefined,
+    humanCanAct: () => !replaying && !match.pending && match.turn === 'human',
+    settingsButton: () => new TestNode('button'), getLeagueOpponent: () => undefined,
+  });
+  function check(text, reason) {
+    const action = namedButton(battlefield(), text);
+    assert.equal(action.disabled, Boolean(reason));
+    if (reason) assert.equal(action.title, reason);
+    assert.equal(action.getAttribute('aria-description'), reason);
+  }
+  check('Пас', 'Сначала выбери цель');
+  replaying = true;
+  check('Пас', 'Идёт анимация');
+  replaying = false;
+  match.pending = null;
+  match.turn = 'bot';
+  check('Пас', 'Ход соперника');
+  match.turn = 'human';
+  match.players.human.usedAbility = true;
+  check('Пас', 'Сыграй карту после применения способности');
+  match.players.human.usedAbility = false;
+  check('Пас', null);
+});

@@ -9,6 +9,21 @@ import { showPassStamp, showTurnBanner, pulsePass, pairsWithTurn } from './turn-
 import { presentHandEvent } from './card-motion-hand.js';
 import { hit, lightning, projectile, shield, showActivation } from './card-motion-hit-effects.js';
 
+const IMAGE_DECODE_TIMEOUT_MS = 300;
+const ROUND_ANIMATION_GRACE_MS = 300;
+
+async function waitForVisual(run, timeoutMs) {
+  let timer;
+  try {
+    const timeout = new Promise((resolve) => { timer = setTimeout(resolve, timeoutMs); });
+    await Promise.race([timeout, run()]);
+  } catch {
+    // Visual effects can be interrupted while the match continues.
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export function animateLifeLoss(screen, winner, duration) {
   for (const lives of screen.querySelectorAll('[data-life-side]')) {
     if (lives.dataset.lifeSide === winner) continue;
@@ -100,7 +115,7 @@ export async function presentJournalEvent(screen, event, commit, render, duratio
     }
     render(commit());
     const image = rects(screen).get(event.cardId)?.node.querySelector('img.card-art-crop');
-    if (image?.decode) await image.decode().catch(() => {});
+    if (image?.decode) await waitForVisual(() => image.decode(), IMAGE_DECODE_TIMEOUT_MS);
     return;
   }
   if (event.type === 'coins') {
@@ -249,19 +264,19 @@ export async function showRoundTransition(app, round, duration, scale = 1, wait 
   overlay.append(element('span', 'round-transition-title', `Раунд ${round}`));
   app.append(overlay);
   if (duration) {
-    await overlay.animate([{ opacity: 0 }, { opacity: 1 }], { duration, easing: MOTION.ease.cssOut }).finished;
+    await waitForVisual(() => overlay.animate([{ opacity: 0 }, { opacity: 1 }], {
+      duration, easing: MOTION.ease.cssOut,
+    }).finished, duration + ROUND_ANIMATION_GRACE_MS);
   }
   await wait(scaleMotion(duration ? MOTION.ms.roundTitle : MOTION.ms.roundTitleReduced, scale));
   return overlay;
 }
 
-export function dismissRoundTransition(overlay, duration) {
-  if (!duration) {
-    overlay.remove();
-    return Promise.resolve();
+export async function dismissRoundTransition(overlay, duration) {
+  if (duration) {
+    await waitForVisual(() => overlay.animate([{ opacity: 1 }, { opacity: 0 }], {
+      duration, easing: MOTION.ease.cssIn, fill: 'forwards',
+    }).finished, duration + ROUND_ANIMATION_GRACE_MS);
   }
-  const fade = overlay.animate([{ opacity: 1 }, { opacity: 0 }], {
-    duration, easing: MOTION.ease.cssIn, fill: 'forwards',
-  });
-  return fade.finished.then(() => overlay.remove(), () => overlay.remove());
+  overlay.remove();
 }

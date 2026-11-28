@@ -2,13 +2,15 @@ import { chooseEasyTurn } from '../game/bot/bot.js';
 import { BOT_LEVELS, readBotLevel } from '../game/bot/bot-levels.js';
 import { botSearchState } from '../game/bot/bot-strategy.js';
 
-export function botSearchTimeoutMs(level) {
-  return Math.max(3500, BOT_LEVELS[readBotLevel(level)].budgetMs + 1500);
+const BOT_REQUEST_TIMEOUT_MS = 15_000;
+
+export function chooseFallbackTurn(match) {
+  return chooseEasyTurn(botSearchState(match));
 }
 
 export function createBotSearch({
   createWorker = () => new Worker(new URL('./bot-worker.js', import.meta.url), { type: 'module' }),
-  timeoutMs = botSearchTimeoutMs,
+  timeoutMs = BOT_REQUEST_TIMEOUT_MS,
   startupTimeoutMs = 15_000,
 } = {}) {
   let worker;
@@ -47,7 +49,7 @@ export function createBotSearch({
   function sendRequest() {
     if (!ready || !pending) return;
     const current = worker;
-    pending.timer = setTimeout(() => fail(current, new Error('Bot worker timed out')), timeoutMs(pending.payload.level));
+    pending.timer = setTimeout(() => fail(current, new Error('Bot worker timed out')), timeoutMs);
     try {
       current.postMessage(pending.payload);
     } catch (error) {
@@ -103,7 +105,7 @@ export function createBotSearch({
       const state = botSearchState(match, BOT_LEVELS[mastery].knowsDeckList);
       return await request(state, mastery, withTrace);
     } catch {
-      const action = chooseEasyTurn(botSearchState(match));
+      const action = chooseFallbackTurn(match);
       const trace = withTrace ? { action, reason: 'Стратегический поиск недоступен. Использую резервный ход.', candidates: [] } : undefined;
       return { action, trace };
     }

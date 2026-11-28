@@ -13,7 +13,7 @@ function readyMatch() {
 
 function controller(options = {}) {
   return createMatchTurn({
-    screen: { querySelector: () => null, querySelectorAll: () => [] },
+    screen: { classList: { add() {}, remove() {} }, querySelector: () => null, querySelectorAll: () => [] },
     settings: { motion: () => 0, showBotThoughts: () => false, playSound() {} },
     aim: { update() {}, showTap: () => false },
     notices: {}, announcement: {}, showNotice() {}, hideNotice() {}, render() {}, recordJournal() {},
@@ -22,16 +22,16 @@ function controller(options = {}) {
   });
 }
 
-test('the bot waits for playback and a reset cancels its scheduled turn', async (t) => {
+test('a stalled art decode cannot block playback and reset cancels the scheduled bot turn', async (t) => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
-  const image = Promise.withResolvers();
   const card = { dataset: { boardCard: 'animated' }, getBoundingClientRect: () => ({}),
-    querySelector: () => ({ decode: () => image.promise }) };
+    querySelector: () => ({ decode: () => new Promise(() => {}) }) };
   let requestedBotTurn = 0;
   let duration = 1;
+  const classes = new Set();
   const turns = controller({
     screen: {
-      classList: { add() {} }, querySelector: () => null,
+      classList: { add: (name) => classes.add(name), remove: (name) => classes.delete(name) }, querySelector: () => null,
       querySelectorAll: (selector) => selector === '[data-board-card]' ? [card] : [],
     },
     settings: { motion: () => duration, playSound() {}, showBotThoughts: () => false },
@@ -44,13 +44,17 @@ test('the bot waits for playback and a reset cancels its scheduled turn', async 
   next.log.push({ type: 'art-state', cardId: 'animated' });
   const handoff = turns.updateMatch(next);
   assert.equal(turns.replaying, true);
-  t.mock.timers.tick(2000);
+  assert.ok(classes.has('is-replaying'));
+  await new Promise((resolve) => setImmediate(resolve));
+  t.mock.timers.tick(299);
+  assert.equal(turns.replaying, true);
+  t.mock.timers.tick(1);
   assert.equal(requestedBotTurn, 0);
 
-  image.resolve();
   await handoff;
   assert.equal(turns.match, next);
   assert.equal(turns.replaying, false);
+  assert.ok(!classes.has('is-replaying'));
   const replacement = readyMatch();
   turns.reset(replacement);
   t.mock.timers.tick(2000);
@@ -81,7 +85,7 @@ test('the old turn notice appears only when the journal did not show a banner', 
   };
   const turns = controller({
     screen: {
-      ownerDocument: doc, classList: { add() {} }, querySelector: (selector) =>
+      ownerDocument: doc, classList: { add() {}, remove() {} }, querySelector: (selector) =>
         selector.startsWith('.field-center') ? field : null,
       querySelectorAll: () => [],
     },
@@ -212,3 +216,65 @@ test('position copying reads the current logical match and difficulty', () => {
   turns.reset();
   assert.equal(readPosition(), undefined);
 });
+
+for (const interruption of ['cancelled', 'failed-to-start']) {
+  test(`a ${interruption} choice animation unlocks input and commits the chosen card`, async (t) => {
+    const warning = t.mock.method(console, 'warn', () => {});
+    const { turns, action, card, end } = await deckConfirmation(t, 200);
+    const error = new DOMException('Cancelled', 'AbortError');
+    if (interruption === 'failed-to-start') card.animate = () => { throw error; };
+    const confirmation = turns.playHuman(action, card);
+    if (interruption === 'cancelled') {
+      assert.equal(turns.confirmingTarget, true);
+      end.reject(error);
+    }
+    await confirmation;
+    assert.equal(warning.mock.callCount(), interruption === 'failed-to-start' ? 1 : 0);
+    assert.equal(turns.confirmingTarget, false);
+    assert.equal(turns.match.pending.kind, 'deck-placement');
+    const placement = turns.match;
+    await turns.playHuman({ type: 'place', row: 'surface', position: 0 });
+    assert.notEqual(turns.match, placement);
+    assert.ok(turns.match.players.human.board.surface.some(({ id }) => id === action.cardId));
+    turns.reset();
+  });
+}
+
+for (const playedCard of [false, true]) {
+  test(`a rejected worker action gives the turn back via ${playedCard ? 'end-turn' : 'pass'}`, { timeout: 1500 }, async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const warning = t.mock.method(console, 'warn', () => {});
+    const previousWorker = globalThis.Worker;
+    globalThis.Worker = class {
+      addEventListener(type, listener) {
+        if (type !== 'message') return;
+        this.respond = listener;
+        queueMicrotask(() => listener({ data: { ready: true } }));
+      }
+
+      postMessage() { this.respond({ data: { action: { type: 'target', cardId: 'missing' } } }); }
+      terminate() {}
+    };
+    t.after(() => { globalThis.Worker = previousWorker; });
+
+    const resumed = Promise.withResolvers();
+    const turns = controller({ onMatchChanged: (_, match) => {
+      if (match.turn === 'human') resumed.resolve(match);
+    } });
+    t.after(() => turns.reset());
+
+    const ready = readyMatch();
+    ready.playedCard = true;
+    const botTurn = applyAction(ready, 'human', { type: 'end-turn' });
+    assert.equal(botTurn.turn, 'bot');
+    botTurn.playedCard = playedCard;
+    if (!playedCard) botTurn.players.bot.hand = [];
+    turns.reset(ready);
+    await turns.updateMatch(botTurn);
+    t.mock.timers.tick(1000);
+    const match = await resumed.promise;
+    assert.equal(match.players.bot.passed, !playedCard);
+    assert.equal(turns.humanCanAct(), true);
+    assert.equal(warning.mock.callCount(), 1);
+  });
+}
