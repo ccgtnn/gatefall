@@ -193,6 +193,7 @@ test('captured orders, end-turn effects and start-turn growth follow the current
   const shot = { action: 'damage', target: { scope: 'enemy', type: 'unit' }, amount: 2, mode: 'random' };
   const boostAlly = { action: 'boost', target: { scope: 'ally', type: 'unit', exclude: 'source' }, amount: 1 };
   hand(match, unit('pass-card', 'frigate'));
+  board(match, 'human', 'surface', unit('ally', 'frigate'));
   board(match, 'bot', 'surface', unit('enemy', 'frigate', { power: 10 }), unit('captured', 'frigate', {
     order: { steps: [shot] }, endTurn: { steps: [shot, boostAlly] }, startTurnGrowth: 1,
     deathwish: { steps: [boostAlly] },
@@ -218,7 +219,7 @@ test('capture changes the recipient of a previously queued field reaction', () =
   board(match, 'bot', 'surface', unit('enemy', 'frigate'), unit('captured', 'frigate'));
   match.effects.push({
     side: 'bot', sourceId: 'captured', requiredSource: true, cardAbility: true,
-    ability: { steps: [{ action: 'boost', target: { scope: 'ally', type: 'unit', exclude: 'source' } }] },
+    ability: { steps: [{ action: 'boost', target: { scope: 'ally', type: 'unit', exclude: 'source' }, amount: 2 }] },
   });
   capture(match, 'human', findUnit(match, 'captured'));
   drain(match, () => 0);
