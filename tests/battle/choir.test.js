@@ -18,7 +18,7 @@ import { action, cards, drain, fixed, get, hit, human, pick, play, quiet, setup,
 
 test('Choir collectible cards are owned by default and can start a match', async () => {
   assert.equal(filterCatalog(CHOIR_CARDS, { faction: 'choir' }).length, 15);
-  assert.equal(filterCatalog(CHOIR_CARDS, { faction: 'choir', category: PSIONICS }).length, 8);
+  assert.equal(filterCatalog(CHOIR_CARDS, { faction: 'choir', category: PSIONICS }).length, 7);
   assert.ok(collection('choir').every(({ token }) => !token));
   const economy = createRewardProgress();
   const { owned } = economy.inventory();
@@ -30,7 +30,7 @@ test('Choir collectible cards are owned by default and can start a match', async
   assert.equal(inspectDeck({ ...deck, cardIds: [...deck.cardIds, TENTACLE.id] }, owned).issues.foreign, true);
   const match = createDeckMatch(deck, { random: fixed });
   assert.equal(match.players.human.factionId, 'choir');
-  assert.equal(match.players.human.startingCategories[PSIONICS], 8);
+  assert.equal(match.players.human.startingCategories[PSIONICS], 7);
   assert.equal(canUseLeader(match, 'human'), false);
   assert.equal(await economy.buyPack('choir'), 'unaffordable');
   for (const word of [PSIONICS, CULTIST, 'Щупальце', 'Одержимость', 'Захват', 'Сотворение']) assert.ok(KEYWORDS[word]);
@@ -85,7 +85,7 @@ test('The three bronze Psionic effects count toward starting-deck Obsession', ()
   const startingMatch = createMatch({ decks: { human: definitions, bot: [] }, random: fixed });
   human(match).startingCategories = human(startingMatch).startingCategories;
   assert.equal(human(match).startingCategories[PSIONICS], 3);
-  assert.equal(get(play(match), 'hand-0').power, 5);
+  assert.equal(get(play(match), 'hand-0').power, 4);
 });
 
 test('Call of the Deep transforms and boosts the selected unit in place on either side', () => {
@@ -107,7 +107,7 @@ test('Call of the Deep transforms and boosts the selected unit in place on eithe
     assert.equal(card.definition.id, TENTACLE.id);
     assert.equal(card.definition.token, true);
     assert.equal(card.power, 11);
-    assert.equal(card.basePower, 2);
+    assert.equal(card.basePower, 3);
     const events = result.log.filter(({ cardId }) => cardId === id).map(({ type, card, amount }) =>
       [type, card?.power ?? amount]);
     assert.deepEqual(events, [['transform', 7], ['boost', 4]]);
@@ -149,7 +149,7 @@ test('Sleeper Litany offers three Choir bronze units and plays one with an owner
   const { id } = choosing.pending.cards.find(({ definition }) => definition.id === 'depth-neophyte');
   const result = action(pick(choosing, id), 'place', { row: 'orbit', position: 0 });
   assert.equal(get(result, id).definition.id, 'depth-neophyte');
-  assert.equal(get(result, id).power, 6);
+  assert.equal(get(result, id).power, 5);
   assert.equal(get(result, id).counter, 3);
   assert.equal(result.log.find(({ type, cardId }) => type === 'play' && cardId === id).from, 'created');
   assert.equal(get(result, 'surface-0').playedEffects, 1);
@@ -162,7 +162,7 @@ test('Sleeper Litany offers three Choir bronze units and plays one with an owner
     assert.equal(result.log.findLast(({ type }) => type === 'counter').remaining, remaining);
   }
   assert.equal(get(result, id).definition.id, TENTACLE.id);
-  assert.equal(get(result, id).power, 2);
+  assert.equal(get(result, id).power, 3);
   assert.equal(get(result, 'surface-0').chapter, 1);
 });
 
@@ -180,13 +180,14 @@ test('The Sleeper names and Cultist glossary use the same text while card IDs st
   assert.match(SLEEPER.text, /культистов Спящего/);
 });
 
-test('Obsession counts printed starting category including scenarios, unaffected by changing the deck', () => {
+test('Obsession counts printed starting Psionics (the scenario is not Psionics), unaffected by changing the deck', () => {
   for (const [count, expected] of [[0, 0], [2, 0], [3, 1], [5, 1], [6, 2], [9, 3], [12, 4]]) {
     const match = setup({ count, hand: [cards.get('depth-neophyte')], deck: [AWAKENING, AWAKENING] });
-    assert.equal(get(play(match), 'hand-0').power, 4 + expected);
+    assert.equal(get(play(match), 'hand-0').power, 3 + expected);
   }
+  assert.deepEqual(AWAKENING.categories, []);
   const match = createMatch({ decks: { human: [AWAKENING, AWAKENING, quiet], bot: [] }, random: fixed });
-  assert.equal(human(match).startingCategories[PSIONICS], 3);
+  assert.equal(human(match).startingCategories[PSIONICS], 1);
 });
 
 test('Dreamer returns exactly the number actually drawn, with choices and random insertion', () => {

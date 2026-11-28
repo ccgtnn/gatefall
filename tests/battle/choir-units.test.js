@@ -79,7 +79,7 @@ test('Fanatic transforms at two power or less in place, but not on lethal damage
   assert.equal(get(match, 'surface-1').definition.id, FANATIC.id);
   hit(match, 'surface-1', 1);
   assert.deepEqual(human(match).board.surface.map(({ definition, power }) => [definition.id, power]),
-    [['unit-9', 9], [TENTACLE.id, 2], ['unit-9', 9]]);
+    [['unit-9', 9], [TENTACLE.id, 3], ['unit-9', 9]]);
 
   const lethal = setup({ orbit: [FANATIC] });
   hit(lethal, 'orbit-0', 4);
@@ -115,7 +115,7 @@ test('Both tentacles only hit the immediate unit to their right and grow on surv
 });
 
 test('armor only triggers a damage reaction when a hit also removes power', () => {
-  for (const [amount, power, boosted] of [[2, 2, false], [3, 3, true]]) {
+  for (const [amount, power, boosted] of [[2, 3, false], [3, 4, true]]) {
     const match = setup({ orbit: [{ ...TENTACLE, armor: 2 }] });
     hit(match, 'orbit-0', amount);
     assert.equal(get(match, 'orbit-0').power, power);

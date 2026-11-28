@@ -55,7 +55,7 @@ const choirDeck = Object.freeze([
   'depth-neophyte', 'depth-neophyte', 'cult-dreamer', 'abyss-shepherd', 'altar-guardian',
   'alien-dream', 'sleeper-revelation', 'minor-offering', 'great-sacrifice', 'call-of-the-deep',
   'mind-strike', 'sleeper-litany', 'ulmarin-awakening', 'annihilation',
-  'suppressor', 'veteran-mercenary', 'veteran-mercenary', 'fugitive-monk', 'recon-drone', 'recon-drone',
+  'suppressor', 'veteran-mercenary', 'veteran-mercenary', 'smuggler', 'recon-drone', 'recon-drone',
 ].map((id) => choirCardsById.get(id)));
 
 const captainCardsById = new Map([...CAPTAIN_CARDS, ...NEUTRAL_CARDS].map((card) => [card.id, card]));
