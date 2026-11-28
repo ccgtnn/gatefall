@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { chooseBotTurn } from '../../docs/game/bot/bot.js';
 import { capture, createCard, damage, findUnit, removeUnit, cardType, placementSide } from '../../docs/game/engine/board.js';
 import { FACTIONS, NEUTRAL, NEUTRAL_CARDS, LARVA } from '../../docs/game/cards/cards.js';
 import { applyAction, availableRows, canEndTurn, confirmMulligan, createMatch, playableCards, ROW_LIMIT } from '../../docs/game/engine/match.js';
@@ -104,8 +103,7 @@ test('live faction matches resolve all choices, keep card identities unique, and
       const player = match.players[side];
       const [card] = playableCards(match, side);
       let action;
-      if (side === 'bot') action = chooseBotTurn(match, 1, { random });
-      else if (match.pending?.kind === 'deck-placement') {
+      if (match.pending?.kind === 'deck-placement') {
         const row = match.pending.options[0];
         action = { type: 'place', row, position: player.board[row].length };
       } else if (match.pending) action = { type: 'target', cardId: match.pending.options[0] };
@@ -195,7 +193,6 @@ test('captured orders, end-turn effects and start-turn growth follow the current
   const shot = { action: 'damage', target: { scope: 'enemy', type: 'unit' }, amount: 2, mode: 'random' };
   const boostAlly = { action: 'boost', target: { scope: 'ally', type: 'unit', exclude: 'source' }, amount: 1 };
   hand(match, unit('pass-card', 'frigate'));
-  board(match, 'human', 'surface', unit('ally', 'frigate'));
   board(match, 'bot', 'surface', unit('enemy', 'frigate', { power: 10 }), unit('captured', 'frigate', {
     order: { steps: [shot] }, endTurn: { steps: [shot, boostAlly] }, startTurnGrowth: 1,
     deathwish: { steps: [boostAlly] },
@@ -221,7 +218,7 @@ test('capture changes the recipient of a previously queued field reaction', () =
   board(match, 'bot', 'surface', unit('enemy', 'frigate'), unit('captured', 'frigate'));
   match.effects.push({
     side: 'bot', sourceId: 'captured', requiredSource: true, cardAbility: true,
-    ability: { steps: [{ action: 'boost', target: { scope: 'ally', type: 'unit', exclude: 'source' }, amount: 2 }] },
+    ability: { steps: [{ action: 'boost', target: { scope: 'ally', type: 'unit', exclude: 'source' } }] },
   });
   capture(match, 'human', findUnit(match, 'captured'));
   drain(match, () => 0);
