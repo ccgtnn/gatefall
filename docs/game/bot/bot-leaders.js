@@ -32,9 +32,17 @@ export function leaderTargetPriority(match, side, kind) {
   }
 }
 
+export function replacementVictims(ability, candidates) {
+  const replacement = ability?.steps.find(({ action, replacement }) => action === 'consume' && replacement)?.replacement;
+  return replacement ? candidates.filter(({ card }) => card.definition.id !== replacement.id) : candidates;
+}
+
 export function canUseBotLeader(match, side) {
   if (!canUseLeader(match, side)) return false;
-  const weather = leaderFirestormStep(match.players[side].leader.ability);
+  const { ability, aiHints } = match.players[side].leader;
+  if (aiHints?.leaderOffering && preferredLeaderUse(match, side) === false) return false;
+  if (aiHints?.leaderConsume && !replacementVictims(ability, targets(match, { side }, ability.select[0].targets, true)).length) return false;
+  const weather = leaderFirestormStep(ability);
   return !weather || leaderFirestormValue(match, side, weather) > 0;
 }
 
@@ -66,7 +74,7 @@ export function preferredLeaderUse(match, side) {
   if (hints.leaderSpawn) return true;
   if (hints.leaderConsume) {
     const [choice] = leader.ability.select;
-    return targets(match, { side }, choice.targets, true).some(({ card }) =>
+    return replacementVictims(leader.ability, targets(match, { side }, choice.targets, true)).some(({ card }) =>
       deathwishDefinitions(card).length > 0 || statusCount(card, 'infection') > 0);
   }
 

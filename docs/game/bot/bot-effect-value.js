@@ -1,12 +1,42 @@
 import { cardPotential } from './bot-evaluation.js';
 import { EVAL_WEIGHTS as W } from './bot-weights.js';
 import { handCount } from './bot-hand.js';
-import { availableRows, cleansableStatuses, HAND_LIMIT, infectionDamage, isUnit, neighbors, opponent, restoreCard, ROW_LIMIT, statusCount, units } from '../engine/board.js';
+import { availableRows, cleansableStatuses, HAND_LIMIT, infectionDamage, isUnit, neighbors, opponent, placementSide, restoreCard, ROW_LIMIT, statusCount, units } from '../engine/board.js';
 import { availableFees, canGrantZeal, orderAbility } from '../effects/effects.js';
 import { ROWS } from '../shared/card-metadata.js';
 import { canStart, eligiblePileCards, pileCandidates, playPiles, playTiming, reference, rowArmor, rowSide, targets, valueOf } from '../effects/effect-queries.js';
 import { armorBreakSwing, consumeBonus, coinValue, delayedCardValue, futureContext, leaderChargeValue, leaderUses, remainingTurns } from './bot-future-value.js';
 import { cardAbilities, deathwishDefinitions, isLocked } from '../engine/events.js';
+
+function woundBoost(card) {
+  return (cardAbilities(card).events?.damage?.steps ?? []).reduce((sum, step) =>
+    step.action === 'boost' && step.target?.scope === 'source' && !step.when &&
+    typeof step.amount === 'number' ? sum + step.amount : sum, 0);
+}
+
+export function damagePoints(card, amount, armor = card.armor ?? 0) {
+  if (statusCount(card, 'shield')) return 0;
+  const loss = Math.min(card.power, Math.max(0, amount - armor));
+  const swing = amount >= armor ? armorBreakSwing(card) : undefined;
+  return swing === undefined ? loss - (loss > 0 && loss < card.power ? woundBoost(card) : 0) : -swing;
+}
+
+export function damageTargetPriority({ side, amount, amounts }) {
+  return ({ card, side: targetSide }) => {
+    const hit = amounts?.[card.id] ?? amount;
+    const points = damagePoints(card, hit);
+    if (targetSide === side) return -1 - points;
+    const lethal = points > 0 && (lethalDamage(card, hit) || armorBreakSwing(card) < 0 && hit >= card.armor);
+    // Keep the existing preference for killing an enemy or interrupting a big unit.
+    if (lethal) return 100 + points;
+    if (statusCount(card, 'shield') || (hit > (card.armor ?? 0) && woundBoost(card)) || points < 0) return points;
+    return Math.min(98, card.power);
+  };
+}
+
+export function lethalDamage(card, amount) {
+  return !statusCount(card, 'shield') && amount >= card.power + (card.armor ?? 0);
+}
 
 export function pendingUnitPriority(match, { kind, side, job }) {
   if (kind === 'weather-deathwish') {
@@ -99,9 +129,8 @@ export function shouldProtectArmor(card, player) {
 export function rowDamage(player, row, amount, armorStrip = 0) {
   return player.board[row].filter(isUnit).reduce((sum, card) => {
     const armor = Math.max(0, (card.armor ?? 0) - armorStrip);
-    const shielded = statusCount(card, 'shield') > 0;
-    const swing = armor <= (shielded ? 0 : amount) ? armorBreakSwing(card) : undefined;
-    return sum + (swing === undefined ? (shielded ? 0 : Math.min(card.power, Math.max(0, amount - armor))) : -swing);
+    const swing = armor === 0 ? armorBreakSwing(card) : undefined;
+    return sum + (swing === undefined ? damagePoints(card, amount, armor) : -swing);
   }, 0);
 }
 
@@ -111,7 +140,8 @@ export function rowScatterValue(player, row, amount) {
   return units.reduce((sum, card) => {
     const absorbed = (card.armor ?? 0) + statusCount(card, 'shield');
     const swing = perUnit >= absorbed ? armorBreakSwing(card) : undefined;
-    return sum + (swing === undefined ? Math.min(card.power, Math.max(0, perUnit - absorbed)) : -swing);
+    return sum + (swing === undefined ? Math.min(card.power, Math.max(0, perUnit - absorbed)) -
+      (perUnit > absorbed && perUnit < absorbed + card.power ? woundBoost(card) * Math.min(1, perUnit - absorbed) : 0) : -swing);
   }, 0);
 }
 
@@ -149,6 +179,63 @@ export function lockPriority(match, actor, { card, row, side }) {
   return side === actor ? -value : value;
 }
 
+export function deckPlayTrigger(player, card, remaining = player.hand, includeDeck = true) {
+  const rule = cardAbilities(card).pileEvents?.play;
+  return rule?.pile === 'deck' && rule.firstLegendary && !player.playedLegendary &&
+    [...remaining, ...(includeDeck ? player.deck : [])].some(({ definition }) => definition.rarity === 'gold');
+}
+
+export function handReturnPriority(match, side, card) {
+  return deckPlayTrigger(match.players[side], card, match.players[side].hand, match.round < 3) ? card.power + W.defaultPower : -deckCardValue(match, side, card);
+}
+
+export function missedDeployValue(match, side, card, placement) {
+  const player = match.players[side];
+  const alternatives = player.hand.filter((other) => other.id !== card.id);
+  if (!alternatives.length) return 0;
+  if (deckPlayTrigger(player, card, alternatives, match.round < 3) && alternatives.some((entry) =>
+      cardAbilities(entry).deploy?.steps.some(({ action }) => ['return-hand', 'choose-hand-bottom'].includes(action)))) {
+    return card.power ?? 0;
+  }
+  const ability = cardAbilities(card)[playTiming(match, side, card)];
+  if (!ability) return 0;
+  const relevant = ({ scope, rowRef }) => !rowRef && ['ally', 'enemy', 'field', 'neighbors'].includes(scope);
+  const queries = ability.select?.length
+    ? ability.select.map((pick) => pick.targets).filter(relevant)
+    : ability.steps.map((step) => step.target).filter((target) => target && relevant(target));
+  if (!queries.length) return 0;
+
+  const job = { side, ability, sourceId: card.id, sourceDefinitionId: card.definition.id };
+  const recipient = placementSide(side, card);
+  const owner = match.players[recipient];
+  const row = placement?.row;
+  const withUnit = (state, key, lane, unit, index) => {
+    const placed = state.players[key];
+    const line = placed.board[lane].toSpliced(index, 0, unit);
+    return { ...state, players: { ...state.players, [key]: { ...placed, board: { ...placed.board, [lane]: line } } } };
+  };
+  const field = row ? withUnit(match, recipient, row, card, placement.position ?? owner.board[row].length) : match;
+  const available = (state) => ability.select?.length
+    ? canStart(state, job)
+    : queries.some((query) => targets(state, job, query).length > 0);
+  if (available(field)) return 0;
+
+  const waitsForEnemy = queries.some(({ scope }) => scope === 'enemy' || scope === 'field');
+  const enemy = match.players[opponent(side)];
+  const candidates = match.round < 3 ? [...alternatives, ...player.deck] : alternatives;
+  const waitsForAlly = queries.some(({ scope }) => scope !== 'enemy') && candidates.some((unit) =>
+    !unit.definition.enemySide && isUnit(unit) && availableRows(field.players[side], unit).some((lane) =>
+      available(withUnit(field, side, lane, unit, lane === row ? (placement.position ?? owner.board[row].length) + 1 : 0)) ||
+      available(withUnit(field, side, lane, unit, lane === row ? placement.position ?? owner.board[row].length : 0))));
+  if (!waitsForAlly && !(waitsForEnemy && !enemy.passed && handCount(enemy))) return 0;
+
+  // Immediate points already come from the engine. Price the missed chance to use
+  // the deploy later, independently of the unit's body and without banning the play.
+  const payoff = ability.steps.some(({ action }) => ['activate-deathwish', 'consume', 'capture'].includes(action))
+    ? 4 : W.deploy;
+  return payoff;
+}
+
 export function holdUntargetedDamage(match, side, cards) {
   if (units(match, opponent(side)).some(({ card }) => isUnit(card))) return cards;
   const productive = cards.filter((card) => {
@@ -176,22 +263,23 @@ function firestormDamage(candidates, hits, lossesByTurn) {
   // Track each unit's hit count. Use expected survivors as the size of the next target pool.
   const units = candidates.map((card) => {
     const protection = (card.armor ?? 0) + statusCount(card, 'shield');
-    const lethal = protection + card.power;
+    const boost = woundBoost(card);
+    const lethal = boost > 0 && card.power > 1 ? Infinity : protection + card.power;
     const chance = new Float64Array(Math.min(hits, lethal) + 1);
     chance[0] = 1;
-    return { protection, lethal, chance };
+    return { protection, lethal, boost, chance };
   });
   let expected = 0;
   for (let hit = 0; hit < hits; hit += 1) {
     const alive = units.reduce((sum, { chance, lethal }) => sum + 1 - (chance[lethal] ?? 0), 0);
     if (alive <= 0) break;
-    for (const { chance, protection, lethal } of units) {
+    for (const { chance, protection, lethal, boost } of units) {
       for (let prior = Math.min(hit, lethal - 1); prior >= 0; prior -= 1) {
         const change = chance[prior] / Math.max(1, alive);
         chance[prior] -= change;
         chance[prior + 1] += change;
         if (prior >= protection) {
-          expected += change;
+          expected += change * (prior + 1 === lethal ? 1 : 1 - boost);
           if (lossesByTurn) lossesByTurn[Math.floor(hit / 3)] += change;
         }
       }
@@ -450,13 +538,12 @@ function infectionSwing({ match, job, applyInfection }, step) {
 function damageSwing({ match, job, card }, step) {
   const { ability, side } = job;
   if (step.target.scope === 'source') {
-    return statusCount(card, 'shield') ? 0 : -Math.min(card.power ?? 0,
-      Math.max(0, valueOf(match, job, step.amount) - (card.armor ?? 0)));
+    return -damagePoints(card, valueOf(match, job, step.amount));
   }
   if (step.target.rowRef) {
     const strip = ability.steps.find((part) => part.action === 'armor' && part.target?.rowRef === step.target.rowRef);
     const defender = match.players[opponent(side)];
-    return Math.max(0, ...ROWS.map((row) => rowDamage(defender, row, step.amount, -(strip?.amount ?? 0))));
+    return Math.max(...ROWS.map((row) => rowDamage(defender, row, step.amount, -(strip?.amount ?? 0))));
   }
   const selection = ability.select?.find(({ ref }) => ref === step.target.ref);
   const options = selection ? targets(match, job, selection.targets, selection.mode !== 'random') : targets(match, job, step.target);
@@ -466,9 +553,7 @@ function damageSwing({ match, job, card }, step) {
   const points = options.map(({ card, side: targetSide }, index) => {
     if (statusCount(card, 'shield') || (step.amount?.row && amounts[index] !== highest)) return 0;
     const armor = stripArmor ? 0 : card.armor ?? 0;
-    const swing = amounts[index] >= armor ? armorBreakSwing(card) : undefined;
-    const lost = swing === undefined ? Math.min(card.power, Math.max(0, amounts[index] - armor)) : -swing;
-    return (targetSide === side ? -1 : 1) * lost;
+    return (targetSide === side ? -1 : 1) * damagePoints(card, amounts[index], armor);
   });
   return !selection && !step.mode && ['ally', 'enemy', 'field'].includes(step.target.scope) ? points.reduce((sum, value) => sum + value, 0)
     : points.length ? Math.max(...points) : 0;

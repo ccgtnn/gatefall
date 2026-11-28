@@ -1,7 +1,7 @@
 import { activeOrder, availableRows, cardType, COIN_LIMIT, infectionDamage, isUnit, opponent, placementSide, ROW_LIMIT, statusCount, units } from '../engine/board.js';
 import { handCount } from './bot-hand.js';
 import { ROWS } from '../shared/card-metadata.js';
-import { feePayoff, firestormGrowth, leaderFirestormStep, leaderFirestormValue } from './bot-effect-value.js';
+import { damagePoints, feePayoff, firestormGrowth, leaderFirestormStep, leaderFirestormValue } from './bot-effect-value.js';
 import { carriedCoins } from '../engine/match.js';
 import { EVAL_WEIGHTS as W } from './bot-weights.js';
 import { canGrantZeal, leaderCooldown } from '../effects/effects.js';
@@ -273,7 +273,7 @@ function enemyImpact(context, job, step) {
     const sign = target.side === side ? -1 : 1;
     const amount = valueOf(match, job, step.amount, target);
     if (step.action === 'destroy') return sign * card.power;
-    if (step.action === 'damage') return sign * Math.min(card.power, statusCount(card, 'shield') ? 0 : Math.max(0, amount - (card.armor ?? 0)));
+    if (step.action === 'damage') return sign * damagePoints(card, amount);
     if (step.status === 'infection') {
       const current = statusCount(card, 'infection');
       const ticks = target.side === side ? context.turns : opponentTurns;

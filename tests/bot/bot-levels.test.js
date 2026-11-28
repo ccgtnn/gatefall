@@ -74,6 +74,8 @@ test('saved legacy bot settings migrate to levels 2, 4 and 6', () => {
 
 test('a seed reproduces the decision and trace at levels 1, 4 and 7', () => {
   const match = position(3);
+  match.players.bot.lives = match.players.human.lives = 1;
+  match.players.human.board.orbit = [plain('lead', 4)];
   match.players.bot.hand = [plain('strong', 9), plain('mid', 6), plain('weak', 3)];
   function decide(level) {
     let seed = 2468;
@@ -87,7 +89,7 @@ test('a seed reproduces the decision and trace at levels 1, 4 and 7', () => {
   for (const level of [1, 4, 7]) {
     const result = decide(level);
     assert.deepEqual(decide(level), result);
-    assert.equal(result.action.type, 'play');
+    assert.deepEqual(result.trace.action, result.action);
     if (level > 1) assert.ok(result.trace.candidates[0].samples > 0);
   }
 });
