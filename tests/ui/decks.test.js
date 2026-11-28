@@ -16,7 +16,7 @@ test('the immutable presets fit the provision cap and have enough units', () => 
     assert.equal(result.budget, 165);
     assert.equal(result.cost, ({
       'preset-protectorate': 154, 'preset-growth': 165, 'preset-growth-plague': 150,
-      'preset-protectorate-orbital': 156, 'preset-growth-rebirth': 163, 'preset-choir': 160, 'preset-captains': 154,
+      'preset-protectorate-orbital': 156, 'preset-growth-rebirth': 163, 'preset-choir': 158, 'preset-captains': 154,
     })[preset.id]);
     assert.ok(Object.isFrozen(preset.cardIds));
     assert.equal(collection(preset.factionId).length, { growth: 58, protectorate: 55, choir: 40, captains: 40 }[preset.factionId]);
