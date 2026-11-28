@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { botLevelLabel } from '../../docs/game/bot/bot-levels.js';
-import { PRESETS } from '../../docs/game/cards/decks.js';
+import { STARTER_DECKS } from '../../docs/game/cards/decks.js';
 import { createLeague, leagueOpponent, leagueTable } from '../../docs/game/meta/league.js';
 import { emit } from '../../docs/ui/app-events.js';
 import { BOT_DIFFICULTY_KEY, createBotDifficulty } from '../../docs/ui/bot-difficulty.js';
@@ -42,7 +42,7 @@ function select(node, value) {
 }
 
 function fixture(signal) {
-  const [preset, growth] = PRESETS;
+  const [preset, growth] = STARTER_DECKS;
   const own = { ...preset, id: 'my-human', name: 'Моя колода' };
   const rival = { ...growth, id: 'my-bot', name: 'Колода соперника' };
   const saved = new Map();
@@ -56,7 +56,7 @@ function fixture(signal) {
   deckStore.save(rival);
   deckStore.recordPlay(own.id, 1);
   const owned = {};
-  for (const deck of PRESETS) {
+  for (const deck of STARTER_DECKS) {
     const copies = {};
     for (const id of deck.cardIds) copies[id] = (copies[id] ?? 0) + 1;
     for (const [id, count] of Object.entries(copies)) owned[id] = Math.max(owned[id] ?? 0, count);
@@ -81,7 +81,7 @@ test('home has quick match and All Decks tile, with the last played deck and all
   assert.equal(player.value, own.id);
   assert.equal(bot.value, '');
   assert.equal(label(bot.children[0]), 'Случайная');
-  assert.ok(PRESETS.every(({ id }) => bot.children.some(({ value }) => value === id)));
+  assert.ok(STARTER_DECKS.every(({ id }) => bot.children.some(({ value }) => value === id)));
   assert.deepEqual(difficulty.children.map(label), [1, 2, 3, 4, 5, 6, 7].map(botLevelLabel));
 });
 
@@ -137,13 +137,13 @@ test('quick match falls back when a saved deck is deleted or no longer owned', (
   saved.set(DECK_STORAGE_KEY, JSON.stringify([rival]));
   deckStore.refresh();
   emit('collection-change');
-  assert.equal(player.value, PRESETS[0].id);
+  assert.equal(player.value, STARTER_DECKS[0].id);
   assert.equal(bot.value, rival.id);
   delete owned[rival.cardIds[0]];
   emit('collection-change');
   assert.equal(bot.value, '');
   assert.ok(!bot.children.some(({ value }) => value === rival.id));
-  assert.deepEqual(JSON.parse(saved.get(QUICK_MATCH_KEY)), { player: PRESETS[0].id, bot: '' });
+  assert.deepEqual(JSON.parse(saved.get(QUICK_MATCH_KEY)), { player: STARTER_DECKS[0].id, bot: '' });
   for (const id of Object.keys(owned)) delete owned[id];
   emit('collection-change');
   assert.ok(player.disabled);
@@ -180,7 +180,7 @@ test('quick match falls back to the primary deck after deletion and clears a del
   deckStore.remove(rival.id);
   emit('collection-change');
   assert.equal(deckStore.primary(), undefined);
-  assert.equal(player.value, PRESETS[0].id);
+  assert.equal(player.value, STARTER_DECKS[0].id);
 });
 
 test('home tiles show production, tavern rewards, next League opponent and rank rewards', (t) => {

@@ -1,7 +1,7 @@
 import { on } from './app-events.js';
 import { FACTIONS } from '../game/cards/cards.js';
 import { FACTION_CATALOG } from '../game/cards/faction-catalog.js';
-import { inspectDeck, PRESETS } from '../game/cards/decks.js';
+import { inspectDeck, STARTER_DECKS } from '../game/cards/decks.js';
 import { button, confirmDeckDeletion, element, iconButton } from './dom.js';
 import { factionFilters } from './faction-filters.js';
 import { homeTiles } from './home-tiles.js';
@@ -231,7 +231,7 @@ export function deckListScreen(phaseLabel, decks, stats, actions, inventory, sig
   let faction = '';
   let primaryId = actions.primary?.(inventory().owned)?.id ?? '';
   const definitions = [
-    ['Стартовые колоды', PRESETS, true],
+    ['Стартовые колоды', STARTER_DECKS, true],
     ['Сохранённые колоды', decks, false],
   ];
   if (primaryId && !primaryId.startsWith('preset-')) definitions.reverse();

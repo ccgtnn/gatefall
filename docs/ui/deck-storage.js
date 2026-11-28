@@ -1,6 +1,6 @@
 import { FACTIONS } from '../game/cards/cards.js';
 import { FORMERLY_NEUTRAL_CARDS, findCardDefinition } from '../game/cards/card-registry.js';
-import { inspectDeck, MIN_CARDS, MIN_UNITS, PRESETS } from '../game/cards/decks.js';
+import { inspectDeck, MIN_CARDS, MIN_UNITS, STARTER_DECKS } from '../game/cards/decks.js';
 
 export const DECK_STORAGE_KEY = 'gatefall.decks';
 export const RECENT_DECKS_KEY = 'gatefall.recent-decks';
@@ -72,8 +72,8 @@ function parseDeckDocument(data, owned) {
 }
 
 function recentPlayableDecks(decks, played, owned) {
-  const all = new Map([...PRESETS, ...decks].map((deck) => [deck.id, deck]));
-  const candidates = played.length ? played.map(({ id }) => all.get(id)).filter(Boolean) : PRESETS;
+  const all = new Map([...STARTER_DECKS, ...decks].map((deck) => [deck.id, deck]));
+  const candidates = played.length ? played.map(({ id }) => all.get(id)).filter(Boolean) : STARTER_DECKS;
   return candidates.filter((deck) => inspectDeck(deck, owned).valid).slice(0, 4);
 }
 
@@ -136,7 +136,7 @@ export function createDeckStorage(storage) {
     refresh();
     const id = readPrimary();
     if (!id) return undefined;
-    const deck = [...PRESETS, ...decks].find((deck) => deck.id === id);
+    const deck = [...STARTER_DECKS, ...decks].find((deck) => deck.id === id);
     if (!deck || !inspectDeck(deck, owned).valid) {
       clearPrimary(id);
       return undefined;
@@ -150,7 +150,7 @@ export function createDeckStorage(storage) {
       return true;
     }
     refresh();
-    const deck = [...PRESETS, ...decks].find((deck) => deck.id === id);
+    const deck = [...STARTER_DECKS, ...decks].find((deck) => deck.id === id);
     if (!deck || !inspectDeck(deck, owned).valid) {
       clearPrimary(id);
       return false;

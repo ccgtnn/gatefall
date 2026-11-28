@@ -10,7 +10,7 @@ import { QUICK_MATCH_KEY } from './ui/quick-match-panel.js';
 import { bindCardPlacement } from './ui/card-placement.js';
 import { placementSide } from './game/engine/board.js';
 import { FACTIONS } from './game/cards/cards.js';
-import { inspectDeck, PRESETS } from './game/cards/decks.js';
+import { inspectDeck, STARTER_DECKS } from './game/cards/decks.js';
 import { button, element, iconButton } from './ui/dom.js';
 import { preview, showCard } from './ui/cards.js';
 import { createBattlefield } from './ui/field.js';
@@ -432,7 +432,7 @@ function renderScreen({ deckListNotice } = {}) {
         checkpoint: progress.checkpointLeague,
         decks: () => {
           const { owned } = progress.inventory();
-          const decks = [...PRESETS, ...deckStore.list()].filter((deck) => inspectDeck(deck, owned).valid);
+          const decks = [...STARTER_DECKS, ...deckStore.list()].filter((deck) => inspectDeck(deck, owned).valid);
           const primary = deckStore.primary(owned);
           return primary
             ? [primary, ...decks.filter(({ id }) => id !== primary.id)]
